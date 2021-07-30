@@ -1,0 +1,119 @@
+
+function fly = separate_conditions(fly)
+% fly = separate_conditions(fly)
+% Create a Stim and Control field in 'fly' with substructures for speed, 
+% rotational velocity, activity level and pitch|yaw|roll
+% Inputs: 
+% 'fly' [structure with all data and condition timing info]
+% Outputs:
+% 'fly' [same structure with added variable fields]
+% format of segmented conditions:
+% fly.(Type{pp}).data(cond,rep).raw
+% format of segmented variable:
+% fly.(Type{pp}).speed(cond).data(:,rep)
+% 
+% ES Dickinson, University of Washington, Dec 2018
+
+[num, Fictrac] = NUM(fly.param);
+fly.param.min_speed = 0.5; %speed cutoff for 'active' movement
+
+%% Create a spot for the fly in the structure:
+% stuct fly(#)=fly number; stuct cond(cond,pp): dim cond=condition number, dim pp=variable from FicTrac;
+% data(r,c): dim r=which repetition of the condition, c=data by frame 
+
+Type = {'Stim', 'Control'};
+for pp = 1:2 %stim|control
+   for cond = 1:num.conds
+      for rep = 1:num.reps
+         x1 = fly.conditions.fictracdata.(Type{pp}).start_loc(cond,rep);
+         if x1 == 0
+
+             x1 = 1;
+         end
+         if x2 == 0
+             x2 = x1+60;
+         end
+         x2 = fly.conditions.fictracdata.(Type{pp}).end_loc(cond,rep); 
+         fly.(Type{pp}).data(cond,rep).raw = fly.all_data(x1:x2,:);
+         clear x1 x2
+         
+      end
+   end
+end
+
+% Add fields with speed, heading and activity level sorted
+for pp = 1:2
+  for cond = 1:num.conds  
+    for rep = 1:num.reps    
+    clear x y z a   
+    
+  % SPEED (inst. & mean):
+      x = diff(fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.int_x)).^2;
+      y = diff(fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.int_y)).^2;
+      mean_speed =  mean(sqrt(x+y))*num.ball_radius*num.fps;
+      fly.(Type{pp}).mean_speed(cond).data(:,rep) = mean_speed;
+      speed = fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.speed)*num.ball_radius*num.fps;
+      fly.(Type{pp}).speed(cond).data(:,rep) = speed;
+      
+%   % PITCH, YAW, ROLL (inst. & mean):
+%       x = diff(fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.int_x)).^2;
+%       y = diff(fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.int_y)).^2;
+%       mean_speed =  mean(sqrt(x+y))*num.ball_radius*num.fps;
+%       fly.(Type{pp}).mean_speed(cond).data(:,rep) = mean_speed;
+%       speed = fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.speed)*num.ball_radius*num.fps;
+%       fly.(Type{pp}).speed(cond).data(:,rep) = speed;
+      
+  % HEADING (diff inst.):
+      z = (fly.(Type{pp}).data(cond,rep).raw(:,Fictrac.diffheading));
+      fly.(Type{pp}).rotvelocity(cond).data(:,rep) = rad2deg(z)*num.fps;
+      
+  % TIME ACTIVE:
+      A = length(find(fly.(Type{pp}).speed(cond).data(:,rep) <= fly.param.min_speed));
+      fly.(Type{pp}).activitylevel(cond).data(:,rep) = 100 - (A/num.stim_length * 100);
+      clear x y z A a 
+      
+    end
+  end
+end
+
+index = 0;
+% Check for fluke numbers that need to be averaged out
+for cond = 1:num.conds
+    for rep = 1:num.reps
+        for pp = 1:2
+            clear h time
+            a = abs(fly.(Type{pp}).rotvelocity(cond).data(:,rep)) > 700;
+            b = find(a == 1);
+            bb = fly.(Type{pp}).rotvelocity(cond).data(b,rep);
+           if sum(a)> 0 
+              for time = 1:length(bb)
+                switch pp
+                    case 1 %STIM
+                        if b(time) == num.stim_length %if its the last point
+                            bbb = (fly.(Type{pp}).rotvelocity(cond).data(b(time)-1,rep)+fly.(Type{pp}).rotvelocity(cond).data(b(time)-2,rep))/2;
+                           else
+                            bbb =(fly.(Type{pp}).rotvelocity(cond).data(b(time)-1,rep)+fly.(Type{pp}).rotvelocity(cond).data(b(time)+1,rep))/2;
+                        end
+                    case 2 %Control
+                        if b(time) == num.stim_length
+                            bbb = (fly.(Type{pp}).rotvelocity(cond).data(b(time)-1,rep)+fly.(Type{pp}).rotvelocity(cond).data(b(time)-2,rep))/2;
+                        else
+                            bbb =(fly.(Type{pp}).rotvelocity(cond).data(b(time)-1,rep)+fly.(Type{pp}).rotvelocity(cond).data(b(time)+1,rep))/2;
+                        end
+                end
+                fly.(Type{pp}).rotvelocity(cond).data(b,rep) = bbb;
+                fprintf([' Outlier adjusted from ' num2str(bb(time)) ' to ' num2str(bbb) '\n'])
+                index = index + 1;
+              end
+           end
+        end
+    end
+end
+fprintf(['\n Total number of outliers: ' num2str(index) '\n'])
+clear h time index a b bb bbb
+
+end
+
+
+
+
