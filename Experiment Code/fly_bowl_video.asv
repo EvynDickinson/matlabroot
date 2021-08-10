@@ -44,7 +44,7 @@ fprintf('All wrapped')
  
  
  %% Quick save a series of videos
- N_repeats = 10;
+ N_repeats = 30;
  
 for i = 1:N_repeats
     
@@ -52,13 +52,13 @@ for i = 1:N_repeats
     diskLogger.FrameRate = 20; 
     vid.DiskLogger = diskLogger;
 
-    vid_dur = 30;   % duration of video recording
+    vid_dur = 10;   % duration of video recording
 
     start(vid)
     pause(vid_dur)  
     stop(vid)
 
-    fprintf(['\n' num2str(i) ' / ' num2str(N_repeats)  '\n'])
+    fprintf(['\n' num2str(1) ' / ' num2str(N_repeats)  \n'])
 
 end
  
