@@ -1,9 +1,16 @@
+clear
+imaqreset
 
-% General parameters: 
-video_path = 'C:\Users\jeannelab\Documents\Evyn\Video Testing\test_vid'; %TODO make this dynamic to include the date and an updating number
+%% Path selection: 
+basepath = 'C:\Users\jeannelab\Documents\Evyn\DATA\';
+dirName = strrep(datestr(datetime, 'mm-dd-yyyy'), '-', '.');
+video_path = [basepath, dirName, '\'];
+if ~isfolder(video_path); mkdir(video_path); end
 
+% vid parameters
 full_ROI = [0 0 2048 2048];
-partial_ROI = [500 500 1216 1216];
+partial_ROI = [503 693 1216 1216];
+rectangular_ROI = [552 586 628 891]; %srectangular arena space
 
 %% Load in the camera / open preview
 
@@ -19,7 +26,9 @@ src.Gamma = 1.4795;
 src.Shutter = 7.649936;
 
 vid.FramesPerTrigger = inf;
-vid.ROIPosition = partial_ROI;
+vid.ROIPosition = rectangular_ROI;
+%   vid.ROIPosition = full_ROI;
+%   vid.ROIPosition = partial_ROI;
 
 preview(vid);
 
@@ -29,7 +38,9 @@ closepreview
 
 vid.LoggingMode = 'disk';   %'disk&memory'; 
 
-diskLogger = VideoWriter([video_path '.avi'], 'Grayscale AVI');
+diskLogger = VideoWriter([video_path 'testingcompression.avi'], 'Motion JPEG AVI');  %'Grayscale AVI'
+diskLogger.Quality = 85;
+% diskLogger = VideoWriter([video_path 'testingNOcompression.avi'], 'Grayscale AVI');
 diskLogger.FrameRate = 20; 
 vid.DiskLogger = diskLogger;
 
@@ -44,24 +55,40 @@ fprintf('All wrapped')
  
  
  %% Quick save a series of videos
- N_repeats = 30;
+ N_repeats = 10;
  
 for i = 1:N_repeats
     
-    diskLogger = VideoWriter([video_path '_' num2str(i) '.avi'], 'Grayscale AVI');
-    diskLogger.FrameRate = 20; 
-    vid.DiskLogger = diskLogger;
+    diskLogger = VideoWriter([video_path 'test_vid_' num2str(i) '.avi'], 'Grayscale AVI');
+    diskLogger.FrameRate = 10; 
+    vid.DiskLogger = diskLogger;  
 
-    vid_dur = 10;   % duration of video recording
+    vid_dur = 30;   % duration of video recording
 
     start(vid)
     pause(vid_dur)  
     stop(vid)
 
-    fprintf(['\n' num2str(1) ' / ' num2str(N_repeats)  \n'])
+    fprintf(['\n' num2str(i) ' / ' num2str(N_repeats)  '\n'])
 
 end
  
+
+%% Background picture (approx 5 images to average together)
+
+vid.LoggingMode = 'disk';   %'disk&memory'; 
+
+diskLogger = VideoWriter([video_path 'background _vid.avi'], 'Grayscale AVI');
+diskLogger.FrameRate = 5; 
+vid.DiskLogger = diskLogger;
+
+vid_dur = 1;   % duration of video recording
+
+start(vid)
+pause(vid_dur)  
+stop(vid)
+
+fprintf('All wrapped')
  
  
 
