@@ -25,7 +25,7 @@ index = listdlg('ListString', temp.folders, 'PromptString',...
 paths.D_dir = ['F:\Evyn Data Files\' Input_dir.date '\'];
 paths.G_dir = ['G:\My Drive\Data\FicTrac Raw Data\' Input_dir.date '\'];
 
-% for each fly trial, copy the data ov er and compress the videos
+% for each fly trial, copy the data over and compress the videos
 idx = 0; 
  for prep = 1:length(index)   
     idx = idx+1;
