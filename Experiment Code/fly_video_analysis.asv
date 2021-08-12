@@ -1,4 +1,6 @@
-%% Select videos & data to load
+clear
+
+%% Select folder and video to load
 
 %get base folder pathway
 switch getenv('COMPUTERNAME')
@@ -9,64 +11,34 @@ switch getenv('COMPUTERNAME')
 end
 
 %select folder date
-list_flies = dir(baseFolder);
-for i = 3:length(list_flies)
-    folderNames{i-2} = list_flies(i).name;
+list_dirs = dir(baseFolder);
+for i = 3:length(list_dirs)
+    folderNames{i-2} = list_dirs(i).name;
 end
-folderNames
+folderNames = ['Today', folderNames];
 
 %Select the flies to analyze
 indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
-folder = fullfile(baseFolder, folderNames{indx});
-% Get information for today's experiment
-Today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
-param.matlab_data_file = [Today '_fly' param.fly_num];
-param.folder_date = Num2Month(date);    % today's date
-
-
-
-
-%% Load background video
-movieFullFileName = fullfile(folder, 'background_vid.avi');
-% Check to see that it exists.
-if ~exist(movieFullFileName, 'file')
-  strErrorMessage = sprintf('File not found:\n%s\nYou can choose a new one, or cancel', movieFullFileName);
-  response = questdlg(strErrorMessage, 'File not found', 'OK - choose a new movie.', 'Cancel', 'OK - choose a new movie.');
-  if strcmpi(response, 'OK - choose a new movie.')
-    [baseFileName, folderName, FilterIndex] = uigetfile('*.avi');
-    if ~isequal(baseFileName, 0)
-      movieFullFileName = fullfile(folderName, baseFileName);
-    else
-      return;
-    end
-  else
-    return;
-  end
+if strcmpi(folderNames{indx}, 'Today')==true
+    dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
+else
+    dir_sel = folderNames{indx+1};
 end
+    
+folder = fullfile(baseFolder, dir_sel);
 
-movieInfo = VideoReader(movieFullFileName);
-nframes = movieInfo.Duration * movieInfo.FrameRate;
-height = movieInfo.Height;
-width = movieInfo.Width;
-mov = zeros(height, width, nframes);
-
-%load all the data for the video:
-for i = 1:nframes
-    mov(:,:,i) = im2double(read(movieInfo, i));
+%Get list of available videos
+list_dirs = dir([folder, '\*.avi']); %only videos
+for i = 1:length(list_dirs)
+    vidNames{i} = list_dirs(i).name;
 end
-
-% Pull the median pixel value in the background images
-emptyImg = median(mov,3);
-imshow(emptyImg)
-
-backgroundImg = emptyImg - mov(:,:,1);
-imshowpair(emptyImg, backgroundImg, 'montage')
-
+indx = listdlg('ListString', vidNames, 'SelectionMode', 'Single');
+vidPath = fullfile(folder, vidNames{indx});
 
 %% Load selected video
-movieFullFileName = fullfile(folder, 'test_vid_1.avi');
+% movieFullFileName = fullfile(folder, 'test_vid_1.avi');
 % Check to see that it exists.
-if ~exist(movieFullFileName, 'file')
+if ~exist(vidPath, 'file')
   strErrorMessage = sprintf('File not found:\n%s\nYou can choose a new one, or cancel', movieFullFileName);
   response = questdlg(strErrorMessage, 'File not found', 'OK - choose a new movie.', 'Cancel', 'OK - choose a new movie.');
   if strcmpi(response, 'OK - choose a new movie.')
@@ -81,24 +53,251 @@ if ~exist(movieFullFileName, 'file')
   end
 end
 
-movieInfo = VideoReader(movieFullFileName);
+movieInfo = VideoReader(vidPath);
 nframes = movieInfo.Duration * movieInfo.FrameRate;
 height = movieInfo.Height;
 width = movieInfo.Width;
-mov = zeros(height, width, nframes);
+[mov,BWvid,cumOccupation,probOccupation]  = deal(zeros(height, width, nframes));
 
-%load all the data for the video:
-while hasFrame(movieInfo)
-    mov(:,:,i) = im2double(readFrame(movieInfo));
+%load all the data for the video & early process images:
+
+h = waitbar(0,'loading frames');
+for i = 1:nframes
+    frame = read(movieInfo);
+    frame = (rgb2gray(read(movieInfo)));
+    mov(:,:,i) = im2double(frame);
+    BWvid(:,:,i) = imbinarize(frame,'adaptive','ForegroundPolarity','bright','Sensitivity',0.3);
+    cumOccupation(:,:,i) = sum(BWvid(:,:,1:i),3);
+    probOccupation(:,:,i) = cumOccupation(:,:,i)/i;
+    waitbar(i/nframes,h)
+end
+%   implay(mov)
+close(h)
+
+currFrame = mov(:,:,1);
+imshow(currFrame)
+
+%% Build video frames with side by side of raw & processed images
+
+MT = zeros(height, width);
+
+% space buffers
+line_size = 5;
+vert = ones(height,line_size);
+hori = ones(line_size,(width*3)+(line_size*4));
+
+% build a colorbar
+barWidth = 50;
+horimini = ones(line_size,barWidth+(line_size*2));
+buffZone = zeros(height+(2*line_size), barWidth);
+clims = [1,0];
+cmap = repmat(linspace(clims(1),clims(2), height)',1,barWidth);
+cbar = [horimini; vert,cmap,vert; horimini];
+
+% set up text locations:
+offsets = [2,4]; %top&bottom, right&left
+blankFrame = ([vert, MT, vert, MT,vert, MT, vert]);
+blankFrame = [hori;blankFrame; hori];    
+blankFrame = [blankFrame,buffZone,cbar];
+blankFrame = [zeros(barWidth*offsets(1),size(blankFrame,2)); blankFrame]; % top buffer
+blankFrame = [zeros(size(blankFrame,1), barWidth),blankFrame];%right side buffer
+blankFrame = [blankFrame, zeros(size(blankFrame,1), offsets(2)*barWidth)]; % left side buffer
+blankFrame = [blankFrame; zeros(barWidth,size(blankFrame,2))]; % bottom buffer
+frameSize = size(blankFrame);
+
+endloc = frameSize(2)-barWidth*(offsets(2)-1);
+pos = [barWidth, barWidth+line_size+round(width/2);...
+        barWidth, barWidth+2*line_size+round(width*1.5);...
+        barWidth, barWidth+3*line_size+round(width*2.5);...
+        2*barWidth, endloc;...
+        frameSize(1)-barWidth, endloc];
+loc = [pos(:,2), pos(:,1)];
+boxcolors = repmat([0,0,0],[5,1]);
+str = {'raw', 'binary', 'occupation probabilty', '1', '0'};
+
+
+% generate each frame
+for n = 1:nframes
+    newFrame = ([vert, mov(:,:,n), vert, BWvid(:,:,n),vert, probOccupation(:,:,n), vert]);
+    newFrame = [hori;newFrame; hori];    
+    newFrame = [newFrame,buffZone,cbar];
+    newFrame = [zeros(barWidth*offsets(1),size(newFrame,2)); newFrame]; % top buffer
+    newFrame = [zeros(size(newFrame,1), barWidth),newFrame];%right side buffer
+    newFrame = [newFrame, zeros(size(newFrame,1), offsets(2)*barWidth)]; % left side buffer
+    newFrame = [newFrame; zeros(barWidth,size(newFrame,2))]; % bottom buffer
+
+    % insert title and text...
+    newFrame = (insertText(newFrame, loc, str,'FontSize',40,'BoxColor',...
+        boxcolors,'BoxOpacity',1,'TextColor','white', 'anchorpoint', 'center'));
+
+    title_loc = [size(vidFrame,2)-barWidth, barWidth+round(height/2)];
+    newFrame = (insertText(newFrame, title_loc, 'Prob.','FontSize',40,'BoxColor',...
+        'black','BoxOpacity',1,'TextColor','white', 'anchorpoint', 'center'));
+    movie(n).frame = newFrame;
 end
 
-% How do the pixel values change across time for a random selection?
+% 
+% fig = figure; set(fig, 'color', 'k');
+% imshow(newFrame, 'Border', 'tight')
+
+
+%% Write demo vid
+set(0,'DefaultFigureVisible','off');
+
+vid_name = [vidPath(1:end-4) ' feature extraction 3'];
+FrameRate = 20;
+
+h = waitbar(0,'Writing Video');
+fig = getfig; 
+hold on
+v = VideoWriter(vid_name, 'Motion JPEG AVI');
+v.Quality = 90;
+v.FrameRate = FrameRate;
+open(v);
+set(fig, 'Color', 'k')   
+    % add scale bar
+    imshow(zeros(frameSize))
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset') 
+    
+for n = 1:nframes
+    set(fig, 'Color', 'k')
+    
+    % add scale bar
+    imshow(movie(n).frame)
+    
+    % Collect image info for movie file
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset')
+    waitbar(n/nframes,h)
+end
+close(v)
+close(h)
+close all
+fprintf('\n Video Saved! \n')  
+
+   
+set(0,'DefaultFigureVisible','on');
+    
 
 
 
-% Can you identify the flies from the background image?
-currFrame = mov(:,:,1);
-imshowpair(emptyImg, currFrame, 'diff')
+
+
+
+%% Pull the cumulative probabilty for each frame
+
+%make a demo vid with raw vid, binary vid, heatmap
+
+
+% Place the three images side by side
+n = 198; %frame number
+fig = getfig;
+set(fig, 'Color', 'k')
+% extract the three frames
+rawframe = mov(:,:,n);
+editframe = BWvid(:,:,n);
+occProb = sum(BWvid(:,:,1:n),3)/n;
+
+vidFrame = ([vert, rawframe, vert, editframe,vert, occProb, vert]);
+    vidFrame = [hori;vidFrame; hori];
+
+% add scale bar
+imshow(vidFrame)
+    cb = colorbar;
+        %label and aesthetics
+        cb.FontName = 'Arial';
+        cb.FontSize = 10;
+        cb.Color = 'w';
+        cb.Label.String = 'Occupation probabilty/pixel';
+    % TITLES:
+    dim = [0.1860 0.93 0.0343 0.0535];
+    a = annotation('textbox',dim,'String','Raw','FitBoxToText','on');
+    set(a, 'color', 'w', 'EdgeColor', 'k')
+    dim2 = [0.4568 0.93 0.0343 0.0535];
+    a = annotation('textbox',dim2,'String','Binary','FitBoxToText','on');
+    set(a, 'color', 'w', 'EdgeColor', 'k')
+    dim3 = [0.7451 0.93 0.0343 0.0535];
+    a = annotation('textbox',dim3,'String','Occupation','FitBoxToText','on');
+    set(a, 'color', 'w', 'EdgeColor', 'k')
+
+%% Write demo vid
+set(0,'DefaultFigureVisible','off');
+
+vid_name = [vidPath(1:end-4) ' feature extraction 2'];
+FrameRate = 20;
+line_size = 5;
+vert = ones(height,line_size);
+hori = ones(line_size,(width*3)+(line_size*4));
+
+fig = getfig; 
+hold on
+v = VideoWriter(vid_name, 'Motion JPEG AVI');
+v.Quality = 90;
+v.FrameRate = FrameRate;
+open(v);
+set(fig, 'Color', 'k')
+    % extract the three frames
+    MT = zeros(height, width);
+    editframe = BWvid(:,:,1);
+    occProb = sum(BWvid(:,:,1:n),3)/n;
+    vidFrame = ([vert, MT, vert, MT,vert, MT, vert]);
+    vidFrame = [hori;vidFrame; hori];
+    buff = zeros(size(vidFrame));
+    % add scale bar
+    imshow(buff)
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset') 
+    
+for n = 1:15
+    
+    set(fig, 'Color', 'k')
+    % extract the three frames
+    rawframe = mov(:,:,n);
+    editframe = BWvid(:,:,n);
+    occProb = sum(BWvid(:,:,1:n),3)/n;
+    vidFrame = ([vert, rawframe, vert, editframe,vert, occProb, vert]);
+    vidFrame = [hori;vidFrame; hori];
+   
+    % add scale bar
+    imshow(vidFrame)
+    cb = colorbar;
+        %label and aesthetics
+        cb.FontName = 'Arial';
+        cb.FontSize = 10;
+        cb.Color = 'w';
+        cb.Label.String = 'Occupation probabilty/pixel';
+    % TITLES:
+    dim = [0.1860 0.93 0.0343 0.0535];
+    a = annotation('textbox',dim,'String','Raw','FitBoxToText','on');
+    set(a, 'color', 'w', 'EdgeColor', 'k')
+    dim2 = [0.4568 0.93 0.0343 0.0535];
+    a = annotation('textbox',dim2,'String','Binary','FitBoxToText','on');
+    set(a, 'color', 'w', 'EdgeColor', 'k')
+    dim3 = [0.7451 0.93 0.0343 0.0535];
+    a = annotation('textbox',dim3,'String','Occupation','FitBoxToText','on');
+    set(a, 'color', 'w', 'EdgeColor', 'k')
+
+    % Collect image info for movie file
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset')  
+end
+
+close(v)
+close all
+fprintf('\n Video Saved! \n')  
+
+   
+set(0,'DefaultFigureVisible','on');
+
+%%
+
+
+imshowpair(mov(:,:,1), BWvid(:,:,1), 'montage')
 
 testframe = emptyImg - currFrame;
 
