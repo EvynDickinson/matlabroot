@@ -1,5 +1,5 @@
 clear
-
+%% 
 %raw data folder:
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 start_dir = ['C:\Users\jeannelab\Documents\Evyn\DATA\'];
@@ -9,10 +9,10 @@ switch getenv('COMPUTERNAME')
     case 'DENALI'
         baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
     case 'TOGIAK'
-        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';  
 end
 
-%select folder date  
+%select folder date   
 %TODO update this to iterate through multiple folders if need be
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
@@ -30,3 +30,5 @@ folder = fullfile(start_dir, dir_sel);
 
 % Move folders to google drive:
 copyfile(folder, [baseFolder dir_sel])
+
+fprintf('done')    

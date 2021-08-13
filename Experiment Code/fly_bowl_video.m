@@ -1,7 +1,7 @@
 clear
 imaqreset
 
-%% Path selection: 
+%% Video and camera parameters: 
 basepath = 'C:\Users\jeannelab\Documents\Evyn\DATA\';
 dirName = strrep(datestr(datetime, 'mm-dd-yyyy'), '-', '.');
 video_path = [basepath, dirName, '\'];
@@ -12,8 +12,7 @@ full_ROI = [0 0 2048 2048];
 partial_ROI = [493 693 1241 1222];
 rectangular_ROI = [552 586 628 891]; %srectangular arena space
 
-%% Load in the camera / open preview
-
+% Load in the camera / open preview
 vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
 src = getselectedsource(vid);
 
@@ -21,9 +20,9 @@ src = getselectedsource(vid);
 src.Brightness = 11.127068;
 src.Exposure  = 0;
 src.FrameRate = 20;
-src.Gain = 1.75;
-src.Gamma = 1.4795;
-src.Shutter = 7.649936;
+src.Gain = 4.0;
+src.Gamma = 1.5;
+src.Shutter = 5;
 
 vid.FramesPerTrigger = inf;
 % vid.ROIPosition = rectangular_ROI;
@@ -32,34 +31,47 @@ vid.FramesPerTrigger = inf;
 
 preview(vid);
 
-%% Acquire and save video!
+%% Acquire SINGLE save video!
+
+% ------- video params ----------------
+VID_LENGTH = 10; 
+name_modifier = 'testvid';
+% -------------------------------------
 
 closepreview
-
 vid.LoggingMode = 'disk';   %'disk&memory'; 
-
-diskLogger = VideoWriter([video_path 'blackbackgroundarena.avi'], 'Motion JPEG AVI');  %'Grayscale AVI'
+diskLogger = VideoWriter([video_path name_modifier '.avi'], 'Motion JPEG AVI');  
 diskLogger.Quality = 85;
 % diskLogger = VideoWriter([video_path 'testingNOcompression.avi'], 'Grayscale AVI');
 diskLogger.FrameRate = 20; 
 vid.DiskLogger = diskLogger;
 
-vid_dur = 10;   % duration of video recording
-
 start(vid)
-pause(vid_dur)  
+pause(VID_LENGTH)  
 stop(vid)
 
 fprintf('All wrapped')
+
+preview(vid)
  
+%% Acquire SERIES of videos 
  
- %% Quick save a series of videos
- N_repeats = 10;
- 
-for i = 1:N_repeats
+% ------- video params ----------------
+N_repeats = 10;
+VID_LENGTH = 60;
+name_modifier = 'MovementTest_N19_20C';
+% -------------------------------------
+
+% find the current video count for this name modifier and use as offset number:
+list_dirs = dir([folder, '\*' name_modifier '*.avi']); %only videos
+offset = length(list_dirs);
+
+closepreview    
+for i = offset+1:offset+N_repeats
     
-    diskLogger = VideoWriter([video_path 'DummyVid_15C_' num2str(i) '.avi'], 'Motion JPEG AVI');
-    diskLogger.Quality = 85;
+    diskLogger = VideoWriter([video_path name_modifier '_' num2str(i) '.avi'], 'Motion JPEG AVI');
+    vid.LoggingMode = 'disk';   %'disk&memory'; 
+    diskLogger.Quality = 65;
     diskLogger.FrameRate = 20; 
     vid.DiskLogger = diskLogger;  
     vid_dur = 60;   % duration of video recording
@@ -68,10 +80,11 @@ for i = 1:N_repeats
     pause(vid_dur)  
     stop(vid)
 
-    fprintf(['\n' num2str(i) ' / ' num2str(N_repeats)  '\n'])
+    fprintf(['\n' num2str(i) ' / ' num2str(offset+N_repeats)  '\n']) 
 
 end
- 
+preview(vid)
+
 
 %% Background picture (approx 5 images to average together)
 
