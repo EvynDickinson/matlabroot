@@ -80,6 +80,11 @@ end
 fprintf('\n All loaded! \n')  
 
 
+%% save the data! 
+save([folder, '\occupational prob data'])
+
+
+
 %% Basic visualization of the flies density over the total videos duration
 
 % get the total across all loaded videos
