@@ -39,7 +39,6 @@ vid = 1;
 
 %% Load video -- save cumulative pixel counts
 
-
 %Get list of available videos
 list_dirs = dir([folder, '\*.avi']); %only videos
 for i = 1:length(list_dirs)
@@ -50,21 +49,23 @@ indx = listdlg('ListString', vidNames, 'SelectionMode', 'Multiple');
 data = [];
 for n = 1:length(indx)
     
-    vid = indx(n);
-    vidPath = fullfile(folder, vidNames{vid});
-
-    movieInfo = VideoReader(vidPath);
+    vid = indx(n); %select video file from list
+    vidPath = fullfile(folder, vidNames{vid}); %full video path
+    movieInfo = VideoReader(vidPath); %read in video
+    
+    %extract parameters from video
     nframes = movieInfo.Duration * movieInfo.FrameRate;
     height = movieInfo.Height;
     width = movieInfo.Width;
-    tot_occ = zeros(height, width);
+    tot_occ = zeros(height, width); %setup blank occupation
     n_tot = nframes;
-    
+        
     h = waitbar(0,...
         ['reading in frames from vid ' num2str(n) '/' num2str(length(indx))]);
+    % Read and process the videos frame-by-frame
     for i = 1:n_tot
         % Read in current frame from raw video
-        frame = (rgb2gray(read(movieInfo,i))); %convert greyscale
+        frame = (rgb2gray(read(movieInfo,i))); %convert to greyscale
         BWframe = imbinarize(im2double(frame),... % threshold black and white
                   'adaptive','ForegroundPolarity','bright','Sensitivity',0.3);
         [currProb, tot_occ] = (getOccProb(tot_occ,BWframe,i)); % spatial probabilty 
@@ -79,13 +80,13 @@ for n = 1:length(indx)
 end
 fprintf('\n All loaded! \n')  
 
-
+ 
 %% save the data! 
 save([folder, '\occupational prob data'])
 
 
 
-%% Basic visualization of the flies density over the total videos duration
+%% Basic visualization of the flies density over the total video duration
 
 % get the total across all loaded videos
 tot_occupancy = sum(data.tot,3);
@@ -135,16 +136,17 @@ y1 = centre(2);
 [xx,yy] = ndgrid((1:height)-y1,(1:width)-x1);
 mask = (xx.^2 + yy.^2>radius^2);
 
-% Mask the original image
-Im = frame;
-Im(mask) = uint8(0);
 
-imshow(Im)    
+fig = figure; set(fig, 'color', 'k')
+imshow(Im)   
+save_figure(fig, [folder, '\arena masked'], '-png')
+ 
+fig = figure; set(fig, 'color', 'k')
+imshow(frame)   
+save_figure(fig, [folder, '\arena NOTmasked'], '-png')
+
 
 % Mask the probability image:
-
-
-
 Img = tot_probabilty;
 Img(mask) = 0;
 
@@ -158,8 +160,11 @@ fig = getfig; set(fig, 'pos', [50 50 1101 900], 'color', 'k');
     ax.XDisplayLabels = nan(size(ax.XDisplayData));
     ax.YDisplayLabels = nan(size(ax.YDisplayData));
 %     ax.ColorScaling = 'log';
-    set(ax,'FontColor', 'w', 'FontName', 'Arial');
+    set(ax,'FontColor', 'w', 'FontName', 'Arial', 'FontSize', 20);
     title('Spatial occupation probability (log scale)');
+    
+save_figure(fig, [folder, '\binned occupation probability'], '-png')
+
 
 %% Load selected video and write processed video
 % movieFullFileName = fullfile(folder, 'test_vid_1.avi');

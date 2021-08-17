@@ -1,0 +1,172 @@
+
+clear; close all
+%% Select videos to load and analyze
+
+%get base folder pathway
+switch getenv('COMPUTERNAME')
+    case 'DENALI'
+        baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
+    case 'TOGIAK'
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
+end
+
+%select folder date
+list_dirs = dir(baseFolder);
+for i = 3:length(list_dirs)
+    folderNames{i-2} = list_dirs(i).name;
+end
+folderNames = ['Today', folderNames];
+
+%Select the flies to analyze
+indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
+if strcmpi(folderNames{indx}, 'Today')==true
+    dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
+else
+    dir_sel = folderNames{indx};
+end
+    
+folder = fullfile(baseFolder, dir_sel);
+
+%Get list of available videos
+list_dirs = dir([folder, '\*.avi']); %only videos
+for i = 1:length(list_dirs)
+    vidNames{i} = list_dirs(i).name;
+end
+indx = listdlg('ListString', vidNames, 'SelectionMode', 'Single');
+vidPath = fullfile(folder, vidNames{indx});
+
+vid = 1;
+
+%% Set up basics with a GPU:
+
+gpu = gpuDevice();
+
+
+data = [];
+for n = 1:length(indx)
+    
+    vid = indx(n); %select video file from list
+    vidPath = fullfile(folder, vidNames{vid}); %full video path
+    movieInfo = VideoReader(vidPath); %read in video
+    
+    %extract parameters from video
+    nframes = movieInfo.Duration * movieInfo.FrameRate;
+    height = movieInfo.Height;
+    width = movieInfo.Width;
+    occCumSum = zeros(height, width); %setup blank occupation
+    n_tot = nframes;
+    
+%     currOcc = nan(height, width, nframes);
+    
+    h = waitbar(0,...
+        ['reading in frames from vid ' num2str(n) '/' num2str(length(indx))]);
+    % Read and process the videos frame-by-frame
+    tic
+    for i = 1:n_tot
+        
+     % IMAGE PROCESSING: TODO move to a unique function
+        IMoriginal = read(movieInfo,i); %convert to greyscale
+%         imshow(IMoriginal)
+        imGPUoriginal = gpuArray(IMoriginal);
+        imGPUgray = rgb2gray(imGPUoriginal); % convert to greyscale
+%         imtool(gather(imGPUgray)) % TODO: make this a dynamic option for
+%         each chunk of data
+        imflyGPU = imGPUgray>90; %mask for everything that is a fly color or lighter        
+%         imshow(imflyGPU)       
+        imFlyMask = imopen(imflyGPU,strel('disk',5));
+%         imshow(imFlyMask)
+        % Mask the probability image:
+        Img = imFlyMask;
+        Img(mask) = 0;
+        imshow(Img)
+        
+%         fig = figure; set(fig, 'color', 'k')
+%         imshow(Img)
+%         save_figure(fig, [folder, '\img4'], '-png')
+        
+%         % TODO: NEED TO HAVE A SECTION TO SELECT A PRECREATED MASK FOR EACH
+%         % EXPERIMENT AND TO SAVE A NEW ONE IF NOT
+%         figure;
+%         imshow(IMoriginal)
+%         roi = drawcircle;
+%         centre = roi.Center;
+%         radius = roi.Radius;
+% 
+%         % Define coordinates and radius
+%         x1 = centre(1);
+%         y1 = centre(2);
+% 
+%         % Generate grid with binary mask representing the circle. Credit to Jonas for original code.
+%         [xx,yy] = ndgrid((1:height)-y1,(1:width)-x1);
+%         mask = (xx.^2 + yy.^2>radius^2);
+
+        currOcc = gather(Img/sum(sum(Img))); %probabilty for this frame (1 across total image)
+        occCumSum = (occCumSum + currOcc);
+        
+%         fig = figure; set(fig, 'color', 'k')
+%         h = heatmap(gather(currOcc)); 
+%         colormap hot;
+%         set(h,'gridvisible', 'off')
+%         ax = gca;
+%         ax.XDisplayLabels = nan(size(ax.XDisplayData));
+%         ax.YDisplayLabels = nan(size(ax.YDisplayData));
+%         set(ax,'FontColor', 'w', 'FontName', 'Arial');
+%         title('Spatial occupation probability');
+
+        waitbar(i/n_tot,h)
+    end
+    close(h)
+    toc
+     prob = occCumSum / i;
+        
+%         OccSum = (OccSum + gather(currOcc))/i;
+%     
+%     % save specific vid data
+%     data.tot(:,:,n) = tot_occ;
+%     data.prob(:,:,n) = currProb;
+
+end
+fprintf('\n All loaded! \n')  
+
+
+
+
+
+
+
+fig = figure; set(fig, 'color', 'k')
+h = heatmap(prob); 
+colormap hot;
+set(h,'gridvisible', 'off')
+ax = gca;
+ax.XDisplayLabels = nan(size(ax.XDisplayData));
+ax.YDisplayLabels = nan(size(ax.YDisplayData));
+set(ax,'FontColor', 'w', 'FontName', 'Arial');
+title('Spatial occupation probability');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
