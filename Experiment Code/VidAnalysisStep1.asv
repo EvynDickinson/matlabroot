@@ -1,5 +1,6 @@
 
 clear; close all
+
 %% Select videos to load and analyze
 
 %get base folder pathway
@@ -10,39 +11,129 @@ switch getenv('COMPUTERNAME')
         baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
 end
 
-%select folder date
-list_dirs = dir(baseFolder);
-for i = 3:length(list_dirs)
-    folderNames{i-2} = list_dirs(i).name;
-end
-folderNames = ['Today', folderNames];
-
-%Select the flies to analyze
+% Select the date of the experiment to analyze
+dirc = dir(baseFolder);
+dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
+folderNames = ['Today', {dirc(:).name}];
 indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
 if strcmpi(folderNames{indx}, 'Today')==true
     dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 else
     dir_sel = folderNames{indx};
 end
-    
 folder = fullfile(baseFolder, dir_sel);
 
-%Get list of available videos
-list_dirs = dir([folder, '\*.avi']); %only videos
-for i = 1:length(list_dirs)
-    vidNames{i} = list_dirs(i).name;
-end
-indx = listdlg('ListString', vidNames, 'SelectionMode', 'Single');
-vidPath = fullfile(folder, vidNames{indx});
+% Select the complete experiments to process
+list_dirs = dir([folder, '\*.mat']); %only matlab files
+list_dirs = {list_dirs(:).name};
+expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
+indx = listdlg('ListString', expNames, 'SelectionMode', 'Multiple');
 
-vid = 1;
+% Make new analyzed file directory
+analysisDir = [folder '\analysis\']; 
+if ~isfolder(analysisDir); mkdir(analysisDir); end
+
+
+%% Process videos
+warning off
+
+for Exp = 1:length(indx)
+    
+    % load matlab file for experiment
+    expData = load([folder '\' expNames{indx(Exp)} 'dataMat.mat']);
+    vidName = expData.videoNames;
+    
+    % load and process videos:
+    for vid = 1:expData.num.vids
+        
+        % video parameters
+        vidPath = fullfile(folder, [vidName '_' num2str(vid) '.avi']);
+        movieInfo = VideoReader(vidPath); %read in video
+
+        % extract parameters from video
+        nframes = movieInfo.Duration * movieInfo.FrameRate;
+        height = movieInfo.Height;
+        width = movieInfo.Width;
+        occCumSum = zeros(height, width); %setup blank occupation
+        n_tot = nframes;
+        
+        % save processing params for this experiment:
+        pixel_thresh = 105;
+        cluster_thresh = 4;
+        if vid==1
+            % demo image
+            demoImg = rgb2gray(read(movieInfo,1));
+            demoAdj = imopen(demoImg>pixel_thresh,strel('disk',cluster_thresh));
+            f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Thresholding test')
+            uiwait(f)
+
+            % COLORTHRESHOLD
+            switch questdlg('Use default image threshold?')
+               case 'No' 
+                   f = figure; imtool(demoImg); uiwait(f)
+                   pixel_thresh = str2double(cell2mat(inputdlg('Light pixel threshold?')));
+                   demoAdj = imopen(demoImg>pixel_thresh,strel('disk',4));
+                   f = figure; imshowpair(demoImg, demoAdj,'montage'); uiwait(f)
+                   switch questdlg('New threshold acceptable?')
+                        case 'No' 
+                            return
+                   end
+               case 'Cancel'
+                   return
+           end
+           % MASK OPTIONS
+           switch questdlg('Load previous arena mask?')
+               case 'Yes'
+                   [file,path] = uigetfile('*.mat');
+                   mask = load(fullfile(path, file));
+                   
+               case 'No'
+                   mask = drawArenaMask(demoImg);
+                   save([analysisDir 'Mask ' vidName], 'mask');
+               case 'Cancel'
+                   return
+           end
+           % Test all image processing:
+           demoAdj = imopen(demoImg>pixel_thresh,strel('disk',4));
+           demoAdj(mask) = 0;
+           f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Thresholding test')
+           uiwait(f)
+           switch questdlg('Processing acceptable?')
+                case 'No' 
+                    return
+           end
+           clear file path demoImg demoAdj f
+        end
+        
+        % process video frames
+        h = waitbar(0,...
+        ['reading in frames from vid ' num2str(vid) '/' num2str(expData.num.vids)]);
+        for i = 1:nframes
+            % Image processing:
+            IMoriginal = read(movieInfo,i); %convert to greyscale
+            imGPUoriginal = gpuArray(IMoriginal);
+            imGPUgray = rgb2gray(imGPUoriginal); % convert to greyscale
+            imflyGPU = imGPUgray>pixel_thresh; %color threshold            
+            Img = imopen(imflyGPU,strel('disk',cluster_thresh)); %denoise
+            Img(mask) = 0; % mask for arena size
+
+            
+        end
+            
+    end
+    
+    
+end
+
+
+
+
+
 
 %% Set up basics with a GPU:
 
-gpu = gpuDevice();
+% gpu = gpuDevice();
 
-
-data = [];
 for n = 1:length(indx)
     
     vid = indx(n); %select video file from list
@@ -78,7 +169,9 @@ for n = 1:length(indx)
         % Mask the probability image:
         Img = imFlyMask;
         Img(mask) = 0;
-        imshow(Img)
+%         imshow(Img)
+        
+                   
         
 %         fig = figure; set(fig, 'color', 'k')
 %         imshow(Img)
@@ -88,7 +181,7 @@ for n = 1:length(indx)
 %         % EXPERIMENT AND TO SAVE A NEW ONE IF NOT
 %         figure;
 %         imshow(IMoriginal)
-%         roi = drawcircle;
+%         roi = drawcircle;    
 %         centre = roi.Center;
 %         radius = roi.Radius;
 % 
@@ -117,7 +210,9 @@ for n = 1:length(indx)
     end
     close(h)
     toc
-     prob = occCumSum / i;
+    clear IMoriginal imGPUoriginal imGPUgray imFlyMask Img imflyGPU
+    % calculate the probability of a fly being in a given location
+    prob = occCumSum / i;
         
 %         OccSum = (OccSum + gather(currOcc))/i;
 %     

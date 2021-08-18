@@ -1,5 +1,6 @@
 
 clear; close all
+
 %% Select videos to load and analyze
 
 %get base folder pathway
@@ -10,39 +11,142 @@ switch getenv('COMPUTERNAME')
         baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
 end
 
-%select folder date
-list_dirs = dir(baseFolder);
-for i = 3:length(list_dirs)
-    folderNames{i-2} = list_dirs(i).name;
-end
-folderNames = ['Today', folderNames];
-
-%Select the flies to analyze
+% Select the date of the experiment to analyze
+dirc = dir(baseFolder);
+dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
+folderNames = ['Today', {dirc(:).name}];
 indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
 if strcmpi(folderNames{indx}, 'Today')==true
     dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 else
     dir_sel = folderNames{indx};
 end
-    
 folder = fullfile(baseFolder, dir_sel);
 
-%Get list of available videos
-list_dirs = dir([folder, '\*.avi']); %only videos
-for i = 1:length(list_dirs)
-    vidNames{i} = list_dirs(i).name;
-end
-indx = listdlg('ListString', vidNames, 'SelectionMode', 'Single');
-vidPath = fullfile(folder, vidNames{indx});
+% Select the complete experiments to process
+list_dirs = dir([folder, '\*.mat']); %only matlab files
+list_dirs = {list_dirs(:).name};
+expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
+indx = listdlg('ListString', expNames, 'SelectionMode', 'Multiple');
 
-vid = 1;
+% Make new analyzed file directory
+analysisDir = [folder '\analysis\']; 
+if ~isfolder(analysisDir); mkdir(analysisDir); end
+
+
+%% Process videos
+warning off
+
+for Exp = 1:length(indx)
+    
+    % load matlab file for experiment
+    expData = load([folder '\' expNames{indx(Exp)} 'dataMat.mat']);
+    vidName = expData.videoNames;
+    
+    % load and process videos:
+    for vid = 1:expData.num.vids
+        
+        % video parameters
+        vidPath = fullfile(folder, [vidName '_' num2str(vid) '.avi']);
+        movieInfo = VideoReader(vidPath); %read in video
+
+        % extract parameters from video
+        nframes = movieInfo.Duration * movieInfo.FrameRate;
+        height = movieInfo.Height;
+        width = movieInfo.Width;
+        occCumSum = zeros(height, width); %setup blank occupation
+        n_tot = nframes;
+        
+        % save processing params for this experiment:
+        nWells = 1;
+        pixel_thresh = 105;
+        cluster_thresh = 4;
+        if vid == 1
+            % demo image
+            demoImg = rgb2gray(read(movieInfo,1));
+            demoAdj = imopen(demoImg>pixel_thresh,strel('disk',cluster_thresh));
+            f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Thresholding test')
+            uiwait(f)
+
+            % COLORTHRESHOLD
+            switch questdlg('Use default image threshold?')
+               case 'No' 
+                   f = figure; imtool(demoImg); uiwait(f)
+                   pixel_thresh = str2double(cell2mat(inputdlg('Light pixel threshold?')));
+                   demoAdj = imopen(demoImg>pixel_thresh,strel('disk',4));
+                   f = figure; imshowpair(demoImg, demoAdj,'montage'); uiwait(f)
+                   switch questdlg('New threshold acceptable?')
+                        case 'No' 
+                            return
+                   end
+               case 'Cancel'
+                   return
+           end
+           % MASK OPTIONS
+           switch questdlg('Load previous arena mask?')
+               case 'Yes'
+                   [file,path] = uigetfile('*.mat');
+                   a = load(fullfile(path, file));
+                   mask = a.mask;
+               case 'No'
+                   mask = drawArenaMask(demoImg,nWells);
+                   save([analysisDir 'Mask ' vidName], 'mask');
+               case 'Cancel'
+                   return
+           end
+           % Test all image processing:
+           demoAdj = imopen(demoImg>pixel_thresh,strel('disk',4));
+           demoAdj(mask) = 0;
+           f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Thresholding test')
+           uiwait(f)
+           switch questdlg('Processing acceptable?')
+                case 'No' 
+                    return
+           end
+           clear file path demoImg demoAdj f a
+        end
+        
+        % process video frames
+        h = waitbar(0,...
+        ['reading in frames from vid ' num2str(vid) '/' num2str(expData.num.vids)]);
+        for i = 1:n_tot
+            % Image processing:
+            Img = processOccImg(read(movieInfo,i), pixel_thresh, cluster_thresh);
+            Img(mask) = 0; % mask for arena size
+            
+            % Update the occupancy count
+            currOcc = gather(Img/sum(sum(Img))); %probabilty for this frame (1 across total image)
+            occCumSum = (occCumSum + currOcc);
+            waitbar(i/n_tot,h)
+        end
+        close(h)
+        
+        % Group the video and temp data:
+%         videoData....
+        
+        
+    end
+    
+    
+    
+end
+
+
+fig = figure; set(fig, 'color', 'k')
+h = heatmap(gather(occCumSum)); 
+colormap hot;
+set(h,'gridvisible', 'off')
+ax = gca;
+ax.XDisplayLabels = nan(size(ax.XDisplayData));
+ax.YDisplayLabels = nan(size(ax.YDisplayData));
+set(ax,'FontColor', 'w', 'FontName', 'Arial');
+title('Spatial occupation probability');
+
 
 %% Set up basics with a GPU:
 
-gpu = gpuDevice();
+% gpu = gpuDevice();
 
-
-data = [];
 for n = 1:length(indx)
     
     vid = indx(n); %select video file from list
@@ -78,29 +182,10 @@ for n = 1:length(indx)
         % Mask the probability image:
         Img = imFlyMask;
         Img(mask) = 0;
-        imshow(Img)
-        
-        
-        
-%         fig = figure; set(fig, 'color', 'k')
 %         imshow(Img)
-%         save_figure(fig, [folder, '\img4'], '-png')
         
-%         % TODO: NEED TO HAVE A SECTION TO SELECT A PRECREATED MASK FOR EACH
-%         % EXPERIMENT AND TO SAVE A NEW ONE IF NOT
-%         figure;
-%         imshow(IMoriginal)
-%         roi = drawcircle;
-%         centre = roi.Center;
-%         radius = roi.Radius;
-% 
-%         % Define coordinates and radius
-%         x1 = centre(1);
-%         y1 = centre(2);
-% 
-%         % Generate grid with binary mask representing the circle. Credit to Jonas for original code.
-%         [xx,yy] = ndgrid((1:height)-y1,(1:width)-x1);
-%         mask = (xx.^2 + yy.^2>radius^2);
+                   
+        
 
         currOcc = gather(Img/sum(sum(Img))); %probabilty for this frame (1 across total image)
         occCumSum = (occCumSum + currOcc);
