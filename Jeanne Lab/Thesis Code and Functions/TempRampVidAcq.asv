@@ -7,7 +7,7 @@ imaqreset
 
 num.fps = 3;    % acquisition frame rate
 num.writeFPS = 3;   % frame rate of recorded video
-
+  
 num.vidLength = 5;  % desired video length in minues
 num.sessionLength = 200;    % total recording length desired (in minutes)
 
@@ -64,7 +64,6 @@ for n = 1:num.vids
     diskLogger.Quality = 65;
     diskLogger.FrameRate = num.writeFPS; 
     vid.DiskLogger = diskLogger;  
-    vid_dur = 60;   % duration of video recording
 
     start(vid)
     pause(num.vidLength*60) % pause for the duration of each video
@@ -73,8 +72,9 @@ for n = 1:num.vids
     % pull the current temp reading from the chiller log
     tempLogEnd(n,:) = logTempNow(searchPath);
     
-        fprintf(['\n' num2str(i) ' / ' num2str(offset+N_repeats)  '\n']) 
+    fprintf(['\n' num2str(n) ' / ' num2str(num.vids)  '\n']) 
 end
+
 
 fprintf(['\n' 'Done' '\n']) 
 
