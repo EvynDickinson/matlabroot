@@ -20,6 +20,11 @@ Cross = strsplit(A,',');
 
 idx = listdlg('ListString', Cross, 'PromptString', 'Select fly cross',...
               'SelectionMode', 'Single', 'ListSize', [250, 400]);
-fly_cross = Cross{idx};
+if isempty(idx)
+    fprintf('\n No cross selected\n')
+    fly_cross = 'none';
+else
+    fly_cross = Cross{idx};
+end
 
 end
