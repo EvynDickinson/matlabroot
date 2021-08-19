@@ -4,7 +4,19 @@ clear; close all
 %% Select videos to load and analyze
 
 %get base folder pathway
-[baseFolder, folder] = getCloudPath(1);
+baseFolder = getCloudPath(1);
+
+% Select the date of the experiment to analyze
+dirc = dir(baseFolder);
+dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
+folderNames = ['Today', {dirc(:).name}];
+indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
+if strcmpi(folderNames{indx}, 'Today')==true
+    dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
+else
+    dir_sel = folderNames{indx};
+end
+folder = fullfile(baseFolder, dir_sel);
 
 % Select the complete experiments to process
 list_dirs = dir([folder, '\*.mat']); %only matlab files

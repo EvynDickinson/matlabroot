@@ -22,6 +22,8 @@ y1 = centre(2);
 [xx,yy] = ndgrid((1:m)-y1,(1:n)-x1);
 allMasks(:,:,1) = (xx.^2 + yy.^2>radius^2);
 
+imshow(allMasks(:,:,1))
+
 % FOOD WELL MASKS
 if nargin>1 %only do if option selected
     for ii = 1:numPoly    
@@ -39,6 +41,7 @@ mask = sum(allMasks,3)>0;
 %     imshow(mask)
 % 
 %     imshowpair(allMasks(:,:,1), BW, 'montage')
-
-
+    demoimg = image;
+    demoimg(mask) = 0;
+     imshowpair(image, demoimg, 'montage')
 end
