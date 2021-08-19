@@ -9,6 +9,8 @@ switch getenv('COMPUTERNAME')
         baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
     case 'TOGIAK'
         baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
+    case 'EVYNPC'
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
 end
 
 % Select the date of the experiment to analyze
@@ -34,6 +36,7 @@ analysisDir = [folder '\analysis\'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
 
 
+
 %% Process videos
 warning off
 
@@ -43,6 +46,9 @@ for Exp = 1:length(indx)
     expData = load([folder '\' expNames{indx(Exp)} 'dataMat.mat']);
     vidName = expData.videoNames;
     
+    % load the temperature log for the experiment
+    tempLog = readmatrix([folder '\' vidName '_RampLog']);
+   
     % load and process videos:
     for vid = 1:expData.num.vids
         
@@ -58,9 +64,10 @@ for Exp = 1:length(indx)
         n_tot = nframes;
         
         % save processing params for this experiment:
+        nWells = 1;
         pixel_thresh = 105;
         cluster_thresh = 4;
-        if vid==1
+        if vid == 1
             % demo image
             demoImg = rgb2gray(read(movieInfo,1));
             demoAdj = imopen(demoImg>pixel_thresh,strel('disk',cluster_thresh));
@@ -84,11 +91,11 @@ for Exp = 1:length(indx)
            % MASK OPTIONS
            switch questdlg('Load previous arena mask?')
                case 'Yes'
-                   [file,path] = uigetfile('*.mat');
-                   mask = load(fullfile(path, file));
-                   
+                   [file,path] = uigetfile([folder '*.mat']);
+                   a = load(fullfile(path, file));
+                   mask = a.mask;
                case 'No'
-                   mask = drawArenaMask(demoImg);
+                   mask = drawArenaMask(demoImg,nWells);
                    save([analysisDir 'Mask ' vidName], 'mask');
                case 'Cancel'
                    return
@@ -96,38 +103,61 @@ for Exp = 1:length(indx)
            % Test all image processing:
            demoAdj = imopen(demoImg>pixel_thresh,strel('disk',4));
            demoAdj(mask) = 0;
-           f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Thresholding test')
+           f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Full processing preview')
            uiwait(f)
            switch questdlg('Processing acceptable?')
                 case 'No' 
                     return
            end
-           clear file path demoImg demoAdj f
+           clear file path demoImg demoAdj f a
         end
         
         % process video frames
         h = waitbar(0,...
         ['reading in frames from vid ' num2str(vid) '/' num2str(expData.num.vids)]);
-        for i = 1:nframes
+        for i = 1:n_tot
             % Image processing:
-            IMoriginal = read(movieInfo,i); %convert to greyscale
-            imGPUoriginal = gpuArray(IMoriginal);
-            imGPUgray = rgb2gray(imGPUoriginal); % convert to greyscale
-            imflyGPU = imGPUgray>pixel_thresh; %color threshold            
-            Img = imopen(imflyGPU,strel('disk',cluster_thresh)); %denoise
+            Img = processOccImg(read(movieInfo,i), pixel_thresh, cluster_thresh);
             Img(mask) = 0; % mask for arena size
-
             
+            % Update the occupancy count
+            currOcc = gather(Img/sum(sum(Img))); %probabilty for this frame (1 across total image)
+            occCumSum = (occCumSum + currOcc);
+            waitbar(i/n_tot,h)
         end
-            
+        close(h)
+
+        % add data summary into data structure
+        videoData.currOcc = currOcc;
+        videoData.occ_Prob = occCumSum;
+        
+        % Group the video and temp data:
+        videoData.temprange = [expData.tempLogStart(vid,4), expData.tempLogEnd(vid,4)];
+        
+        % Extract the appropriate chunk of the data log
+        roi = [expData.tempLogStart(vid,3), expData.tempLogEnd(vid,3)];
+        loc = tempLog(:,1)>=roi(1) & tempLog(:,1)<=roi(2);
+        videoData.tempLog = tempLog(loc,:);
+        videoData.name = [vidName '_' num2str(vid)];
+        
+        % Save the VideoData into the analysis folder
+        save([analysisDir vidName '_' num2str(vid) ' data'], 'videoData')
     end
+    
     
     
 end
 
 
-
-
+fig = figure; set(fig, 'color', 'k')
+h = heatmap(gather(occCumSum)); 
+colormap hot;
+set(h,'gridvisible', 'off')
+ax = gca;
+ax.XDisplayLabels = nan(size(ax.XDisplayData));
+ax.YDisplayLabels = nan(size(ax.YDisplayData));
+set(ax,'FontColor', 'w', 'FontName', 'Arial');
+title('Spatial occupation probability');
 
 
 %% Set up basics with a GPU:
@@ -173,25 +203,6 @@ for n = 1:length(indx)
         
                    
         
-%         fig = figure; set(fig, 'color', 'k')
-%         imshow(Img)
-%         save_figure(fig, [folder, '\img4'], '-png')
-        
-%         % TODO: NEED TO HAVE A SECTION TO SELECT A PRECREATED MASK FOR EACH
-%         % EXPERIMENT AND TO SAVE A NEW ONE IF NOT
-%         figure;
-%         imshow(IMoriginal)
-%         roi = drawcircle;    
-%         centre = roi.Center;
-%         radius = roi.Radius;
-% 
-%         % Define coordinates and radius
-%         x1 = centre(1);
-%         y1 = centre(2);
-% 
-%         % Generate grid with binary mask representing the circle. Credit to Jonas for original code.
-%         [xx,yy] = ndgrid((1:height)-y1,(1:width)-x1);
-%         mask = (xx.^2 + yy.^2>radius^2);
 
         currOcc = gather(Img/sum(sum(Img))); %probabilty for this frame (1 across total image)
         occCumSum = (occCumSum + currOcc);

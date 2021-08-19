@@ -9,6 +9,8 @@ switch getenv('COMPUTERNAME')
         baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
     case 'TOGIAK'
         baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
+    case 'EVYNPC'
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
 end
 
 % Select the date of the experiment to analyze
@@ -34,6 +36,7 @@ analysisDir = [folder '\analysis\'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
 
 
+
 %% Process videos
 warning off
 
@@ -43,6 +46,9 @@ for Exp = 1:length(indx)
     expData = load([folder '\' expNames{indx(Exp)} 'dataMat.mat']);
     vidName = expData.videoNames;
     
+    % load the temperature log for the experiment
+    tempLog = readmatrix([folder '\' vidName '_RampLog']);
+   
     % load and process videos:
     for vid = 1:expData.num.vids
         
@@ -85,7 +91,7 @@ for Exp = 1:length(indx)
            % MASK OPTIONS
            switch questdlg('Load previous arena mask?')
                case 'Yes'
-                   [file,path] = uigetfile('*.mat');
+                   [file,path] = uigetfile([folder '*.mat']);
                    a = load(fullfile(path, file));
                    mask = a.mask;
                case 'No'
@@ -97,7 +103,7 @@ for Exp = 1:length(indx)
            % Test all image processing:
            demoAdj = imopen(demoImg>pixel_thresh,strel('disk',4));
            demoAdj(mask) = 0;
-           f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Thresholding test')
+           f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Full processing preview')
            uiwait(f)
            switch questdlg('Processing acceptable?')
                 case 'No' 
@@ -120,27 +126,37 @@ for Exp = 1:length(indx)
             waitbar(i/n_tot,h)
         end
         close(h)
+
+        % add data summary into data structure
+        videoData.currOcc = currOcc;
+        videoData.occ_Prob = occCumSum;
         
         % Group the video and temp data:
-%         videoData....
+        videoData.temprange = [expData.tempLogStart(vid,4), expData.tempLogEnd(vid,4)];
         
+        % Extract the appropriate chunk of the data log
+        roi = [expData.tempLogStart(vid,3), expData.tempLogEnd(vid,3)];
+        loc = tempLog(:,1)>=roi(1) & tempLog(:,1)<=roi(2);
+        videoData.tempLog = tempLog(loc,:);
+        videoData.name = [vidName '_' num2str(vid)];
         
+        % Save the VideoData into the analysis folder
+        save([analysisDir videoData.name ' data'], 'videoData')
+
     end
-    
-    
-    
+
 end
 
 
-fig = figure; set(fig, 'color', 'k')
-h = heatmap(gather(occCumSum)); 
-colormap hot;
-set(h,'gridvisible', 'off')
-ax = gca;
-ax.XDisplayLabels = nan(size(ax.XDisplayData));
-ax.YDisplayLabels = nan(size(ax.YDisplayData));
-set(ax,'FontColor', 'w', 'FontName', 'Arial');
-title('Spatial occupation probability');
+% fig = figure; set(fig, 'color', 'k')
+% h = heatmap(gather(occCumSum)); 
+% colormap hot;
+% set(h,'gridvisible', 'off')
+% ax = gca;
+% ax.XDisplayLabels = nan(size(ax.XDisplayData));
+% ax.YDisplayLabels = nan(size(ax.YDisplayData));
+% set(ax,'FontColor', 'w', 'FontName', 'Arial');
+% title('Spatial occupation probability');
 
 
 %% Set up basics with a GPU:
