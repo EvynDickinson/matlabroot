@@ -6,10 +6,10 @@ function mask = drawArenaMask(image, numPoly)
 % ES Dickinson, Yale University, Aug 2021
 m = size(image,1);
 n = size(image,2);
-newMask = true;
+goodMask = false;
 
 % ARENA MASK:
-while newMask
+while goodMask == false
     f = figure;
     imshow(image)
     title('Draw circle around the arena')
@@ -33,7 +33,7 @@ while newMask
     h = questdlg('Good fit?');
     close(f)
     if strcmp(h, 'Yes')
-       newMask = false;
+       goodMask = true;
     end
 end
 

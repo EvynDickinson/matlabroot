@@ -62,7 +62,7 @@ closepreview(vid)
 % Get list of current logs
 for n = 1:num.vids
     % pull the current temp reading from the chiller log
-    tempLogStart(n,:) = logTempNow(searchPath);
+    tempLogStart(n,:) = [n, logTempNow(searchPath)];git 
 
     % Set video saving
     diskLogger = VideoWriter([video_path videoNames '_' num2str(n) '.avi'], 'Motion JPEG AVI');
@@ -88,7 +88,7 @@ params.num = num;
 
 save([video_path videoNames 'dataMat'])
 
-writeExptoExcel(params) % save the data to the experiement list
+writeExptoExcel(params) % save the data to the experiment list
 
 fprintf(['\n' 'Done' '\n']) 
 

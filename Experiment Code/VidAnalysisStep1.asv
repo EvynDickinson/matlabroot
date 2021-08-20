@@ -4,19 +4,7 @@ clear; close all
 %% Select videos to load and analyze
 
 %get base folder pathway
-baseFolder = getCloudPath(1);
-
-% Select the date of the experiment to analyze
-dirc = dir(baseFolder);
-dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
-folderNames = ['Today', {dirc(:).name}];
-indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
-if strcmpi(folderNames{indx}, 'Today')==true
-    dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
-else
-    dir_sel = folderNames{indx};
-end
-folder = fullfile(baseFolder, dir_sel);
+[baseFolder, folder] = getCloudPath(1);
 
 % Select the complete experiments to process
 list_dirs = dir([folder, '\*.mat']); %only matlab files
@@ -56,7 +44,9 @@ for Exp = 1:length(indx)
         n_tot = nframes;
         
         % save processing params for this experiment:
-        nWells = 1;
+        for ii = 1:4; wellList{ii} = expData.params.(['well_' num2str(ii)]); end
+        nWells = 4-sum(strcmpi(wellList, 'Empty'));
+        
         pixel_thresh = 105;
         cluster_thresh = 4;
         if vid == 1

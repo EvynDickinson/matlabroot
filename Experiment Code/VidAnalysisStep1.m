@@ -44,7 +44,9 @@ for Exp = 1:length(indx)
         n_tot = nframes;
         
         % save processing params for this experiment:
-        nWells = 1;
+        for ii = 1:4; wellList{ii} = expData.params.(['well_' num2str(ii)]); end %#ok<*SAGROW>
+        nWells = 4-sum(strcmpi(wellList, 'Empty'));
+        
         pixel_thresh = 105;
         cluster_thresh = 4;
         if vid == 1
@@ -71,7 +73,7 @@ for Exp = 1:length(indx)
            % MASK OPTIONS
            switch questdlg('Load previous arena mask?')
                case 'Yes'
-                   [file,path] = uigetfile([folder '*.mat']);
+                   [file,path] = uigetfile([folder '\analysis\*mask*.mat']);
                    load(fullfile(path, file));
                case 'No'
                    mask = drawArenaMask(demoImg,nWells);
@@ -117,16 +119,17 @@ for Exp = 1:length(indx)
         roi = [expData.tempLogStart(vid,3), expData.tempLogEnd(vid,3)];
         loc = tempLog(:,1)>=roi(1) & tempLog(:,1)<=roi(2);
         videoData.tempLog = tempLog(loc,:);
+        fprintf(['\n' num2str(length(tempLog(loc,:)))])
         videoData.name = [vidName '_' num2str(vid)];
         
         % Save the VideoData into the analysis folder
         params = expData.params;
         save([analysisDir videoData.name ' data'], 'videoData', 'params')
-        % TODO: add an analyzed checkbox to the excel sheet here
     end
-
+    % TODO: add an analyzed checkbox to the excel sheet here
 end
 
+warning on
 
 % fig = figure; set(fig, 'color', 'k')
 % h = heatmap(gather(occCumSum)); 
