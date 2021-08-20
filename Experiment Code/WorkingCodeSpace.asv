@@ -37,27 +37,16 @@ end
 
 %% Fix the temp log information being added...
 clear
-% manually load the exp data file
-% Fix the MAIN file
 [~,baseFolder] = getCloudPath(1);
-
-tempLogStart = [(1:num.vids)', tempLogStart];
+% manually load the exp data file
+tempLogStart = [(1:40)', tempLogStart];
 save([baseFolder, '\', videoNames, 'dataMat.mat'])
 
-% load each vid file & adjust the temp log:
-tempLog = readmatrix([baseFolder '\' videoNames '_RampLog']);
+% load each file & adjust the temp log:
 roi = [tempLogStart(:,3), tempLogEnd(:,3)];
-filepath = [baseFolder, '\analysis\' videoNames '_'];
-
+filepath = [baseFolder, '\', videoNames, '\anaylsis\'];
 for i = 1:num.vids
-    load([filepath num2str(i) ' data.mat']);
-    
-    % update file
-    loc = tempLog(:,1)>=roi(i,1) & tempLog(:,1)<=roi(i,2);
-    videoData.tempLog = tempLog(loc,:);
-    
-    % save file
-    save([filepath num2str(i) ' data.mat'], 'params', 'videoData')
+    load(
 end
 
 
