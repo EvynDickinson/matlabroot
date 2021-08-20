@@ -5,7 +5,7 @@ imaqreset
 
 %% Parameters
 
-videoNames = 'PlantYeastChoice_N1';
+videoNames = 'PlantYeastChoice_N2'; % TODO -- add a forced check here to avoid overwriting!
 params.well_1 = 'Plant';
 params.well_2 = 'Empty';
 params.well_3 = 'Yeast';
@@ -62,7 +62,7 @@ closepreview(vid)
 % Get list of current logs
 for n = 1:num.vids
     % pull the current temp reading from the chiller log
-    tempLogStart(n,:) = [n, logTempNow(searchPath)];git 
+    tempLogStart(n,:) = [n, logTempNow(searchPath)];
 
     % Set video saving
     diskLogger = VideoWriter([video_path videoNames '_' num2str(n) '.avi'], 'Motion JPEG AVI');
