@@ -9,7 +9,7 @@ function image = processOccImg(image, PixelThreshold, ClusterThreshold)
 % Image processing:
 imGPUoriginal = gpuArray(image);
 imGPUgray = rgb2gray(imGPUoriginal); % convert to greyscale
-imflyGPU = imGPUgray>PixelThreshold; %color threshold            
+imflyGPU = imGPUgray>PixelThreshold; %color threshold
 image = imopen(imflyGPU,strel('disk',ClusterThreshold)); %denoise
 
 end

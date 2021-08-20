@@ -1,4 +1,4 @@
-
+% PROCESS EACH VIDEOO & EXTRACT THE PIXEL COUNT PROBABILITY
 clear; close all
 
 %% Select videos to load and analyze
