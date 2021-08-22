@@ -99,7 +99,7 @@ for Exp = 1:length(indx)
         for i = 1:n_tot
             % Image processing:
             Img = processOccImg(read(movieInfo,i), pixel_thresh, cluster_thresh);
-            Img(mask) = 0; % mask for arena size
+            Img(mask) = 0; % mask out arena and food wells
 
             % Update the occupancy count
             currOcc = gather(Img/sum(sum(Img))); %probabilty for this frame (1 across total image)

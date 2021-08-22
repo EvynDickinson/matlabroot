@@ -136,11 +136,11 @@ for roi = 1:4
         case 'Empty'
             kolor = Color('grey');
         case 'Yeast'
-            kolor = Color('fuchsia');
+            kolor = Color('fu');
     end
     plot(flip(temp), flip(y(:,roi)), 'color', kolor, 'linewidth', LW)
+    
 end
-xlim([8,22])
 
 % labels
 title(strrep([expName ' occupation per region'], '_', '-'))
