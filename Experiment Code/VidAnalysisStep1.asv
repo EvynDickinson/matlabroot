@@ -64,8 +64,7 @@ for Exp = 1:length(indx)
                     close(f)
                     badThresh = true;
                     while badThresh
-                       testImg = processOccImg(demoImg, false, pixel_thresh, cluster_thresh,1);
-                       f = imtool(testImg); uiwait(f)
+                       f = figure; imtool(demoImg); uiwait(f)
                        pixel_thresh = str2double(cell2mat(inputdlg('Light pixel threshold?')));
                        demoAdj = processOccImg(demoImg, false, pixel_thresh, cluster_thresh);
                        f = figure; imshowpair(demoImg, demoAdj,'montage')
@@ -100,8 +99,6 @@ for Exp = 1:length(indx)
            f = figure; imshowpair(demoImg, demoAdj,'montage'); title('Full processing preview')
            switch questdlg('Processing acceptable?')
                case 'Yes'
-                   params.pixel_thresh = pixel_thresh;
-                   params.cluster_thresh = cluster_thresh;
                    close(f)
                case 'No'
                    return
@@ -159,7 +156,103 @@ warning on
 % set(ax,'FontColor', 'w', 'FontName', 'Arial');
 % title('Spatial occupation probability');
 
+%% Optional: Make a video of the occupational probability over the experiment
 
+vid_name = [vidName ' occupancy probability'];
+FrameRate = params.num.fps*2; %playback rate
+nframes = params.num.vids;
+
+
+% % pull in specs for labeling images
+% txt = OccParams(vidPath, 5, 50);
+
+
+% Set up recording video parameters
+set(0,'DefaultFigureVisible','off');
+fig = getfig; 
+    hold on
+    v = VideoWriter(vid_name, 'Motion JPEG AVI');
+    v.Quality = 75;
+    v.FrameRate = FrameRate;
+    open(v);
+    set(fig, 'Color', 'k')   
+    % add scale bar
+    imshow(zeros(txt.frameSize))
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset') 
+ 
+
+%load all the data for the video & early process images:
+n_tot = nframes;
+tot_occ = (zeros(height, width));
+
+tic
+h = waitbar(0,'reading & writing frames');
+for i = 1:n_tot 
+%     % Read in current frame from raw video
+%     frame = (rgb2gray(read(movieInfo,i)));
+%     BWframe = imbinarize(im2double(frame),...
+%               'adaptive','ForegroundPolarity','bright','Sensitivity',0.3);
+%     [currProb, tot_occ] = (getOccProb(tot_occ,BWframe,i)); % spatial probabilty
+%     currProb(currProb==1) = 0; %filter out light particles
+    
+
+    % load previous frame
+    data = load([analysisDir vidName '_' num2str(i) ' data.mat']);
+    
+    
+    % Build an image frame
+    frame = videoData.occ_Prob/params.num.framesPerVid;
+    
+  
+    % --- log spatial distribution ---
+    fig = getfig('',1); 
+  
+        h = heatmap(frame); 
+        colormap hot;
+        set(h,'gridvisible', 'off')
+        ax = gca;
+        ax.XDisplayLabels = nan(size(ax.XDisplayData));
+        ax.YDisplayLabels = nan(size(ax.YDisplayData));
+%         ax.ColorScaling = 'log';
+        set(ax,'FontColor', 'w', 'FontName', 'Arial');
+        title(['Occupation probability ' num2str(2) '\circC']);
+        
+        formatFig(fig, true)
+    subplot(1,2,2)
+        h = heatmap(tot_probabilty); 
+        colormap hot;
+        set(h,'gridvisible', 'off')
+        ax = gca;
+        ax.XDisplayLabels = nan(size(ax.XDisplayData));
+        ax.YDisplayLabels = nan(size(ax.YDisplayData));
+        set(ax,'FontColor', 'w', 'FontName', 'Arial');
+        title('Spatial occupation probability');
+
+
+    
+    
+    
+    
+    
+    
+    
+    newFrame = OccBuildFrame(im2double(frame), BWframe, currProb, txt);
+    % Collect image info for movie file
+    set(fig, 'Color', 'k')
+    imshow(newFrame)
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset')
+    
+    waitbar(i/n_tot,h)
+end
+close(h)
+close(v)
+toc 
+
+fprintf('\n Video Saved! \n')  
 
 
 

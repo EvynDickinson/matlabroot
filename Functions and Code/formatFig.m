@@ -67,8 +67,12 @@ if nargin >= 3 %subplots
 else    % single plot
    % get plot handles
     ax = gca(figHandle);
+    try
     ax.LineWidth = axisLW; %change axes lines to preset width
     box off
+    catch
+    end
+    
     % set the subplot axes to the selected color scheme
     set(ax, 'color', backColor, 'YColor', labelColor, 'XColor', labelColor)
     % set the font: 

@@ -65,8 +65,7 @@ end
 
 % make a video with a temp bar at the bottom....
 num = trialData(1).params.num;
-time = 0:num.vidLength:num.sessionLength-num.vidLength;
-xlimit = [time(1)-num.vidLength, time(end)+num.vidLength];
+time = 1:num.vidLength:num.sessionLength;
 
 % set up plot spacing
 subplotInd(1).idx = 1:9; % occupation plot
@@ -75,17 +74,14 @@ nrow = 4;
 ncol = 3;
 
 % 
-
-fig = getfig('',1); set(fig, 'pos', [-1044 261 788 724]);
+fig = getfig('',1);
 subplot(nrow, ncol, subplotInd(2).idx)
-hold on
 plot(time, temp, 'linewidth', 2, 'color', 'w')
 xlabel('Time (min)')
 ylabel('Temp \circC')
 ylim([5,25])
-xlim(xlimit)
-vline(ii*num.vidLength,'y')
-formatFig(fig, true);
+xlim([
+formatFig(fig, true)
 
 subplot(nrow, ncol, subplotInd(1).idx)
 h = imagesc(frame(:,:,ii),cRange); 
@@ -93,7 +89,7 @@ h = imagesc(frame(:,:,ii),cRange);
     c = colorbar;
     currTemp = floor(temp(ii));
     title(['Occupation probability at ' num2str(currTemp) '\circC']);
-    formatFig(fig, true);
+    formatFig(fig, true)
     set(gca,'xtick',[],'ytick',[],'xcolor', 'k', 'ycolor', 'k')
     set(c,'Color', 'w', 'FontName', 'Arial');
 

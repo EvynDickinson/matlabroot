@@ -136,11 +136,11 @@ for roi = 1:4
         case 'Empty'
             kolor = Color('grey');
         case 'Yeast'
-            kolor = Color('fu');
+            kolor = Color('fuchsia');
     end
     plot(flip(temp), flip(y(:,roi)), 'color', kolor, 'linewidth', LW)
-    
 end
+xlim([8,22])
 
 % labels
 title(strrep([expName ' occupation per region'], '_', '-'))
@@ -159,7 +159,184 @@ save_figure(fig, [expRoot, 'ROI occupancy'], '-png');
 
 %% In progress ... 
 
+%% Optional: Write a video of the occupational probability over the experiment
 
+set(0,'DefaultFigureVisible','off');
+% Set up recording video parameters
+vid_name = [expName ' occupancy probability'];
+FrameRate = trialData(1).params.num.fps*2; %playback rate
+nframes = nvids;
+cRange = [min(min(min(frame))), max(max(max(frame)))]; % occupancy prob range
+dummyFrame = cRange(1) * ones(size(frame(:,:,1),1,2));
+
+% set up plot spacing
+subplotInd(1).idx = 1:9; % occupation plot
+subplotInd(2).idx = 10:12; % temperature bar
+nrow = 4;
+ncol = 3;
+
+
+v = VideoWriter(vid_name, 'Motion JPEG AVI');
+v.Quality = 90;
+v.FrameRate = FrameRate;
+open(v);
+
+
+
+
+
+
+
+
+fig = getfig('',1); set(fig, 'pos', [-1044 261 788 724]); %update this position for other computers
+    
+
+%     % Blank start frame
+%     set(fig, 'Color', 'k')   
+%     imagesc(dummyFrame,cRange)
+%     colormap hot;
+%     formatFig(fig, true)
+%     set(gca,'xtick',[],'ytick',[],'xcolor', 'k', 'ycolor', 'k')
+%     
+%     
+%     f = getframe(fig);
+%     writeVideo(v, f)  
+%     clf('reset') 
+    
+    
+    
+    h = imagesc(frame(:,:,ii),cRange); 
+    colormap hot;
+    c = colorbar;
+    currTemp = floor(temp(ii));
+    title(['Occupation probability at ' num2str(currTemp) '\circC']);
+    formatFig(fig, true)
+    set(gca,'xtick',[],'ytick',[],'xcolor', 'k', 'ycolor', 'k')
+    set(c,'Color', 'w', 'FontName', 'Arial');
+    
+
+
+% 
+%     % make a video with a temp bar at the bottom....
+% num = trialData(1).params.num;
+% time = 0:num.vidLength:num.sessionLength-num.vidLength;
+% xlimit = [time(1)-num.vidLength, time(end)+num.vidLength];
+% 
+
+% 
+% % 
+% 
+% fig = getfig('',1); set(fig, 'pos', [-1044 261 788 724]);
+% subplot(nrow, ncol, subplotInd(2).idx)
+% hold on
+% plot(time, temp, 'linewidth', 2, 'color', 'w')
+% xlabel('Time (min)')
+% ylabel('Temp \circC')
+% ylim([5,25])
+% xlim(xlimit)
+% vline(ii*num.vidLength,'y')
+% formatFig(fig, true);
+% 
+% subplot(nrow, ncol, subplotInd(1).idx)
+% h = imagesc(frame(:,:,ii),cRange); 
+%     colormap hot;
+%     c = colorbar;
+%     currTemp = floor(temp(ii));
+%     title(['Occupation probability at ' num2str(currTemp) '\circC']);
+%     formatFig(fig, true);
+%     set(gca,'xtick',[],'ytick',[],'xcolor', 'k', 'ycolor', 'k')
+%     set(c,'Color', 'w', 'FontName', 'Arial');
+
+
+
+    
+    
+
+
+fig = getfig; 
+    hold on
+    v = VideoWriter(vid_name, 'Motion JPEG AVI');
+    v.Quality = 90;
+    v.FrameRate = FrameRate;
+    open(v);
+    set(fig, 'Color', 'k')   
+    % add scale bar
+    imshow(zeros(txt.frameSize))
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset') 
+ 
+
+%load all the data for the video & early process images:
+n_tot = nframes;
+tot_occ = (zeros(height, width));
+
+tic
+h = waitbar(0,'reading & writing frames');
+for i = 1:n_tot 
+%     % Read in current frame from raw video
+%     frame = (rgb2gray(read(movieInfo,i)));
+%     BWframe = imbinarize(im2double(frame),...
+%               'adaptive','ForegroundPolarity','bright','Sensitivity',0.3);
+%     [currProb, tot_occ] = (getOccProb(tot_occ,BWframe,i)); % spatial probabilty
+%     currProb(currProb==1) = 0; %filter out light particles
+    
+
+    % load previous frame
+    data = load([analysisDir vidName '_' num2str(i) ' data.mat']);
+    
+    
+    % Build an image frame
+    frame = videoData.occ_Prob/params.num.framesPerVid;
+    
+  
+    % --- log spatial distribution ---
+    fig = getfig('',1); 
+  
+        h = heatmap(frame); 
+        colormap hot;
+        set(h,'gridvisible', 'off')
+        ax = gca;
+        ax.XDisplayLabels = nan(size(ax.XDisplayData));
+        ax.YDisplayLabels = nan(size(ax.YDisplayData));
+%         ax.ColorScaling = 'log';
+        set(ax,'FontColor', 'w', 'FontName', 'Arial');
+        title(['Occupation probability ' num2str(2) '\circC']);
+        
+        formatFig(fig, true)
+    subplot(1,2,2)
+        h = heatmap(tot_probabilty); 
+        colormap hot;
+        set(h,'gridvisible', 'off')
+        ax = gca;
+        ax.XDisplayLabels = nan(size(ax.XDisplayData));
+        ax.YDisplayLabels = nan(size(ax.YDisplayData));
+        set(ax,'FontColor', 'w', 'FontName', 'Arial');
+        title('Spatial occupation probability');
+
+
+    
+    
+    
+    
+    
+    
+    
+    newFrame = OccBuildFrame(im2double(frame), BWframe, currProb, txt);
+    % Collect image info for movie file
+    set(fig, 'Color', 'k')
+    imshow(newFrame)
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset')
+    
+    waitbar(i/n_tot,h)
+end
+close(h)
+close(v)
+toc 
+
+fprintf('\n Video Saved! \n')  
 
 
 
