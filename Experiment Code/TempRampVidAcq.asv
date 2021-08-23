@@ -10,8 +10,6 @@ params.well_1 = 'Plant';
 params.well_2 = 'Empty';
 params.well_3 = 'Yeast';
 params.well_4 = 'Empty';
-params.PF_Batch = '8.18';   % batch date for plant food
-params.YF_Batch = '8.19'; % batch date for yeast food
 
 num.fps = 3;    % acquisition frame rate
 num.writeFPS = 3;   % frame rate of recorded video
@@ -69,12 +67,7 @@ closepreview(vid)
 
 switch questdlg(['Open TecaLog & set DataLog path to ' dirName],'Log Start', 'Okay', 'Cancel','Okay')
     case 'Okay'
-        switch questdlg('Start data log & ramp/soak', 'Log Start', 'Okay', 'Cancel','Okay')
-            case 'Okay'
-                fprintf(['\n Begin collection of ' num2str(num.vids)  ' videos\n']) 
-            case 'Cancel'
-                return
-        end
+        squestdlg('Start data log & ramp/soak', Log Start', 'Okay', 'Cancel','Okay')
     case 'Cancel'
         return
 end

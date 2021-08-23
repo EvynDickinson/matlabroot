@@ -44,7 +44,8 @@ Excel.well_1 = find(strcmpi('Well 1', Excel.headers)==1);
 Excel.well_2 = find(strcmpi('Well 2', Excel.headers)==1);
 Excel.well_3 = find(strcmpi('Well 3', Excel.headers)==1);
 Excel.well_4 = find(strcmpi('Well 4', Excel.headers)==1);
-
+Excel.PF_Batch = find(strcmpi('PF_Batch', Excel.headers)==1);
+Excel.YF_Batch = find(strcmpi('YF_Batch', Excel.headers)==1);
 
 end
 

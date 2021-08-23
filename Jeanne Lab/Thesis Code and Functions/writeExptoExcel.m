@@ -22,7 +22,8 @@ nrow = size(excelfile,1)+1;
 % params.num 
 
 paramList = {'date', 'expID', 'genotype', 'protocol',...
-              'well_1', 'well_2', 'well_3', 'well_4'};
+             'well_1', 'well_2', 'well_3', 'well_4',...
+             'PF_Batch', 'YF_Batch'};
   
 for ii = 1:length(paramList)
     xlswrite(xlFile, {params.(paramList{ii})}, sheet, [Alphabet(Excel.(paramList{ii})),num2str(nrow)]);

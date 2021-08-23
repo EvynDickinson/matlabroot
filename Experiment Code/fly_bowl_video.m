@@ -70,15 +70,12 @@ occCumSum = zeros(height, width); %setup blank occupation
 n_tot = nframes;
 
 % default analysis params:
-pixel_thresh = 50;
-cluster_thresh = 4;
-Img = rgb2gray(read(movieInfo,frame));
-demoImg = imadjust(Img); %thresh = 50;
+pixel_thresh = 60;
+cluster_thresh = 5;
+Img = read(movieInfo,frame);
+demoImg = processOccImg(Img, false, pixel_thresh, cluster_thresh);
 
-% demoImg = imsharpen(demoImg, 'Radius', 2, 'Amount', 1);
-
-demoImg = imopen(demoImg>pixel_thresh,strel('disk',cluster_thresh));
-f = figure; imshowpair(Img, demoAdj,'montage'); title('Thresholding test')
+f = figure; imshowpair(Img, demoImg,'montage'); title('Thresholding test')
           
 
 imtool(demoImg)
