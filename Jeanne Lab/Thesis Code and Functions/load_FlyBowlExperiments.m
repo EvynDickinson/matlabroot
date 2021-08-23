@@ -38,6 +38,7 @@ Excel.genotype = find(strcmpi('Genotype',Excel.headers) == 1);
 Excel.protocol = find(strcmpi('Temp Protocol',Excel.headers) == 1);
 Excel.numflies = find(strcmpi('Num Flies',Excel.headers) == 1);
 Excel.structure = find(strcmpi('Structure', Excel.headers)==1);
+Excel.processed = find(strcmpi('Processed',Excel.headers) == 1);
 Excel.structurenum = find(strcmpi('Exp Num',Excel.headers) == 1);
 
 Excel.well_1 = find(strcmpi('Well 1', Excel.headers)==1);
@@ -46,6 +47,7 @@ Excel.well_3 = find(strcmpi('Well 3', Excel.headers)==1);
 Excel.well_4 = find(strcmpi('Well 4', Excel.headers)==1);
 Excel.PF_Batch = find(strcmpi('PF_Batch', Excel.headers)==1);
 Excel.YF_Batch = find(strcmpi('YF_Batch', Excel.headers)==1);
+
 
 end
 

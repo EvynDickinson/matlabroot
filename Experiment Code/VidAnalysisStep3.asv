@@ -92,7 +92,7 @@ gridSize = [50,50];
 
 
 % loop through all trials
-for trial = 2:ntrials
+for trial = 1:ntrials
   temp = data(trial).temp; 
   for ii = 1:4 % well#
     % crop each of the frames from the video into well rois
@@ -110,9 +110,7 @@ for trial = 2:ntrials
     well(ii).maskedImg = maskedImage;
     well(ii).temp = temp;
   end
-  data(trial).well = well;
 end
-
     
     
     figure; hold on
