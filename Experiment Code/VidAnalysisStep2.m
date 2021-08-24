@@ -2,6 +2,7 @@
 % VidAnalysisStep2 --> group flies and plot graphs of temp & occupancy
 % follows VidAnalysisStep1
 clear
+clc
 
 %% Select experiment data
 % set directories
@@ -176,7 +177,7 @@ if strcmp('Yes', questdlg('Preview positional probabiliy vid?'))
     hold on
     for ii = 1:size(Vq,3)
         imagesc(Vq(:,:,ii))
-        pause(0.1)
+        pause(0.05)
     end
     close(fig)
 end
@@ -247,7 +248,7 @@ if strcmp('Yes', questdlg('Save positional probabiliy vid?'))
 end
 
 %% Save and update fly list for finished processing
-
+clear fig h movieInfo l labelHangdle ans c v
 % save data to google drive
 save([expRoot 'analysis'])
 % write to excel that processing is finished
