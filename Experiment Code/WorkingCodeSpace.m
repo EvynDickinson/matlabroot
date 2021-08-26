@@ -1,5 +1,20 @@
+%% 
+vidPath = 'E:\My Drive\Jeanne Lab\DATA\08.12.2021\DummyVid_20C_1.avi';
+movieInfo = VideoReader(vidPath); %read in video
+Img1 = read(movieInfo,1);
+vidPath = 'E:\My Drive\Jeanne Lab\DATA\08.24.2021\PlantYeastChoice_N1_1.avi';
+movieInfo = VideoReader(vidPath); %read in video
+Img2 = read(movieInfo,1);
 
-%get base folder pathway
+
+f = figure; set(f, 'color', 'k')
+imshowpair(Img1, Img2,'montage'); title('Paint weathering')
+
+save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', '-png');
+
+
+
+%% get base folder pathway
 baseFolder = getCloudPath;
 
 params.well_1 = 'Plant';

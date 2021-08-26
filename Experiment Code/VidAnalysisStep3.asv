@@ -140,21 +140,15 @@ end
 % grouped image:
 occupancyFrames = [well(1).bin, well(2).bin;...
                    well(4).bin, well(3).bin];
-               
-occupancyNames = {Wells(1).name, Wells(2).name;...
-                   Wells(4).name, Wells(3).name};              
 
 % quick vid preview of any structure over time
-fig = figure; set(fig, 'color', 'k');
-disp(occupancyNames)
+fig = figure; set(fig, 'color', 'k')
 for vid = 1:nvids
     img = occupancyFrames(:,:,vid);
     imagesc(img)
     pause(0.1)
 end
-     
-
-
+               
 %% FIGURE: temp &  roi occupancy
 genotype = data(1).trialData(1).params.genotype;
 nflies = 0;
