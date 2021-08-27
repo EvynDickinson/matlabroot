@@ -16,7 +16,7 @@ function [path, folder] = getCloudPath(folderOption)
             path = 'G:\My Drive\Jeanne Lab\DATA\';
         case 'EVYNPC'
             path = 'G:\My Drive\Jeanne Lab\DATA\';
-    end
+    end 
     
     if nargin == 1
         dirc = dir(path);
