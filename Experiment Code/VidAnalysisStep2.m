@@ -109,6 +109,7 @@ while badFit
     f = figure;
     imshowpair(Img, temp, 'montage')
     h = questdlg('Good fit?');
+    save_figure(f, [expRoot, 'ROI selection'], '-png');
     close(f)
     if strcmp(h, 'Yes')
        badFit = false;

@@ -11,7 +11,7 @@ function [path, folder] = getCloudPath(folderOption)
 
     switch getenv('COMPUTERNAME')
         case 'DENALI'
-            path = 'E:\My Drive\Jeanne Lab\DATA\';
+            path = 'G:\My Drive\Jeanne Lab\DATA\';
         case 'TOGIAK'
             path = 'G:\My Drive\Jeanne Lab\DATA\';
         case 'EVYNPC'
