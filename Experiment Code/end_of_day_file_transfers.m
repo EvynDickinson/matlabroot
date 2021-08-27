@@ -2,7 +2,7 @@ clear
 %% 
 %raw data folder:
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
-start_dir = ['C:\Users\jeannelab\Documents\Evyn\DATA\'];
+start_dir = 'C:\Users\jeannelab\Documents\Evyn\DATA\';
 
 %get base folder pathway
 switch getenv('COMPUTERNAME')

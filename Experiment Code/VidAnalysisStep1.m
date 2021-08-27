@@ -1,6 +1,6 @@
 % PROCESS EACH VIDEOO & EXTRACT THE PIXEL COUNT PROBABILITY
 clear; close all
-
+closepreview
 %% Select videos to load and analyze
 
 %get base folder pathway

@@ -1,6 +1,7 @@
 clear
 imaqreset
 warning off
+
 %% Video and camera parameters: 
 basepath = 'C:\Users\jeannelab\Documents\Evyn\DATA\';
 dirName = strrep(datestr(datetime, 'mm-dd-yyyy'), '-', '.');
@@ -9,7 +10,7 @@ if ~isfolder(video_path); mkdir(video_path); end
 
 % vid parameters
 full_ROI = [0 0 2048 2048];
-partial_ROI = [493 693 1241 1222];
+partial_ROI = [420 656 1248 1244];
 rectangular_ROI = [552 586 628 891]; %srectangular arena space
 
 % Load in the camera / open preview
@@ -41,7 +42,7 @@ name_modifier = 'testvid';
 closepreview
 vid.LoggingMode = 'disk';   %'disk&memory'; 
 diskLogger = VideoWriter([video_path name_modifier '.avi'], 'Motion JPEG AVI');  
-diskLogger.Quality = 85;
+diskLogger.Quality = 70;
 % diskLogger = VideoWriter([video_path 'testingNOcompression.avi'], 'Grayscale AVI');
 diskLogger.FrameRate = 3; 
 vid.DiskLogger = diskLogger;
@@ -70,15 +71,19 @@ occCumSum = zeros(height, width); %setup blank occupation
 n_tot = nframes;
 
 % default analysis params:
-pixel_thresh = 60;
+pixel_thresh = 65;
 cluster_thresh = 5;
 Img = read(movieInfo,frame);
 demoImg = processOccImg(Img, false, pixel_thresh, cluster_thresh);
-
 f = figure; imshowpair(Img, demoImg,'montage'); title('Thresholding test')
-          
+set(f, 'color', 'k')
 
-imtool(demoImg)
+
+
+% save_figure(f, [basepath dirName '\Image processing demo'], '-png');
+% 
+% 
+% imtool(Img)
 
 
 
