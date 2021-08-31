@@ -71,16 +71,10 @@ scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
 
 %% Pull temperature information for each frame
 
-% get temp log
 tempLogName = 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\NonlinearCooling_RampLog.csv';
-tempLog = readmatrix(tempLogName);
-
-% what are the temp time points for this video start and stop: 
-% -- TODO load in the appropriate matlab file for this video...harvest code
-% from VidAnalysisStep1...
+csread
 
 
-% https://sleap.ai/notebooks/Training_and_inference_using_Google_Drive.html
 
 %% Find flies within ROI of each well
 
