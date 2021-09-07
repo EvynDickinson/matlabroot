@@ -57,7 +57,7 @@ Y(loc) = [];
 % squash all points together over the video:
 
 
-% what if we do a min radius from the coordinates of the food bowl? 
+% what if we do a min radius from the coordinates of the food bowl?  
 fig = getfig; set(fig, 'color', 'k');
 hist2d(X,Y, 'probability', 'tile')
 axis tight; axis square
