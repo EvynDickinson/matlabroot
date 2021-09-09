@@ -38,7 +38,7 @@ codeBlock = [];
 for ii = 1:length(indx)
     vidName = videoNames{indx(ii)};
     trackStr = ['sleap-track "' vidName '" --tracking.tracker simple --model "' ...
-                'models/' model_1 '" --model "' model_2 '"'];
+                'models/' model_1 '" --models/ "' model_2 '"'];
     writematrix(trackStr, codeBlockPath, 'WriteMode', 'append')
 end
 
