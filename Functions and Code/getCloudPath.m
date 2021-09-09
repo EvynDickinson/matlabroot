@@ -23,6 +23,11 @@ function [path, folder] = getCloudPath(folderOption)
         dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
         folderNames = ['Today', {dirc(:).name}];
         indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
+        if isempty(indx)
+            fprintf('\n No folder selected\n')
+            folder = '';
+            return
+        end
         if strcmpi(folderNames{indx}, 'Today')==true
             dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
         else

@@ -4,10 +4,10 @@
 defaultModel = 'G:\My Drive\Jeanne Lab\DATA\Tracking\models';
 model_1 = 'centered_instance_model';
 model_2 = 'centroid_model';
-codeBlockPath = 'G:\My Drive\Jeanne Lab\DATA\Tracking\TrackingCodeBlock.txt';
 
 % select the folder to analyze 
 [baseFolder, folder] = getCloudPath(1);
+codeBlockPath = [folder '\TrackingCodeBlock.txt'];
 
 % copy the current models into that folder
 switch questdlg('Copy models into selected folder?')
@@ -18,13 +18,12 @@ switch questdlg('Copy models into selected folder?')
         return
 end
 
-
-% text to set the cd to the desired folder: 
+% % text to set the cd to the desired folder: 
 setCD = ['cd ' folder];
 setCD = strrep(setCD, '\', '/');
-
-writematrix(setCD, codeBlockPath, 'WriteMode', 'overwrite')
-
+fid = fopen(codeBlockPath,'w');
+fprintf(fid, setCD);
+fclose(fid);
 
 % pull video names from within the folder:
 
@@ -34,13 +33,33 @@ videoNames = {list_dirs(:).name};
 indx = listdlg('ListString', videoNames, 'SelectionMode', 'Multiple');
 
 % generate new text block for each selected video:
-codeBlock = [];
+fid = fopen(codeBlockPath,'a+');
 for ii = 1:length(indx)
     vidName = videoNames{indx(ii)};
-    trackStr = ['sleap-track "' vidName '" --tracking.tracker simple --model "' ...
-                'models/' model_1 '" --models/ "' model_2 '"'];
-    writematrix(trackStr, codeBlockPath, 'WriteMode', 'append')
+    trackStr = ['\n' 'sleap-track --tracking.tracker simple '...
+                ' -m "centered_instance_model" -m "centroid_model" '...
+                '"' vidName '"'];
+    fprintf(fid, trackStr);
 end
+fclose(fid);
+
+
+
+
+
+
+%% Code to convert the prediction files to data files:
+% terminal name adjustment .avi.predictions.slp
+
+% Select a folder and check for prediction files, then convert those
+[baseFolder, folder] = getCloudPath(1);
+
+% Select the complete experiments to process
+list_dirs = dir([folder, '\*.slp']); %only matlab files
+predictions = {list_dirs(:).name};
+indx = listdlg('ListString', predictions, 'SelectionMode', 'Multiple', 'ListSize', [300 300]);
+
+% Generate text for each 
 
 
 
@@ -49,9 +68,25 @@ end
 
 
 
-% 
-% sleap-track "PlantYeastChoice_N1_2.avi" 
-% --frames 1-10 
-% --tracking.tracker simple 
-% --model "models\centered_instance_model" 
-% --model "models\centroid_model"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
