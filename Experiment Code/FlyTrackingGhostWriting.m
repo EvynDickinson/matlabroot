@@ -46,12 +46,10 @@ fclose(fid);
 
 
 
-
-
-
 %% Code to convert the prediction files to data files:
 % terminal name adjustment .avi.predictions.slp
-
+% sleap-convert --format analysis -o "session1.h5" "session1.predictions.slp"
+clear
 % Select a folder and check for prediction files, then convert those
 [baseFolder, folder] = getCloudPath(1);
 
@@ -60,13 +58,24 @@ list_dirs = dir([folder, '\*.slp']); %only matlab files
 predictions = {list_dirs(:).name};
 indx = listdlg('ListString', predictions, 'SelectionMode', 'Multiple', 'ListSize', [300 300]);
 
-% Generate text for each predicted file: 
+% Generate code text for each predicted file: 
 codeBlockPath = [folder '\ConversionCodeBlock.txt'];
 fid = fopen(codeBlockPath,'w');
-fprintf(fid, setCD);
+fprintf(fid, 'Conversion code \n');
 fclose(fid);
 
-
+% Add conversion code line by line:
+fid = fopen(codeBlockPath,'a+');
+for ii = 1:length(indx)
+    predName = predictions{indx(ii)};
+    newstr = split(predName, '.');
+    analName = [newstr{1} '.h5'];
+    trackStr = ['\n' 'sleap-convert --format analysis -o '...
+                '"' analName '" '... % analysis file
+                '"' predName '"']; %prediciton file
+    fprintf(fid, trackStr);
+end
+fclose(fid);
 
 
 

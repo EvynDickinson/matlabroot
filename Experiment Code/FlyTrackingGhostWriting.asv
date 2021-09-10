@@ -1,6 +1,7 @@
 
 %% Write code to track flies 
 % parameter inputs:
+clear
 defaultModel = 'G:\My Drive\Jeanne Lab\DATA\Tracking\models';
 model_1 = 'centered_instance_model';
 model_2 = 'centroid_model';
@@ -50,7 +51,8 @@ fclose(fid);
 
 %% Code to convert the prediction files to data files:
 % terminal name adjustment .avi.predictions.slp
-
+% sleap-convert --format analysis -o "session1.predictions.analysis.h5" "session1.predictions.slp"
+clear
 % Select a folder and check for prediction files, then convert those
 [baseFolder, folder] = getCloudPath(1);
 
@@ -59,10 +61,23 @@ list_dirs = dir([folder, '\*.slp']); %only matlab files
 predictions = {list_dirs(:).name};
 indx = listdlg('ListString', predictions, 'SelectionMode', 'Multiple', 'ListSize', [300 300]);
 
-% Generate text for each 
+% Generate code text for each predicted file: 
+codeBlockPath = [folder '\ConversionCodeBlock.txt'];
+fid = fopen(codeBlockPath,'w');
+fprintf(fid, 'Conversion code \n');
+fclose(fid);
 
-
-
+% Add conversion code line by line:
+fid = fopen(codeBlockPath,'a+');
+for ii = 1:length(indx)
+    predName = predictions{indx(ii)};
+    
+    trackStr = ['\n' 'sleap-convert --format analysis -o '...
+                '"' predName '" -m "centroid_model" '...
+                '"' vidName '"'];
+    fprintf(fid, trackStr);
+end
+fclose(fid);
 
 
 
