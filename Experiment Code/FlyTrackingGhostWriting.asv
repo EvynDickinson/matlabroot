@@ -1,6 +1,7 @@
 
 %% Write code to track flies 
 % parameter inputs:
+clear
 defaultModel = 'G:\My Drive\Jeanne Lab\DATA\Tracking\models';
 model_1 = 'centered_instance_model';
 model_2 = 'centroid_model';
@@ -12,6 +13,7 @@ codeBlockPath = [folder '\TrackingCodeBlock.txt'];
 % copy the current models into that folder
 switch questdlg('Copy models into selected folder?')
     case 'Yes'
+        copyfile([defaultModel,[folder '\models'])
         copyfile(defaultModel,[folder '\models'])
     case 'No'
     case 'Cancel'
@@ -59,8 +61,11 @@ list_dirs = dir([folder, '\*.slp']); %only matlab files
 predictions = {list_dirs(:).name};
 indx = listdlg('ListString', predictions, 'SelectionMode', 'Multiple', 'ListSize', [300 300]);
 
-% Generate text for each 
-
+% Generate text for each predicted file: 
+codeBlockPath = [folder '\ConversionCodeBlock.txt'];
+fid = fopen(codeBlockPath,'w');
+fprintf(fid, setCD);
+fclose(fid);
 
 
 
