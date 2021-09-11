@@ -13,7 +13,8 @@ codeBlockPath = [folder '\TrackingCodeBlock.txt'];
 % copy the current models into that folder
 switch questdlg('Copy models into selected folder?')
     case 'Yes'
-        copyfile(defaultModel,[folder '\models'])
+        copyfile([defaultModel '\' model_1],[folder '\' model_1])
+        copyfile([defaultModel '\' model_2],[folder '\' model_2])
     case 'No'
     case 'Cancel'
         return
