@@ -70,21 +70,20 @@ ML.fly = 4;     % tracks for 'a' fly
 % pull info for each video
 flyCount = []; 
 for vid = 1:nvids
+    nframes = size(data(vid).occupancy_matrix,2);
     % number of flies labeled on each frame:
     flyCount = [flyCount; sum(data(vid).occupancy_matrix)'];
     
     % all data for head tracked location
     headData = squeeze(data(vid).tracks(:,1,:,:));
-    nframes = size(headData,1); 
     
     % x-y coordinates of flies for each frame
     x_loc = squeeze(headData(:,1,:));
     y_loc = squeeze(headData(:,2,:));
     
     % temperature alignment
-    
-    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
-    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
+    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,2));
+    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,2));
     tempCourse = tempLog(logROI(1):logROI(2),2);
     stpsize = ceil(nframes/length(tempCourse));
     x = 1:stpsize:nframes;
@@ -96,6 +95,8 @@ for vid = 1:nvids
     % Find number of flies that are near each well for each frame
     radii = 200; %distance must be less than this number to count for a well ROI
     
+    
+    nInst = length(X);
     % loop for all wells
     for well = 1:4
         b = pts(:,well); % well 1 points
@@ -105,31 +106,52 @@ for vid = 1:nvids
         Y = reshape(y_loc,numel(y_loc),1); 
         % within well range?
         euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2); %euclidian distance from well center
-        well_loc = reshape((euDist<=radii),[nframes,ntracks]);
-        welldata(well).loc = well_loc;
-        % how many within the circle?
-        welldata(well).count = sum(well_loc,2);
-        data(vid).well_counts(:,well) = welldata(well).count;
+        well_loc = (euDist<=radii);
+        well_loc = reshape(well_loc,[nframes,ntracks]);
+        data(vid).well_loc
+        
+        
+        
+        euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2);
+        data(well).well_loc = (euDist<=radii);
+        data(well).well_count = sum((euDist<=radii));
+
+        % occupation probability
+        data(well).occ_prob = data(well).well_count/nInst;
+        data(well).nInst = nInst;
     end
-    data(vid).tempLog = fullTempList;
-   
+        
+        
+        
+    
+
+    x = squeeze(headdata(:, 1, :)); % frame, instance
+    y = squeeze(headdata(:, 2, :));
+
+    X = reshape(x,numel(x),1);
+    Y = reshape(y,numel(y),1);
+    loc = isnan(X);
+    X(loc) = [];
+    Y(loc) = [];
+    % squash all points together over the video:
+
+    
+    % what if we do a min radius from the coordinates of the food bowl?  
+    fig = getfig; set(fig, 'color', 'k');
+    hist2d(X,Y, 'probability', 'tile')
+    axis tight; axis square
+    set(gca, 'visible', 'off')
+    c = colorbar;
+    c.Color = [1,1,1];
+    hold on
+    scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
+
+    
+    
+
+%     
 end
 
-% should do a visual check on each well and the points for the duration of the
-    % video %TODO
-% % visual confirmation that the selected points are near the well:
-% fig = getfig; set(fig, 'color', 'k');
-% hist2d(X,Y, 'probability', 'tile')
-% axis tight; axis square
-% set(gca, 'visible', 'off')
-% c = colorbar;
-% c.Color = [1,1,1];
-% hold on
-% scatter(X(well_loc),Y(well_loc), 50, 'y') % could automate the color on this
-% scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
-% viscircles(b',radii)
-% 
-    
 % visual check that the number of tracked flies is close to the actual number
 fig = getfig;
     histogram(flyCount); vline(nflies, 'w-'); 
@@ -201,6 +223,18 @@ scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
 
 % save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo histogram vid 1','-png');
 
+%% Pull temperature information for each frame
+
+% get temp log
+tempLogName = 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\NonlinearCooling_RampLog.csv';
+tempLog = readmatrix(tempLogName);
+
+% what are the temp time points for this video start and stop: 
+% -- TODO load in the appropriate matlab file for this video...harvest code
+% from VidAnalysisStep1...
+
+
+% https://sleap.ai/notebooks/Training_and_inference_using_Google_Drive.html
 
 %% Find flies within ROI of each well
 
