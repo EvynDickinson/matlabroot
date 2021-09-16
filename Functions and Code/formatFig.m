@@ -15,10 +15,10 @@ function figHandle = formatFig(figHandle, BandWoption, sbplots, subplotInd)
 % University of Washington, 2020
 
 % default parameters:
-txtSize = 12; % text size
+txtSize = 15; % text size
 axisLW = 2; % axis line width
 txtFont = 'Arial'; % all fonts
-tickMarkSize = 11;    
+tickMarkSize = 13;    
 tickDir = 'in'; 
 
 % SET PLOT BACKGROUND COLOR
@@ -82,7 +82,15 @@ else    % single plot
     labelHandles = findall(ax, 'type', 'text', 'handlevisibility', 'off');
     set(labelHandles,'FontSize', txtSize, 'color', labelColor)
     set(gca,'fontsize',tickMarkSize,'FontWeight','normal')
+    
+    
 end
+% 
+% h1 = findall(gcf,'Type','text')
+% 
+% textHandles = findall(figHandle,'-property','FontSize');
+% set(textHandles,'FontSize', 10, 'fontname', txtFont)
+
 
 clear ax
 

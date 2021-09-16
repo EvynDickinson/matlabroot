@@ -135,7 +135,59 @@ subplot(2, 2, 4);
 imshow(maskedImage, []);
 
 
+%%
 
+
+%% Simple visualization: relationship between temp & well occupation
+nrow = 4;
+ncol = 1;
+subplotInd(1).idx = 1;
+subplotInd(2).idx = 2:4;
+% group data across videos:
+[plotX, plotY] = deal([]);
+for vid = 1:nvids
+    plotX = [plotX, data(vid).tempLog];
+    plotY = [plotY; data(vid).well_counts];
+end
+% adj plant label bias:
+plotY(:,3) = plotY(:,3)-3;
+
+plotY = plotY./nflies;
+sSpan = 180;
+LW = 1;
+time = linspace(1,(length(plotX)/3)/60,length(plotX));
+
+fig = getfig('',1); 
+    subplot(nrow,ncol,subplotInd(1).idx)
+    plot(time, smooth(plotX,sSpan), 'linewidth', LW, 'color', 'w')
+    ylabel('temp (\circC)')
+    ylim([5,25])
+    subplot(nrow,ncol,subplotInd(2).idx)
+    hold on
+    for well = 1:4
+        switch expData.params.(['well_' num2str(well)'])
+            case 'Yeast'
+                kolor = Color('gold');
+            case 'Plant'
+                kolor = Color('green');
+            case 'Empty'
+                kolor = Color('grey');
+        end
+
+        plot(time, smooth(plotY(:,well),sSpan), 'linewidth', LW, 'color', kolor);
+    end
+    xlabel('time (min)'); ylabel('occupation probability')
+    
+formatFig(fig, true, [nrow, ncol], subplotInd)
+l = legend(wellLabels);
+set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+subplot(nrow,ncol,subplotInd(1).idx)
+set(gca, 'XColor', 'k')
+titleName = strrep([folder ' ' expName], '_',' ');
+title(titleName,'color', 'w')
+
+% Save image
+save_figure(fig, [analysisDir expName ' adjusted well occupation timcourse'], '-png');
 
 
 

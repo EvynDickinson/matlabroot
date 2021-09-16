@@ -3,6 +3,7 @@ clear
 close all
 clc
 
+
 %% Select Date & Experiment to Process
 
 %get base folder pathway
@@ -45,18 +46,33 @@ end
 
 % Number of flies:
 nflies = excelfile{XLrow,Excel.numflies};
+movieInfo = VideoReader([baseFolder folder '\' expName '_1.avi']); %read in video
+ii = randi(movieInfo.NumFrames,[3,1]); %random selection of frames to count fly number
+demoImg = rgb2gray(read(movieInfo,1));
 if isnan(nflies)
     % manual count of flies
-    movieInfo = VideoReader([baseFolder folder '\' expName '_1.avi']); %read in video
-    demoImg = rgb2gray(read(movieInfo,1));
     fprintf('\nCount the number of flies in the picture by clicking them\n then hit ENTER\n')
-    nflies = size(readPoints(demoImg),2);
+    for jj = 1:3
+        demoImg = rgb2gray(read(movieInfo,ii(jj)));
+        nflies(jj) = size(readPoints(demoImg),2);
+    end
+    if sum(~diff(nflies)==0)==0
+        nflies = nflies(1);
+    else
+        warndlg('Check fly counts again')
+        return
+    end
     % write number of flies into the excel sheet
     xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
 end
 fprintf(['\nNumber of flies: ' num2str(nflies) '\n'])
 
 % Find food wells and their identities %TODO
+fprintf('\nSelect the well identities in this order:\n')
+% label the wells:
+wellLabels = {expData.params.well_1; expData.params.well_2;...
+          expData.params.well_3; expData.params.well_4};   
+disp(wellLabels)
 pts = readPoints(demoImg,4); % get locations of the wells from the image
 
 %% Data organization by video
@@ -70,33 +86,30 @@ ML.fly = 4;     % tracks for 'a' fly
 % pull info for each video
 flyCount = []; 
 for vid = 1:nvids
-    nframes = size(data(vid).occupancy_matrix,2);
     % number of flies labeled on each frame:
     flyCount = [flyCount; sum(data(vid).occupancy_matrix)'];
     
     % all data for head tracked location
     headData = squeeze(data(vid).tracks(:,1,:,:));
+    nframes = size(headData,1); 
     
     % x-y coordinates of flies for each frame
     x_loc = squeeze(headData(:,1,:));
     y_loc = squeeze(headData(:,2,:));
     
     % temperature alignment
-    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,2));
-    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,2));
+    
+    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
+    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
     tempCourse = tempLog(logROI(1):logROI(2),2);
-    stpsize = ceil(nframes/length(tempCourse));
-    x = 1:stpsize:nframes;
+    x = round(linspace(1, nframes, length(tempCourse)));
     % upsample the temperature log:
     fullTempList = interp1(x,tempCourse,1:nframes,'spline');
 %     figure; plot(fullTempList)
     
-    
     % Find number of flies that are near each well for each frame
     radii = 200; %distance must be less than this number to count for a well ROI
     
-    
-    nInst = length(X);
     % loop for all wells
     for well = 1:4
         b = pts(:,well); % well 1 points
@@ -106,160 +119,416 @@ for vid = 1:nvids
         Y = reshape(y_loc,numel(y_loc),1); 
         % within well range?
         euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2); %euclidian distance from well center
-        well_loc = (euDist<=radii);
-        well_loc = reshape(well_loc,[nframes,ntracks]);
-        data(vid).well_loc
-        
-        
-        
-        euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2);
-        data(well).well_loc = (euDist<=radii);
-        data(well).well_count = sum((euDist<=radii));
-
-        % occupation probability
-        data(well).occ_prob = data(well).well_count/nInst;
-        data(well).nInst = nInst;
+        well_loc = reshape((euDist<=radii),[nframes,ntracks]);
+        welldata(well).loc = well_loc;
+        % how many within the circle?
+        welldata(well).count = sum(well_loc,2);
+        data(vid).well_counts(:,well) = welldata(well).count;
     end
-        
-        
-        
-    
-
-    x = squeeze(headdata(:, 1, :)); % frame, instance
-    y = squeeze(headdata(:, 2, :));
-
-    X = reshape(x,numel(x),1);
-    Y = reshape(y,numel(y),1);
-    loc = isnan(X);
-    X(loc) = [];
-    Y(loc) = [];
-    % squash all points together over the video:
-
-    
-    % what if we do a min radius from the coordinates of the food bowl?  
-    fig = getfig; set(fig, 'color', 'k');
-    hist2d(X,Y, 'probability', 'tile')
-    axis tight; axis square
-    set(gca, 'visible', 'off')
-    c = colorbar;
-    c.Color = [1,1,1];
-    hold on
-    scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
-
-    
-    
-
-%     
+    data(vid).tempLog = fullTempList;
 end
+
+% should do a visual check on each well and the points for the duration of the
+%     video %TODO
+% visual confirmation that the selected points are near the well:
+AllPoints = [];
+for vid = 1:nvids
+   headData = squeeze(data(vid).tracks(:,1,:,:));
+   x_loc = squeeze(headData(:,1,:));
+   y_loc = squeeze(headData(:,2,:));
+   X = reshape(x_loc,numel(x_loc),1); 
+   Y = reshape(y_loc,numel(y_loc),1); 
+   X(isnan(X)) = [];
+   Y(isnan(Y)) = []; 
+   AllPoints = [AllPoints; X , Y];
+end
+% 
+% fig = getfig; set(fig, 'color', 'k');
+% hist2d(AllPoints(:,1),AllPoints(:,2), 'probability', 'tile')
+% axis tight; axis square
+% set(gca, 'visible', 'off')
+% c = colorbar;
+% c.Color = [1,1,1];
+% hold on
+% % scatter(X(well_loc),Y(well_loc), 50, 'y') % could automate the color on this
+% % scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
+% viscircles(pts',[radii,radii,radii,radii])
+% b = pts(:,well); % well 1 points
 
 % visual check that the number of tracked flies is close to the actual number
 fig = getfig;
     histogram(flyCount); vline(nflies, 'w-'); 
     xlabel('Number tracked flies'); ylabel('Frame count')
-    formatFig(fig, true)
-save_figure([analysisDir expName ' fly count histo'], '-png')
+    formatFig(fig, true);
+    labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
+    set(labelHandles,'FontSize', 18);
+    set(gca,'fontsize',15,'FontWeight','normal');
+save_figure(fig, [analysisDir expName ' fly count histo'], '-png');
 
 % https://sleap.ai/notebooks/Analysis_examples.html <-- python code for data example
 % h5disp(filePath)
 
+%% Take and save a snapshop pic of the arena w/ labels & well roi
 
-%% Basic sorting of the data...
-% demo only -- load in the camera image for the frame and overlay...
-demovid = 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\NonlinearCooling_1.avi';
-movieInfo = VideoReader(demovid);
-% mat locations: 
-ML.frame = 1;   % frames are 1st dim
-ML.node = 2;    % 
-ML.xy = 3;      % xy coordinates
-ML.fly = 4;     % tracks for 'a' fly
-
-% all data for head tracked location
-headdata = squeeze(tracks_matrix(:,1,:,:));
-
-frame = 5;
-
-% tracked points
-x = squeeze(headdata(frame, 1, :));
-y = squeeze(headdata(frame, 2, :));
-x(isnan(x)) = []; % remove empty tracks
-y(isnan(y)) = [];
-% image
-img = read(movieInfo,frame);
-
-% overlay:
-fig = getfig; set(fig, 'color', 'k')
+fig = getfig('',1); 
+imshow(demoImg)
+set(fig, 'color', 'k', 'pos', [-741 307 694 678])
+axis tight square
 hold on
-imagesc(img)
-scatter(x,y, 30, 'y')
-axis tight; axis square
-set(gca, 'visible', 'off')
-
-% save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo tracking image','-png');
-
-
-%% 
-pts = readPoints(img,4); % get locations of the wells from the image
-
-x = squeeze(headdata(:, 1, :)); % frame, instance
-y = squeeze(headdata(:, 2, :));
-
-X = reshape(x,numel(x),1);
-Y = reshape(y,numel(y),1);
-loc = isnan(X);
-X(loc) = [];
-Y(loc) = [];
-% squash all points together over the video:
-
-
-% what if we do a min radius from the coordinates of the food bowl?  
-fig = getfig; set(fig, 'color', 'k');
-hist2d(X,Y, 'probability', 'tile')
-axis tight; axis square
-set(gca, 'visible', 'off')
-c = colorbar;
-c.Color = [1,1,1];
-hold on
-scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
-
-% save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo histogram vid 1','-png');
-
-%% Pull temperature information for each frame
-
-% get temp log
-tempLogName = 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\NonlinearCooling_RampLog.csv';
-tempLog = readmatrix(tempLogName);
-
-% what are the temp time points for this video start and stop: 
-% -- TODO load in the appropriate matlab file for this video...harvest code
-% from VidAnalysisStep1...
-
-
-% https://sleap.ai/notebooks/Training_and_inference_using_Google_Drive.html
-
-%% Find flies within ROI of each well
-
-% how many points within a specific radius of the well?
-radii = 200; %distance must be less than this number to count for a well ROI
-nInst = length(X);
-% loop for all wells
 for well = 1:4
-    b = pts(:,well); % well 1 points
-    euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2);
-    data(well).well_loc = (euDist<=radii);
-    data(well).well_count = sum((euDist<=radii));
+    switch expData.params.(['well_' num2str(well)'])
+        case 'Yeast'
+            kolor = Color('gold');
+        case 'Plant'
+            kolor = Color('green');
+        case 'Empty'
+            kolor = Color('grey');
+        case 'Plant_827'
+            kolor = Color('palegreen');
+        case 'Plant_91'
+            kolor = Color('Darkgreen');
+    end
+    scatter(pts(1,well),pts(2,well), 75, 'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+end
+l = legend(wellLabels); 
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.8160 0.8618 0.1239 0.1025]);
+viscircles(pts',ones(1,4)*radii);
+titleName = strrep([folder ' ' expName], '_',' ');
+title(titleName,'color', 'w')
+
+save_figure(fig, [analysisDir expName ' well ROIs'], '-png');
+
+
+%% Summary figure
+nrow = 5;
+ncol = 4;
+subplotInd(1).idx = 5:7; % temperature
+subplotInd(2).idx = [9:11,13:15,17:19]; % occupation
+subplotInd(3).idx = 1:3; % fly count
+subplotInd(4).idx = [4:4:20]; % histogram
+
+% group data across videos:
+[plotX, plotY, plotZ] = deal([]);
+for vid = 1:nvids
+    plotX = [plotX, data(vid).tempLog]; % temperature
+    plotY = [plotY; data(vid).well_counts]; % flies per well
+    plotZ = [plotZ, sum(data(vid).occupancy_matrix)]; %number of flies tracked
+
+end
+plotY = plotY./nflies;
+sSpan = 180;
+LW = 1;
+time = linspace(1,(length(plotX)/3)/60,length(plotX));
+
+fig = getfig('',1); 
+ % tracking accuracy proxy (# flies)
+ subplot(nrow,ncol,subplotInd(3).idx)
+    plot(time, plotZ, 'linewidth', LW, 'color', Color('grey'))
+    hline(nflies, 'w--')
+    ylabel('fly count')
+ 
+ % temperature over time
+ subplot(nrow,ncol,subplotInd(1).idx)
+    plot(time, smooth(plotX,sSpan), 'linewidth', LW, 'color', 'w')
+    ylabel('temp (\circC)')
+    ylim([5,25])
     
-    % occupation probability
-    data(well).occ_prob = data(well).well_count/nInst;
-    data(well).nInst = nInst;
+ % occupation probability
+ subplot(nrow,ncol,subplotInd(2).idx)
+    hold on
+    for well = 1:4
+        switch expData.params.(['well_' num2str(well)'])
+            case 'Yeast'
+                kolor = Color('gold');
+            case 'Plant'
+                kolor = Color('green');
+            case 'Empty'
+                kolor = Color('grey');
+            case 'Plant_827'
+                kolor = Color('palegreen');
+            case 'Plant_91'
+                kolor = Color('Darkgreen');
+        end
+        plot(time, smooth(plotY(:,well),sSpan), 'linewidth', LW, 'color', kolor);
+    end
+    xlabel('time (min)'); ylabel('occupation probability')
+    
+ % fly count histogram
+ subplot(nrow,ncol,subplotInd(4).idx)
+    yyaxis left
+    set(gca,'YColor', 'k')
+    yyaxis right
+    h = histogram(flyCount); vline(nflies, 'w--'); 
+    set(h, 'facecolor', Color('grey'))
+    xlabel('Number tracked flies'); ylabel('Frame count')
+%     labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
+%     set(labelHandles,'FontSize', 18);
+%     set(gca,'fontsize',15,'FontWeight','normal');
+    
+formatFig(fig, true, [nrow, ncol], subplotInd);
+subplot(nrow,ncol,subplotInd(2).idx)
+l = legend(strrep(wellLabels,'_','-'));
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','position', [0.6463 0.5633 0.0963 0.1126]);% [0.8780 0.8119 0.0963 0.1126])%
+subplot(nrow,ncol,subplotInd(1).idx)
+set(gca, 'XColor', 'k')
+subplot(nrow,ncol,subplotInd(3).idx)
+set(gca, 'XColor', 'k')
+titleName = strrep([folder ' ' expName], '_',' ');
+title(titleName,'color', 'w')
+
+% Save image
+save_figure(fig, [analysisDir expName ' summary figure'], '-png');
+
+%% Simple visualization: relationship between temp & well occupation
+nrow = 4;
+ncol = 1;
+subplotInd(1).idx = 1;
+subplotInd(2).idx = 2:4;
+% group data across videos:
+[plotX, plotY] = deal([]);
+for vid = 1:nvids
+    plotX = [plotX, data(vid).tempLog];
+    plotY = [plotY; data(vid).well_counts];
+end
+plotY = plotY./nflies;
+sSpan = 180;
+LW = 1;
+time = linspace(1,(length(plotX)/3)/60,length(plotX));
+
+fig = getfig('',1); 
+    subplot(nrow,ncol,subplotInd(1).idx)
+    plot(time, smooth(plotX,sSpan), 'linewidth', LW, 'color', 'w')
+    ylabel('temp (\circC)')
+    ylim([5,25])
+    subplot(nrow,ncol,subplotInd(2).idx)
+    hold on
+    for well = 1:4
+        switch expData.params.(['well_' num2str(well)'])
+            case 'Yeast'
+                kolor = Color('gold');
+            case 'Plant'
+                kolor = Color('green');
+            case 'Empty'
+                kolor = Color('grey');
+            case 'Plant_827'
+                kolor = Color('palegreen');
+            case 'Plant_91'
+                kolor = Color('Darkgreen');
+        end
+
+        plot(time, smooth(plotY(:,well),sSpan), 'linewidth', LW, 'color', kolor);
+    end
+    xlabel('time (min)'); ylabel('occupation probability')
+    
+formatFig(fig, true, [nrow, ncol], subplotInd)
+l = legend(wellLabels);
+set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+subplot(nrow,ncol,subplotInd(1).idx)
+set(gca, 'XColor', 'k')
+titleName = strrep([folder ' ' expName], '_',' ');
+title(titleName,'color', 'w')
+
+% Save image
+save_figure(fig, [analysisDir expName ' well occupation timcourse'], '-png');
+
+%% Save simple info from experiment
+
+% group data across videos:
+[plotX, plotY] = deal([]);
+for vid = 1:nvids
+    plotX = [plotX, data(vid).tempLog];
+    plotY = [plotY; data(vid).well_counts];
+end
+occupancy.temp = plotX;
+occupancy.occ = plotY./nflies;
+occupancy.count = plotY;
+
+save([analysisDir expName ' timecourse data'],'data', 'occupancy','wellLabels')
+
+
+%% Visual comparison of tracked frames to look for outliers / patterns
+
+switch questdlg('Make tracking example videos?')
+    case 'No'
+    case 'Cancel'
+        return
+    case 'Yes'  
+        switch questdlg('Demo first 300 frames?')
+            case 'Yes'
+                nfames = 300;
+            case 'No'
+                nframes = inf;
+            case 'Cancel'
+                return
+        end
+    
+    vidpath = [baseFolder folder '\labeled vid examples\'];
+    if ~isfolder(vidpath)
+        mkdir(vidpath)
+    end
+    % find frames with largest fly count offset
+    for vid = 1:nvids
+        headdata = squeeze(data(vid).tracks(:,1,:,:));
+
+        tempVidName = [baseFolder folder '\' expName '_' num2str(vid) '.avi'];
+        movieInfo = VideoReader(tempVidName);
+
+        fig = getfig('',1); set(fig, 'color', 'k','pos',[-851 329 707 656]);
+        set(gca, 'visible', 'off')
+ 
+        % initiate video writer
+        vid_name = [vidpath expName '_' num2str(vid) ' predicted frames'];
+        FrameRate = 6; %playback rate
+        v = VideoWriter(vid_name, 'Motion JPEG AVI');
+        v.Quality = 75;
+        v.FrameRate = FrameRate;
+        open(v);
+
+        if isinf(nframes)
+            n = movieInfo.
+        for frame = 1:300
+            img = read(movieInfo,frame);
+            imagesc(img)
+            set(fig, 'Color', 'k') 
+            hold on
+            x = squeeze(headdata(frame, 1, :));
+            y = squeeze(headdata(frame, 2, :));
+            x(isnan(x)) = []; % remove empty tracks
+            y(isnan(y)) = [];
+            scatter(x,y, 30, 'y')
+            axis tight; axis square
+            set(gca, 'visible', 'off')
+            f = getframe(fig);
+            writeVideo(v, f)  
+            clf('reset') 
+        end
+        close(v)
+        close(fig)
+    end
 end
 
+% 
+% [offset, indx] = sort(plotZ-nflies);   
+% flyCounts = sum(data(vid).occupancy_matrix); %num tracked flies
+% [offset, indx] = sort(flyCounts-nflies); %find max incorrect number
+% % load image
+% flyCounts(indx(end))
+
+    
+    
+    % add scale bar
+    
+    
+    
+%     
+% 
+% figure;
+% plot(indx)
+% 
+% 
+% % Basic sorting of the data...
+% % demo only -- load in the camera image for the frame and overlay...
+% demovid = 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\NonlinearCooling_1.avi';
+% movieInfo = VideoReader(demovid);
+% % mat locations: 
+% ML.frame = 1;   % frames are 1st dim
+% ML.node = 2;    % 
+% ML.xy = 3;      % xy coordinates
+% ML.fly = 4;     % tracks for 'a' fly
+% 
+% % all data for head tracked location
+% headdata = squeeze(tracks_matrix(:,1,:,:));
+% 
+% frame = 5;
+% 
+% % tracked points
+% x = squeeze(headdata(frame, 1, :));
+% y = squeeze(headdata(frame, 2, :));
+% x(isnan(x)) = []; % remove empty tracks
+% y(isnan(y)) = [];
+% % image
+% img = read(movieInfo,frame);
+% 
+% % overlay:
+% fig = getfig; set(fig, 'color', 'k')
+% hold on
+% imagesc(img)
+% scatter(x,y, 30, 'y')
+% axis tight; axis square
+% set(gca, 'visible', 'off')
 
 
 
 
 
+%% Demo random selection of frames and their tracking points (QC)
 
-% % visual confirmation that the selected points are near the well:
+
+
+
+
+%%  
+% 
+% 
+% %% vvvv OLD STUFF BELOW vvvv
+% %% 
+% 
+% fig = getfig('',1);
+% hold on
+% 
+% scatter(plotX, plotY(:,1))
+% 
+% 
+% 
+% %% Basic sorting of the data...
+% % demo only -- load in the camera image for the frame and overlay...
+% demovid = 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\NonlinearCooling_1.avi';
+% movieInfo = VideoReader(demovid);
+% % mat locations: 
+% ML.frame = 1;   % frames are 1st dim
+% ML.node = 2;    % 
+% ML.xy = 3;      % xy coordinates
+% ML.fly = 4;     % tracks for 'a' fly
+% 
+% % all data for head tracked location
+% headdata = squeeze(tracks_matrix(:,1,:,:));
+% 
+% frame = 5;
+% 
+% % tracked points
+% x = squeeze(headdata(frame, 1, :));
+% y = squeeze(headdata(frame, 2, :));
+% x(isnan(x)) = []; % remove empty tracks
+% y(isnan(y)) = [];
+% % image
+% img = read(movieInfo,frame);
+% 
+% % overlay:
+% fig = getfig; set(fig, 'color', 'k')
+% hold on
+% imagesc(img)
+% scatter(x,y, 30, 'y')
+% axis tight; axis square
+% set(gca, 'visible', 'off')
+% 
+% % save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo tracking image','-png');
+% 
+% 
+% %% 
+% pts = readPoints(img,4); % get locations of the wells from the image
+% 
+% x = squeeze(headdata(:, 1, :)); % frame, instance
+% y = squeeze(headdata(:, 2, :));
+% 
+% X = reshape(x,numel(x),1);
+% Y = reshape(y,numel(y),1);
+% loc = isnan(X);
+% X(loc) = [];
+% Y(loc) = [];
+% % squash all points together over the video:
+% 
+% 
+% % what if we do a min radius from the coordinates of the food bowl?  
 % fig = getfig; set(fig, 'color', 'k');
 % hist2d(X,Y, 'probability', 'tile')
 % axis tight; axis square
@@ -267,16 +536,52 @@ end
 % c = colorbar;
 % c.Color = [1,1,1];
 % hold on
-% scatter(X(well_loc),Y(well_loc), 50, 'y') % could automate the color on this
 % scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
-% viscircles(b',radii)
 % 
-% save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo histogram point sel','-png');
+% % save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo histogram vid 1','-png');
 % 
-
-%% 
-
-
+% 
+% %% Find flies within ROI of each well
+% 
+% % how many points within a specific radius of the well?
+% radii = 200; %distance must be less than this number to count for a well ROI
+% nInst = length(X);
+% % loop for all wells
+% for well = 1:4
+%     b = pts(:,well); % well 1 points
+%     euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2);
+%     data(well).well_loc = (euDist<=radii);
+%     data(well).well_count = sum((euDist<=radii));
+%     
+%     % occupation probability
+%     data(well).occ_prob = data(well).well_count/nInst;
+%     data(well).nInst = nInst;
+% end
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% % % visual confirmation that the selected points are near the well:
+% % fig = getfig; set(fig, 'color', 'k');
+% % hist2d(X,Y, 'probability', 'tile')
+% % axis tight; axis square
+% % set(gca, 'visible', 'off')
+% % c = colorbar;
+% % c.Color = [1,1,1];
+% % hold on
+% % scatter(X(well_loc),Y(well_loc), 50, 'y') % could automate the color on this
+% % scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
+% % viscircles(b',radii)
+% % 
+% % save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\08.27.2021\Tracking\demo histogram point sel','-png');
+% % 
+% 
+% %% 
+% 
+% 
 
 
 
