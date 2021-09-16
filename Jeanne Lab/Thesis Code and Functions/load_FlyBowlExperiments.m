@@ -14,7 +14,7 @@ function [excelfile, Excel, xlFile] = load_FlyBowlExperiments
 %get base folder pathway
 switch getenv('COMPUTERNAME')
     case 'DENALI'
-        baseFolder = 'E:\My Drive\Jeanne Lab\';
+        baseFolder = 'G:\My Drive\Jeanne Lab\';
     case 'TOGIAK'
         baseFolder = 'G:\My Drive\Jeanne Lab\';
     case 'EVYNPC'
