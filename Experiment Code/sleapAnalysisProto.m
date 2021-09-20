@@ -5,7 +5,7 @@ clear
 close all
 clc
 %get base folder pathway
-[baseFolder, folder] = getCloudPath(2);
+[baseFolder, folder] = getCloudPath(2); 
 
 % Select the complete experiments to process
 list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
@@ -105,6 +105,7 @@ for vid = 1:nvids
     fullTempList = interp1(x,tempCourse,1:nframes,'spline');
 %     figure; plot(fullTempList)
     
+
     % Find number of flies that are near each well for each frame
     radii = 200; %distance must be less than this number to count for a well ROI
     
