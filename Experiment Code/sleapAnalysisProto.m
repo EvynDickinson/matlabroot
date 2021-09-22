@@ -1,7 +1,7 @@
 
 
 %% Select Date & Experiment to Process
-clear 
+clear
 close all
 clc  
 %get base folder pathway
@@ -72,6 +72,7 @@ wellLabels = {expData.params.well_1; expData.params.well_2;...
           expData.params.well_3; expData.params.well_4};   
 disp(wellLabels)
 pts = readPoints(demoImg,4); % get locations of the wells from the image
+wellcenters = pts;
 
 %% Data organization by video
 
@@ -196,7 +197,6 @@ titleName = strrep([folder ' ' expName], '_',' ');
 title(titleName,'color', 'w')
 
 save_figure(fig, [analysisDir expName ' well ROIs'], '-png');
-
 
 %% Summary figure
 nrow = 5;
@@ -342,7 +342,8 @@ occupancy.temp = plotX;
 occupancy.occ = plotY./nflies;
 occupancy.count = plotY;
 
-save([analysisDir expName ' timecourse data'],'data', 'occupancy','wellLabels')
+save([analysisDir expName ' timecourse data'],...
+    'data', 'occupancy','wellLabels','wellcenters')
 
 
 %% Visual comparison of tracked frames to look for outliers / patterns
@@ -413,79 +414,6 @@ switch questdlg('Make tracking example videos?')
         close(fig)
     end
 end
-
-
-
-%% Calculate degree of clustering
-movieInfo = VideoReader([baseFolder folder '\' expName '_1.avi']); %read in video
-demoImg = rgb2gray(read(movieInfo,1));
-imshow(demoImg)
-
-% pull info for each video
-nvids = size(data,2);
-LDist = [];
-for vid = 1:nvids
-        
-    % all data for head tracked location
-    headData = squeeze(data(vid).tracks(:,1,:,:));
-    nframes = size(headData,1); 
-    
-    % x-y coordinates of flies for each frame
-    x_loc = squeeze(headData(:,1,:));
-    y_loc = squeeze(headData(:,2,:));
-    
-
-    for frame = 1:nframes
-        test = [x_loc(frame,:)',y_loc(frame,:)'];
-        D = pdist(test);
-        D(isnan(D)) = [];
-        flyDistance(frame) = mean(D);
-    end
-    data(vid).flyDistance = flyDistance;
-    LDist = [LDist,flyDistance]; 
-end
-
-% demo the clustering proxy
-nrow = 2; ncol = nvids;
-fig = getfig('',1); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
-for vid = 1:nvids
-    movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
-    headData = squeeze(data(vid).tracks(:,1,:,:));
-    
-    % Most clustered:
-    [M,minidx(vid)] = min(data(vid).flyDistance);
-    img = read(movieInfo,minidx(vid));
-    subplot(nrow, ncol, vid)
-    imshow(img); hold on
-    axis tight square
-    set(gca, 'visible', 'off')
-    x = squeeze(headData(minidx(vid), 1, :)); x(isnan(x)) = [];
-    y = squeeze(headData(minidx(vid), 2, :)); y(isnan(y)) = [];
-    scatter(x,y, 10, 'y', 'filled')
-    title(num2str(M))
-    % overlay 'size bar' for min dist:
-    plot([10,10+M], [20,20], 'linewidth', 0.5, 'color', 'r')
-    
-    % Least clustered:
-    [M,maxidx(vid)] = max(data(vid).flyDistance);
-    img = read(movieInfo,maxidx(vid));
-    subplot(nrow, ncol, vid+nvids)
-    imshow(img); hold on
-    axis tight square
-    set(gca, 'visible', 'off')
-    x = squeeze(headData(maxidx(vid), 1, :)); x(isnan(x)) = [];
-    y = squeeze(headData(maxidx(vid), 2, :)); y(isnan(y)) = [];
-    scatter(x,y, 10, 'y', 'filled')
-    title(num2str(M))
-    % overlay 'size bar' for min dist:
-    plot([10,10+M], [20,20], 'linewidth', 0.5, 'color', 'r')
-end
-labelHandles = findall(gcf, 'type', 'text', 'handlevisibility', 'off');
-set(labelHandles,'FontSize', 15, 'color', 'w')
-
-
-save_figure(fig, [analysisDir expName ' linear clustering demo'], '-png');
-
 
 
 
