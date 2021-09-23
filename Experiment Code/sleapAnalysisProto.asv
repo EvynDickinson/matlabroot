@@ -25,7 +25,7 @@ expPDF = [analysisDir expName ' summary.pdf'];
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off
-% load matlab file for experiment
+% load matlab fi    le for experiment
 expData = load([baseFolder folder '\' expName 'dataMat.mat']);
 
 % load the temperature log for the experiment
@@ -40,7 +40,6 @@ for vid = 1:nvids
 end
 
 initial_vars = who; initial_vars{end+1} = 'initial_vars';
-fprintf('\nNext\n')
 
 %% Parameter extraction
 % Number of flies:
@@ -68,7 +67,7 @@ end
 fprintf(['\nNumber of flies: ' num2str(nflies) '\n'])
 
 % Find food wells and their identities %TODO
-h = warndlg('Select the well identities in their printed order'); uiwait(h)
+fprintf('\nSelect the well identities in this order:\n')
 % label the wells:
 wellLabels = {expData.params.well_1; expData.params.well_2;...
           expData.params.well_3; expData.params.well_4};   
@@ -77,7 +76,6 @@ wellcenters = readPoints(demoImg,4); % get locations of the wells from the image
 
 initial_vars = [initial_vars; 'nflies'; 'wellLabels'; 'wellcenters'; 'demoImg'];
 clearvars('-except',initial_vars{:})
-fprintf('Next\n')
 
 %% Data organization by video
 % Tracking matrix locations: [frame, node, xy, fly]
@@ -185,7 +183,6 @@ save_figure(fig, [analysisDir expName ' quality control'], '-png');
 
 initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'];
 clearvars('-except',initial_vars{:})
-fprintf('\nNext\n')
 
 %% Summary figure
 nrow = 5; ncol = 4;
@@ -264,7 +261,6 @@ end
 save_figure(fig, [analysisDir expName ' summary figure'], '-png');
 
 clearvars('-except',initial_vars{:})
-fprintf('\nNext\n')
 
 %% Simple visualization: relationship between temp & well occupation
 nrow = 4;
@@ -307,7 +303,7 @@ fig = getfig('',1);
     end
     xlabel('time (min)'); ylabel('occupation probability')
     
-formatFig(fig, true, [nrow, ncol], subplotInd);
+formatFig(fig, true, [nrow, ncol], subplotInd)
 l = legend([{'';'';'';''};wellLabels]);
 set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
 for well = 1:4
@@ -324,9 +320,9 @@ save_figure(fig, [analysisDir expName ' well occupation timcourse'], '-png');
 
 initial_vars = [initial_vars; 'time'];
 clearvars('-except',initial_vars{:})
-fprintf('\nNext\n')
 
 %% Organize info from experiment
+
 % group data across videos:
 [plotX, plotY] = deal([]);
 for vid = 1:nvids
@@ -341,7 +337,6 @@ occupancy.allwellOcc = sum(occupancy.occ,2);
 
 initial_vars = [initial_vars; 'occupancy'];
 clearvars('-except',initial_vars{:})
-fprintf('Next\n')
 
 %% Calculate degree of clustering
 % pull info for each video
@@ -413,7 +408,7 @@ set(labelHandles,'FontSize', 15, 'color', 'w')
 save_figure(fig, [analysisDir expName ' linear clustering demo'], '-png');
 
 clearvars('-except',initial_vars{:})
-fprintf('Next\n')
+
 
 %% Movement analysis
 
@@ -455,7 +450,7 @@ formatFig(fig, true);
 uiwait(fig)
 
 clearvars('-except',initial_vars{:})
-fprintf('Next\n')
+
 
 %% Time course feature comparison
 % plot parameters:
@@ -526,7 +521,7 @@ end
 save_figure(fig, [analysisDir expName ' timecourse features'], '-png');
 
 clearvars('-except',initial_vars{:})
-fprintf('Next\n')
+
 
 %% Save experiment data thus far:
 
@@ -535,7 +530,6 @@ switch questdlg('Save experiment analysis?')
         clearvars('-except',initial_vars{:})
         initial_vars = unique(initial_vars);
         save([analysisDir expName ' timecourse data'])
-        fprintf('Experiment data saved\n')
     case 'No'
         return
     case 'Cancel'
@@ -574,7 +568,7 @@ if ~isfolder(vidpath)
     mkdir(vidpath)
 end
 % find frames with largest fly count offset
-for vid = vidList
+for vid = 1:nvids
     headdata = squeeze(data(vid).tracks(:,1,:,:));
 
     tempVidName = [baseFolder folder '\' expName '_' num2str(vid) '.avi'];
@@ -620,6 +614,13 @@ for vid = vidList
     close(v)
     close(fig)
 end
+
+
+
+
+%% 
+
+
 
 %%
 % 
@@ -672,7 +673,15 @@ end
 % axis tight; axis square
 % set(gca, 'visible', 'off')
 
+
+
+
+
 %% Demo random selection of frames and their tracking points (QC)
+
+
+
+
 
 %%  
 % 

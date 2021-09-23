@@ -190,4 +190,62 @@ title(titleName,'color', 'w')
 save_figure(fig, [analysisDir expName ' adjusted well occupation timcourse'], '-png');
 
 
+%%  Compare the temp passive warming ramps
+
+% load the temperature log for the experiment
+
+fileList = {'G:\My Drive\Jeanne Lab\DATA\09.22.2021\PlantYeastChoice_N1_RampLog(1).csv',...
+            'G:\My Drive\Jeanne Lab\DATA\09.21.2021\PlantChoice_N1_RampLog.csv',...
+            'G:\My Drive\Jeanne Lab\DATA\09.08.2021\PlantYeastChoice_N1_RampLog.csv',...
+            'G:\My Drive\Jeanne Lab\DATA\09.08.2021\PlantYeastChoice_N2_RampLog.csv',...
+            'G:\My Drive\Jeanne Lab\DATA\09.03.2021\PlantYeastChoice_N1_RampLog.csv'};
+
+nlogs = length(fileList);
+for ii = 1:nlogs
+    tempLog = readmatrix(fileList{ii});
+    temp(ii).log = tempLog(:,2);
+end
+
+
+
+% 
+X = [8 12 16 18 20 22 23 23.7 24 25];
+Y = [572 576 582 586 592 602 614 630 650 763];
+
+X = [8 20 22 23.5 24 25]
+Y = [191 197 201 209 215 255];
+
+time = round((Y*4)/12);
+test = time - (time(1)-15);
+
+
+figure;
+hold on
+for ii = 1:nlogs
+    y = temp(ii).log;
+    plot(y)
+end
+vline(time)
+
+figure;
+hold on
+for ii = 1:nlogs
+    x = linspace(0,length(temp(ii).log)/12,length(temp(ii).log));
+    y = temp(ii).log;
+    plot(x,y)
+end
+plot(Y,X, 'color', 'k', 'linewidth', 1)
+xlabel('time (min)')
+
+
+
+
+
+
+
+
+
+
+
+
 

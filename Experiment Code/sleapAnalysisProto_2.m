@@ -47,21 +47,12 @@ end
 % add total well occupancy to occupancy structure
 occupancy.allwellOcc = sum(occupancy.occ,2);
 
-%%
-% for vid = 1:nvids
-%     % load tracking predictions
-%     filePath = [baseFolder folder '\' expName '_' num2str(vid) '.h5'];
-%     data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
-%     data(vid).tracks = h5read(filePath,'/tracks');
-%     
-% end
-
-
 %% Calculate degree of clustering
 % pull info for each video
+
 LDist = [];
 for vid = 1:nvids
-        
+    flyDistance = [];
     % all data for head tracked location
     headData = squeeze(data(vid).tracks(:,1,:,:));
     nframes = size(headData,1); 
@@ -79,40 +70,49 @@ for vid = 1:nvids
     data(vid).flyDistance = flyDistance;
     LDist = [LDist,flyDistance]; 
 end
-
+time = linspace(1,(length(LDist)/3)/60,length(LDist));
+occupancy.time = time;
 %add inter-fly-distance to the occupancy time course structure
 occupancy.IFD = LDist;
 
 % demo the clustering proxy
-nrow = 2; ncol = nvids;
+if nvids>12
+    divisor = round(nvids/6);
+    vidList = 1:divisor:nvids;
+else
+    vidList = 1:nvids;
+end
+nrow = 2; ncol = length(vidList); ii = 0; 
+[minidx,minidx] = deal([]);
 fig = getfig('',1); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
-for vid = 1:nvids
+for vid = vidList
+    ii = ii+1;
     movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
     headData = squeeze(data(vid).tracks(:,1,:,:));
     
     % Most clustered:
-    [M,minidx(vid)] = min(data(vid).flyDistance);
-    img = read(movieInfo,minidx(vid));
-    subplot(nrow, ncol, vid)
+    [M,minidx(ii)] = min(data(vid).flyDistance);
+    img = read(movieInfo,minidx(ii));
+    subplot(nrow, ncol, ii)
     imshow(img); hold on
     axis tight square
     set(gca, 'visible', 'off')
-    x = squeeze(headData(minidx(vid), 1, :)); x(isnan(x)) = [];
-    y = squeeze(headData(minidx(vid), 2, :)); y(isnan(y)) = [];
+    x = squeeze(headData(minidx(ii), 1, :)); x(isnan(x)) = [];
+    y = squeeze(headData(minidx(ii), 2, :)); y(isnan(y)) = [];
     scatter(x,y, 10, 'y', 'filled')
     title(num2str(M))
     % overlay 'size bar' for min dist:
     plot([10,10+M], [20,20], 'linewidth', 0.5, 'color', 'r')
     
     % Least clustered:
-    [M,maxidx(vid)] = max(data(vid).flyDistance);
-    img = read(movieInfo,maxidx(vid));
-    subplot(nrow, ncol, vid+nvids)
+    [M,maxidx(ii)] = max(data(vid).flyDistance);
+    img = read(movieInfo,maxidx(ii));
+    subplot(nrow, ncol, ii+length(vidList))
     imshow(img); hold on
     axis tight square
     set(gca, 'visible', 'off')
-    x = squeeze(headData(maxidx(vid), 1, :)); x(isnan(x)) = [];
-    y = squeeze(headData(maxidx(vid), 2, :)); y(isnan(y)) = [];
+    x = squeeze(headData(maxidx(ii), 1, :)); x(isnan(x)) = [];
+    y = squeeze(headData(maxidx(ii), 2, :)); y(isnan(y)) = [];
     scatter(x,y, 10, 'y', 'filled')
     title(num2str(M))
     % overlay 'size bar' for min dist:
@@ -125,7 +125,6 @@ save_figure(fig, [analysisDir expName ' linear clustering demo'], '-png');
 
 clear x y M minidx maxidx img nrow ncol D test flyDistance x_loc y_loc labelHandles headData
 
-
 %% Movement analysis
 
 %bin frame and check bin occupation changes across frames as proxy for
@@ -134,7 +133,6 @@ clear x y M minidx maxidx img nrow ncol D test flyDistance x_loc y_loc labelHand
 tic
 nbins = 100;
 spaceChange = [];
-[N,Xedges,Yedges] = histcounts2(X,Y,nbins);
 
 for vid = 1:nvids   
     N = [];
@@ -172,12 +170,7 @@ plot(occupancy.time(2:end), moving_average(occupancy.movement,10))
 
 
 
-%% Visualize the movement proxy
-
-
-
-
-%% Total well occupancy
+%% Time course feature comparison
 nrow = 8; ncol = 1;
 sSpan = 180; %1 minute filter length
 sbpts(1).idx = 1;
@@ -186,8 +179,7 @@ sbpts(3).idx = 5:6;
 sbpts(4).idx = 7:8;
 LW = 1.5;
 
-time = linspace(1,(length(LDist)/3)/60,length(LDist));
-occupancy.time = time;
+
 
 fig = getfig; set(fig, 'pos', [157 86 1232 878])
 subplot(nrow,ncol,sbpts(1).idx)
@@ -241,7 +233,7 @@ save_figure(fig, [analysisDir expName ' timecourse features'], '-png');
 
 clear sbpts well nrow ncol LW ans ii
 
-
+%% 
 
 
 
