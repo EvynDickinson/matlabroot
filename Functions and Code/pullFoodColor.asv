@@ -17,15 +17,7 @@ switch foodString
     case 'Plant9_20_A'
         colorname = 'Chartreuse';
     case 'Plant9_20_B'
-        colorname = 'teal';
-    case 'Plant9_20_C'
-        colorname = 'cyan';
-    case 'Yeast9_1'
-        colorname = 'sandybrown';
-    case 'yeessss'
-        colorname = 'sienna';
-    case 'sdfsds'
-        colorname = 'maroon';
+        colorname = '
 end
 
 kolor = Color(colorname);

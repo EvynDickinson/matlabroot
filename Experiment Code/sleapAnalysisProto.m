@@ -170,7 +170,8 @@ subplot(nrow, ncol, 1)
         scatter(wellcenters(1,well),wellcenters(2,well), 75,...
             'MarkerFaceColor', kolor, 'MarkerEdgeColor', Color(outerColors{well})) 
     end
-    l = legend(wellLabels); 
+    
+    l = legend(strrep(wellLabels,'_','-')); 
     set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
     viscircles(wellcenters',ones(1,4)*radii);
     titleName = strrep([folder ' ' expName], '_',' ');
@@ -308,7 +309,7 @@ fig = getfig('',1);
     xlabel('time (min)'); ylabel('occupation probability')
     
 formatFig(fig, true, [nrow, ncol], subplotInd);
-l = legend([{'';'';'';''};wellLabels]);
+l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
 set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
 for well = 1:4
     set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
@@ -363,7 +364,7 @@ occupancy.time = time;
 occupancy.IFD = LDist;
 
 % demo the clustering proxy
-if nvids>12
+if nvids>8
     divisor = round(nvids/6);
     vidList = 1:divisor:nvids;
 else
@@ -541,6 +542,8 @@ switch questdlg('Save experiment analysis?')
     case 'Cancel'
         return
 end
+
+
 
 %% Visual comparison of tracked frames to look for outliers / patterns
 
