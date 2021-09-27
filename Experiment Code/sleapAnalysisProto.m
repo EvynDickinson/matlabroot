@@ -25,7 +25,7 @@ expPDF = [analysisDir expName ' summary.pdf'];
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off
-% load matlab file for experiment
+% load matlab file for experiment 
 expData = load([baseFolder folder '\' expName 'dataMat.mat']);
 
 % load the temperature log for the experiment
