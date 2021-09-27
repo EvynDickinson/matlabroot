@@ -10,6 +10,7 @@ switch foodString
         colorname = 'green';
     case 'Empty'
         colorname = 'grey';
+    % SPECIFIC VARIETIES OF PLANT FOOD:
     case 'Plant_827'
         colorname = 'palegreen';
     case {'Plant_91', 'Plant9_1'}
@@ -20,11 +21,12 @@ switch foodString
         colorname = 'teal';
     case 'Plant9_20_C'
         colorname = 'cyan';
-    case 'Yeast9_1'
+    % SPECIFIC VARIETIES OF YEAST FOOD:
+    case {'Yeast9_1','Yeast_9_1'}
         colorname = 'sandybrown';
-    case 'yeessss'
+    case {'Yeast_8_27','Yeast8_27'}
         colorname = 'sienna';
-    case 'sdfsds'
+    case 'Yeast_9_20'
         colorname = 'maroon';
 end
 

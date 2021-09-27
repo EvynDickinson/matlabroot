@@ -22,7 +22,7 @@ switch questdlg('Copy models into selected folder?')
         return
 end
 
-% % text to set the cd to the desired folder: 
+% text to set the cd to the desired folder: 
 setCD = ['cd ' folder];
 setCD = strrep(setCD, '\', '/');
 fid = fopen(codeBlockPath,'w');
@@ -31,7 +31,7 @@ fclose(fid);
 
 % pull video names from within the folder:
 
-% Select the complete experiments to process
+%Select the complete experiments to process
 list_dirs = dir([folder, '\*.avi']); %only matlab files
 videoNames = {list_dirs(:).name};
 indx = listdlg('ListString', videoNames, 'SelectionMode', 'Multiple');

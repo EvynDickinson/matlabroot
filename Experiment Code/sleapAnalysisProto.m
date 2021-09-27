@@ -63,7 +63,13 @@ if isnan(nflies)
         return
     end
     % write number of flies into the excel sheet
-    xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
+    try
+        xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
+    catch
+        h = warndlg('Close Experiment Summary excel file and then close this warning box')
+        uiwait(h)
+        xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
+    end
 end
 fprintf(['\nNumber of flies: ' num2str(nflies) '\n'])
 
@@ -155,7 +161,7 @@ end
 
 % visual check that the number of tracked flies is close to the actual number
 nrow = 1; ncol = 2;
-fig = getfig; set(fig, 'pos', [2160 185 1413 646])
+fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
 subplot(nrow, ncol, 2)
     histogram(flyCount); vline(nflies, 'w-'); 
     xlabel('Number tracked flies'); ylabel('Frame count')
@@ -207,7 +213,7 @@ sSpan = 180;
 LW = 1;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
-fig = getfig('',1); 
+fig = getfig(''); 
  % tracking accuracy proxy (# flies)
  subplot(nrow,ncol,subplotInd(3).idx)
     y = moving_average(plotZ,sSpan);
@@ -267,6 +273,51 @@ save_figure(fig, [analysisDir expName ' summary figure'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')
 
+%% Measure of eccentricity
+%how far are the flies from the center of the arena, on average?
+% auto generate the arena center from the middlepoint of the 4 wells?
+x1 = wellcenters(1,1:2:4);
+y1 = wellcenters(2,1:2:4);
+x2 = wellcenters(1,2:2:4);
+y2 = wellcenters(2,2:2:4);
+[xi,yi] = polyxpoly(x1,y1,x2,y2);
+wellcenters(:,5) = [xi;yi];
+% 
+% %visualize the arena center
+% fig = getfig; set(fig, 'color', 'k')
+% imshow(demoImg); axis tight square
+% hold on
+% scatter(xi,yi, 45, 'y', 'filled')
+
+% find distance from center for each fly:
+EDist = [];
+for vid = 1:nvids
+    N = [];
+    for frame = 1:length(data(vid).tempLog)
+        test = [wellcenters(:,5)'; data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
+        D = squareform(pdist(test));
+        D = D(2:end,1);
+        D(isnan(D)) = [];
+        N(frame,:) = [mean(D), std(D)];
+    end
+    data(vid).eccentricity = N;
+    EDist = [EDist;N];
+end
+occupancy.eccentricity = EDist;
+
+% Plot the results of the eccentricity ** could be cool to do this overlaid
+% onto the arena image like a polar plot but with temp being color
+% coordinated ** 
+% 
+% % % Try polar plot vectorization:
+% function [r,theta]=cart2polar(x,y)
+%     r=sqrt(x.^2+y.^2);
+%     theta=atan(y./x);
+% end
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
 %% Simple visualization: relationship between temp & well occupation
 nrow = 4;
 ncol = 1;
@@ -283,7 +334,7 @@ sSpan = 180;
 LW = 1;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
-fig = getfig('',1); 
+fig = getfig(''); 
     subplot(nrow,ncol,subplotInd(1).idx)
     y = moving_average(plotX,sSpan);
     plot(time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
@@ -326,6 +377,7 @@ save_figure(fig, [analysisDir expName ' well occupation timcourse'], '-png');
 initial_vars = [initial_vars; 'time'];
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')
+
 
 %% Organize info from experiment
 % group data across videos:
@@ -374,7 +426,7 @@ nrow = 2; ncol = length(vidList); ii = 0;
 [minidx,minidx] = deal([]);
 
 % VISUALIZE a demo of the clustering accuracy
-fig = getfig('',1); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
+fig = getfig(''); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
 for vid = vidList
     ii = ii+1;
     movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
@@ -453,7 +505,7 @@ plot(occupancy.time(2:end), moving_average(occupancy.movement,180),...
     'linewidth', 2, 'color', 'w')
 xlabel('time (min)'), ylabel('movement (a.u.)')
 formatFig(fig, true);
-uiwait(fig)
+save_figure(fig, [analysisDir expName ' movement over time'], '-pdf');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -529,6 +581,101 @@ save_figure(fig, [analysisDir expName ' timecourse features'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% Position & Movement Summary Figure 
+%**TODO add in the eccentricity, remove total well occupancy
+% figure parameters:
+nrow = 10; ncol = 1;
+sSpan = 180; %1 minute filter length
+sbpts(1).idx = 1;    % temp
+sbpts(2).idx = 2:5;  % occupancy
+sbpts(3).idx = 6:9;  % clustering & eccentricity
+sbpts(4).idx = 9:10; % movement
+LW = 1.5;
+
+% FIGURE:
+fig = getfig; set(fig, 'pos', [157 86 1232 878])
+subplot(nrow,ncol,sbpts(1).idx)
+plot(time,moving_average(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
+ylabel('(\circ)')
+title('temperature')
+
+subplot(nrow,ncol,sbpts(2).idx)
+hold on
+for well = 1:4
+    kolor = pullFoodColor(wellLabels{well});
+    plot(time,moving_average(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+end
+plot(time,moving_average(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+ylabel('occupancy probability')
+title('individual well occupancy')
+legend(wellLabels)
+l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
+set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
+    'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
+
+% CLUSTERING
+subplot(nrow,ncol,sbpts(3).idx); hold on
+y_avg = moving_average(occupancy.IFD,sSpan);
+y_err = movstd(occupancy.IFD,sSpan);
+x = time;
+fill_data = error_fill(x, y_avg, y_err);
+h(1) = fill(fill_data.X, fill_data.Y, get_color('teal'), 'EdgeColor','none');
+set(h, 'facealpha', 0.2)
+plot(time,moving_average(occupancy.IFD,sSpan),'linewidth', LW, 'color', Color('teal'))
+% ECCENTRICITY
+y_avg = moving_average(occupancy.eccentricity(:,1),sSpan);
+y_err = moving_average(occupancy.eccentricity(:,2),sSpan);
+x = time;
+fill_data = error_fill(x, y_avg, y_err);
+h(2) = fill(fill_data.X, fill_data.Y, get_color('orange'), 'EdgeColor','none');
+set(h, 'facealpha', 0.2)
+plot(x,y_avg, 'linewidth', LW, 'color', Color('orange'))  
+ylabel('pixels')
+legend({'','inter fly distance', '', 'eccentricity'})
+set(get(get(h(1),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+set(get(get(h(2),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+
+% MOVEMENT
+subplot(nrow,ncol,sbpts(4).idx); hold on
+y_avg = moving_average(occupancy.movement,sSpan);
+y_err = movstd(occupancy.movement,sSpan);
+x = time(2:end);
+fill_data = error_fill(x, y_avg, y_err);
+h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
+set(h, 'facealpha', 0.2)
+plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
+ylabel('(a.u.)')
+title('movement')
+xlabel('time (min)')
+
+% ECCENTRICITY
+subplot(nrow,ncol,sbpts(5).idx); hold on
+y_avg = moving_average(occupancy.eccentricity(:,1),sSpan);
+y_err = moving_average(occupancy.eccentricity(:,2),sSpan);
+x = time;
+fill_data = error_fill(x, y_avg, y_err);
+h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
+set(h, 'facealpha', 0.2)
+plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
+ylabel('pixels')
+title('movement')
+xlabel('time (min)')
+
+formatFig(fig,true,[nrow, ncol], sbpts);
+for ii = 1:3
+    subplot(nrow,ncol,sbpts(ii).idx)
+    set(gca, 'XColor', 'k')
+end
+
+% save and export figure
+if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+end  
+save_figure(fig, [analysisDir expName ' timecourse features'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
 %% Save experiment data thus far:
 
 switch questdlg('Save experiment analysis?')
@@ -563,7 +710,7 @@ switch questdlg('Make tracking example videos?')
         end
 end
     
-if nvids>10
+if nvids>5
     divisor = round(nvids/10);
     vidList = 1:divisor:nvids;
 else
