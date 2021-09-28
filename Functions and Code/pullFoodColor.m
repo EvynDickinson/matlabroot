@@ -13,7 +13,7 @@ switch foodString
     % SPECIFIC VARIETIES OF PLANT FOOD:
     case 'Plant_827'
         colorname = 'palegreen';
-    case {'Plant_91', 'Plant9_1'}
+    case {'Plant_91', 'Plant9_1', 'Plant9_1C'}
         colorname = 'Darkgreen';
     case 'Plant9_20_A'
         colorname = 'Chartreuse';

@@ -66,7 +66,7 @@ if isnan(nflies)
     try
         xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
     catch
-        h = warndlg('Close Experiment Summary excel file and then close this warning box')
+        h = warndlg('Close Experiment Summary excel file and then close this warning box');
         uiwait(h)
         xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
     end
@@ -228,7 +228,7 @@ fig = getfig('');
     roi = 2:length(y)-1;
     plot(time(roi), y(roi), 'linewidth', LW, 'color', 'w')
     ylabel('temp (\circC)')
-    ylim([5,25])
+    ylim([5,26])
     
  % occupation probability
  subplot(nrow,ncol,subplotInd(2).idx)
@@ -273,6 +273,83 @@ save_figure(fig, [analysisDir expName ' summary figure'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')
 
+%% Simple visualization: relationship between temp & well occupation
+nrow = 4;
+ncol = 1;
+subplotInd(1).idx = 1;
+subplotInd(2).idx = 2:4;
+% group data across videos:
+[plotX, plotY] = deal([]);
+for vid = 1:nvids
+    plotX = [plotX, data(vid).tempLog];
+    plotY = [plotY; data(vid).well_counts];
+end
+plotY = plotY./nflies;
+sSpan = 180;
+LW = 1;
+time = linspace(1,(length(plotX)/3)/60,length(plotX));
+
+fig = getfig(''); 
+    subplot(nrow,ncol,subplotInd(1).idx)
+    y = moving_average(plotX,sSpan);
+    plot(time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
+    ylabel('temp (\circC)')
+    ylim([5,27])
+    
+    subplot(nrow,ncol,subplotInd(2).idx)
+    hold on
+    % error fills
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well}); % plotting color for food
+        y_avg(:,well) = moving_average(plotY(:,well),sSpan);
+        y_err = movstd(plotY(:,well),sSpan);
+        fill_data = error_fill(time, y_avg(:,well), y_err);
+        h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h(well), 'facealpha', 0.2)
+    end
+    % average line
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        plot(time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
+    end
+    xlabel('time (min)'); ylabel('occupation probability')
+    
+formatFig(fig, true, [nrow, ncol], subplotInd);
+l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
+set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+for well = 1:4
+    set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+end
+subplot(nrow,ncol,subplotInd(1).idx)
+set(gca, 'XColor', 'k')
+titleName = strrep([folder ' ' expName], '_',' ');
+title(titleName,'color', 'w')
+
+
+% Save image
+save_figure(fig, [analysisDir expName ' well occupation timcourse'], '-png');
+
+initial_vars = [initial_vars; 'time'];
+clearvars('-except',initial_vars{:})
+fprintf('\nNext\n')
+
+%% Organize info from experiment
+% group data across videos:
+[plotX, plotY] = deal([]);
+for vid = 1:nvids
+    plotX = [plotX, data(vid).tempLog];
+    plotY = [plotY; data(vid).well_counts];
+end
+occupancy.temp = plotX;
+occupancy.occ = plotY./nflies;
+occupancy.count = plotY;
+% add total well occupancy to occupancy structure
+occupancy.allwellOcc = sum(occupancy.occ,2);
+
+initial_vars = [initial_vars; 'occupancy'];
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
 %% Measure of eccentricity
 %how far are the flies from the center of the arena, on average?
 % auto generate the arena center from the middlepoint of the 4 wells?
@@ -315,84 +392,6 @@ occupancy.eccentricity = EDist;
 %     theta=atan(y./x);
 % end
 
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-%% Simple visualization: relationship between temp & well occupation
-nrow = 4;
-ncol = 1;
-subplotInd(1).idx = 1;
-subplotInd(2).idx = 2:4;
-% group data across videos:
-[plotX, plotY] = deal([]);
-for vid = 1:nvids
-    plotX = [plotX, data(vid).tempLog];
-    plotY = [plotY; data(vid).well_counts];
-end
-plotY = plotY./nflies;
-sSpan = 180;
-LW = 1;
-time = linspace(1,(length(plotX)/3)/60,length(plotX));
-
-fig = getfig(''); 
-    subplot(nrow,ncol,subplotInd(1).idx)
-    y = moving_average(plotX,sSpan);
-    plot(time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
-    ylabel('temp (\circC)')
-    ylim([5,25])
-    
-    subplot(nrow,ncol,subplotInd(2).idx)
-    hold on
-    % error fills
-    for well = 1:4
-        kolor = pullFoodColor(wellLabels{well}); % plotting color for food
-        y_avg(:,well) = moving_average(plotY(:,well),sSpan);
-        y_err = movstd(plotY(:,well),sSpan);
-        fill_data = error_fill(time, y_avg(:,well), y_err);
-        h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h(well), 'facealpha', 0.2)
-    end
-    % average line
-    for well = 1:4
-        kolor = pullFoodColor(wellLabels{well});
-        plot(time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
-    end
-    xlabel('time (min)'); ylabel('occupation probability')
-    
-formatFig(fig, true, [nrow, ncol], subplotInd);
-l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
-set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
-for well = 1:4
-    set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-end
-subplot(nrow,ncol,subplotInd(1).idx)
-set(gca, 'XColor', 'k')
-titleName = strrep([folder ' ' expName], '_',' ');
-title(titleName,'color', 'w')
-
-
-% Save image
-save_figure(fig, [analysisDir expName ' well occupation timcourse'], '-png');
-
-initial_vars = [initial_vars; 'time'];
-clearvars('-except',initial_vars{:})
-fprintf('\nNext\n')
-
-
-%% Organize info from experiment
-% group data across videos:
-[plotX, plotY] = deal([]);
-for vid = 1:nvids
-    plotX = [plotX, data(vid).tempLog];
-    plotY = [plotY; data(vid).well_counts];
-end
-occupancy.temp = plotX;
-occupancy.occ = plotY./nflies;
-occupancy.count = plotY;
-% add total well occupancy to occupancy structure
-occupancy.allwellOcc = sum(occupancy.occ,2);
-
-initial_vars = [initial_vars; 'occupancy'];
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
