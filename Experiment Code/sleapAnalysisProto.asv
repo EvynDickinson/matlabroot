@@ -598,8 +598,8 @@ LW = 1.5;
 fig = getfig; set(fig, 'pos', [157 86 1232 878])
 subplot(nrow,ncol,sbpts(1).idx)
 plot(time,moving_average(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
-ylabel('Temp(\circ)')
-% title('temperature')
+ylabel('(\circ)')
+title('temperature')
 
 subplot(nrow,ncol,sbpts(2).idx)
 hold on
@@ -607,12 +607,11 @@ for well = 1:4
     kolor = pullFoodColor(wellLabels{well});
     plot(time,moving_average(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
 end
-% plot(time,moving_average(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+plot(time,moving_average(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
 ylabel('occupancy probability')
-% title('individual well occupancy')
+title('individual well occupancy')
 legend(wellLabels)
-% l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
-l = legend(strrep(wellLabels,'_','-'));
+l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
 set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
     'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
 
@@ -634,11 +633,9 @@ h(2) = fill(fill_data.X, fill_data.Y, get_color('orange'), 'EdgeColor','none');
 set(h, 'facealpha', 0.2)
 plot(x,y_avg, 'linewidth', LW, 'color', Color('orange'))  
 ylabel('pixels')
-l2 = legend({'','inter fly distance', '', 'eccentricity'});
+legend({'','inter fly distance', '', 'eccentricity'})
 set(get(get(h(1),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
 set(get(get(h(2),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-set(l2, 'color', 'k', 'textcolor', 'w','FontSize', 8,'edgecolor', 'k',...
-    'position', [0.1350 0.4638 0.1039 0.0370]);% 
 
 % MOVEMENT
 subplot(nrow,ncol,sbpts(4).idx); hold on
@@ -649,8 +646,21 @@ fill_data = error_fill(x, y_avg, y_err);
 h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
 set(h, 'facealpha', 0.2)
 plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
-ylabel('movement (a.u.)')
-% title('movement')
+ylabel('(a.u.)')
+title('movement')
+xlabel('time (min)')
+
+% ECCENTRICITY
+subplot(nrow,ncol,sbpts(5).idx); hold on
+y_avg = moving_average(occupancy.eccentricity(:,1),sSpan);
+y_err = moving_average(occupancy.eccentricity(:,2),sSpan);
+x = time;
+fill_data = error_fill(x, y_avg, y_err);
+h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
+set(h, 'facealpha', 0.2)
+plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
+ylabel('pixels')
+title('movement')
 xlabel('time (min)')
 
 formatFig(fig,true,[nrow, ncol], sbpts);
