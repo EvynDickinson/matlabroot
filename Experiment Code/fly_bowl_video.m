@@ -27,8 +27,8 @@ src.Shutter = 5;
 
 vid.FramesPerTrigger = inf;
 % vid.ROIPosition = rectangular_ROI;
-%   vid.ROIPosition = full_ROI;
-  vid.ROIPosition = partial_ROI;
+  vid.ROIPosition = full_ROI;
+%   vid.ROIPosition = partial_ROI;
 
 preview(vid);
 

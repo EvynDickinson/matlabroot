@@ -1,10 +1,13 @@
 clear
+
 %% 
-%raw data folder:
+%raw data folder: 
+h = warndlg('Turn off IR lights on rig');
+uiwait(h)
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 start_dir = 'C:\Users\jeannelab\Documents\Evyn\DATA\';
 
-%get base folder pathway
+%get base folder pathway  
 switch getenv('COMPUTERNAME')
     case 'DENALI'
         baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
@@ -18,7 +21,7 @@ list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
     folderNames{i-2} = list_dirs(i).name;
 end
-folderNames = ['Today', folderNames];
+folderNames = ['Today', flip(folderNames)];
 
 indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
 if strcmpi(folderNames{indx}, 'Today')==true
@@ -31,4 +34,4 @@ folder = fullfile(start_dir, dir_sel);
 % Move folders to google drive:
 copyfile(folder, [baseFolder dir_sel])
 
-fprintf('done')    
+fprintf('done')
