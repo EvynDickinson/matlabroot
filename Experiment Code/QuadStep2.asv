@@ -4,17 +4,17 @@
 clear; close all; clc
 %get base folder pathway
 [baseFolder, folder] = getCloudPath(2); 
+vidFolder = [folder '\Split Videos'];
 
 % Select the complete experiments to process
 list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
 list_dirs = {list_dirs(:).name};
 expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
 expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
+expName = expName(1:end-1);
 clear expNames
 % Pull fly summary sheet information on selected experiment
-[excelfile, Excel, xlFile] = load_FlyBowlExperiments;
-XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
-           strcmpi(excelfile(:,Excel.expID), expName)); %rows with sel date
+[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 
 % Make new analyzed file directory
 analysisDir = [baseFolder folder '\analysis\'];
@@ -24,15 +24,21 @@ expPDF = [analysisDir expName ' summary.pdf'];
 % Load relevant data files (.mat, .csv, .h5)
 warning off
 % load matlab file for experiment 
-expData = load([baseFolder folder '\' expName 'dataMat.mat']);
-
+expData = load([baseFolder folder '\' expName ' dataMat.mat']);
 % load the temperature log for the experiment
 tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
+% Number of videos in the experiment (same for all arenas)
+nvids = expData.parameters.numVids;
 
-nvids = expData.num.vids;
+%% Select which Arena to process
+arenaSel = Alphabet(listdlg('ListString', {'A', 'B', 'C', 'D'}, 'SelectionMode', 'Single'));
+XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
+             strcmpi(excelfile(:,Excel.expID), expName) & ...
+             strcmpi(excelfile(:,Excel.arena), arenaSel)); %rows with sel date with ARENA ID
+
+% load tracking predictions         
 for vid = 1:nvids
-    % load tracking predictions
-    filePath = [baseFolder folder '\' expName '_' num2str(vid) '.h5'];
+    filePath = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.h5'];
     data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
     data(vid).tracks = h5read(filePath,'/tracks');
 end
@@ -42,8 +48,9 @@ fprintf('\nNext\n')
 
 %% Parameter extraction
 % Number of flies:
+
 nflies = excelfile{XLrow,Excel.numflies};
-movieInfo = VideoReader([baseFolder folder '\' expName '_1.avi']); %read in video
+movieInfo = VideoReader([baseFolder vidFolder '\' expName arenaSel '_1.avi']); %read in video
 ii = randi(size(data(1).occupancy_matrix,2),[3,1]); %random selection of frames to count fly number
 demoImg = rgb2gray(read(movieInfo,1));
 if isnan(nflies)
@@ -72,10 +79,12 @@ end
 fprintf(['\nNumber of flies: ' num2str(nflies) '\n'])
 
 % Find food wells and their identities %TODO
-h = warndlg('Select the well identities in their printed order'); uiwait(h)
+h = warndlg('Select the well locations starting at "9 o''clock" and proceeding clock wise'); uiwait(h)
 % label the wells:
-wellLabels = {expData.params.well_1; expData.params.well_2;...
-          expData.params.well_3; expData.params.well_4};   
+wellLabels = {expData.parameters.(['Arena' arenaSel]).well_1;...
+              expData.parameters.(['Arena' arenaSel]).well_2;...
+              expData.parameters.(['Arena' arenaSel]).well_3;...
+              expData.parameters.(['Arena' arenaSel]).well_4};   
 disp(wellLabels)
 wellcenters = readPoints(demoImg,4); % get locations of the wells from the image
 
@@ -112,7 +121,7 @@ for vid = 1:nvids
     fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
 
     % Find number of flies that are near each well for each frame
-    radii = 200; %distance must be less than this number to count for a well ROI
+    radii = 110; %distance must be less than this number to count for a well ROI
     
     % loop for all wells
     for well = 1:4
@@ -813,6 +822,39 @@ end
 % set(gca, 'visible', 'off')
 
 %% Demo random selection of frames and their tracking points (QC)
+vid = 1;
+headdata = squeeze(data(vid).tracks(:,1,:,:));
+
+tempVidName = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.avi'];
+movieInfo = VideoReader(tempVidName);
+
+fig = getfig('',1); set(fig, 'color', 'k','visible', 'on');
+set(gca, 'visible', 'off')
+
+% vid_name = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) ' predicted frames'];
+n = floor(movieInfo.duration);
+
+
+
+for frame = 1:n
+    img = read(movieInfo,frame);
+    imagesc(img)
+    set(fig, 'Color', 'k') 
+    hold on
+    x = squeeze(headdata(frame, 1, :));
+    y = squeeze(headdata(frame, 2, :));
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 30, 'y')
+    axis tight; axis square
+    set(gca, 'visible', 'off')
+    f = getframe(fig);
+    writeVideo(v, f)  
+    clf('reset') 
+end
+
+
+
 
 %%  
 % 
