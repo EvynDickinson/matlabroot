@@ -73,7 +73,7 @@ end
 
 %% Split the videos
 
-for vid = 3:nvids
+for vid = 1:nvids
     movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
     nframes = movieInfo.duration;
     h = waitbar(0,['Cropping video ' num2str(1) '/' num2str(nvids)]);
@@ -113,7 +113,7 @@ for vid = 3:nvids
         imgC = demoImg(roiC(1):roiC(2), roiC(3):roiC(4));
         imgD = demoImg(roiD(1):roiD(2), roiD(3):roiD(4));
         
-        %Save A frames
+        %Save A frames 
         imshow(imgA)
         f = getframe(fig);
         writeVideo(vidA, f)  
@@ -126,7 +126,7 @@ for vid = 3:nvids
         %Save C frames
         imshow(imgC)
         f = getframe(fig);
-        writeVideo(vidC, f)  
+        writeVideo(vidC, f)        
         
         %Save D frames
         imshow(imgD)
@@ -139,7 +139,7 @@ for vid = 3:nvids
         end   
     end
     close(vidA); close(vidB); close(vidC); close(vidD)
-     close(h); close(fig)
+     close(h); close(fig)   
 end
 
 

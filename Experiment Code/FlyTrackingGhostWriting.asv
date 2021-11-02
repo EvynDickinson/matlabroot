@@ -10,7 +10,7 @@ model_2 = 'centroid_model';
 
 % select the folder to analyze 
 [~, folder] = getCloudPath(1);
-codeBlockPath = [folder '\Split Videos\TrackingCodeBlock.txt'];
+codeBlockPath = [folder '\TrackingCodeBlock.txt'];
 
 % copy the current models into that folder
 switch questdlg('Copy models into selected folder?')
@@ -23,7 +23,7 @@ switch questdlg('Copy models into selected folder?')
 end
 
 % text to set the cd to the desired folder: 
-setCD = ['cd ' folder '/Split Videos'];
+setCD = ['cd ' folder];
 setCD = strrep(setCD, '\', '/');
 fid = fopen(codeBlockPath,'w');
 fprintf(fid, setCD);
@@ -32,7 +32,7 @@ fclose(fid);
 % pull video names from within the folder:
 
 %Select the complete experiments to process
-list_dirs = dir([folder, '\Split Videos\*.avi']); %only matlab files
+list_dirs = dir([folder, '\*.avi']); %only matlab files
 videoNames = {list_dirs(:).name};
 indx = listdlg('ListString', videoNames, 'SelectionMode', 'Multiple');
 

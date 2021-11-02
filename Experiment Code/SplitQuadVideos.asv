@@ -73,37 +73,37 @@ end
 
 %% Split the videos
 
-for vid = 1:nvids
+for vid = 3:nvids
     movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
     nframes = movieInfo.duration;
     h = waitbar(0,['Cropping video ' num2str(1) '/' num2str(nvids)]);
     
     % initiate arena A writer
-    videoA = [baseFolder folder '\' expName 'A_' num2str(vid) '.avi'];
+    videoA = [baseFolder folder '\Split Videos\' expName 'A_' num2str(vid) '.avi'];
     vidA = VideoWriter(videoA, 'Motion JPEG AVI');
     vidA.Quality = 75;
     vidA.FrameRate = 6;
     open(vidA);
     % initiate arena B writer
-    videoB = [baseFolder folder '\' expName 'B_' num2str(vid) '.avi'];
+    videoB = [baseFolder folder '\Split Videos\' expName 'B_' num2str(vid) '.avi'];
     vidB = VideoWriter(videoB, 'Motion JPEG AVI');
     vidB.Quality = 75;
     vidB.FrameRate = 6;
     open(vidB);
     % initiate arena A writer
-    videoC = [baseFolder folder '\' expName 'C_' num2str(vid) '.avi'];
+    videoC = [baseFolder folder '\Split Videos\' expName 'C_' num2str(vid) '.avi'];
     vidC = VideoWriter(videoC, 'Motion JPEG AVI');
     vidC.Quality = 75;
     vidC.FrameRate = 6;
     open(vidC);
     % initiate arena B writer
-    videoD = [baseFolder folder '\' expName 'D_' num2str(vid) '.avi'];
+    videoD = [baseFolder folder '\Split Videos\' expName 'D_' num2str(vid) '.avi'];
     vidD = VideoWriter(videoD, 'Motion JPEG AVI');
     vidD.Quality = 75;
     vidD.FrameRate = 6;
     open(vidD);
     
-    figA = figure; set(figA, 'color', 'k');
+    fig = figure; set(fig, 'color', 'k','visible', 'off');
     
     for frame = 1:nframes
         %Extract and crop frames
@@ -113,69 +113,33 @@ for vid = 1:nvids
         imgC = demoImg(roiC(1):roiC(2), roiC(3):roiC(4));
         imgD = demoImg(roiD(1):roiD(2), roiD(3):roiD(4));
         
-        %Save frames to new videos
+        %Save A frames 
         imshow(imgA)
-        set(figA, 'Color', 'k')
         f = getframe(fig);
-            writeVideo(v, f)  
-            clf('reset')
+        writeVideo(vidA, f)  
         
-
-
-            img = read(movieInfo,frame);
-            imagesc(img)
-            
-            hold on
-            x = squeeze(headdata(frame, 1, :));
-            y = squeeze(headdata(frame, 2, :));
-            x(isnan(x)) = []; % remove empty tracks
-            y(isnan(y)) = [];
-            scatter(x,y, 30, 'y')
-            axis tight; axis square
-            set(gca, 'visible', 'off')
-            f = getframe(fig);
-            writeVideo(v, f)  
-            clf('reset') 
-
-        close(v)
-        close(fig)
+        %Save B frames
+        imshow(imgB)
+        f = getframe(fig);
+        writeVideo(vidB, f)  
         
+        %Save C frames
+        imshow(imgC)
+        f = getframe(fig);
+        writeVideo(vidC, f)        
         
-        
-        
-        
+        %Save D frames
+        imshow(imgD)
+        f = getframe(fig);
+        writeVideo(vidD, f)  
         
         % update the waitbar every 10 frames
         if rem(frame,10) == 0
-            waitbar(frame/nvid,h)
+            waitbar(frame/nframes,h)
         end   
     end
-    close h
+    close(vidA); close(vidB); close(vidC); close(vidD)
+     close(h); close(fig)   
 end
 
 
-
-
-% Make new analyzed file directory
-analysisDir = [baseFolder folder '\analysis\'];
-if ~isfolder(analysisDir); mkdir(analysisDir); end
-expPDF = [analysisDir expName ' summary.pdf'];
-
-% Load relevant data files (.mat, .csv, .h5)
-warning off
-% load matlab file for experiment 
-expData = load([baseFolder folder '\' expName 'dataMat.mat']);
-
-% load the temperature log for the experiment
-tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
-
-nvids = expData.num.vids;
-for vid = 1:nvids
-    % load tracking predictions
-    filePath = [baseFolder folder '\' expName '_' num2str(vid) '.h5'];
-    data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
-    data(vid).tracks = h5read(filePath,'/tracks');
-end
-
-initial_vars = who; initial_vars{end+1} = 'initial_vars';
-fprintf('\nNext\n')
