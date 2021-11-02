@@ -13,6 +13,9 @@ full_ROI = [0 0 2048 2048];
 partial_ROI = [420 656 1248 1244];
 rectangular_ROI = [552 586 628 891]; %srectangular arena space
 
+ROI = [31 71 1949 1949];
+
+
 % Load in the camera / open preview
 vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
 src = getselectedsource(vid);
