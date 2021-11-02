@@ -1,6 +1,6 @@
 % LOAD VIDEOS FOR AN EXPERIMENT AND CROP THEM INTO THE FOUR INDEPENDENT
 % QUADRANTS / ARENAS FOR TRACKING AND POST PROCESSING
-close; clc  
+clear; clc  
 
 %% Select data to split:
 %get base folder pathway
@@ -11,11 +11,10 @@ list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
 list_dirs = {list_dirs(:).name};
 expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
 expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
+expName = expName(1:end-1);
 clear expNames
 % Pull fly summary sheet information on selected experiment
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
-           strcmpi(excelfile(:,Excel.expID), expName)); %rows with sel date
 
 % Make a new video folder:
 videosDir = [baseFolder folder '\Split Videos\'];
@@ -76,7 +75,7 @@ end
 for vid = 1:nvids
     movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
     nframes = movieInfo.duration;
-    h = waitbar(0,['Cropping video ' num2str(1) '/' num2str(nvids)]);
+    h = waitbar(0,['Cropping video ' num2str(vid) '/' num2str(nvids)]);
     
     % initiate arena A writer
     videoA = [baseFolder folder '\Split Videos\' expName 'A_' num2str(vid) '.avi'];

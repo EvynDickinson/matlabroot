@@ -2,6 +2,8 @@
 function [src, vid] = InitializeCamera(FPS)
     % image cropping parameters
     full_ROI = [0 0 2048 2048];
+    % always want to keep the ROI size 1920 x 1920 if possible. The offsets
+    % can change to match a moving plate if needed
     partial_ROI = [44 80 1920 1920];
 %                   [72 94 1901 1918]; 
 %                   [31 71 1949 1949]
