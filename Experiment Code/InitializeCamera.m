@@ -2,8 +2,9 @@
 function [src, vid] = InitializeCamera(FPS)
     % image cropping parameters
     full_ROI = [0 0 2048 2048];
-    partial_ROI = [72 94 1901 1918]; %[420 656 1248 1244];
-
+    partial_ROI = [44 80 1920 1920];
+%                   [72 94 1901 1918]; 
+%                   [31 71 1949 1949]
     % Load in the camera / open preview
     vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
     src = getselectedsource(vid);
