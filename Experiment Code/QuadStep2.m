@@ -19,7 +19,6 @@ clear expNames
 % Make new analyzed file directory
 analysisDir = [baseFolder folder '\analysis\'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
-expPDF = [analysisDir expName ' summary.pdf'];
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off
@@ -30,8 +29,9 @@ tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
 % Number of videos in the experiment (same for all arenas)
 nvids = expData.parameters.numVids;
 
-%% Select which Arena to process
+% Select which Arena to process
 arenaSel = Alphabet(listdlg('ListString', {'A', 'B', 'C', 'D'}, 'SelectionMode', 'Single'));
+expPDF = [analysisDir expName arenaSel ' summary.pdf'];
 XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
              strcmpi(excelfile(:,Excel.expID), expName) & ...
              strcmpi(excelfile(:,Excel.arena), arenaSel)); %rows with sel date with ARENA ID
@@ -56,16 +56,27 @@ demoImg = rgb2gray(read(movieInfo,1));
 if isnan(nflies)
     % manual count of flies
     fprintf('\nCount the number of flies in the picture by clicking them\n then hit ENTER\n')
-    for jj = 1:3
-        demoImg = rgb2gray(read(movieInfo,ii(jj)));
-        nflies(jj) = size(readPoints(demoImg),2);
-    end
-    if sum(~diff(nflies)==0)==0
-        nflies = nflies(1);
-    else
-        warndlg('Check fly counts again')
+    T = true;
+    while T % get the number of flies in the arena
+        for jj = 1:3
+            demoImg = rgb2gray(read(movieInfo,ii(jj)));
+            nflies(jj) = size(readPoints(demoImg),2);
+        end
         fprintf(['\nNumber of flies counted: ' num2str(nflies) '\n'])
-        return
+        if sum(~diff(nflies)==0)==0
+            nflies = nflies(1); 
+            T = false;
+        else
+            switch questdlg(['Nonmatching fly counts, manually select number?: ' num2str(nflies)])
+                case 'Yes'
+                    nflies = str2double(inputdlg('Input number of flies'));
+                    T = false;
+                case 'No'
+                    T = true;
+                case 'Cancel'
+                    return
+            end
+        end
     end
     % write number of flies into the excel sheet
     try
@@ -121,7 +132,7 @@ for vid = 1:nvids
     fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
 
     % Find number of flies that are near each well for each frame
-    radii = 110; %distance must be less than this number to count for a well ROI
+    radii = 165; %110; %distance must be less than this number to count for a well ROI
     
     % loop for all wells
     for well = 1:4
@@ -187,15 +198,15 @@ subplot(nrow, ncol, 1)
     l = legend(strrep(wellLabels,'_','-')); 
     set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
     viscircles(wellcenters',ones(1,4)*radii);
-    titleName = strrep([folder ' ' expName], '_',' ');
+    titleName = strrep([folder ' ' expName arenaSel], '_',' ');
     title(titleName,'color', 'w')
     formatFig(fig, true,[nrow, ncol]);
-    
+   
 % save and export figure:
 if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 end  
-save_figure(fig, [analysisDir expName ' quality control'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' quality control'], '-png');
 
 initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'];
 clearvars('-except',initial_vars{:})
@@ -223,7 +234,7 @@ time = linspace(1,(length(plotX)/3)/60,length(plotX));
 fig = getfig(''); 
  % tracking accuracy proxy (# flies)
  subplot(nrow,ncol,subplotInd(3).idx)
-    y = moving_average(plotZ,sSpan);
+    y = smooth(plotZ,sSpan);
     roi = 2:length(y)-1;
     plot(time(roi), y(roi), 'linewidth', LW, 'color', Color('grey'))
     hline(nflies, 'w--')
@@ -231,7 +242,7 @@ fig = getfig('');
  
  % temperature over time
  subplot(nrow,ncol,subplotInd(1).idx)
-    y = moving_average(plotX,sSpan);
+    y = smooth(plotX,sSpan);
     roi = 2:length(y)-1;
     plot(time(roi), y(roi), 'linewidth', LW, 'color', 'w')
     ylabel('temp (\circC)')
@@ -242,7 +253,7 @@ fig = getfig('');
     hold on
     for well = 1:4
         kolor = pullFoodColor(wellLabels{well});
-        y = moving_average(plotY(:,well),sSpan);
+        y = smooth(plotY(:,well),sSpan);
         roi = 2:length(y)-1;
         plot(time(roi), y(roi), 'linewidth', LW, 'color', kolor);
     end
@@ -268,14 +279,14 @@ subplot(nrow,ncol,subplotInd(1).idx)
 set(gca, 'XColor', 'k')
 subplot(nrow,ncol,subplotInd(3).idx)
 set(gca, 'XColor', 'k')
-titleName = strrep([folder ' ' expName], '_',' ');
+titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
 title(titleName,'color', 'w')
 
 % Save image
 if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 end  
-save_figure(fig, [analysisDir expName ' summary figure'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' summary figure'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')
@@ -298,7 +309,7 @@ time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
 fig = getfig(''); 
     subplot(nrow,ncol,subplotInd(1).idx)
-    y = moving_average(plotX,sSpan);
+    y = smooth(plotX,sSpan);
     plot(time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
     ylabel('temp (\circC)')
     ylim([5,27])
@@ -308,7 +319,7 @@ fig = getfig('');
     % error fills
     for well = 1:4
         kolor = pullFoodColor(wellLabels{well}); % plotting color for food
-        y_avg(:,well) = moving_average(plotY(:,well),sSpan);
+        y_avg(:,well) = smooth(plotY(:,well),sSpan);
         y_err = movstd(plotY(:,well),sSpan);
         fill_data = error_fill(time, y_avg(:,well), y_err);
         h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
@@ -329,12 +340,12 @@ for well = 1:4
 end
 subplot(nrow,ncol,subplotInd(1).idx)
 set(gca, 'XColor', 'k')
-titleName = strrep([folder ' ' expName], '_',' ');
+titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
 title(titleName,'color', 'w')
 
 
 % Save image
-save_figure(fig, [analysisDir expName ' well occupation timcourse'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' well occupation timcourse'], '-png');
 
 initial_vars = [initial_vars; 'time'];
 clearvars('-except',initial_vars{:})
@@ -355,9 +366,8 @@ occupancy.allwellOcc = sum(occupancy.occ,2);
 
 initial_vars = [initial_vars; 'occupancy'];
 clearvars('-except',initial_vars{:})
-fprintf('Next\n')
 
-%% Measure of eccentricity
+% Measure of eccentricity
 %how far are the flies from the center of the arena, on average?
 % auto generate the arena center from the middlepoint of the 4 wells?
 x1 = wellcenters(1,1:2:4);
@@ -472,13 +482,12 @@ end
 labelHandles = findall(gcf, 'type', 'text', 'handlevisibility', 'off');
 set(labelHandles,'FontSize', 15, 'color', 'w')
 
-save_figure(fig, [analysisDir expName ' linear clustering demo'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Movement analysis
-
 %bin frame and check bin occupation changes across frames as proxy for
 %movement --> won't give an accurate 'speed' etc. but it might give
 %movement.
@@ -510,11 +519,11 @@ toc
 % preview the movement average
 fig = getfig;  hold on
 plot(occupancy.time(2:end), occupancy.movement,'color', Color('teal'))
-plot(occupancy.time(2:end), moving_average(occupancy.movement,180),...
+plot(occupancy.time(2:end), smooth(occupancy.movement,180),...
     'linewidth', 2, 'color', 'w')
 xlabel('time (min)'), ylabel('movement (a.u.)')
 formatFig(fig, true);
-save_figure(fig, [analysisDir expName ' movement over time'], '-pdf');
+save_figure(fig, [analysisDir expName arenaSel ' movement over time'], '-pdf');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -532,7 +541,7 @@ LW = 1.5;
 % FIGURE:
 fig = getfig; set(fig, 'pos', [157 86 1232 878])
 subplot(nrow,ncol,sbpts(1).idx)
-plot(time,moving_average(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
+plot(time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
 ylabel('(\circ)')
 title('temperature')
 
@@ -540,9 +549,9 @@ subplot(nrow,ncol,sbpts(2).idx)
 hold on
 for well = 1:4
     kolor = pullFoodColor(wellLabels{well});
-    plot(time,moving_average(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+    plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
 end
-plot(time,moving_average(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+plot(time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
 ylabel('occupancy probability')
 title('individual well occupancy')
 legend(wellLabels)
@@ -552,19 +561,19 @@ set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
 
 % CLUSTERING
 subplot(nrow,ncol,sbpts(3).idx); hold on
-y_avg = moving_average(occupancy.IFD,sSpan);
-y_err = moving_average(occupancy.IFD_err,sSpan);
+y_avg = smooth(occupancy.IFD,sSpan);
+y_err = smooth(occupancy.IFD_err,sSpan);
 x = time;
 fill_data = error_fill(x, y_avg, y_err);
 h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
 set(h, 'facealpha', 0.2)
-plot(time,moving_average(occupancy.IFD,sSpan),'linewidth', LW, 'color', 'w')
+plot(time,smooth(occupancy.IFD,sSpan),'linewidth', LW, 'color', 'w')
 ylabel('pixels')
 title('inter-fly-distance')
 
 % MOVEMENT
 subplot(nrow,ncol,sbpts(4).idx); hold on
-y_avg = moving_average(occupancy.movement,sSpan);
+y_avg = smooth(occupancy.movement,sSpan);
 y_err = movstd(occupancy.movement,sSpan);
 x = time(2:end);
 fill_data = error_fill(x, y_avg, y_err);
@@ -585,7 +594,7 @@ end
 if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
 end  
-save_figure(fig, [analysisDir expName ' timecourse features'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -604,7 +613,7 @@ LW = 1.5;
 % FIGURE:
 fig = getfig; set(fig, 'pos', [157 86 1232 878])
 subplot(nrow,ncol,sbpts(1).idx)
-plot(time,moving_average(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
+plot(time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
 ylabel('Temp(\circ)')
 % title('temperature')
 
@@ -612,9 +621,9 @@ subplot(nrow,ncol,sbpts(2).idx)
 hold on
 for well = 1:4
     kolor = pullFoodColor(wellLabels{well});
-    plot(time,moving_average(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+    plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
 end
-% plot(time,moving_average(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+% plot(time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
 ylabel('occupancy probability')
 % title('individual well occupancy')
 legend(wellLabels)
@@ -625,16 +634,16 @@ set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
 
 % CLUSTERING
 subplot(nrow,ncol,sbpts(3).idx); hold on
-y_avg = moving_average(occupancy.IFD,sSpan);
-y_err = moving_average(occupancy.IFD_err,sSpan);
+y_avg = smooth(occupancy.IFD,sSpan);
+y_err = smooth(occupancy.IFD_err,sSpan);
 x = time;
 fill_data = error_fill(x, y_avg, y_err);
 h(1) = fill(fill_data.X, fill_data.Y, get_color('teal'), 'EdgeColor','none');
 set(h, 'facealpha', 0.2)
-plot(time,moving_average(occupancy.IFD,sSpan),'linewidth', LW, 'color', Color('teal'))
+plot(time,smooth(occupancy.IFD,sSpan),'linewidth', LW, 'color', Color('teal'))
 % ECCENTRICITY
-y_avg = moving_average(occupancy.eccentricity(:,1),sSpan);
-y_err = moving_average(occupancy.eccentricity(:,2),sSpan);
+y_avg = smooth(occupancy.eccentricity(:,1),sSpan);
+y_err = smooth(occupancy.eccentricity(:,2),sSpan);
 x = time;
 fill_data = error_fill(x, y_avg, y_err);
 h(2) = fill(fill_data.X, fill_data.Y, get_color('orange'), 'EdgeColor','none');
@@ -649,7 +658,7 @@ set(l2, 'color', 'k', 'textcolor', 'w','FontSize', 8,'edgecolor', 'k',...
 
 % MOVEMENT
 subplot(nrow,ncol,sbpts(4).idx); hold on
-y_avg = moving_average(occupancy.movement,sSpan);
+y_avg = smooth(occupancy.movement,sSpan);
 y_err = movstd(occupancy.movement,sSpan);
 x = time(2:end);
 fill_data = error_fill(x, y_avg, y_err);
@@ -670,7 +679,7 @@ end
 if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
 end  
-save_figure(fig, [analysisDir expName ' timecourse features'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -681,7 +690,7 @@ switch questdlg('Save experiment analysis?')
     case 'Yes'
         clearvars('-except',initial_vars{:})
         initial_vars = unique(initial_vars);
-        save([analysisDir expName ' timecourse data'])
+        save([analysisDir expName arenaSel ' timecourse data'])
         fprintf('Experiment data saved\n')
     case 'No'
         return
@@ -771,29 +780,29 @@ for vid = vidList
 end
 
 %% Demo random selection of frames and their tracking points (QC)
-vid = 1;
-headdata = squeeze(data(vid).tracks(:,1,:,:));
-
-tempVidName = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.avi'];
-movieInfo = VideoReader(tempVidName);
-
-fig = getfig('',1); set(fig, 'color', 'k','visible', 'on');
-set(gca, 'visible', 'off')
-
-% vid_name = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) ' predicted frames'];
-n = floor(movieInfo.duration);
-
-for frame = 1:50
-    img = read(movieInfo,frame);
-    imshow(img)
-    hold on
-    x = squeeze(headdata(frame, 1, :));
-    y = squeeze(headdata(frame, 2, :));
-    x(isnan(x)) = []; % remove empty tracks
-    y(isnan(y)) = [];
-    scatter(x,y, 30, 'y')
-    pause(0.1)
-end
+% vid = 1;
+% headdata = squeeze(data(vid).tracks(:,1,:,:));
+% 
+% tempVidName = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.avi'];
+% movieInfo = VideoReader(tempVidName);
+% 
+% fig = getfig('',1); set(fig, 'color', 'k','visible', 'on');
+% set(gca, 'visible', 'off')
+% 
+% % vid_name = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) ' predicted frames'];
+% n = floor(movieInfo.duration);
+% 
+% for frame = 1:50
+%     img = read(movieInfo,frame);
+%     imshow(img)
+%     hold on
+%     x = squeeze(headdata(frame, 1, :));
+%     y = squeeze(headdata(frame, 2, :));
+%     x(isnan(x)) = []; % remove empty tracks
+%     y(isnan(y)) = [];
+%     scatter(x,y, 30, 'y')
+%     pause(0.1)
+% end
 
 
 %%

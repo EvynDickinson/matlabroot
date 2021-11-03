@@ -16,7 +16,8 @@ if nargin < 2
 else
     pts = zeros(2, n);
 end
-f = figure; imshow(image);     % display image
+f = figure; set(f, 'color', 'k');
+imshow(image);     % display image
 xold = 0;
 yold = 0;
 k = 0;

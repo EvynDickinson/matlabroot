@@ -54,6 +54,68 @@ end
 fclose(fid);
 
 
+%% Find and print out list of missing tracking or prediction files:
+clear
+
+% select the folder to analyze 
+[~, folder] = getCloudPath(1);
+codeBlockPath = [folder '\Split Videos\TrackingCodeBlock.txt'];
+vidPath = [folder '\Split Videos\'];
+% Pull the full list of movies that should have been tracked:
+list_dirs = dir([vidPath, '*.avi']); %only matlab files
+videoNames = {list_dirs(:).name};
+videos = cellfun(@(x) strsplit(x, '.'), videoNames, 'UniformOutput', false);
+videos = vertcat(videos{:}); % To remove nesting of cell array newA
+videos = videos(:,1);
+% Pull list of SLP tracking files:
+list_dirs = dir([vidPath, '*.slp']); %only matlab files
+trackNames = {list_dirs(:).name};
+tracking = cellfun(@(x) strsplit(x, '.'), trackNames, 'UniformOutput', false);
+tracking = vertcat(tracking{:}); % To remove nesting of cell array newA
+tracking = tracking(:,1);
+% Pull list of prediction files:
+list_dirs = dir([vidPath, '*.h5']); %only matlab files
+predictionNames = {list_dirs(:).name};
+predictions = cellfun(@(x) strsplit(x, '.'), predictionNames, 'UniformOutput', false);
+predictions = vertcat(predictions{:}); % To remove nesting of cell array newA
+predictions = predictions(:,1);
+
+% Find and reprint the missing files:
+trackFail = find(ismember(videos, tracking)==false);
+precictFail = find(ismember(videos, predictions)==false);
+if ~isempty(trackFail) || ~isempty(precictFail)
+    fid = fopen(codeBlockPath,'a+');
+    disp('Missing files found')
+    fprintf(fid, '\n\nMISSED TRACKING/PREDICTION FILES:');
+    if ~isempty(trackFail)
+        %print out new files to be run
+        for ii = 1:length(trackFail)
+        vidName = videoNames{trackFail(ii)};
+        trackStr = ['\n' 'sleap-track --tracking.tracker simple '...
+                    ' -m "centered_instance_model" -m "centroid_model" '...
+                    '"' vidName '"'];
+        fprintf(fid, trackStr);
+        end
+    end
+    if ~isempty(precictFail)
+    %   print missing prediction files
+        for ii = 1:length(precictFail)
+            vidName = videoNames{precictFail(ii)};
+            predName = [vidName '.predictions.slp'];
+            analName = [vidName(1:end-4) '.h5'];
+            convertStr = ['\n' 'sleap-convert --format analysis -o '...
+                        '"' analName '" '... % analysis file
+                        '"' predName '"']; %prediciton file
+            fprintf(fid, convertStr);
+        end
+    end
+    fclose(fid);
+else
+    disp('No missing tracking files')
+end
+
+
+
 
 %% Write code to track flies 
 % parameter inputs:
