@@ -13,7 +13,7 @@ function [names, structNum, structInfo]  = getExcelStructureNames(~)
 % ES Dickinson, Yale University, Aug 2021
 
     % Load current excel fly summary data sheet:
-    [excelfile, Excel] = load_FlyBowlExperiments;
+    [excelfile, Excel] = load_QuadBowlExperiments;
 
     % get list of unique structure names:
     structName_loc = cellfun(@ischar, excelfile(:, Excel.structure));

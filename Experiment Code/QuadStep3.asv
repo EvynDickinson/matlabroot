@@ -1,0 +1,159 @@
+
+
+%% Load in multiple trials that are grouped into a structure
+% baseFolder = getCloudPath;
+[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
+baseFolder = getCloudPath;
+
+% Select structure to load:
+[~,~,structInfo] = getExcelStructureNames(true);
+ExpGroup = structInfo.StructName;
+ntrials = structInfo.numTrials;
+
+% Load data from each trial in the structure
+data = [];
+fprintf('\nLoading trials: \n')
+for trial = 1:ntrials
+    % print the experiments as they are loaded
+    trialExpID = excelfile{structInfo.rowNum(trial), Excel.expID};
+    trialDate = excelfile{structInfo.rowNum(trial), Excel.date};
+    trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
+    trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
+    disp(trialName)
+
+    % build the path for the trial data
+    dirc = [baseFolder, trialDate, '\analysis\' trialExpID trialArena ' timecourse data.mat'];
+    
+    % load data
+    todel = load(dirc);
+    variList = fieldnames(todel);
+%     todel = load(dirc, varList{:});
+    data(trial).trialName = trialName;
+    for ii = 1:length(variList)
+        data(trial).(variList{ii}) = todel.(variList{ii});
+    end
+end; clear varList
+initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars'};
+clearvars('-except',initial_vars{:})
+fprintf('Data loaded\n')
+
+% WILL NEED A SECTION ON TEMPERATURE ALIGNMENT ACROSS EXPERIMENTS
+
+% WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED
+% AROUND
+
+%% Group occupancy across the trials
+
+% for now: average across the experiments (assuming they are TEMP locked)
+[A,B,C,D] = deal([]);
+for trial = 1:ntrials
+    A = [A,data(trial).occupancy.occ(:,1); %(:,well) % well occupancy probability for each well
+    B = data(trial).occupancy.occ(:,2);
+    C = data(trial).occupancy.occ(:,3);
+    D = data(trial).occupancy.occ(:,4);
+end
+
+plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+
+
+
+
+
+%% Collapse Well ROIs across all trials for each temperature to create 'occupancyFrames'
+gridSize = [50,50];
+nvids = length(data(1).temp);
+
+% loop through all trials
+for trial = 1:ntrials
+  temp = data(trial).temp; 
+  for ii = 1:4 % well#
+    % crop each of the frames from the video into well rois
+    frames = data(trial).frame;
+    mask = data(trial).quadMask(ii).mask;
+    props = regionprops(~mask, 'BoundingBox');
+    mask = repmat(mask,[1,1,size(frames,3)]); %mask for all frames
+    frames(mask) = 0; %mask out other data outside ROI
+    for vid = 1:nvids
+        img = imcrop(frames(:,:,vid), props.BoundingBox); %crop to the circle
+        maskedImage(:,:,vid) = img;
+        roiImage(:,:,vid) = imresize(img, gridSize); %bin across pixels
+    end
+    well(ii).img = roiImage;
+    well(ii).maskedImg = maskedImage;
+    well(ii).temp = temp;
+  end
+  data(trial).well = well;
+end
+
+% align across videos roughly (TODO: refine this later)
+Wells = [];
+for roi = 1:4
+    Wells(roi).name = data(1).trialData(1).params.(['well_' num2str(roi)]);
+    Wells(roi).img = zeros(size(data(1).well(roi).img));
+    for trial = 1:ntrials
+        Wells(roi).img = Wells(roi).img + data(trial).well(roi).img;
+        Wells(roi).occ(:,trial) = data(trial).y(:,roi); % determine this...
+    end
+    % find density range for the rois:
+    M(roi) = max(Wells(roi).img,[],'all');
+end
+
+% Normalize the well density figure:
+gridS = 10;
+n = gridS+2;
+well = [];
+for roi = 1:4
+    well(roi).img = Wells(roi).img / max(M);
+    dummy = nan(n,n,nvids);
+    img = imresize(well(roi).img, [gridS,gridS]);
+    dummy(2:gridS+1,2:gridS+1,:) = img;
+    well(roi).bin = dummy;
+end
+% grouped image:
+occupancyFrames = [well(1).bin, well(2).bin;...
+                   well(4).bin, well(3).bin];
+               
+occupancyNames = {Wells(1).name, Wells(2).name;...
+                   Wells(4).name, Wells(3).name};              
+
+% quick vid preview of any structure over time
+fig = figure; set(fig, 'color', 'k');
+disp(occupancyNames)
+for vid = 1:nvids
+    img = occupancyFrames(:,:,vid);
+    imagesc(img)
+    pause(0.1)
+end
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
