@@ -47,11 +47,31 @@ fprintf('Data loaded\n')
 % for now: average across the experiments (assuming they are TEMP locked)
 [A,B,C,D] = deal([]);
 for trial = 1:ntrials
-    A = [A,data(trial).occupancy.occ(:,1); %(:,well) % well occupancy probability for each well
-    B = data(trial).occupancy.occ(:,2);
-    C = data(trial).occupancy.occ(:,3);
-    D = data(trial).occupancy.occ(:,4);
+    A = [A,data(trial).occupancy.occ(:,1)]; %(:,well) % well occupancy probability for each well
+    B = [B, data(trial).occupancy.occ(:,2)];
+    C = [C, data(trial).occupancy.occ(:,3)];
+    D = [D, data(trial).occupancy.occ(:,4)];
 end
+% average across the trials TODO update the timing according to temp alignment
+for trial = 1:ntrials
+    temperature(trial).log = data(trial).tempLog(:,2);
+end
+% TEMP ALIGNED TIME (ONLY WORKS FOR TEMP HOLD OR SAME GROUP TRIALS
+TAT = data(1).time();
+
+
+fig = figure;
+hold on
+Y = [mean(A,2)];
+area(TAT,Y)
+
+
+area
+
+
+Y = [1 5 3; 3 2 7; 1 5 3; 2 6 1];
+X = [5,10,15,20];
+area(X,Y)
 
 plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
 

@@ -52,15 +52,24 @@ for trial = 1:ntrials
     C = [C, data(trial).occupancy.occ(:,3)];
     D = [D, data(trial).occupancy.occ(:,4)];
 end
+% average across the trials TODO update the timing according to temp alignment
+for trial = 1:ntrials
+    temperature(trial).log = data(trial).tempLog(:,2);
+end
+% TEMP ALIGNED TIME (ONLY WORKS FOR TEMP HOLD OR SAME GROUP TRIALS
+TAT = data(1).time();
 
-fig = figure;
+
+fig = figure; %set(fig, 'color', 'k')
+sSpan = 180;
 hold on
-area
+Y = [smooth(mean(A,2),sSpan), smooth(mean(B,2),sSpan),...
+     smooth(mean(C,2),sSpan), smooth(mean(D,2),sSpan)];
+h = area(TAT,Y);
+for well = 1:4
+    h(well).FaceColor = pullFoodColor(data(1).wellLabels{well});
+end
 
-
-Y = [1 5 3; 3 2 7; 1 5 3; 2 6 1];
-X = [5,10,15,20];
-area(X,Y)
 
 plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
 

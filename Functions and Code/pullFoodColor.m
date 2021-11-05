@@ -17,11 +17,13 @@ switch foodString
         colorname = 'Darkgreen';
     case 'Plant9_20_A'
         colorname = 'Chartreuse';
-    case 'Plant9_20_B'
+    case {'Plant_11_4_21','Plant9_20_B'}
         colorname = 'teal';
     case 'Plant9_20_C'
         colorname = 'cyan';
     % SPECIFIC VARIETIES OF YEAST FOOD:
+    case 'Yeast_11_4_21'
+        colorname = 'gold';
     case {'Yeast9_1','Yeast_9_1'}
         colorname = 'sandybrown';
     case {'Yeast_8_27','Yeast8_27'}
