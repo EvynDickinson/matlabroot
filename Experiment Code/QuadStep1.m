@@ -71,74 +71,97 @@ switch questdlg('Acceptable quadrants?')
 end
 
 %% Split the videos
+switch questdlg('Group AB or Group CD?','', 'AB', 'CD','Cancel') %
+    case 'AB'
+        tic
+        for vid = 1:nvids
+            movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
+            nframes = movieInfo.duration;
+            h = waitbar(0,['Cropping video ' num2str(vid) '/' num2str(nvids)]);
+            % initiate arena A writer
+            videoA = [baseFolder folder '\Split Videos\' expName 'A_' num2str(vid) '.avi'];
+            vidA = VideoWriter(videoA, 'Motion JPEG AVI');
+            vidA.Quality = 75;
+            vidA.FrameRate = 6;
+            open(vidA);
+            % initiate arena B writer
+            videoB = [baseFolder folder '\Split Videos\' expName 'B_' num2str(vid) '.avi'];
+            vidB = VideoWriter(videoB, 'Motion JPEG AVI');
+            vidB.Quality = 75;
+            vidB.FrameRate = 6;
+            open(vidB);
+            fig = figure; set(fig, 'color', 'k','visible', 'off');
 
-for vid = 1:nvids
-    movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
-    nframes = movieInfo.duration;
-    h = waitbar(0,['Cropping video ' num2str(vid) '/' num2str(nvids)]);
+            for frame = 1:nframes
+                %Extract and crop frames
+                demoImg = rgb2gray(read(movieInfo,frame));
+                imgA = demoImg(roiA(1):roiA(2), roiA(3):roiA(4));
+                imgB = demoImg(roiB(1):roiB(2), roiB(3):roiB(4));
+
+                %Save A frames 
+                imshow(imgA)
+                f = getframe(fig);
+                writeVideo(vidA, f)  
+
+                %Save B frames
+                imshow(imgB)
+                f = getframe(fig);
+                writeVideo(vidB, f)  
+
+                % update the waitbar every 10 frames
+                if rem(frame,10) == 0
+                    waitbar(frame/nframes,h)
+                end   
+            end
+            close(vidA); close(vidB)
+             close(h); close(fig)   
+        end
+        toc
+    case 'CD'
+        tic
+        for vid = 1:nvids
+            movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
+            nframes = movieInfo.duration;
+            h = waitbar(0,['Cropping video ' num2str(vid) '/' num2str(nvids)]);
+
+            % initiate arena C writer
+            videoC = [baseFolder folder '\Split Videos\' expName 'C_' num2str(vid) '.avi'];
+            vidC = VideoWriter(videoC, 'Motion JPEG AVI');
+            vidC.Quality = 75;
+            vidC.FrameRate = 6;
+            open(vidC);
+            % initiate arena D writer
+            videoD = [baseFolder folder '\Split Videos\' expName 'D_' num2str(vid) '.avi'];
+            vidD = VideoWriter(videoD, 'Motion JPEG AVI');
+            vidD.Quality = 75;
+            vidD.FrameRate = 6;
+            open(vidD);
+
+            fig = figure; set(fig, 'color', 'k','visible', 'off');
+            for frame = 1:nframes
+                %Extract and crop frames
+                demoImg = rgb2gray(read(movieInfo,frame));
+                imgC = demoImg(roiC(1):roiC(2), roiC(3):roiC(4));
+                imgD = demoImg(roiD(1):roiD(2), roiD(3):roiD(4));
+  
+                %Save C frames
+                imshow(imgC)
+                f = getframe(fig);
+                writeVideo(vidC, f)        
     
-    % initiate arena A writer
-    videoA = [baseFolder folder '\Split Videos\' expName 'A_' num2str(vid) '.avi'];
-    vidA = VideoWriter(videoA, 'Motion JPEG AVI');
-    vidA.Quality = 75;
-    vidA.FrameRate = 6;
-    open(vidA);
-    % initiate arena B writer
-    videoB = [baseFolder folder '\Split Videos\' expName 'B_' num2str(vid) '.avi'];
-    vidB = VideoWriter(videoB, 'Motion JPEG AVI');
-    vidB.Quality = 75;
-    vidB.FrameRate = 6;
-    open(vidB);
-    % initiate arena A writer
-    videoC = [baseFolder folder '\Split Videos\' expName 'C_' num2str(vid) '.avi'];
-    vidC = VideoWriter(videoC, 'Motion JPEG AVI');
-    vidC.Quality = 75;
-    vidC.FrameRate = 6;
-    open(vidC);
-    % initiate arena B writer
-    videoD = [baseFolder folder '\Split Videos\' expName 'D_' num2str(vid) '.avi'];
-    vidD = VideoWriter(videoD, 'Motion JPEG AVI');
-    vidD.Quality = 75;
-    vidD.FrameRate = 6;
-    open(vidD);
-    
-    fig = figure; set(fig, 'color', 'k','visible', 'off');
-    
-    for frame = 1:nframes
-        %Extract and crop frames
-        demoImg = rgb2gray(read(movieInfo,frame));
-        imgA = demoImg(roiA(1):roiA(2), roiA(3):roiA(4));
-        imgB = demoImg(roiB(1):roiB(2), roiB(3):roiB(4));
-        imgC = demoImg(roiC(1):roiC(2), roiC(3):roiC(4));
-        imgD = demoImg(roiD(1):roiD(2), roiD(3):roiD(4));
-        
-        %Save A frames 
-        imshow(imgA)
-        f = getframe(fig);
-        writeVideo(vidA, f)  
-        
-        %Save B frames
-        imshow(imgB)
-        f = getframe(fig);
-        writeVideo(vidB, f)  
-        
-        %Save C frames
-        imshow(imgC)
-        f = getframe(fig);
-        writeVideo(vidC, f)        
-        
-        %Save D frames
-        imshow(imgD)
-        f = getframe(fig);
-        writeVideo(vidD, f)  
-        
-        % update the waitbar every 10 frames
-        if rem(frame,10) == 0
-            waitbar(frame/nframes,h)
-        end   
-    end
-    close(vidA); close(vidB); close(vidC); close(vidD)
-     close(h); close(fig)   
+                %Save D frames
+                imshow(imgD)
+                f = getframe(fig);
+                writeVideo(vidD, f)  
+
+                % update the waitbar every 10 frames
+                if rem(frame,10) == 0
+                    waitbar(frame/nframes,h)
+                end   
+            end
+            close(vidC); close(vidD)
+             close(h); close(fig)   
+        end
+        toc
 end
-
 
