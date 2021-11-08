@@ -42,6 +42,19 @@ fprintf('Data loaded\n')
 % WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED
 % AROUND
 
+%% Determine a well-identity matching list:
+well_contents = unique(data(1).wellLabels);
+
+for trial = 1:ntrials
+    for well = 1:length(well_contents)
+        wellID(well).loc(:,trial) = find(strcmpi(data(trial).wellLabels,well_contents{well}));
+        wellID(well).name = well_contents{well};
+    end
+end
+
+initial_vars = [initial_vars {'well_contents', 'wellID'}];
+clearvars('-except',initial_vars{:})
+
 %% Group occupancy across the trials
 
 % for now: average across the experiments (assuming they are TEMP locked)
@@ -58,10 +71,20 @@ for trial = 1:ntrials
 end
 % TEMP ALIGNED TIME (ONLY WORKS FOR TEMP HOLD OR SAME GROUP TRIALS
 TAT = data(1).time();
+temperature = data(1).occupancy.temp;
 
+nrows = 4;
+ncols = 1;
+subs(1).idx = 1;
+subs(2).idx = 2:4;
 
-fig = figure; %set(fig, 'color', 'k')
-sSpan = 180;
+fig = getfig;
+subplot(nrows, ncols, subs(1).idx)
+plot(TAT,temperature, 'linewidth', 2, 'color', 'w')
+ylim([5,30])
+ylabel('Temp (\circC)')
+subplot(nrows, ncols, subs(2).idx)
+sSpan = 240;
 hold on
 Y = [smooth(mean(A,2),sSpan), smooth(mean(B,2),sSpan),...
      smooth(mean(C,2),sSpan), smooth(mean(D,2),sSpan)];
@@ -69,12 +92,14 @@ h = area(TAT,Y);
 for well = 1:4
     h(well).FaceColor = pullFoodColor(data(1).wellLabels{well});
 end
+ylabel('Occupancy')
+xlabel('Time (min)')
+formatFig(fig, true, [nrows, ncols], subs)
+subplot(nrows, ncols, subs(1).idx)
+set(gca, 'XColor', 'k')
 
-
-plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
-
-
-
+% titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
+% title(titleName,'color', 'w')
 
 
 %% Collapse Well ROIs across all trials for each temperature to create 'occupancyFrames'
@@ -148,6 +173,10 @@ end
 
 
 
+
+%% IDEAS for later:
+
+% swarmchart(x,y,sz,c)
 
 
 

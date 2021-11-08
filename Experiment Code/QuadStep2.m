@@ -228,7 +228,7 @@ for vid = 1:nvids
 end
 plotY = plotY./nflies;
 sSpan = 180;
-LW = 1;
+LW = 2;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
 fig = getfig(''); 
@@ -702,7 +702,7 @@ end
 
 %% Visual comparison of tracked frames to look for outliers / patterns
 
-switch questdlg('Make tracking example videos?')
+switch questdlg('Make tracking example videos?','', 'Yes', 'No', 'No')
     case 'No'
         return
     case 'Cancel'
