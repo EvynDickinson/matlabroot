@@ -10,6 +10,10 @@ baseFolder = getCloudPath;
 ExpGroup = structInfo.StructName;
 ntrials = structInfo.numTrials;
 
+% Make a data folder for structure images
+figDir = [baseFolder 'Data structures\' ExpGroup '\'];
+if ~exist(figDir, 'dir'); mkdir(figDir); end
+
 % Load data from each trial in the structure
 data = [];
 fprintf('\nLoading trials: \n')
@@ -72,6 +76,7 @@ end
 % TEMP ALIGNED TIME (ONLY WORKS FOR TEMP HOLD OR SAME GROUP TRIALS
 TAT = data(1).time();
 temperature = data(1).occupancy.temp;
+wellLabels = data(1).wellLabels;
 
 nrows = 4;
 ncols = 1;
@@ -80,26 +85,76 @@ subs(2).idx = 2:4;
 
 fig = getfig;
 subplot(nrows, ncols, subs(1).idx)
-plot(TAT,temperature, 'linewidth', 2, 'color', 'w')
-ylim([5,30])
-ylabel('Temp (\circC)')
+    plot(TAT,temperature, 'linewidth', 2, 'color', 'w')
+    ylim([5,30])
+    ylabel('Temp (\circC)')
 subplot(nrows, ncols, subs(2).idx)
-sSpan = 240;
-hold on
-Y = [smooth(mean(A,2),sSpan), smooth(mean(B,2),sSpan),...
-     smooth(mean(C,2),sSpan), smooth(mean(D,2),sSpan)];
-h = area(TAT,Y);
-for well = 1:4
-    h(well).FaceColor = pullFoodColor(data(1).wellLabels{well});
-end
+    sSpan = 240;
+    hold on
+    Y = [smooth(mean(A,2),sSpan), smooth(mean(B,2),sSpan),...
+         smooth(mean(C,2),sSpan), smooth(mean(D,2),sSpan)];
+    h = area(TAT,Y);
+    for well = 1:4
+        h(well).FaceColor = pullFoodColor(data(1).wellLabels{well});
+    end
+    set(gca, 'tickdir', 'out')
+    l = legend(strrep(wellLabels,'_','-'));
+    set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k',...
+    'position', [0.7457 0.6520 0.0883 0.0772]);% [0.8780 0.8119 0.0963 0.1126])%
+
 ylabel('Occupancy')
 xlabel('Time (min)')
 formatFig(fig, true, [nrows, ncols], subs)
 subplot(nrows, ncols, subs(1).idx)
 set(gca, 'XColor', 'k')
+title(strrep(ExpGroup,'_','-'),'color', 'w')
 
-% titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
-% title(titleName,'color', 'w')
+save_figure(fig, [figDir 'Quadrant Occupation'], '-png');
+
+clearvars('-except',initial_vars{:})
+
+%% Temperature and occupancy relationship:
+
+% organize the occupation by fly count in each temperature
+% --> temperature for each fly at each timepoint
+
+
+[A,B,C,D] = deal([]);
+for trial = 1:ntrials
+    temperature = data(trial).occupancy.temp;
+    raw = data(trial).occupancy.count;
+    A = [A, ];
+
+end
+edges = 5:30;
+temp = discretize(raw(:,1),edges);
+
+
+
+% for now: average across the experiments (assuming they are TEMP locked)
+[A,B,C,D] = deal([]);
+for trial = 1:ntrials
+    A = [A, data(trial).occupancy.occ(:,1)]; %(:,well) % well occupancy probability for each well
+    B = [B, data(trial).occupancy.occ(:,2)];
+    C = [C, data(trial).occupancy.occ(:,3)];
+    D = [D, data(trial).occupancy.occ(:,4)];
+end
+
+
+
+swarmchart(x,y,sz,c)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 %% Collapse Well ROIs across all trials for each temperature to create 'occupancyFrames'
