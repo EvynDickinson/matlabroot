@@ -113,36 +113,66 @@ save_figure(fig, [figDir 'Quadrant Occupation'], '-png');
 
 clearvars('-except',initial_vars{:})
 
-%% Temperature and occupancy relationship:
-
+%% Temperature and occupancy relationship: [takes a few seconds to run]
+wellLabels = data(1).wellLabels;
 % organize the occupation by fly count in each temperature
 % --> temperature for each fly at each timepoint
-
-
-[A,B,C,D] = deal([]);
+tic
+[sumA,sumB,sumC,sumD,tempAll] = deal(zeros(30,1));
 for trial = 1:ntrials
-    temperature = data(trial).occupancy.temp;
+    [A,B,C,D] = deal([]);
+    temperature = round(data(trial).occupancy.temp);
     raw = data(trial).occupancy.count;
-    A = [A, ];
-
+    for ii = 1:size(raw,1) %for each data point
+        A = [A; temperature(ii)*ones(raw(ii,1),1)];
+        B = [B; temperature(ii)*ones(raw(ii,2),1)];
+        C = [C; temperature(ii)*ones(raw(ii,3),1)];
+        D = [D; temperature(ii)*ones(raw(ii,4),1)];
+    end
+    for temp = 5:30
+        sumA(temp) = sumA(temp) + sum(A==temp);
+        sumB(temp) = sumB(temp) + sum(B==temp);
+        sumC(temp) = sumC(temp) + sum(C==temp);
+        sumD(temp) = sumD(temp) + sum(D==temp);
+        tempAll(temp) = tempAll(temp) + sum(temperature==temp);
+    end
 end
-edges = 5:30;
-temp = discretize(raw(:,1),edges);
+toc
+
+% normalize the number of flies for each temperature but the total time
+% spent at a given temperature:
+tempFrac = tempAll./(sum(tempAll));
+ratio = 1; %each point will represent 20 flies normalized for total time spent at each temperature
+arenaA = round(sumA.*tempFrac./ratio);
+arenaB = round(sumB.*tempFrac./ratio);
+arenaC = round(sumC.*tempFrac./ratio);
+arenaD = round(sumD.*tempFrac./ratio);
 
 
+% increase points for each temperature
 
-% for now: average across the experiments (assuming they are TEMP locked)
-[A,B,C,D] = deal([]);
-for trial = 1:ntrials
-    A = [A, data(trial).occupancy.occ(:,1)]; %(:,well) % well occupancy probability for each well
-    B = [B, data(trial).occupancy.occ(:,2)];
-    C = [C, data(trial).occupancy.occ(:,3)];
-    D = [D, data(trial).occupancy.occ(:,4)];
+[yA,yB,yC,yD] = deal([]);
+for temp = 1:length(arenaA)
+    yA = [yA; temp*ones(arenaA(temp),1)];
+    yB = [yB; temp*ones(arenaB(temp),1)];
+    yC = [yC; temp*ones(arenaC(temp),1)];
+    yD = [yD; temp*ones(arenaD(temp),1)];
 end
+xA = 1*ones(length(yA),1);
+xB = 2*ones(length(yB),1);
+xC = 3*ones(length(yC),1);
+xD = 4*ones(length(yD),1);
 
+% Plot the occupation by temperature plots
+sz = 30;
+fig = getfig;
+    hold on
+    swarmchart(xA,yA,sz, pullFoodColor(wellLabels{1}), 'filled');
+    swarmchart(xB,yB,sz, pullFoodColor(wellLabels{2}), 'filled');
+    swarmchart(xC,yC,sz, pullFoodColor(wellLabels{3}), 'filled');
+    swarmchart(xD,yD,sz, pullFoodColor(wellLabels{4}), 'filled');
 
-
-swarmchart(x,y,sz,c)
+% swarmchart(x,y,sz,c)
 
 
 

@@ -29,16 +29,11 @@ if ~isfolder(videosDirD); mkdir(videosDirD); end
 
 
 
-%% Visual comparison of video cropping:
+%% Visually compare the 
 
-vidPath = "G:\My Drive\Jeanne Lab\DATA\11.10.2021\Arena A\PlantYeastChoice_1.avi";
-movieInfo = VideoReader(vidPath); %read in video
-demoImg = read(movieInfo,1);
-vidPath = "G:\My Drive\Jeanne Lab\DATA\11.10.2021\PlantYeastChoice_1.avi";
-movieInfo = VideoReader(vidPath); %read in video
-wholeImg =  read(movieInfo,1);
 
-imshowpair(demoImg, wholeImg, 'montage')
+
+
 
 
 

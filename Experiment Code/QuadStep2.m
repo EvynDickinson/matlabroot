@@ -307,6 +307,8 @@ sSpan = 180;
 LW = 1;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
+
+
 fig = getfig(''); 
     subplot(nrow,ncol,subplotInd(1).idx)
     y = smooth(plotX,sSpan);
