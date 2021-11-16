@@ -3,16 +3,6 @@
 %get base folder pathway
 [baseFolder, folder] = getCloudPath(2); 
 
-% % Select the complete experiments to process
-% list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
-% list_dirs = {list_dirs(:).name};
-% expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
-% expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-% expName = expName(1:end-1);
-% clear expNames
-% % Pull fly summary sheet information on selected experiment
-% [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-
 % Make a new video folder:
 videosDirA = [baseFolder folder '\Arena A\'];
 if ~isfolder(videosDirA); mkdir(videosDirA); end
@@ -27,23 +17,9 @@ videosDirD = [baseFolder folder '\Arena D\'];
 if ~isfolder(videosDirD); mkdir(videosDirD); end
 
 
-
-
 %% Visual comparison of video cropping:
 
-vidPath = "G:\My Drive\Jeanne Lab\DATA\11.10.2021\Arena A\PlantYeastChoice_1.avi";
-movieInfo = VideoReader(vidPath); %read in video
-demoImg = read(movieInfo,1);
-vidPath = "G:\My Drive\Jeanne Lab\DATA\11.10.2021\PlantYeastChoice_1.avi";
-movieInfo = VideoReader(vidPath); %read in video
-wholeImg =  read(movieInfo,1);
-
-imshowpair(demoImg, wholeImg, 'montage')
-
-
-
-
-
+fig = cropCheck;
 
 
 %%

@@ -1,4 +1,7 @@
 
+%       [folder, subFolders] = cropCheck;
+
+
 %% Code to both TRACK and CONVERT to analysis file
 % parameter inputs:
 clear
@@ -17,18 +20,11 @@ for tt = 1:length(arenaSel)
     arena = arenaList{arenaSel(tt)};
     rootDir = [folder '\' arena '\'];
     codeBlockPath = [rootDir 'TrackingCodeBlock.txt'];
-    
-    % Check the ROI fit before commiting to tracking
+
     cropCheck(folder, arena);
-    temp = questdlg('Arena match?');
-    if strcmp(temp,'No')
-        disp(['skipped ' arena ' for bad ROI fit'])
-        continue
-    elseif strcmp(temp,'Cancel')
-        return
-    end
-    fig = gcf;
-    close(fig)
+    switch questdlg('Arena match?')
+        case ''
+
     % copy the current models into that folder if they don't already exist
     if ~isfolder([rootDir '\' model_1]) && ~isfolder([rootDir '\' model_2])
         copyfile([defaultModel '\' model_1],[rootDir model_1])
@@ -75,8 +71,7 @@ arenaList = {'Arena A', 'Arena B', 'Arena C', 'Arena D'};
 arenaSel = listdlg('ListString', arenaList);
 
 for tt = 1:length(arenaSel)
-    arena = arenaList{arenaSel(tt)};
-    rootDir = [folder, '\' arena, '\'];
+    rootDir = [folder, arena, '\'];
     codeBlockPath = [rootDir 'TrackingCodeBlock.txt'];
     vidPath = rootDir;
     % Pull the full list of movies that should have been tracked:
@@ -132,26 +127,6 @@ for tt = 1:length(arenaSel)
         disp(['No missing tracking files in ' arena])
     end
 end
-
-
-%% Select data file to make new folders for
-%get base folder pathway
-[baseFolder, folder] = getCloudPath(2); 
-
-% Make a new video folder:
-videosDirA = [baseFolder folder '\Arena A\'];
-if ~isfolder(videosDirA); mkdir(videosDirA); end
-
-videosDirB = [baseFolder folder '\Arena B\'];
-if ~isfolder(videosDirB); mkdir(videosDirB); end
-
-videosDirC = [baseFolder folder '\Arena C\'];
-if ~isfolder(videosDirC); mkdir(videosDirC); end
-
-videosDirD = [baseFolder folder '\Arena D\'];
-if ~isfolder(videosDirD); mkdir(videosDirD); end
-
-
 
 %% Old Code to both TRACK and CONVERT to analysis file
 % % parameter inputs:

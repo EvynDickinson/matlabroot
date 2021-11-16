@@ -3,16 +3,6 @@
 %get base folder pathway
 [baseFolder, folder] = getCloudPath(2); 
 
-% % Select the complete experiments to process
-% list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
-% list_dirs = {list_dirs(:).name};
-% expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
-% expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-% expName = expName(1:end-1);
-% clear expNames
-% % Pull fly summary sheet information on selected experiment
-% [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-
 % Make a new video folder:
 videosDirA = [baseFolder folder '\Arena A\'];
 if ~isfolder(videosDirA); mkdir(videosDirA); end
@@ -27,18 +17,40 @@ videosDirD = [baseFolder folder '\Arena D\'];
 if ~isfolder(videosDirD); mkdir(videosDirD); end
 
 
+%% Visual comparison of video cropping:
 
+% Select the complete experiments to process
+[~, folder] = getCloudPath(1); 
+list_dirs = dir(folder); 
+dirFlags = [list_dirs.isdir]; % logical vector for directories.
 
-%% Visually compare the 
+% Extract only those that are directories.
+subFolders = list_dirs(dirFlags);
+subFolders = {subFolders(3:end).name};
+% select the arena
+arena = subFolders{listdlg('ListString', subFolders, 'SelectionMode', 'Single')};
+% select the video
+vidList = dir([folder '\' arena '\*.avi']);
+vidList = {vidList(:).name};
+video = vidList{listdlg('ListString', vidList, 'SelectionMode', 'Single')};
 
+% Pull the full video and the cropped vid
+OGvid = [folder '\' video];
+movieInfo = VideoReader(OGvid); %read in video
+OGimg = read(movieInfo,1);
+CROPvid = [folder '\' arena '\' video];
+movieInfo = VideoReader(CROPvid); %read in video
+CROPimg = read(movieInfo,1);
 
-
-
-
-
-
-
-
+% Visually compare the full and cropped video
+imshowpair(OGimg, CROPimg, 'montage')
+fig = gcf;
+set(gcf, 'color', 'k')
+title(arena, 'Color', 'w')
+annotation('textbox',[.16 .47 .5 .3],'String','B','FitBoxToText','on', 'color', 'w');
+annotation('textbox',[.16 .035 .5 .3],'String','A','FitBoxToText','on', 'color', 'w');
+annotation('textbox',[.38 .47 .5 .3],'String','D','FitBoxToText','on', 'color', 'w');
+annotation('textbox',[.38 .035 .5 .3],'String','C','FitBoxToText','on', 'color', 'w');
 
 
 %%
