@@ -102,7 +102,7 @@ for tt = 1:length(arenaSel)
     trackFail = find(ismember(videos, tracking)==false);
     precictFail = find(ismember(videos, predictions)==false);
     if ~isempty(trackFail) || ~isempty(precictFail)
-        fid = fopen(codeBlockPath,'a+');
+        fid = fopen(codeBlockPath,'w');
         disp(['Missing files found in ' arena])
         fprintf(fid, '\n\nMISSED TRACKING/PREDICTION FILES:');
         if ~isempty(trackFail)
