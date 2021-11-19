@@ -3,7 +3,7 @@
 %% Select Date & Experiment to Process
 clear; close all; clc
 %get base folder pathway
-[baseFolder, folder] = getCloudPath(2);
+[baseFolder, folder] = getCloudPath(2);    
 %select arena to work with: 
 arenaList = {'A', 'B', 'C', 'D'};
 arenaSel = arenaList{listdlg('ListString', arenaList)};
@@ -15,8 +15,7 @@ list_dirs = dir([baseFolder folder, '\*dataMat.mat']); %only matlab files
 list_dirs = {list_dirs(:).name};
 expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
 expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-expName = expName(1:end-1);
-clear expNames
+expName = expName(1:end-1);clear expNames
 % Pull fly summary sheet information on selected experiment
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 
@@ -35,7 +34,7 @@ nvids = expData.parameters.numVids;
 
 % Select which Arena to process
 % arenaSel = Alphabet(listdlg('ListString', {'A', 'B', 'C', 'D'}, 'SelectionMode', 'Single'));
-expPDF = [analysisDir expName arenaSel ' summary.pdf'];
+expPDF = [analysisDir folder expName arenaSel ' summary.pdf'];
 XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
              strcmpi(excelfile(:,Excel.expID), expName) & ...
              strcmpi(excelfile(:,Excel.arena), arenaSel(end:end))); %rows with sel date with ARENA ID
@@ -501,7 +500,7 @@ end
 labelHandles = findall(gcf, 'type', 'text', 'handlevisibility', 'off');
 set(labelHandles,'FontSize', 15, 'color', 'w')
 
-save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-pdf');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -732,96 +731,97 @@ switch questdlg('Save experiment analysis?')
         clearvars('-except',initial_vars{:})
         initial_vars = unique(initial_vars);
         save([analysisDir expName arenaSel ' timecourse data'])
+        copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')
         fprintf('Experiment data saved\n')
+
     case 'No'
         return
     case 'Cancel'
         return
 end
-
 
 
 %% Visual comparison of tracked frames to look for outliers / patterns
-
-switch questdlg('Make tracking example videos?','', 'Yes', 'No', 'No')
-    case 'No'
-        return
-    case 'Cancel'
-        return
-    case 'Yes'  
-        switch questdlg('Demo first 300 frames?')
-            case 'Yes'
-                nframes = 300;
-            case 'No'
-                nframes = inf;
-            case 'Cancel'
-                return
-        end
-end
-    
-if nvids>5
-    divisor = round(nvids/10);
-    vidList = 1:divisor:nvids;
-else
-    vidList = 1:nvids;
-end
-ii = 0; 
-
-
-vidpath = [baseFolder folder '\labeled vid examples\'];
-if ~isfolder(vidpath)
-    mkdir(vidpath)
-end
-% find frames with largest fly count offset
-for vid = vidList
-    headdata = squeeze(data(vid).tracks(:,1,:,:));
-
-    tempVidName = [baseFolder folder '\' expName '_' num2str(vid) '.avi'];
-    movieInfo = VideoReader(tempVidName);
-
-    fig = getfig('',1); set(fig, 'color', 'k','pos',[-851 329 707 656]);
-    set(gca, 'visible', 'off')
-
-    vid_name = [vidpath expName '_' num2str(vid) ' predicted frames'];
-
-    if isinf(nframes)
-        n = movieInfo.NumFrames;
-        FrameRate = 30; %playback rate
-        vid_name = [vid_name ' all frames'];
-    else
-        n = nframes;
-        FrameRate = 6; %playback rate
-    end
-
-    % initiate video writer
-    v = VideoWriter(vid_name, 'Motion JPEG AVI');
-    v.Quality = 75;
-    v.FrameRate = FrameRate;
-    open(v);
-
-
-    for frame = 1:n
-        img = read(movieInfo,frame);
-        imagesc(img)
-        set(fig, 'Color', 'k') 
-        hold on
-        x = squeeze(headdata(frame, 1, :));
-        y = squeeze(headdata(frame, 2, :));
-        x(isnan(x)) = []; % remove empty tracks
-        y(isnan(y)) = [];
-        scatter(x,y, 30, 'y')
-        axis tight; axis square
-        set(gca, 'visible', 'off')
-        f = getframe(fig);
-        writeVideo(v, f)  
-        clf('reset') 
-    end
-    close(v)
-    close(fig)
-end
+% 
+% switch questdlg('Make tracking example videos?','', 'Yes', 'No', 'No')
+%     case 'No'
+%         return
+%     case 'Cancel'
+%         return
+%     case 'Yes'  
+%         switch questdlg('Demo first 300 frames?')
+%             case 'Yes'
+%                 nframes = 300;
+%             case 'No'
+%                 nframes = inf;
+%             case 'Cancel'
+%                 return
+%         end
+% end
+%     
+% if nvids>5
+%     divisor = round(nvids/10);
+%     vidList = 1:divisor:nvids;
+% else
+%     vidList = 1:nvids;
+% end
+% ii = 0; 
+% 
+% 
+% vidpath = [baseFolder folder '\labeled vid examples\'];
+% if ~isfolder(vidpath)
+%     mkdir(vidpath)
+% end
+% % find frames with largest fly count offset
+% for vid = vidList
+%     headdata = squeeze(data(vid).tracks(:,1,:,:));
+% 
+%     tempVidName = [baseFolder folder '\' expName '_' num2str(vid) '.avi'];
+%     movieInfo = VideoReader(tempVidName);
+% 
+%     fig = getfig('',1); set(fig, 'color', 'k','pos',[-851 329 707 656]);
+%     set(gca, 'visible', 'off')
+% 
+%     vid_name = [vidpath expName '_' num2str(vid) ' predicted frames'];
+% 
+%     if isinf(nframes)
+%         n = movieInfo.NumFrames;
+%         FrameRate = 30; %playback rate
+%         vid_name = [vid_name ' all frames'];
+%     else
+%         n = nframes;
+%         FrameRate = 6; %playback rate
+%     end
+% 
+%     % initiate video writer
+%     v = VideoWriter(vid_name, 'Motion JPEG AVI');
+%     v.Quality = 75;
+%     v.FrameRate = FrameRate;
+%     open(v);
+% 
+% 
+%     for frame = 1:n
+%         img = read(movieInfo,frame);
+%         imagesc(img)
+%         set(fig, 'Color', 'k') 
+%         hold on
+%         x = squeeze(headdata(frame, 1, :));
+%         y = squeeze(headdata(frame, 2, :));
+%         x(isnan(x)) = []; % remove empty tracks
+%         y(isnan(y)) = [];
+%         scatter(x,y, 30, 'y')
+%         axis tight; axis square
+%         set(gca, 'visible', 'off')
+%         f = getframe(fig);
+%         writeVideo(v, f)  
+%         clf('reset') 
+%     end
+%     close(v)
+%     close(fig)
+% end
 
 %% Demo random selection of frames and their tracking points (QC)
-% vid = 3;
+% vid = 6;
 % headdata = squeeze(data(vid).tracks(:,1,:,:));
 % 
 % tempVidName = [baseFolder vidFolder '\' expName '_' num2str(vid) '.avi'];
@@ -833,7 +833,7 @@ end
 % % vid_name = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) ' predicted frames'];
 % n = floor(movieInfo.NumFrames);
 % 
-% for frame = 1:50
+% for frame = 1:15:200
 %     img = rgb2gray(read(movieInfo,frame));
 %     imshow(img)
 %     hold on
