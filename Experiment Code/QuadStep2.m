@@ -4,10 +4,10 @@
 clear; close all; clc
 %get base folder pathway
 [baseFolder, folder] = getCloudPath(2);    
-%select arena to work with: 
+%select arena to work with:
 arenaList = {'A', 'B', 'C', 'D'};
 arenaSel = arenaList{listdlg('ListString', arenaList)};
-% vidFolder = [folder '\Split Videos']; % old
+% vidFolder = [folder '\Split Videos']; % old  
 vidFolder = [folder '\Arena ' arenaSel];
 
 % Select the complete experiments to process
@@ -724,6 +724,83 @@ save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% Average distance between each fly and each food source (takes a full 2 mins to run)
+
+% find distance from center for each fly:
+tic
+FDist = [];
+idx = 0;
+for vid = 1:nvids
+    for frame = 1:length(data(vid).tempLog)
+        idx = idx+1;
+        for well = 1:4
+            test = [wellcenters(:,well)'; data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
+            D = squareform(pdist(test));
+            D = D(2:end,1);
+            D(isnan(D)) = [];
+            FDist(well).N(idx,:) = [median(D), std(D)];
+        end
+    end
+end
+toc
+
+occupancy.dist2wells = FDist;
+
+% occupancy.eccentricity = EDist;
+nrow = 4;
+ncol = 1;
+subplotInd(1).idx = 1;
+subplotInd(2).idx = 2:4;
+% group data across videos:
+plotX = occupancy.time;
+sSpan = 180;
+LW = 1;
+
+fig = getfig(''); 
+    subplot(nrow,ncol,subplotInd(1).idx)
+    y = smooth(occupancy.temp,sSpan);
+    plot(plotX(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
+    ylabel('temp (\circC)')
+    ylim([5,27])
+    
+    subplot(nrow,ncol,subplotInd(2).idx)
+    hold on
+    % error fills
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well}); % plotting color for food
+        y_avg(:,well) = smooth(FDist(well).N(:,1),sSpan);
+        y_err(:,well) = smooth(FDist(well).N(:,2),sSpan);
+        fill_data = error_fill(plotX, y_avg(:,well), y_err(:,well));
+        h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h(well), 'facealpha', 0.2)
+    end
+    % average line
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        plot(time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
+    end
+    xlabel('time (min)'); ylabel('avg distance between fly and food (a.u.)')
+    
+formatFig(fig, true, [nrow, ncol], subplotInd);
+l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
+set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+for well = 1:4
+    set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+end
+subplot(nrow,ncol,subplotInd(1).idx)
+set(gca, 'XColor', 'k')
+titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
+title(titleName,'color', 'w')
+
+% save and export figure
+if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+end  
+save_figure(fig, [analysisDir expName arenaSel ' avg distance to well'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
 %% Save experiment data thus far:
 
 switch questdlg('Save experiment analysis?')
@@ -739,6 +816,9 @@ switch questdlg('Save experiment analysis?')
     case 'Cancel'
         return
 end
+
+
+%% Open former data:
 
 
 %% Visual comparison of tracked frames to look for outliers / patterns

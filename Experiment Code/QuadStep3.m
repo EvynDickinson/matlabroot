@@ -1,4 +1,5 @@
 
+clear
 
 %% Load in multiple trials that are grouped into a structure
 % baseFolder = getCloudPath;
@@ -26,7 +27,7 @@ for trial = 1:ntrials
     disp(trialName)
 
     % build the path for the trial data
-    dirc = [baseFolder, trialDate, '\analysis\' trialExpID trialArena ' timecourse data.mat'];
+    dirc = [baseFolder, trialDate, '\Arena ' trialArena '\analysis\' trialExpID trialArena  ' timecourse data.mat'];
     
     % load data
     todel = load(dirc);
@@ -37,13 +38,32 @@ for trial = 1:ntrials
         data(trial).(variList{ii}) = todel.(variList{ii});
     end
 end; clear varList
-initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars'};
+initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars', 'figDir'};
 clearvars('-except',initial_vars{:})
 fprintf('Data loaded\n')
 
-% WILL NEED A SECTION ON TEMPERATURE ALIGNMENT ACROSS EXPERIMENTS
+%% visual check of temperature alignment across the two experiments:
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.time;
+    Y = data(trial).occupancy.temp;
+    plot(X, Y, 'linewidth', 1)
+end
+xlabel('Time (min)')
+ylabel('Temp (\circ)')
+title({'temperature alignment across experiments';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true)
 
-% WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED
+save_figure(fig, [figDir ExpGroup ' temperature alignment'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+%% TODO : section on distance to food vs temperature (no time component --  quick and dirty)
+
+
+%% WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED
 % AROUND
 
 %% Determine a well-identity matching list:
