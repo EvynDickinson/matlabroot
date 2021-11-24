@@ -1,3 +1,4 @@
+
 clear
 
 %% Load in multiple trials that are grouped into a structure
@@ -60,6 +61,68 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% TODO : section on distance to food vs temperature (no time component --  quick and dirty)
+sSpan = 240;
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.temp;
+    for well = 1:4
+        Y = (data(trial).dist2wells(well).N(:,1));
+        % reorder the data by temperature:
+        [plotX, idx] = sort(X);
+        plot(plotX, smooth(Y(idx),sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+    end
+end
+xlabel('Time (min)')
+ylabel('Temp (\circ)')
+title({'temperature alignment across experiments';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true)
+
+save_figure(fig, [figDir ExpGroup ' temperature alignment'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+% Average across trials:
+
+strfind(data(1).wellLabels{4},'Plant')
+sSpan = 240;
+fig = figure; hold on
+[plant, yeast, empty] = deal([]);
+for trial = 1:ntrials
+    for well = 1:4
+        % plant food well:
+        if strfind(data(trial).wellLabels{well},'Plant')
+            x = data(trial).occupancy.temp';
+            y = data(trial).dist2wells(well).N(:,1);
+            plant = [plant; x, y];
+        end
+        % yeast food well:
+        if strfind(data(trial).wellLabels{well},'Yeast')
+            x = data(trial).occupancy.temp';
+            y = data(trial).dist2wells(well).N(:,1);
+            yeast = [yeast; x, y];
+        end
+        % empty food well:
+        if strfind(data(trial).wellLabels{well},'Empty')
+            x = data(trial).occupancy.temp';
+            y = data(trial).dist2wells(well).N(:,1);
+            empty = [empty; x, y];
+        end 
+    end
+end 
+% reorder the PLANT data by temperature:
+pData = sort(plant,1);
+pData(:,1)<8.0
+plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', 1,'color', pullFoodColor('Plant'))
+% reorder the YEAST data by temperature:
+pData = sort(yeast,1);
+plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', 1,'color', pullFoodColor('Yeast'))
+% reorder the EMPTY data by temperature:
+pData = sort(empty,1);
+plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', 1,'color', pullFoodColor('Empty'))
+
+
 
 
 %% WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED

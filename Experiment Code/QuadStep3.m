@@ -60,13 +60,84 @@ save_figure(fig, [figDir ExpGroup ' temperature alignment'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% TODO : section on distance to food vs temperature (no time component --  quick and dirty)
+%% Distance to food vs temperature (no time component --  quick and dirty)
+sSpan = 240;
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.temp;
+    for well = 1:4
+        Y = (data(trial).dist2wells(well).N(:,1));
+        % reorder the data by temperature:
+        [plotX, idx] = sort(X);
+        plot(plotX, smooth(Y(idx),sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+    end
+end
+xlabel('Time (min)')
+ylabel('Temp (\circ)')
+title({'Location from food sources by temperature';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true)
 
+save_figure(fig, [figDir ExpGroup ' all temp vs distance'], '-png');
 
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
+%% Average across trials:
 
+strfind(data(1).wellLabels{4},'Plant')
+sSpan = 240;
+[plant, yeast, empty] = deal([]);
+for trial = 1:ntrials
+    for well = 1:4
+        % plant food well:
+        if strfind(data(trial).wellLabels{well},'Plant')
+            x = data(trial).occupancy.temp';
+            y = data(trial).dist2wells(well).N(:,1);
+            plant = [plant; x, y];
+        end
+        % yeast food well:
+        if strfind(data(trial).wellLabels{well},'Yeast')
+            x = data(trial).occupancy.temp';
+            y = data(trial).dist2wells(well).N(:,1);
+            yeast = [yeast; x, y];
+        end
+        % empty food well:
+        if strfind(data(trial).wellLabels{well},'Empty')
+            x = data(trial).occupancy.temp';
+            y = data(trial).dist2wells(well).N(:,1);
+            empty = [empty; x, y];
+        end 
+    end
+end 
 
+threshHigh = 19.88;
+threshLow = 8.02;
+LW = 2;
+fig = figure; hold on
+% reorder the PLANT data by temperature:
+pData = sort(plant,1);
+pData(pData(:,1)<threshLow,:) = [];
+pData(pData(:,1)>threshHigh,:) = [];
+plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', LW,'color', pullFoodColor('Plant'))
+% reorder the YEAST data by temperature:
+pData = sort(yeast,1);
+pData(pData(:,1)<threshLow,:) = [];
+pData(pData(:,1)>threshHigh,:) = [];
+plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', LW,'color', pullFoodColor('Yeast'))
+% reorder the EMPTY data by temperature:
+pData = sort(empty,1);
+pData(pData(:,1)<threshLow,:) = [];
+pData(pData(:,1)>threshHigh,:) = [];
+plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', LW,'color', pullFoodColor('Empty'))
+% Labels:
+xlabel('temperature (\circC)')
+ylabel('distance to well (a.u.)')
+title(strrep(ExpGroup,'_',' '))
+formatFig(fig,true)
 
+save_figure(fig, [figDir ExpGroup ' temp vs distance'], '-png');
+clearvars('-except',initial_vars{:})
 
 %% WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED
 % AROUND
