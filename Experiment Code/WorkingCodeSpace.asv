@@ -335,7 +335,7 @@ for day = 1:4 %exeriment days
     export_fig(fig, [analysisDir expName arenaSel ' avg distance to well.png'], '-png', '-nocrop', '-r300' , '-painters', '-rgb');
     close(fig)
 
-      
+     
     dist2wells = FDist;
     save([analysisDir expName arenaSel ' timecourse data.mat'],'dist2wells','-append')
 
