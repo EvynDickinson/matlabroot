@@ -1,7 +1,9 @@
 
-clear
+
 
 %% Load in multiple trials that are grouped into a structure
+clear
+
 % baseFolder = getCloudPath;
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 baseFolder = getCloudPath;
@@ -42,7 +44,7 @@ initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars', 'fi
 clearvars('-except',initial_vars{:})
 fprintf('Data loaded\n')
 
-%% visual check of temperature alignment across the two experiments:
+%% visual check of temperature alignment across the experiments:
 fig = figure; hold on
 for trial = 1:ntrials
     X = data(trial).occupancy.time;
@@ -72,8 +74,8 @@ for trial = 1:ntrials
         plot(plotX, smooth(Y(idx),sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
     end
 end
-xlabel('Time (min)')
-ylabel('Temp (\circ)')
+ylabel('Distance to well (a.u.)')
+xlabel('Temp (\circC)')
 title({'Location from food sources by temperature';...
       ['N = ' num2str(ntrials)]})
 formatFig(fig, true)
@@ -85,7 +87,6 @@ fprintf('Next\n')
 
 %% Average across trials:
 
-strfind(data(1).wellLabels{4},'Plant')
 sSpan = 240;
 [plant, yeast, empty] = deal([]);
 for trial = 1:ntrials
@@ -111,33 +112,185 @@ for trial = 1:ntrials
     end
 end 
 
+numFitPoints = 1000;
 threshHigh = 19.88;
 threshLow = 8.02;
+plotData = [];
+% Plant data:
+for ii = 1:3
+    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); %#ok<*ASGLU>
+    switch ii
+        case 1 % plant food
+            inputData = plant;
+            kolor = pullFoodColor('Plant');
+        case 2 % yeast food
+            inputData = yeast;
+            kolor = pullFoodColor('Yeast');
+        case 3 % empty
+            inputData = empty;
+            kolor = pullFoodColor('Empty');
+    end
+    % cut off the high and low ends of data (to clean):
+    loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+    inputData(loc,:) = [];
+    % sort all the data by temperature:
+    [~,idx] = sort(inputData(:,1));
+    sortedData = inputData(idx,:);
+    smoothData(:,1) = smooth(sortedData(:,1),sSpan);
+    smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+    % find the line of best fit:
+    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
+    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+    yFit = polyval(coefficients, xFit);
+    yfit = polyval(coefficients, smoothData(:,1));
+    yResid = smoothData(:,2)-yfit;
+    SSresid = sum(yResid.^2);
+    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+    rsq = 1 - SSresid/SStotal; % get the R-square value
+    % coefficient of correlation
+    R = corrcoef(smoothData(:,1),smoothData(:,2));
+    R = R(2,1);
+    % save data for plotting:
+    plotData(ii).smoothed = smoothData;
+    plotData(ii).bestfit = [smoothData(:,1),yfit];
+    plotData(ii).color = kolor;
+    plotData(ii).rsq = round(rsq,2);
+    plotData(ii).R = round(R,2);
+end
+
+% FIGURE: 
 LW = 2;
-fig = figure; hold on
-% reorder the PLANT data by temperature:
-pData = sort(plant,1);
-pData(pData(:,1)<threshLow,:) = [];
-pData(pData(:,1)>threshHigh,:) = [];
-plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', LW,'color', pullFoodColor('Plant'))
-% reorder the YEAST data by temperature:
-pData = sort(yeast,1);
-pData(pData(:,1)<threshLow,:) = [];
-pData(pData(:,1)>threshHigh,:) = [];
-plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', LW,'color', pullFoodColor('Yeast'))
-% reorder the EMPTY data by temperature:
-pData = sort(empty,1);
-pData(pData(:,1)<threshLow,:) = [];
-pData(pData(:,1)>threshHigh,:) = [];
-plot(pData(:,1), smooth(pData(:,2),sSpan), 'linewidth', LW,'color', pullFoodColor('Empty'))
+fig = getfig; hold on
+for ii = 1:3
+    scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color)
+end
+for ii = 1:3
+%     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
+end
+ylim([100,500])
+
 % Labels:
 xlabel('temperature (\circC)')
-ylabel('distance to well (a.u.)')
+ylabel('distance to well (pixels)')
 title(strrep(ExpGroup,'_',' '))
-formatFig(fig,true)
+formatFig(fig,true);
 
-save_figure(fig, [figDir ExpGroup ' temp vs distance'], '-png');
+% label key:
+str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
+text(8.5,200, str, 'Color', plotData(1).color, 'FontSize', 12);
+str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
+text(8.5,180, str, 'Color', plotData(2).color, 'FontSize', 12);
+str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
+text(8.5,160, str, 'Color', plotData(3).color, 'FontSize', 12);
+
+save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
+
+
+%% Plot all trials: distance vs time
+sSpan = 240;
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.time;
+    for well = 1:4
+        Y = (data(trial).dist2wells(well).N(:,1));
+        plot(X, smooth(Y,sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+    end
+end
+ylabel('Distance (a.u.)')
+xlabel('Time (min)')
+title({'Distance from food sources';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true)
+
+save_figure(fig, [figDir ExpGroup ' all distance vs time'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+%% Plot average distance vs time across trials
+
+% sSpan = 240;
+% [plant, yeast, empty] = deal([]);
+% for trial = 1:ntrials
+%     for well = 1:4
+%         % plant food well:
+%         if strfind(data(trial).wellLabels{well},'Plant')
+%             x = data(trial).occupancy.temp';
+%             y = data(trial).dist2wells(well).N(:,1);
+%             plant = [plant; x, y];
+%         end
+%         % yeast food well:
+%         if strfind(data(trial).wellLabels{well},'Yeast')
+%             x = data(trial).occupancy.temp';
+%             y = data(trial).dist2wells(well).N(:,1);
+%             yeast = [yeast; x, y];
+%         end
+%         % empty food well:
+%         if strfind(data(trial).wellLabels{well},'Empty')
+%             x = data(trial).occupancy.temp';
+%             y = data(trial).dist2wells(well).N(:,1);
+%             empty = [empty; x, y];
+%         end 
+%     end
+% end 
+% 
+% numFitPoints = 1000;
+% threshHigh = 19.88;
+% threshLow = 8.02;
+% plotData = [];
+% % Plant data:
+% for ii = 1:3
+%     [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); %#ok<*ASGLU>
+%     switch ii
+%         case 1 % plant food
+%             inputData = plant;
+%             kolor = pullFoodColor('Plant');
+%         case 2 % yeast food
+%             inputData = yeast;
+%             kolor = pullFoodColor('Yeast');
+%         case 3 % empty
+%             inputData = empty;
+%             kolor = pullFoodColor('Empty');
+%     end
+%     % cut off the high and low ends of data (to clean):
+%     loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+%     inputData(loc,:) = [];
+%     % sort all the data by temperature:
+%     [~,idx] = sort(inputData(:,1));
+%     sortedData = inputData(idx,:);
+%     smoothData(:,1) = smooth(sortedData(:,1),sSpan);
+%     smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+%     % find the line of best fit:
+%     coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
+%     xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+%     yFit = polyval(coefficients, xFit);
+%     yfit = polyval(coefficients, smoothData(:,1));
+%     yResid = smoothData(:,2)-yfit;
+%     SSresid = sum(yResid.^2);
+%     SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+%     rsq = 1 - SSresid/SStotal; % get the R-square value
+%     % coefficient of correlation
+%     R = corrcoef(smoothData(:,1),smoothData(:,2));
+%     R = R(2,1);
+%     % save data for plotting:
+%     plotData(ii).smoothed = smoothData;
+%     plotData(ii).bestfit = [smoothData(:,1),yfit];
+%     plotData(ii).color = kolor;
+%     plotData(ii).rsq = round(rsq,2);
+%     plotData(ii).R = round(R,2);
+% end
+
+
+
+
+
+
+
+
+
+
 
 %% WILL NEED A SECTION ON WELL IDENTITY MATCHING FOR ONCE WELLS ARE SWAPPED
 % AROUND
