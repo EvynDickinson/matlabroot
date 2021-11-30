@@ -1,6 +1,4 @@
 
-
-
 %% Load in multiple trials that are grouped into a structure
 clear
 
@@ -219,7 +217,7 @@ elseif strcmpi(ExpGroup,'warming_cooling_ramp')
 end
 
 sSpan = 240;
-[FM_plant, FM_yeast, FM_empty, plant, yeast, empty] = deal([]);
+[F_plant, F_yeast, F_empty, plant, yeast, empty] = deal([]);
 for trial = 1:ntrials
     if ismember(trial,female_exps)
         for well = 1:4
@@ -227,15 +225,15 @@ for trial = 1:ntrials
             y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
             % plant food well:
             if strfind(data(trial).wellLabels{well},'Plant')
-                FM_plant = [FM_plant; x, y];
+                F_plant = [F_plant; x, y];
             end
             % yeast food well:
             if strfind(data(trial).wellLabels{well},'Yeast')
-                FM_yeast = [FM_yeast; x, y];
+                F_yeast = [F_yeast; x, y];
             end
             % empty food well:
             if strfind(data(trial).wellLabels{well},'Empty')
-                FM_empty = [FM_empty; x, y];
+                F_empty = [F_empty; x, y];
             end 
         end
     else
@@ -276,13 +274,13 @@ for ii = 1:6 %for each well type
             inputData = empty;
             kolor = pullFoodColor('Empty');
         case 4 % FM plant
-            inputData = FM_plant;
+            inputData = F_plant;
             kolor = Color('PaleGreen');
         case 5 % FM yeast
-            inputData = FM_yeast;
+            inputData = F_yeast;
             kolor = Color('LemonChiffon');
         case 6 % FM empty
-            inputData = FM_empty;
+            inputData = F_empty;
             kolor = Color('lightgrey');
     end
     % cut off the high and low ends of data (to clean):
@@ -347,7 +345,202 @@ clearvars('-except',initial_vars{:})
 
 
 
-%% 
+%% Plot male and female and mixed arenas for distance vs. temp
+
+if strcmpi(ExpGroup,'cooling_warming_ramp')
+    female_exps = [7,8];
+    male_exps = [5,6];
+elseif strcmpi(ExpGroup,'warming_cooling_ramp')
+    female_exps = [2,4];
+    male_exps = [1,3];
+end
+
+sSpan = 360;
+[M_plant, M_yeast, M_empty, F_plant, F_yeast, F_empty, plant, yeast, empty] = deal([]);
+for trial = 1:ntrials
+    if ismember(trial,female_exps)
+        for well = 1:4
+            x = data(trial).occupancy.temp';
+            y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+            % plant food well:
+            if strfind(data(trial).wellLabels{well},'Plant')
+                F_plant = [F_plant; x, y];
+            end
+            % yeast food well:
+            if strfind(data(trial).wellLabels{well},'Yeast')
+                F_yeast = [F_yeast; x, y];
+            end
+            % empty food well:
+            if strfind(data(trial).wellLabels{well},'Empty')
+                F_empty = [F_empty; x, y];
+            end 
+        end
+    elseif ismember(trial,male_exps)
+        for well = 1:4
+            x = data(trial).occupancy.temp';
+            y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+            % plant food well:
+            if strfind(data(trial).wellLabels{well},'Plant')
+                M_plant = [M_plant; x, y];
+            end
+            % yeast food well:
+            if strfind(data(trial).wellLabels{well},'Yeast')
+                M_yeast = [M_yeast; x, y];
+            end
+            % empty food well:
+            if strfind(data(trial).wellLabels{well},'Empty')
+                M_empty = [M_empty; x, y];
+            end 
+        end
+    else
+        for well = 1:4
+            x = data(trial).occupancy.temp';
+            y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+            % plant food well:
+            if strfind(data(trial).wellLabels{well},'Plant')
+                plant = [plant; x, y];
+            end
+            % yeast food well:
+            if strfind(data(trial).wellLabels{well},'Yeast')
+                yeast = [yeast; x, y];
+            end
+            % empty food well:
+            if strfind(data(trial).wellLabels{well},'Empty')
+                empty = [empty; x, y];
+            end 
+        end
+    end
+end 
+
+numFitPoints = 1000;
+threshHigh = 19.88;
+threshLow = 8.02;
+plotData = [];
+% sort data
+for ii = 1:9 %for each well type
+    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
+    switch ii
+        case 1 % plant food
+            inputData = plant;
+            kolor = Color('MediumSeaGreen');
+        case 2 % yeast food
+            inputData = yeast;
+            kolor = pullFoodColor('Yeast');
+        case 3 % empty
+            inputData = empty;
+            kolor = Color('white');
+        case 4 % F plant
+            inputData = F_plant;
+            kolor = Color('PaleGreen');
+        case 5 % F yeast
+            inputData = F_yeast;
+            kolor = Color('LemonChiffon');
+        case 6 % F empty
+            inputData = F_empty;
+            kolor = Color('lightgrey');
+        case 7 % M plant
+            inputData = M_plant;
+            kolor = Color('DarkGreen');
+        case 8 % M yeast
+            inputData = M_yeast;
+            kolor = Color('DarkOrange');
+        case 9 % M empty
+            inputData = M_empty;
+            kolor = Color('Gray');
+            
+    end
+    % cut off the high and low ends of data (to clean):
+    loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+    inputData(loc,:) = [];
+    % sort all the data by temperature:
+    [~,idx] = sort(inputData(:,1));
+    sortedData = inputData(idx,:);
+    smoothData(:,1) = smooth(sortedData(:,1),sSpan);
+    smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+    % find the line of best fit:
+    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
+    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+    yFit = polyval(coefficients, xFit);
+    yfit = polyval(coefficients, smoothData(:,1));
+    yResid = smoothData(:,2)-yfit;
+    SSresid = sum(yResid.^2);
+    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+    rsq = 1 - SSresid/SStotal; % get the R-square value
+    % coefficient of correlation
+    R = corrcoef(smoothData(:,1),smoothData(:,2));
+    R = R(2,1);
+    % save data for plotting:
+    plotData(ii).smoothed = smoothData;
+    plotData(ii).bestfit = [smoothData(:,1),yfit];
+    plotData(ii).color = kolor;
+    plotData(ii).rsq = round(rsq,2);
+    plotData(ii).R = round(R,2);
+end
+
+
+% FIGURE: 
+nrows = 1;
+ncol = 6;
+sb(1).idx = 1:3;
+sb(2).idx = 4:5;
+sb(3).idx = 6;
+SZ = 120;
+LW = 4; 
+fig = getfig; 
+% avg data
+subplot(nrows, ncol, sb(1).idx)
+hold on
+for ii = 1:9
+    scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color, 'filled')
+end
+ylim([10,40])
+xlabel('temperature (\circC)')
+ylabel('distance from well (mm)')
+% best fit line
+subplot(nrows, ncol, sb(2).idx)
+hold on
+for ii = 1:9
+    slope(ii).x = plotData(ii).bestfit([1,end],1);
+    slope(ii).y = plotData(ii).bestfit([1,end],2);
+    slope(ii).m = (slope(ii).y(2)-slope(ii).y(1))/(slope(ii).x(2)-slope(ii).x(1));
+    plot(slope(ii).x, slope(ii).y, 'color', plotData(ii).color, 'linewidth', LW)
+end
+ylim([10,40])
+xlabel('temperature (\circC)')
+% ylabel('distance from well (mm)')
+title(strrep(ExpGroup,'_',' '))
+% slope points
+subplot(nrows, ncol, sb(3).idx)
+hold on
+for ii = 1:9
+    slope(ii).m = (slope(ii).y(2)-slope(ii).y(1))/(slope(ii).x(2)-slope(ii).x(1));
+    scatter(1, slope(ii).m, SZ, plotData(ii).color, 'filled')
+end
+xlim([0,2])
+hline(0,'w:')
+% xlabel('temperature (\circC)')
+ylabel('slope of best fit line')
+ax = gca;
+set(gca, 'XColor', 'k')
+ylim([-0.8,0.2])
+
+formatFig(fig,true, [nrows,ncol], sb);
+
+
+subplot(nrows, ncol, sb(1).idx)
+%legend color code:
+str = {'Plant', 'Yeast', 'Empty'};
+% for ii = 1:9
+%     legend_str{ii} = [str{ii}  ': R = ' num2str(plotData(ii).R) '  R^2 = ' num2str(plotData(ii).rsq)];
+% end
+l = legend(str); 
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.4278 0.8448 0.0662 0.0689]);
+
+save_figure(fig, [figDir ExpGroup ' temp vs distance by sex'], '-png');
+clearvars('-except',initial_vars{:})
+
+
+
 
 
 %% Group occupancy across the trials
