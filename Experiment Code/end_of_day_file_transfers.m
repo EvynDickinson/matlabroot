@@ -30,21 +30,22 @@ else
     dir_sel = folderNames{indx+1};
 end
 folder = fullfile(start_dir, dir_sel);
+targetDir = [baseFolder dir_sel];
 
 % Move folders to google drive:
-copyfile(folder, [baseFolder dir_sel])
+copyfile(folder, targetDir)
 
 % Make new video folders for each Arena:
-videosDirA = [dir_sel '\Arena A\'];
+videosDirA = [targetDir '\Arena A\'];
 if ~isfolder(videosDirA); mkdir(videosDirA); end
 
-videosDirB = [dir_sel '\Arena B\'];
+videosDirB = [targetDir '\Arena B\'];
 if ~isfolder(videosDirB); mkdir(videosDirB); end
 
-videosDirC = [dir_sel '\Arena C\'];
+videosDirC = [targetDir '\Arena C\'];
 if ~isfolder(videosDirC); mkdir(videosDirC); end
 
-videosDirD = [dir_sel '\Arena D\'];
+videosDirD = [targetDir '\Arena D\'];
 if ~isfolder(videosDirD); mkdir(videosDirD); end
 
 fprintf('done')
