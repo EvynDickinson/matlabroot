@@ -1,4 +1,5 @@
 
+%      fig = cropCheck;
 
 %% Select Date & Experiment to Process
 clear; close all; clc
@@ -105,6 +106,8 @@ initial_vars = [initial_vars; 'nflies'; 'wellLabels'; 'wellcenters'; 'demoImg'];
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% TESTING SECTION: this is where a food masking would go...
+
 %% Data organization by video
 % Tracking matrix locations: [frame, node, xy, fly]
 scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
@@ -121,6 +124,9 @@ for vid = 1:nvids
     % x-y coordinates of flies for each frame
     x_loc = squeeze(headData(:,1,:)).*scaleFactor;
     y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+
+    % REMOVE FOOD TRACKED POINTS HERE 
+
     data(vid).x_loc = x_loc; % save for later convience
     data(vid).y_loc = y_loc;
     

@@ -1,4 +1,6 @@
+    
 
+  
 %% Load in multiple trials that are grouped into a structure
 clear
 
@@ -25,7 +27,7 @@ for trial = 1:ntrials
     trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
     trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
     disp(trialName)
-
+    
     % build the path for the trial data
     dirc = [baseFolder, trialDate, '\Arena ' trialArena '\analysis\' trialExpID trialArena  ' timecourse data.mat'];
     

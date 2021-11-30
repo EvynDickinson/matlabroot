@@ -351,14 +351,62 @@ demoImg = rgb2gray(read(vidInfo,1));
 datapoints = readPoints(demoImg);
 
 % find distance between the two sets of points: 
-inner = abs(0.35-200.64; % should = 41.2mm 
-outer = 918.76-20.74; % should  =  72 mm
+inner = abs(datapoints(2,1)-datapoints(2,2)); % should = 41.2mm 
+outer = abs(datapoints(2,3)-datapoints(2,4)); % should  =  72 mm
 
-pixelperMM_1 = inner/41.2;
-pixelperMM_2 = outer/72;
+pixelperMM_1 = inner/42;
+pixelperMM_2 = outer/70;
 
 disp(pixelperMM_1)
 disp(pixelperMM_2)
+
+% best of both = the pix to mm conversion
+
+%% try 'cleaning' the videos and see how the tracking compares
+% make some sort of analytic comparison of over/under tracking
+
+
+nflies = excelfile{XLrow,Excel.numflies};
+movieInfo = VideoReader([baseFolder vidFolder '\' expName   '_1.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,1));
+
+
+f = figure;
+imshow(demoImg)
+title('Outline the food well')
+roi = drawpolygon;
+mask1 = roi.Position;
+
+% determine if any tracking points fall within the bounded region??
+
+% all data for head tracked location
+headData = squeeze(data(1).tracks(:,1,:,:));
+nframes = size(headData,1); 
+
+% x-y coordinates of flies for each frame
+scaleFactor = 1.31;
+x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+X = reshape(x_loc,[numel(x_loc),1]);
+Y = reshape(y_loc,[numel(y_loc),1]);
+
+[in,on] = inpolygon(X,Y, mask1(:,1),mask1(:,2));   % Logical Matrix
+inon = in | on;                                    % Combine ‘in’ And ‘on’
+X(inon) = NaN;
+Y(inon) = NaN;
+                                        
+
+%%
+
+
+for vid = 1:nvids
+    
+
+
+[X, Y, mask] = drawFoodMask(Img,WellName,X,Y);
+
+
+
 
 
 

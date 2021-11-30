@@ -362,6 +362,195 @@ disp(pixelperMM_2)
 
 % best of both = the pix to mm conversion
 
+%% try 'cleaning' the videos and see how the tracking compares
+% make some sort of analytic comparison of over/under tracking
+
+
+nflies = excelfile{XLrow,Excel.numflies};
+movieInfo = VideoReader([baseFolder vidFolder '\' expName   '_1.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,1));
+
+
+f = figure;
+imshow(demoImg)
+title('Outline the food well')
+roi = drawpolygon;
+mask1 = roi.Position;
+
+% determine if any tracking points fall within the bounded region??
+
+% all data for head tracked location
+headData = squeeze(data(1).tracks(:,1,:,:));
+nframes = size(headData,1); 
+
+% x-y coordinates of flies for each frame
+scaleFactor = 1.31;
+x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+X = reshape(x_loc,[numel(x_loc),1]);
+Y = reshape(y_loc,[numel(y_loc),1]);
+
+[in,on] = inpolygon(X,Y, mask1(:,1),mask1(:,2));   % Logical Matrix
+inon = in | on;                                    % Combine ‘in’ And ‘on’
+X(inon) = NaN;
+Y(inon) = NaN;
+                                        
+
+%%
+
+idx = find(~strcmpi('Empty', wellLabels));
+% draw out the masks:
+for ii = 1:length(idx)
+    wellName = wellLabels{idx(ii)};
+    
+    % label the ROI
+    f = figure;
+    imshow(Img)
+    title(['Outline the ' WellName ' well'])
+    roi = drawpolygon;
+    mask(ii).n = roi.Position;
+    uiwait(f)
+end
+
+
+% Tracking matrix locations: [frame, node, xy, fly]
+scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
+% pull info for each video
+flyCount = [];
+for vid = 1:nvids
+    % number of flies labeled on each frame:
+    flyCount = [flyCount; sum(data(vid).occupancy_matrix)'];
+    
+    % all data for head tracked location
+    headData = squeeze(data(vid).tracks(:,1,:,:));
+    nframes = size(headData,1); 
+    
+    % x-y coordinates of flies for each frame
+    x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+    y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+
+    % REMOVE FOOD TRACKED POINTS HERE 
+    Xdim = size(x_loc);
+    Ydim = size(x_loc);
+    %resize the data:
+    X = reshape(x_loc,[numel(x_loc),1]);
+    Y = reshape(x_loc,[numel(x_loc),1]);
+    % Find points within the masked region and turn to NaN
+    for ii = 1:length(idx)
+        [in,on] = inpolygon(X,Y, mask(ii).n(:,1),mask(ii).n(:,2));   % Logical Matrix
+        inon = in | on;                                    % Combine ‘in’ And ‘on’
+        X(inon) = NaN;
+        Y(inon) = NaN;
+    end
+
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+    
+
+
+    data(vid).x_loc = x_loc; % save for later convience
+    data(vid).y_loc = y_loc;
+    
+    % temperature alignment
+    
+    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
+    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
+    tempCourse = tempLog(logROI(1):logROI(2),2);
+    x = round(linspace(1, nframes, length(tempCourse)));
+    % upsample the temperature log:
+    fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
+
+    % Find number of flies that are near each well for each frame
+    radii = 165; %110; %distance must be less than this number to count for a well ROI
+    
+    % loop for all wells
+    for well = 1:4
+        b = wellcenters(:,well); 
+        % reshape data points from whole video for optimized maths
+        ntracks = size(x_loc,2);
+        X = reshape(x_loc,numel(x_loc),1); 
+        Y = reshape(y_loc,numel(y_loc),1); 
+        % within well range?
+        euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2); %euclidian distance from well center
+        well_loc = reshape((euDist<=radii),[nframes,ntracks]);
+        welldata(well).loc = well_loc;
+        % how many within the circle?
+        welldata(well).count = sum(well_loc,2);
+        data(vid).well_counts(:,well) = welldata(well).count;
+    end
+    data(vid).tempLog = fullTempList;
+end
+
+
+vid = 1; frame = 1;
+movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,frame));
+
+% visual check that the number of tracked flies is close to the actual number
+nrow = 1; ncol = 2;
+fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
+subplot(nrow, ncol, 2)
+    histogram(flyCount); vline(nflies, 'w-'); 
+    xlabel('Number tracked flies'); ylabel('Frame count')
+subplot(nrow, ncol, 1)
+    % Take and save a snapshop pic of the arena w/ labels & well roi
+%     outerColors = {'red', 'yellow', 'blue', 'green'};
+    imshow(demoImg)
+    axis tight square
+    hold on
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        scatter(wellcenters(1,well),wellcenters(2,well), 75,...
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+    end
+
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    
+    scatter(x,y, 15, 'b')
+
+    l = legend(strrep(wellLabels,'_','-')); 
+    set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
+    viscircles(wellcenters',ones(1,4)*radii);
+    titleName = strrep([folder ' ' expName arenaSel], '_',' ');
+    title(titleName,'color', 'w')
+    formatFig(fig, true,[nrow, ncol]);
+   
+% save and export figure:
+if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+end  
+save_figure(fig, [analysisDir expName arenaSel ' quality control'], '-png');
+
+initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'];
+clearvars('-except',initial_vars{:})
+fprintf('\nNext\n')
+
+
+
+
+
+% clear tracking from the food:
+for vid = 1:nvids
+    
+
+
+    
+
+
+
+for vid = 1:nvids
+    
+
+
+[X, Y, mask] = drawFoodMask(Img,WellName,X,Y);
+
+
+
+
 
 
 
