@@ -3,21 +3,24 @@
 %% Select Date & Experiment to Process
 clear; close all; clc
 %get base folder pathway
-[baseFolder, folder] = getCloudPath(2); 
-vidFolder = [folder '\Split Videos'];
+[baseFolder, folder] = getCloudPath(2);    
+%select arena to work with:
+arenaList = {'A', 'B', 'C', 'D'};
+arenaSel = arenaList{listdlg('ListString', arenaList)};
+% vidFolder = [folder '\Split Videos']; % old  
+vidFolder = [folder '\Arena ' arenaSel];
 
 % Select the complete experiments to process
-list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
+list_dirs = dir([baseFolder folder, '\*dataMat.mat']); %only matlab files
 list_dirs = {list_dirs(:).name};
 expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
 expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-expName = expName(1:end-1);
-clear expNames
+expName = expName(1:end-1);clear expNames
 % Pull fly summary sheet information on selected experiment
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 
 % Make new analyzed file directory
-analysisDir = [baseFolder folder '\analysis\'];
+analysisDir = [baseFolder vidFolder '\analysis\'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
 
 % Load relevant data files (.mat, .csv, .h5)
@@ -30,27 +33,26 @@ tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
 % Select which Arena to process
-arenaSel = Alphabet(listdlg('ListString', {'A', 'B', 'C', 'D'}, 'SelectionMode', 'Single'));
-expPDF = [analysisDir expName arenaSel ' summary.pdf'];
+% arenaSel = Alphabet(listdlg('ListString', {'A', 'B', 'C', 'D'}, 'SelectionMode', 'Single'));
+expPDF = [analysisDir folder expName arenaSel ' summary.pdf'];
 XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
              strcmpi(excelfile(:,Excel.expID), expName) & ...
-             strcmpi(excelfile(:,Excel.arena), arenaSel)); %rows with sel date with ARENA ID
+             strcmpi(excelfile(:,Excel.arena), arenaSel(end:end))); %rows with sel date with ARENA ID
 
 % load tracking predictions         
 for vid = 1:nvids
-    filePath = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.h5'];
+    filePath = [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
     data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
     data(vid).tracks = h5read(filePath,'/tracks');
-end
+end; clear filePath
 
 initial_vars = who; initial_vars{end+1} = 'initial_vars';
 fprintf('\nNext\n')
 
 %% Parameter extraction
 % Number of flies:
-
 nflies = excelfile{XLrow,Excel.numflies};
-movieInfo = VideoReader([baseFolder vidFolder '\' expName arenaSel '_1.avi']); %read in video
+movieInfo = VideoReader([baseFolder vidFolder '\' expName   '_1.avi']); %read in video
 ii = randi(size(data(1).occupancy_matrix,2),[3,1]); %random selection of frames to count fly number
 demoImg = rgb2gray(read(movieInfo,1));
 if isnan(nflies)
@@ -105,9 +107,9 @@ fprintf('Next\n')
 
 %% Data organization by video
 % Tracking matrix locations: [frame, node, xy, fly]
-
+scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
 % pull info for each video
-flyCount = []; 
+flyCount = [];
 for vid = 1:nvids
     % number of flies labeled on each frame:
     flyCount = [flyCount; sum(data(vid).occupancy_matrix)'];
@@ -117,8 +119,8 @@ for vid = 1:nvids
     nframes = size(headData,1); 
     
     % x-y coordinates of flies for each frame
-    x_loc = squeeze(headData(:,1,:));
-    y_loc = squeeze(headData(:,2,:));
+    x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+    y_loc = squeeze(headData(:,2,:)).*scaleFactor;
     data(vid).x_loc = x_loc; % save for later convience
     data(vid).y_loc = y_loc;
     
@@ -136,7 +138,7 @@ for vid = 1:nvids
     
     % loop for all wells
     for well = 1:4
-        b = wellcenters(:,well); % well 1 points
+        b = wellcenters(:,well); 
         % reshape data points from whole video for optimized maths
         ntracks = size(x_loc,2);
         X = reshape(x_loc,numel(x_loc),1); 
@@ -176,6 +178,9 @@ end
 % % scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
 % viscircles(pts',[radii,radii,radii,radii])
 % b = pts(:,well); % well 1 points
+vid = 1; frame = 1;
+movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,frame));
 
 % visual check that the number of tracked flies is close to the actual number
 nrow = 1; ncol = 2;
@@ -185,16 +190,23 @@ subplot(nrow, ncol, 2)
     xlabel('Number tracked flies'); ylabel('Frame count')
 subplot(nrow, ncol, 1)
     % Take and save a snapshop pic of the arena w/ labels & well roi
-    outerColors = {'red', 'yellow', 'blue', 'green'};
+%     outerColors = {'red', 'yellow', 'blue', 'green'};
     imshow(demoImg)
     axis tight square
     hold on
     for well = 1:4
         kolor = pullFoodColor(wellLabels{well});
         scatter(wellcenters(1,well),wellcenters(2,well), 75,...
-            'MarkerFaceColor', kolor, 'MarkerEdgeColor', Color(outerColors{well})) 
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
     end
+
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
     
+    scatter(x,y, 15, 'b')
+
     l = legend(strrep(wellLabels,'_','-')); 
     set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
     viscircles(wellcenters',ones(1,4)*radii);
@@ -228,7 +240,7 @@ for vid = 1:nvids
 end
 plotY = plotY./nflies;
 sSpan = 180;
-LW = 1;
+LW = 2;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
 fig = getfig(''); 
@@ -306,6 +318,8 @@ plotY = plotY./nflies;
 sSpan = 180;
 LW = 1;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
+
+
 
 fig = getfig(''); 
     subplot(nrow,ncol,subplotInd(1).idx)
@@ -448,7 +462,7 @@ nrow = 2; ncol = length(vidList); ii = 0;
 fig = getfig(''); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
 for vid = vidList
     ii = ii+1;
-    movieInfo = VideoReader([baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.avi']); %read in video
+    movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
     headData = squeeze(data(vid).tracks(:,1,:,:));
     
     % Most clustered:
@@ -458,8 +472,10 @@ for vid = vidList
     imshow(img); hold on
     axis tight square
     set(gca, 'visible', 'off')
-    x = squeeze(headData(minidx(ii), 1, :)); x(isnan(x)) = [];
-    y = squeeze(headData(minidx(ii), 2, :)); y(isnan(y)) = [];
+    x = data(vid).x_loc(minidx(ii),:); x(isnan(x)) = [];
+    y = data(vid).y_loc(minidx(ii),:); y(isnan(y)) = [];
+%     x = squeeze(headData(minidx(ii), 1, :)); x(isnan(x)) = [];
+%     y = squeeze(headData(minidx(ii), 2, :)); y(isnan(y)) = [];
     scatter(x,y, 10, 'y', 'filled')
     title(num2str(M))
     % overlay 'size bar' for min dist:
@@ -472,8 +488,10 @@ for vid = vidList
     imshow(img); hold on
     axis tight square
     set(gca, 'visible', 'off')
-    x = squeeze(headData(maxidx(ii), 1, :)); x(isnan(x)) = [];
-    y = squeeze(headData(maxidx(ii), 2, :)); y(isnan(y)) = [];
+    x = data(vid).x_loc(maxidx(ii),:); x(isnan(x)) = [];
+    y = data(vid).y_loc(maxidx(ii),:); y(isnan(y)) = [];
+%     x = squeeze(headData(maxidx(ii), 1, :)); x(isnan(x)) = [];
+%     y = squeeze(headData(maxidx(ii), 2, :)); y(isnan(y)) = [];
     scatter(x,y, 10, 'y', 'filled')
     title(num2str(M))
     % overlay 'size bar' for min dist:
@@ -482,7 +500,7 @@ end
 labelHandles = findall(gcf, 'type', 'text', 'handlevisibility', 'off');
 set(labelHandles,'FontSize', 15, 'color', 'w')
 
-save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-png');
+save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-pdf');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -540,24 +558,46 @@ LW = 1.5;
 
 % FIGURE:
 fig = getfig; set(fig, 'pos', [157 86 1232 878])
+% TEMPERATURE
 subplot(nrow,ncol,sbpts(1).idx)
 plot(time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
 ylabel('(\circ)')
 title('temperature')
+ax = gca;
+x_lim = ax.XLim;
 
+% OCCUPANCY
 subplot(nrow,ncol,sbpts(2).idx)
 hold on
+y = [];
 for well = 1:4
-    kolor = pullFoodColor(wellLabels{well});
-    plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+   y = [y, smooth(occupancy.occ(:,well),sSpan)];
 end
-plot(time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+h = area(time,y);
+for well = 1:4
+    h(well).FaceColor = pullFoodColor(wellLabels{well});
+end
+xlim(x_lim)
+set(gca, 'tickdir', 'out')
+l = legend(strrep(wellLabels,'_','-'));
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k',...
+'position', [0.7972 0.7194 0.1039 0.0792]);% [0.8780 0.8119 0.0963 0.1126])%
 ylabel('occupancy probability')
 title('individual well occupancy')
-legend(wellLabels)
-l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
-set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
-    'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
+
+% 
+% hold on
+% for well = 1:4
+%     kolor = pullFoodColor(wellLabels{well});
+%     plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+% end
+% plot(time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+% ylabel('occupancy probability')
+% title('individual well occupancy')
+% legend(wellLabels)
+% l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
+% set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
+%     'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
 
 % CLUSTERING
 subplot(nrow,ncol,sbpts(3).idx); hold on
@@ -684,6 +724,83 @@ save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% Average distance between each fly and each food source (takes a full 2 mins to run)
+
+% find distance from center for each fly:
+tic
+FDist = [];
+idx = 0;
+for vid = 1:nvids
+    for frame = 1:length(data(vid).tempLog)
+        idx = idx+1;
+        for well = 1:4
+            test = [wellcenters(:,well)'; data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
+            D = squareform(pdist(test));
+            D = D(2:end,1);
+            D(isnan(D)) = [];
+            FDist(well).N(idx,:) = [median(D), std(D)];
+        end
+    end
+end
+toc
+
+occupancy.dist2wells = FDist;
+
+% occupancy.eccentricity = EDist;
+nrow = 4;
+ncol = 1;
+subplotInd(1).idx = 1;
+subplotInd(2).idx = 2:4;
+% group data across videos:
+plotX = occupancy.time;
+sSpan = 180;
+LW = 1;
+
+fig = getfig(''); 
+    subplot(nrow,ncol,subplotInd(1).idx)
+    y = smooth(occupancy.temp,sSpan);
+    plot(plotX(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
+    ylabel('temp (\circC)')
+    ylim([5,27])
+    
+    subplot(nrow,ncol,subplotInd(2).idx)
+    hold on
+    % error fills
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well}); % plotting color for food
+        y_avg(:,well) = smooth(FDist(well).N(:,1),sSpan);
+        y_err(:,well) = smooth(FDist(well).N(:,2),sSpan);
+        fill_data = error_fill(plotX, y_avg(:,well), y_err(:,well));
+        h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h(well), 'facealpha', 0.2)
+    end
+    % average line
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        plot(time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
+    end
+    xlabel('time (min)'); ylabel('avg distance between fly and food (a.u.)')
+    
+formatFig(fig, true, [nrow, ncol], subplotInd);
+l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
+set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+for well = 1:4
+    set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+end
+subplot(nrow,ncol,subplotInd(1).idx)
+set(gca, 'XColor', 'k')
+titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
+title(titleName,'color', 'w')
+
+% save and export figure
+if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+end  
+save_figure(fig, [analysisDir expName arenaSel ' avg distance to well'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
 %% Save experiment data thus far:
 
 switch questdlg('Save experiment analysis?')
@@ -691,119 +808,123 @@ switch questdlg('Save experiment analysis?')
         clearvars('-except',initial_vars{:})
         initial_vars = unique(initial_vars);
         save([analysisDir expName arenaSel ' timecourse data'])
+        copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')
         fprintf('Experiment data saved\n')
+
     case 'No'
         return
     case 'Cancel'
         return
 end
 
+
+%% Open former data:
 
 
 %% Visual comparison of tracked frames to look for outliers / patterns
-
-switch questdlg('Make tracking example videos?')
-    case 'No'
-        return
-    case 'Cancel'
-        return
-    case 'Yes'  
-        switch questdlg('Demo first 300 frames?')
-            case 'Yes'
-                nframes = 300;
-            case 'No'
-                nframes = inf;
-            case 'Cancel'
-                return
-        end
-end
-    
-if nvids>5
-    divisor = round(nvids/10);
-    vidList = 1:divisor:nvids;
-else
-    vidList = 1:nvids;
-end
-ii = 0; 
-
-
-vidpath = [baseFolder folder '\labeled vid examples\'];
-if ~isfolder(vidpath)
-    mkdir(vidpath)
-end
-% find frames with largest fly count offset
-for vid = vidList
-    headdata = squeeze(data(vid).tracks(:,1,:,:));
-
-    tempVidName = [baseFolder folder '\' expName '_' num2str(vid) '.avi'];
-    movieInfo = VideoReader(tempVidName);
-
-    fig = getfig('',1); set(fig, 'color', 'k','pos',[-851 329 707 656]);
-    set(gca, 'visible', 'off')
-
-    vid_name = [vidpath expName '_' num2str(vid) ' predicted frames'];
-
-    if isinf(nframes)
-        n = movieInfo.NumFrames;
-        FrameRate = 30; %playback rate
-        vid_name = [vid_name ' all frames'];
-    else
-        n = nframes;
-        FrameRate = 6; %playback rate
-    end
-
-    % initiate video writer
-    v = VideoWriter(vid_name, 'Motion JPEG AVI');
-    v.Quality = 75;
-    v.FrameRate = FrameRate;
-    open(v);
-
-
-    for frame = 1:n
-        img = read(movieInfo,frame);
-        imagesc(img)
-        set(fig, 'Color', 'k') 
-        hold on
-        x = squeeze(headdata(frame, 1, :));
-        y = squeeze(headdata(frame, 2, :));
-        x(isnan(x)) = []; % remove empty tracks
-        y(isnan(y)) = [];
-        scatter(x,y, 30, 'y')
-        axis tight; axis square
-        set(gca, 'visible', 'off')
-        f = getframe(fig);
-        writeVideo(v, f)  
-        clf('reset') 
-    end
-    close(v)
-    close(fig)
-end
+% 
+% switch questdlg('Make tracking example videos?','', 'Yes', 'No', 'No')
+%     case 'No'
+%         return
+%     case 'Cancel'
+%         return
+%     case 'Yes'  
+%         switch questdlg('Demo first 300 frames?')
+%             case 'Yes'
+%                 nframes = 300;
+%             case 'No'
+%                 nframes = inf;
+%             case 'Cancel'
+%                 return
+%         end
+% end
+%     
+% if nvids>5
+%     divisor = round(nvids/10);
+%     vidList = 1:divisor:nvids;
+% else
+%     vidList = 1:nvids;
+% end
+% ii = 0; 
+% 
+% 
+% vidpath = [baseFolder folder '\labeled vid examples\'];
+% if ~isfolder(vidpath)
+%     mkdir(vidpath)
+% end
+% % find frames with largest fly count offset
+% for vid = vidList
+%     headdata = squeeze(data(vid).tracks(:,1,:,:));
+% 
+%     tempVidName = [baseFolder folder '\' expName '_' num2str(vid) '.avi'];
+%     movieInfo = VideoReader(tempVidName);
+% 
+%     fig = getfig('',1); set(fig, 'color', 'k','pos',[-851 329 707 656]);
+%     set(gca, 'visible', 'off')
+% 
+%     vid_name = [vidpath expName '_' num2str(vid) ' predicted frames'];
+% 
+%     if isinf(nframes)
+%         n = movieInfo.NumFrames;
+%         FrameRate = 30; %playback rate
+%         vid_name = [vid_name ' all frames'];
+%     else
+%         n = nframes;
+%         FrameRate = 6; %playback rate
+%     end
+% 
+%     % initiate video writer
+%     v = VideoWriter(vid_name, 'Motion JPEG AVI');
+%     v.Quality = 75;
+%     v.FrameRate = FrameRate;
+%     open(v);
+% 
+% 
+%     for frame = 1:n
+%         img = read(movieInfo,frame);
+%         imagesc(img)
+%         set(fig, 'Color', 'k') 
+%         hold on
+%         x = squeeze(headdata(frame, 1, :));
+%         y = squeeze(headdata(frame, 2, :));
+%         x(isnan(x)) = []; % remove empty tracks
+%         y(isnan(y)) = [];
+%         scatter(x,y, 30, 'y')
+%         axis tight; axis square
+%         set(gca, 'visible', 'off')
+%         f = getframe(fig);
+%         writeVideo(v, f)  
+%         clf('reset') 
+%     end
+%     close(v)
+%     close(fig)
+% end
 
 %% Demo random selection of frames and their tracking points (QC)
-% vid = 1;
+% vid = 6;
 % headdata = squeeze(data(vid).tracks(:,1,:,:));
 % 
-% tempVidName = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) '.avi'];
+% tempVidName = [baseFolder vidFolder '\' expName '_' num2str(vid) '.avi'];
 % movieInfo = VideoReader(tempVidName);
 % 
 % fig = getfig('',1); set(fig, 'color', 'k','visible', 'on');
 % set(gca, 'visible', 'off')
 % 
 % % vid_name = [baseFolder vidFolder '\' expName arenaSel '_' num2str(vid) ' predicted frames'];
-% n = floor(movieInfo.duration);
+% n = floor(movieInfo.NumFrames);
 % 
-% for frame = 1:50
-%     img = read(movieInfo,frame);
+% for frame = 1:15:200
+%     img = rgb2gray(read(movieInfo,frame));
 %     imshow(img)
 %     hold on
 %     x = squeeze(headdata(frame, 1, :));
 %     y = squeeze(headdata(frame, 2, :));
 %     x(isnan(x)) = []; % remove empty tracks
 %     y(isnan(y)) = [];
-%     scatter(x,y, 30, 'y')
+% %     scatter(x,y, 30, 'y')
+%     scatter(x.*1.31, y.*1.31, 30, 'r')
 %     pause(0.1)
 % end
-
 
 %%
 % 

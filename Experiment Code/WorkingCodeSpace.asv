@@ -351,16 +351,14 @@ demoImg = rgb2gray(read(vidInfo,1));
 datapoints = readPoints(demoImg);
 
 % find distance between the two sets of points: 
-inner = abs(datapoints(2,1)-datapoints(2,2)); % should = 41.2mm 
-outer = abs(datapoints(2,3)-datapoints(2,4)); % should  =  72 mm
+inner = abs(0.35-200.64; % should = 41.2mm 
+outer = 918.76-20.74; % should  =  72 mm
 
-pixelperMM_1 = inner/42;
-pixelperMM_2 = outer/70;
+pixelperMM_1 = inner/41.2;
+pixelperMM_2 = outer/72;
 
 disp(pixelperMM_1)
 disp(pixelperMM_2)
-
-% best of both = the pix to mm conversion
 
 
 

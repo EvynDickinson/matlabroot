@@ -1,3 +1,30 @@
+
+%% Select data file to make new folders for
+%get base folder pathway
+[baseFolder, folder] = getCloudPath(2); 
+
+% Make a new video folder:
+videosDirA = [baseFolder folder '\Arena A\'];
+if ~isfolder(videosDirA); mkdir(videosDirA); end
+
+videosDirB = [baseFolder folder '\Arena B\'];
+if ~isfolder(videosDirB); mkdir(videosDirB); end
+
+videosDirC = [baseFolder folder '\Arena C\'];
+if ~isfolder(videosDirC); mkdir(videosDirC); end
+
+videosDirD = [baseFolder folder '\Arena D\'];
+if ~isfolder(videosDirD); mkdir(videosDirD); end
+
+
+%% Visual comparison of video cropping:
+
+fig = cropCheck;
+
+
+%%
+
+
 % LOAD VIDEOS FOR AN EXPERIMENT AND CROP THEM INTO THE FOUR INDEPENDENT
 % QUADRANTS / ARENAS FOR TRACKING AND POST PROCESSING
 clear; clc  
@@ -5,6 +32,7 @@ clear; clc
 %% Select data to split:
 %get base folder pathway
 [baseFolder, folder] = getCloudPath(2); 
+
 
 % Select the complete experiments to process
 list_dirs = dir([baseFolder folder, '\*.mat']); %only matlab files
@@ -76,7 +104,7 @@ switch questdlg('Group AB or Group CD?','', 'AB', 'CD','Cancel') %
         tic
         for vid = 1:nvids
             movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vid) '.avi']); %read in video
-            nframes = movieInfo.duration;
+            nframes = movieInfo.NumFrames;
             h = waitbar(0,['Cropping video ' num2str(vid) '/' num2str(nvids)]);
             % initiate arena A writer
             videoA = [baseFolder folder '\Split Videos\' expName 'A_' num2str(vid) '.avi'];
