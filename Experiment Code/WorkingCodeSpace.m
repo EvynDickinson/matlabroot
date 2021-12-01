@@ -401,25 +401,23 @@ Y(inon) = NaN;
 idx = find(~strcmpi('Empty', wellLabels));
 % draw out the masks:
 for ii = 1:length(idx)
-    wellName = wellLabels{idx(ii)};
-    
+    wellName = strrep(wellLabels{idx(ii)}, '_', '-');
     % label the ROI
     f = figure;
-    imshow(Img)
-    title(['Outline the ' WellName ' well'])
+    imshow(demoImg)
+    title(['Outline the ' wellName ' well'])
     roi = drawpolygon;
     mask(ii).n = roi.Position;
     uiwait(f)
 end
 
-
 % Tracking matrix locations: [frame, node, xy, fly]
 scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
 % pull info for each video
-flyCount = [];
+[OG_flyCount, flyCount] = deal([]);
 for vid = 1:nvids
     % number of flies labeled on each frame:
-    flyCount = [flyCount; sum(data(vid).occupancy_matrix)'];
+    OG_flyCount = [OG_flyCount; sum(data(vid).occupancy_matrix)'];
     
     % all data for head tracked location
     headData = squeeze(data(vid).tracks(:,1,:,:));
@@ -431,10 +429,10 @@ for vid = 1:nvids
 
     % REMOVE FOOD TRACKED POINTS HERE 
     Xdim = size(x_loc);
-    Ydim = size(x_loc);
+    Ydim = size(y_loc);
     %resize the data:
     X = reshape(x_loc,[numel(x_loc),1]);
-    Y = reshape(x_loc,[numel(x_loc),1]);
+    Y = reshape(y_loc,[numel(y_loc),1]);
     % Find points within the masked region and turn to NaN
     for ii = 1:length(idx)
         [in,on] = inpolygon(X,Y, mask(ii).n(:,1),mask(ii).n(:,2));   % Logical Matrix
@@ -446,14 +444,14 @@ for vid = 1:nvids
     % Resize the data to OG structure:
     X = reshape(X,Xdim);
     Y = reshape(Y,Ydim);
-    
 
-
-    data(vid).x_loc = x_loc; % save for later convience
-    data(vid).y_loc = y_loc;
+    data(vid).x_loc = X; % save for later convience
+    data(vid).y_loc = Y;
     
+    % New fly count measure:
+    flyCount = [flyCount; sum(~isnan(X),2)];
+
     % temperature alignment
-    
     logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
     logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
     tempCourse = tempLog(logROI(1):logROI(2),2);
@@ -462,17 +460,16 @@ for vid = 1:nvids
     fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
 
     % Find number of flies that are near each well for each frame
-    radii = 165; %110; %distance must be less than this number to count for a well ROI
-    
+    radii = 165; %110; %distance must be less than this number to count for a well ROI 
     % loop for all wells
     for well = 1:4
         b = wellcenters(:,well); 
         % reshape data points from whole video for optimized maths
-        ntracks = size(x_loc,2);
-        X = reshape(x_loc,numel(x_loc),1); 
-        Y = reshape(y_loc,numel(y_loc),1); 
+        ntracks = size(data(vid).x_loc,2);
+        x_loc = reshape(data(vid).x_loc,numel(data(vid).y_loc),1); 
+        y_loc = reshape(data(vid).y_loc,numel(data(vid).y_loc),1); 
         % within well range?
-        euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2); %euclidian distance from well center
+        euDist = sqrt((b(1)-x_loc).^2 + (b(2)-y_loc).^2); %euclidian distance from well center
         well_loc = reshape((euDist<=radii),[nframes,ntracks]);
         welldata(well).loc = well_loc;
         % how many within the circle?
@@ -482,7 +479,8 @@ for vid = 1:nvids
     data(vid).tempLog = fullTempList;
 end
 
-
+overtrackedFlies = sum(OG_flyCount-flyCount);
+ 
 vid = 1; frame = 1;
 movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
 demoImg = rgb2gray(read(movieInfo,frame));
@@ -491,10 +489,13 @@ demoImg = rgb2gray(read(movieInfo,frame));
 nrow = 1; ncol = 2;
 fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
 subplot(nrow, ncol, 2)
+    h = histogram(OG_flyCount);
+    h.FaceColor = Color('grey'); hold on
     histogram(flyCount); vline(nflies, 'w-'); 
     xlabel('Number tracked flies'); ylabel('Frame count')
+    title(['Removed ' num2str(overtrackedFlies) ' overtracking points'])
 subplot(nrow, ncol, 1)
-    % Take and save a snapshop pic of the arena w/ labels & well roi
+% Take and save a snapshop pic of the arena w/ labels & well roi
 %     outerColors = {'red', 'yellow', 'blue', 'green'};
     imshow(demoImg)
     axis tight square
@@ -533,24 +534,20 @@ fprintf('\nNext\n')
 
 
 
-% clear tracking from the food:
-for vid = 1:nvids
-    
 
 
-    
-
-
-
-for vid = 1:nvids
-    
-
-
-[X, Y, mask] = drawFoodMask(Img,WellName,X,Y);
-
-
-
-
+idx = find(~strcmpi('Empty', wellLabels));
+% draw out the masks:
+for ii = 1:length(idx)
+    wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+    % label the ROI
+    f = figure;
+    imshow(demoImg)
+    title(['Outline the ' wellName ' well'])
+    roi = drawpolygon;
+    mask(ii).n = roi.Position;
+    uiwait(f)
+end
 
 
 

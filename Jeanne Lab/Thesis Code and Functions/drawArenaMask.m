@@ -39,20 +39,20 @@ end
 
 allMasks(:,:,1) = arenaMask;
 
-
-% FOOD WELL MASKS
-if nargin>1 %only do if option selected
-    for ii = 1:numPoly    
-        f = figure;
-        imshow(image)
-        title('Outline the food well')
-        roi = drawpolygon;
-        BW = poly2mask(roi.Position(:,1),roi.Position(:,2),m,n);
-        allMasks(:,:,ii+1) = BW;
-        uiwait(f)
-    end
-end
-mask = sum(allMasks,3)>0;
+% 
+% % FOOD WELL MASKS
+% if nargin>1 %only do if option selected
+%     for ii = 1:numPoly    
+%         f = figure;
+%         imshow(image)
+%         title('Outline the food well')
+%         roi = drawpolygon;
+%         BW = poly2mask(roi.Position(:,1),roi.Position(:,2),m,n);
+%         allMasks(:,:,ii+1) = BW;
+%         uiwait(f)
+%     end
+% end
+% mask = sum(allMasks,3)>0;
 
 
 

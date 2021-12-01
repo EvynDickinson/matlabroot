@@ -1,4 +1,7 @@
 
+%      fig = cropCheck;
+
+
 %% Code to both TRACK and CONVERT to analysis file
 % parameter inputs:
 clear
