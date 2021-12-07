@@ -401,8 +401,7 @@ Y(inon) = NaN;
 idx = find(~strcmpi('Empty', wellLabels));
 % draw out the masks:
 for ii = 1:length(idx)
-    wellName = wellLabels{idx(ii)};
-    
+    wellName = strrep(wellLabels{idx(ii)}, '_', '-');
     % label the ROI
     f = figure;
     imshow(demoImg)
@@ -481,36 +480,22 @@ for vid = 1:nvids
 end
 
 overtrackedFlies = sum(OG_flyCount-flyCount);
-disp(['Overtracked points removed: ' num2str(overtrackedFlies)])    
-
+ 
 vid = 1; frame = 1;
 movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
 demoImg = rgb2gray(read(movieInfo,frame));
-
-
-% visual check that the number of tracked flies is close to the actual number
-nrow = 1; ncol = 2;
-fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
-
-    histogram(flyCount); vline(nflies, 'w-'); 
-    xlabel('Number tracked flies'); ylabel('Frame count')
-subplot(nrow, ncol, 2) 
-    
-    h = histogram(OG_flyCount);
-    h.FaceColor = Color('grey'); hold on
-    histogram(flyCount); vline(nflies, 'w-'); 
-    xlabel('Number tracked flies'); ylabel('Frame count')
-
-
 
 % visual check that the number of tracked flies is close to the actual number
 nrow = 1; ncol = 2;
 fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
 subplot(nrow, ncol, 2)
+    h = histogram(OG_flyCount);
+    h.FaceColor = Color('grey'); hold on
     histogram(flyCount); vline(nflies, 'w-'); 
     xlabel('Number tracked flies'); ylabel('Frame count')
+    title(['Removed ' num2str(overtrackedFlies) ' overtracking points'])
 subplot(nrow, ncol, 1)
-    % Take and save a snapshop pic of the arena w/ labels & well roi
+% Take and save a snapshop pic of the arena w/ labels & well roi
 %     outerColors = {'red', 'yellow', 'blue', 'green'};
     imshow(demoImg)
     axis tight square
@@ -551,9 +536,71 @@ fprintf('\nNext\n')
 
 
 
+idx = find(~strcmpi('Empty', wellLabels));
+% draw out the masks:
+for ii = 1:length(idx)
+    wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+    % label the ROI
+    f = figure;
+    imshow(demoImg)
+    title(['Outline the ' wellName ' well'])
+    roi = drawpolygon;
+    mask(ii).n = roi.Position;
+    uiwait(f)
+end
+
+
+%% Manually select overtracked points across the videos:
+% Save the frame start number for each video:
+currFrame = 0;
+for vid = 1:nvids
+    occupancy.frameROI(vid,1) = currFrame+1;
+    nframes = size(data(vid).occupancy_matrix,2);
+    currFrame = [nframes + currFrame];
+    occupancy.frameROI(vid,2) = currFrame;
+end
+
+% Find the video with the greatest avg over-count of fly points:
+for vid = 1:nvids
+    ROI = occupancy.frameROI(vid,:);
+    numberCount(vid) = median(occupancy.flycount(ROI(1):ROI(2)));
+end
+% find the top 4 frames and display them
+frameList = [];
+vid = find(numberCount == max(numberCount));
+ROI = occupancy.frameROI(vid,:);
+numlist = occupancy.flycount(ROI(1):ROI(2));
+[~,Idx] = sort(numlist);
+frameList = Idx(end-3:end); %pull the four highest overcounts
+
+% pull up the images in order and click on points that ARE NOT FLIES:
+movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
+for ii = 1:length(frameList)
+    frame = frameList(ii);
+    img = read(movieInfo,frame);
+    fig = figure;
+    imshow(img);
+        hold on
+        x = data(vid).x_loc(frame,:); x(isnan(x)) = [];
+        y = data(vid).y_loc(frame,:); y(isnan(y)) = [];
+    scatter(x,y, 10, 'y')
+    pointLabels(ii).coord = labelWrongPoints(fig);
+end
+
+% Now determine how they are related and if there is consistent overlap
+% that can be targeted for deletion...
+
+fig = figure;
+imso=
 
 
 
+
+
+
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
 
 

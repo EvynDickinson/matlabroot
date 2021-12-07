@@ -1,5 +1,5 @@
 
-%      fig = cropCheck;
+% 
 
 %% Select Date & Experiment to Process
 clear; close all; clc
@@ -379,8 +379,6 @@ sSpan = 180;
 LW = 1;
 time = linspace(1,(length(plotX)/3)/60,length(plotX));
 
-
-
 fig = getfig(''); 
     subplot(nrow,ncol,subplotInd(1).idx)
     y = smooth(plotX,sSpan);
@@ -699,7 +697,7 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Position & Movement Summary Figure 
-%**TODO remove total well occupancy
+% **TODO remove total well occupancy
 % figure parameters:
 nrow = 10; ncol = 1;
 sSpan = 180; %1 minute filter length

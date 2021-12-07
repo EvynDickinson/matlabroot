@@ -550,7 +550,63 @@ for ii = 1:length(idx)
 end
 
 
+%% Manually select overtracked points across the videos:
+% Save the frame start number for each video:
+currFrame = 0;
+for vid = 1:nvids
+    occupancy.frameROI(vid,1) = currFrame+1;
+    nframes = size(data(vid).occupancy_matrix,2);
+    currFrame = [nframes + currFrame];
+    occupancy.frameROI(vid,2) = currFrame;
+end
 
+% Find the video with the greatest avg over-count of fly points:
+for vid = 1:nvids
+    ROI = occupancy.frameROI(vid,:);
+    numberCount(vid) = median(occupancy.flycount(ROI(1):ROI(2)));
+end
+% find the top 4 frames and display them
+frameList = [];
+vid = find(numberCount == max(numberCount));
+ROI = occupancy.frameROI(vid,:);
+numlist = occupancy.flycount(ROI(1):ROI(2));
+[~,Idx] = sort(numlist);
+frameList = Idx(end-3:end); %pull the four highest overcounts
+
+% pull up the images in order and click on points that ARE NOT FLIES:
+movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
+for ii = 1:length(frameList)
+    frame = frameList(ii);
+    img = read(movieInfo,frame);
+    fig = figure;
+    imshow(img);
+        hold on
+        x = data(vid).x_loc(frame,:); x(isnan(x)) = [];
+        y = data(vid).y_loc(frame,:); y(isnan(y)) = [];
+    scatter(x,y, 10, 'y')
+    pointLabels(ii).coord = labelWrongPoints(fig);
+end
+
+% Now determine how they are related and if there is consistent overlap
+% that can be targeted for deletion...
+
+fig = figure; set(fig, 'color', 'k')
+imshow(img)
+hold on
+for ii = 1:length(frameList)
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+% save_figure(fig, [analysisDir expName arenaSel ' overtracking point IDs'], '-png');
+pointLabels(1).finalRound = labelWrongPoints(fig);
+
+% demo how removing these points would work...
+
+
+save([analysisDir expName arenaSel ' overtracking in progress data'])
+
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
 
 
