@@ -550,13 +550,12 @@ for ii = 1:length(idx)
 end
 
 
-%% Manually select overtracked points across the videos:
-% Save the frame start number for each video:
+%% Manual tracking cleanup option
 currFrame = 0;
 for vid = 1:nvids
     occupancy.frameROI(vid,1) = currFrame+1;
     nframes = size(data(vid).occupancy_matrix,2);
-    currFrame = [nframes + currFrame];
+    currFrame = nframes + currFrame;
     occupancy.frameROI(vid,2) = currFrame;
 end
 
@@ -566,12 +565,13 @@ for vid = 1:nvids
     numberCount(vid) = median(occupancy.flycount(ROI(1):ROI(2)));
 end
 % find the top 4 frames and display them
+pullFrames = 5;
 frameList = [];
 vid = find(numberCount == max(numberCount));
 ROI = occupancy.frameROI(vid,:);
 numlist = occupancy.flycount(ROI(1):ROI(2));
-[~,Idx] = sort(numlist);
-frameList = Idx(end-3:end); %pull the four highest overcounts
+[~,Idx] = (sort(numlist));
+frameList = Idx(end-pullFrames+1:end); %pull the four highest overcounts
 
 % pull up the images in order and click on points that ARE NOT FLIES:
 movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
@@ -584,6 +584,7 @@ for ii = 1:length(frameList)
         x = data(vid).x_loc(frame,:); x(isnan(x)) = [];
         y = data(vid).y_loc(frame,:); y(isnan(y)) = [];
     scatter(x,y, 10, 'y')
+    title(['select all points that are NOT flies ' num2str(ii) '/' num2str(pullFrames)])
     pointLabels(ii).coord = labelWrongPoints(fig);
 end
 
@@ -596,23 +597,24 @@ hold on
 for ii = 1:length(frameList)
     scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
 end
+title('Select points with overlap for masking')
 % save_figure(fig, [analysisDir expName arenaSel ' overtracking point IDs'], '-png');
 pointLabels(1).finalRound = labelWrongPoints(fig);
 nmaskpoints = length(frameList);
 
 % draw circles around the selected ROIs 
 removalRadius = 10;
-fig = figure;
+fig = figure; set(fig, 'color', 'k');
 imshow(img)
 hold on
 for ii = 1:nmaskpoints
     scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
 end
-viscircles(pointLabels(1).finalRound', removalRadius*ones(size(pointLabels(1).finalRound,2),1),'Color','r');
+R = removalRadius*ones(size(pointLabels(1).finalRound,2),1);
+viscircles(pointLabels(1).finalRound', R ,'Color','r');
 save_figure(fig, [analysisDir expName arenaSel ' overtracking points selected for deletion'], '-png');
 
-
-% how many flies are in those circles?? 
+% how many flies are in those circles?? TODO integrate the last OG fly count...
 [og_flyCount, new_flyCount, raw_flyCount] = deal([]);
 for vid = 1:nvids
 %resize the data:
@@ -636,17 +638,23 @@ for vid = 1:nvids
     X = reshape(X,Xdim);
     Y = reshape(Y,Ydim);
     new_flyCount = [new_flyCount; sum(~isnan(X),2)];
-    
     % raw fly count:
     raw_flyCount = [raw_flyCount; sum(data(vid).occupancy_matrix)'];
 end
+% number of tracked points:
+overtracked(1) = sum(raw_flyCount)-sum(og_flyCount);
+overtracked(2) = sum(og_flyCount)-sum(new_flyCount);
+overtracked(3) = sum(raw_flyCount)-sum(new_flyCount);
+
+
+
 
 % compare number of points same/different
 nrow = 1;
 ncol = 3;
 sb(1).idx = 1:2;
 sb(2).idx = 3;
-% PLOT COUNT OVER TIME
+% PLOT TRACKING COUNT OVER TIME
 fig = figure; set(fig, 'pos', [754 631 1936 707])
 subplot(nrow, ncol, sb(1).idx)
 hold on
@@ -666,40 +674,65 @@ h.FaceColor = Color('teal');
 vline(nflies, 'w')
 xlabel('Number of flies')
 ylabel('Frame count')
-legend({'SLEAP', 'wells & })
+l = legend({['SLEAP ' num2str(mean(raw_flyCount)) ' avg'],...
+            ['wells & arena masks ' num2str(mean(og_flyCount)) ' avg'],...
+            ['wells, arena & manual ' num2str(mean(new_flyCount)) ' avg']});
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.7941 0.8152 0.1524 0.0877]); %
+
 fig = formatFig(fig, true, [nrow, ncol], sb);
 
 save_figure(fig, [analysisDir expName arenaSel ' overtracking points overview'], '-png');
 
 
 
+vid = 1; frame = 1;
+movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,frame));
+
+% visual check that the number of tracked flies is close to the actual number
+nrow = 1; ncol = 2;
+fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
+subplot(nrow, ncol, 2)
+    h = histogram(raw_flyCount);
+    h.FaceColor = Color('grey'); hold on
+    histogram(flyCount); vline(nflies, 'w-'); 
+    xlabel('Number tracked flies'); ylabel('Frame count')
+    title(['Removed ' num2str(overtrackedFlies) ' overtracking points'])
+subplot(nrow, ncol, 1)
+% Take and save a snapshop pic of the arena w/ labels & well roi
+%     outerColors = {'red', 'yellow', 'blue', 'green'};
+    imshow(demoImg)
+    axis tight square
+    hold on
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        scatter(wellcenters(1,well),wellcenters(2,well), 75,...
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+    end
+
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    
+    scatter(x,y, 15, 'b')
+
+    l = legend(strrep(wellLabels,'_','-')); 
+    set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
+    viscircles(wellcenters',ones(1,4)*radii);
+    titleName = strrep([folder ' ' expName arenaSel], '_',' ');
+    title(titleName,'color', 'w')
+    formatFig(fig, true,[nrow, ncol]);
 
 
 
-
-% PLOT COUNT HISTOGRAM
+nrows = 4;
+ncols = 3;
+sb(1).idx = [1,2,4,5]; %imshow image
+sb(2).idx = [7,8,10,11]; %time course frame count
+sb(3).idx = [3:3:12]
+    
 fig = figure;
-h = histogram(og_flyCount);
-h.FaceColor = Color('orangered'); hold on
-h = histogram(new_flyCount);
-h.FaceColor = Color('teal');
-vline(nflies, 'w')
-xlabel('Number of flies')
-ylabel('Frame count')
-fig = formatFig(fig, true);
-save_figure(fig, [analysisDir expName arenaSel ' overtracking points histogram'], '-png');
-
-save([analysisDir expName arenaSel ' overtracking in progress data'])
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-
-
-
-
-
-
 
 
 
