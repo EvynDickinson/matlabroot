@@ -590,14 +590,106 @@ end
 % Now determine how they are related and if there is consistent overlap
 % that can be targeted for deletion...
 
+fig = figure; set(fig, 'color', 'k')
+imshow(img)
+hold on
+for ii = 1:length(frameList)
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+% save_figure(fig, [analysisDir expName arenaSel ' overtracking point IDs'], '-png');
+pointLabels(1).finalRound = labelWrongPoints(fig);
+nmaskpoints = length(frameList);
+
+% draw circles around the selected ROIs 
+removalRadius = 10;
 fig = figure;
-imso=
+imshow(img)
+hold on
+for ii = 1:nmaskpoints
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+viscircles(pointLabels(1).finalRound', removalRadius*ones(size(pointLabels(1).finalRound,2),1),'Color','r');
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points selected for deletion'], '-png');
+
+
+% how many flies are in those circles?? 
+[og_flyCount, new_flyCount, raw_flyCount] = deal([]);
+for vid = 1:nvids
+%resize the data:
+    x_loc = data(vid).x_loc; 
+    y_loc = data(vid).y_loc;
+    
+    % how many flies OG
+    og_flyCount = [og_flyCount; sum(~isnan(x_loc),2)];
+    
+    Xdim = size(x_loc); 
+    Ydim = size(y_loc);
+    X = reshape(x_loc,[numel(x_loc),1]); 
+    Y = reshape(y_loc,[numel(y_loc),1]);
+
+    % Find points within the masked region and turn to NaN
+    for ii = 1:nmaskpoints
+        loc = (((X-pointLabels(1).finalRound(1,ii)).^2 + (Y-pointLabels(1).finalRound(2,ii)).^2).^0.5)<=removalRadius;
+        X(loc) = NaN; Y(loc) = NaN;
+    end
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+    new_flyCount = [new_flyCount; sum(~isnan(X),2)];
+    
+    % raw fly count:
+    raw_flyCount = [raw_flyCount; sum(data(vid).occupancy_matrix)'];
+end
+
+% compare number of points same/different
+nrow = 1;
+ncol = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
+% PLOT COUNT OVER TIME
+fig = figure; set(fig, 'pos', [754 631 1936 707])
+subplot(nrow, ncol, sb(1).idx)
+hold on
+plot(occupancy.time, raw_flyCount, 'color', Color('grey'))
+plot(occupancy.time, og_flyCount,'color', Color('orangered'))
+plot(occupancy.time, new_flyCount, 'color', Color('teal'))
+hline(nflies, 'w')
+ylabel('Fly count'); xlabel('time (min)')
+subplot(nrow, ncol, sb(2).idx)
+hold on
+h = histogram(raw_flyCount);
+h.FaceColor = Color('grey');
+h = histogram(og_flyCount);
+h.FaceColor = Color('orangered'); 
+h = histogram(new_flyCount);
+h.FaceColor = Color('teal');
+vline(nflies, 'w')
+xlabel('Number of flies')
+ylabel('Frame count')
+legend({'SLEAP', 'wells & })
+fig = formatFig(fig, true, [nrow, ncol], sb);
+
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points overview'], '-png');
 
 
 
 
 
 
+
+% PLOT COUNT HISTOGRAM
+fig = figure;
+h = histogram(og_flyCount);
+h.FaceColor = Color('orangered'); hold on
+h = histogram(new_flyCount);
+h.FaceColor = Color('teal');
+vline(nflies, 'w')
+xlabel('Number of flies')
+ylabel('Frame count')
+fig = formatFig(fig, true);
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points histogram'], '-png');
+
+save([analysisDir expName arenaSel ' overtracking in progress data'])
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')

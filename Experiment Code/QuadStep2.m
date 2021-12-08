@@ -283,6 +283,131 @@ initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'; 'occupancy'];
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')
 
+%% Manual tracking cleanup option
+currFrame = 0;
+for vid = 1:nvids
+    occupancy.frameROI(vid,1) = currFrame+1;
+    nframes = size(data(vid).occupancy_matrix,2);
+    currFrame = nframes + currFrame;
+    occupancy.frameROI(vid,2) = currFrame;
+end
+
+% Find the video with the greatest avg over-count of fly points:
+for vid = 1:nvids
+    ROI = occupancy.frameROI(vid,:);
+    numberCount(vid) = median(occupancy.flycount(ROI(1):ROI(2)));
+end
+% find the top 4 frames and display them
+frameList = [];
+vid = find(numberCount == max(numberCount));
+ROI = occupancy.frameROI(vid,:);
+numlist = occupancy.flycount(ROI(1):ROI(2));
+[~,Idx] = sort(numlist);
+frameList = Idx(end-3:end); %pull the four highest overcounts
+
+% pull up the images in order and click on points that ARE NOT FLIES:
+movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
+for ii = 1:length(frameList)
+    frame = frameList(ii);
+    img = read(movieInfo,frame);
+    fig = figure;
+    imshow(img);
+        hold on
+        x = data(vid).x_loc(frame,:); x(isnan(x)) = [];
+        y = data(vid).y_loc(frame,:); y(isnan(y)) = [];
+    scatter(x,y, 10, 'y')
+    title('select all points that are NOT flies')
+    pointLabels(ii).coord = labelWrongPoints(fig);
+end
+
+% Now determine how they are related and if there is consistent overlap
+% that can be targeted for deletion...
+
+fig = figure; set(fig, 'color', 'k')
+imshow(img)
+hold on
+for ii = 1:length(frameList)
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+title('Select points with overlap for masking')
+% save_figure(fig, [analysisDir expName arenaSel ' overtracking point IDs'], '-png');
+pointLabels(1).finalRound = labelWrongPoints(fig);
+nmaskpoints = length(frameList);
+
+% draw circles around the selected ROIs 
+removalRadius = 10;
+fig = figure;
+imshow(img)
+hold on
+for ii = 1:nmaskpoints
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+viscircles(pointLabels(1).finalRound', removalRadius*ones(size(pointLabels(1).finalRound,2),1),'Color','r');
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points selected for deletion'], '-png');
+
+% how many flies are in those circles?? TODO integrate the last OG fly count...
+og_flyCount = []; new_flyCount = [];
+for vid = 1:nvids
+%resize the data:
+    x_loc = data(vid).x_loc; 
+    y_loc = data(vid).y_loc;
+    
+    % how many flies OG
+    og_flyCount = [og_flyCount; sum(~isnan(x_loc),2)];
+    
+    Xdim = size(x_loc); 
+    Ydim = size(y_loc);
+    X = reshape(x_loc,[numel(x_loc),1]); 
+    Y = reshape(y_loc,[numel(y_loc),1]);
+
+    % Find points within the masked region and turn to NaN
+    for ii = 1:nmaskpoints
+        loc = (((X-pointLabels(1).finalRound(1,ii)).^2 + (Y-pointLabels(1).finalRound(2,ii)).^2).^0.5)<=removalRadius;
+        X(loc) = NaN; Y(loc) = NaN;
+    end
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+    new_flyCount = [new_flyCount; sum(~isnan(X),2)];
+    % raw fly count:
+    raw_flyCount = [raw_flyCount; sum(data(vid).occupancy_matrix)'];
+    
+end
+
+
+% compare number of points same/different
+nrow = 1;
+ncol = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
+% PLOT COUNT OVER TIME
+fig = figure; set(fig, 'pos', [754 631 1936 707])
+subplot(nrow, ncol, sb(1).idx)
+hold on
+plot(occupancy.time, raw_flyCount, 'color', Color('grey'))
+plot(occupancy.time, og_flyCount,'color', Color('orangered'))
+plot(occupancy.time, new_flyCount, 'color', Color('teal'))
+hline(nflies, 'w')
+ylabel('Fly count'); xlabel('time (min)')
+subplot(nrow, ncol, sb(2).idx)
+hold on
+h = histogram(raw_flyCount);
+h.FaceColor = Color('grey');
+h = histogram(og_flyCount);
+h.FaceColor = Color('orangered'); 
+h = histogram(new_flyCount);
+h.FaceColor = Color('teal');
+vline(nflies, 'w')
+xlabel('Number of flies')
+ylabel('Frame count')
+l = legend({'SLEAP', 'wells & arena masks', 'wells, arena & manual'});
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k'); %'Position', [0.0959 0.7409 0.1271 0.1428]
+
+fig = formatFig(fig, true, [nrow, ncol], sb);
+
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points overview'], '-png');
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
 %% Summary figure
 nrow = 5; ncol = 4;
