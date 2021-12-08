@@ -203,7 +203,7 @@ end
 % Find the video with the greatest avg over-count of fly points:
 for vid = 1:nvids
     ROI = occupancy.frameROI(vid,:);
-    numberCount(vid) = median(flycount(ROI(1):ROI(2)));
+    numberCount(vid) = median(flyCount(ROI(1):ROI(2)));
 end
 % find the top 4 frames and display them
 pullFrames = 5;
@@ -293,7 +293,7 @@ ncol = 3;
 sb(1).idx = 1:2;
 sb(2).idx = 3;
 % PLOT TRACKING COUNT OVER TIME
-fig = figure; set(fig, 'pos', [754 631 1936 707])
+fig = figure; %set(fig, 'pos', [754 631 1936 707]) %adjust this fig size...
 subplot(nrow, ncol, sb(1).idx)
 hold on
 plot(occupancy.time, raw_flyCount, 'color', Color('grey'))

@@ -724,7 +724,7 @@ subplot(nrow, ncol, 1)
     title(titleName,'color', 'w')
     formatFig(fig, true,[nrow, ncol]);
 
- %%   
+%%   
     
 vid = 1; frame = 1;
 movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
