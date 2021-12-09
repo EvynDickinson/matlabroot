@@ -725,29 +725,78 @@ subplot(nrow, ncol, 1)
     formatFig(fig, true,[nrow, ncol]);
 
 %%   
-    
-vid = 1; frame = 1;
-movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
-demoImg = rgb2gray(read(movieInfo,frame));
-
-
+%read in video
+movieInfo = VideoReader([baseFolder,vidFolder,'\',expName,'_',num2str(vid_idx),'.avi']); 
+frame = frameList(1);
+img = read(movieInfo,frame);
+vid = vid_idx;
 nrows = 4;
 ncols = 3;
 sb(1).idx = [1,2,4,5]; %imshow image
 sb(2).idx = [7,8,10,11]; %time course frame count
 sb(3).idx = 3:3:12; %histogram
     
-fig = figure;
-
+fig = figure; set(fig, 'pos', [37 518 1171 826]);
 % ARENA IMAGE
 subplot(nrows,ncols,sb(1).idx)
+    imshow(img)
+    axis tight square
+    hold on
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        scatter(wellcenters(1,well),wellcenters(2,well), 75,...
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+    end
+    % raw points:
+    x = data(vid).x_loc_raw(frame,:);
+    y = data(vid).y_loc_raw(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 20, 'k')
+    scatter(x,y, 15, Color('grey'),'filled')
+    
+    % intermediate points:
+    x = data(vid).x_loc_mid(frame,:);
+    y = data(vid).y_loc_mid(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 15, Color('orangered'),'filled')
+    
+    % intermediate points:
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 15, Color('teal'),'filled')
 
+% OVERTRACKING OVER TIME
+subplot(nrows,ncols,sb(2).idx)
+    hold on
+    plot(occupancy.time, raw_flyCount, 'color', Color('grey'))
+    plot(occupancy.time, mid_flyCount,'color', Color('orangered'))
+    plot(occupancy.time, flyCount, 'color', Color('teal'))
+    hline(nflies, 'w')
+    ylabel('Fly count'); xlabel('time (min)')
 
+% FLY COUNT HISTOGRAM
+subplot(nrows,ncols,sb(3).idx)
+    hold on
+    h = histogram(raw_flyCount);
+    h.FaceColor = Color('grey');
+    h = histogram(mid_flyCount);
+    h.FaceColor = Color('orangered'); 
+    h = histogram(flyCount);
+    h.FaceColor = Color('teal');
+    vline(nflies, 'w')
+    xlabel('Number of flies')
+    ylabel('Frame count')
 
-
-
-
-
+% LABELS AND FORMATTING
+fig = formatFig(fig, true, [nrows, ncols], sb);
+l = legend({['SLEAP ' num2str(mean(raw_flyCount)) ' avg'],...
+            ['wells & arena masks ' num2str(mean(mid_flyCount)) ' avg'],...
+            ['wells, arena & manual ' num2str(mean(flyCount)) ' avg']});
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0169 0.8981 0.3122 0.0877]); %
 
 
 
