@@ -72,7 +72,11 @@ fig = figure; hold on
 for trial = 1:ntrials
     X = data(trial).occupancy.temp;
     for well = 1:4
-        Y = (data(trial).dist2wells(well).N(:,1));
+        try Y = (data(trial).dist2wells(well).N(:,1));
+        catch 
+            Y = data(trial).occupancy.dist2wells(well).N(:,1);
+            data(trial).dist2wells = data(trial).occupancy.dist2wells;
+        end
         Y = Y./pix2mm; % convert the pixel values to mm
         % reorder the data by temperature:
         [plotX, idx] = sort(X);
@@ -189,25 +193,60 @@ save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
 
 %% Plot all trials: distance vs time % WORKING HERE TODO
+% ADD IN THE TEMPERATURE LINE AS WELL
 sSpan = 240;
-fig = figure; hold on
-for trial = 1:ntrials
-    X = data(trial).occupancy.time;
-    for well = 1:4
-        Y = (data(trial).dist2wells(well).N(:,1));
-        plot(X, smooth(Y,sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+nrows = 3;
+ncols = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:3;
+frame_buffer = 20;
+
+fig = figure; set(fig, 'pos', [96 444 660 482]);
+subplot(nrows, ncols, sb(1).idx)
+    hold on
+    for trial = 1:ntrials
+        X = data(trial).occupancy.time;
+        Y = data(trial).occupancy.temp;
+        plot(X, Y, 'linewidth', 1)
     end
-end
-ylabel('Distance (a.u.)')
-xlabel('Time (min)')
-title({'Distance from food sources';...
-      ['N = ' num2str(ntrials)]})
-formatFig(fig, true)
+    xlabel('Time (min)')
+    ylabel('Temp (\circ)')
+    title({'Distance from food sources';...
+          ['N = ' num2str(ntrials)]})
+
+subplot(nrows, ncols, sb(2).idx)
+    hold on
+    [yAvg(1).N,yAvg(2).N,yAvg(3).N,yAvg(4).N] = deal(nan([length(X)+frame_buffer,ntrials]));
+    for trial = 1:ntrials
+        X = data(trial).occupancy.time;
+        for well = 1:4
+            Y = (data(trial).dist2wells(well).N(:,1));
+            Y = Y./pix2mm; % convert the pixel values to mm
+            yAvg(well).N(1:length(Y),trial) = Y;
+            plot(X, smooth(Y,sSpan), 'linewidth', 0.5,'color', pullFoodColor(data(trial).wellLabels{well}))
+        end
+    end
+    % plot the avg:
+    for well = 1:4
+        Y = nanmean(yAvg(well).N,2);
+        Y(isnan(Y)) = [];
+        % TODO update the time component here to match the longest!! 
+        plot(X, Y, 'linewidth', 2,'color', pullFoodColor(data(trial).wellLabels{well}))
+    end
+    ylabel('Distance (mm)')
+    xlabel('Time (min)')
+    
+formatFig(fig, true,[nrows,ncols],sb)
 
 save_figure(fig, [figDir ExpGroup ' all distance vs time'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
+
+
+
+
+
 
 %% Plot female vs. grouped|male trials:
 
@@ -538,7 +577,7 @@ clearvars('-except',initial_vars{:})
 
 
 
-%% Group occupancy across the trials
+%% Group occupancy across the trials % still in progress!!!
 
 % for now: average across the experiments (assuming they are TEMP locked)
 [A,B,C,D] = deal([]);
