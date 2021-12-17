@@ -812,36 +812,22 @@ numberList = unique(temp);
 temp  = ["all"; string(numberList)];
 
 % genotypes
-loc = cellfun(@ischar, excelfile(2:end, Excel.genotype));
-geno = unique(excelfile([false;loc], Excel.genotype));
+geno = (excelfile(2:end,Excel.genotype));
+geno = geno(:);
+unique(geno)
+geno = cell2mat(geno);
+geno(isnan(geno)) = [];
+numberList = unique(geno);
+geno  = ["all"; string(numberList)];
 
-% food options:
-foodOpt = [];
-for ii = 1:4 %for each well
-    loc = cellfun(@ischar, excelfile(2:end, Excel.(['well_' num2str(ii)])));
-    well = unique(excelfile([false;loc], Excel.(['well_' num2str(ii)])));
-    foodOpt = unique(['all';well;foodOpt]);
-end
-
-% exp ID
-loc = cellfun(@ischar, excelfile(2:end, Excel.expID));
-expID = unique(excelfile([false;loc], Excel.expID));
-expID = ['all'; expID];
-
-% temp protocol
-loc = cellfun(@ischar, excelfile(2:end, Excel.protocol));
-proto = unique(excelfile([false;loc], Excel.protocol));
-proto(strcmpi(proto,'Protocol Name')) = []; 
-proto = ['all'; proto];
-
-
+loc = cellfun(@ischar, excelfile(:, Excel.structure));
 
 
 structName_loc = cellfun(@ischar, excelfile(:, Excel.structure));
-structure_names = unique(excelfile(structName_loc, Excel.structure));
-structure_names(strcmpi(structure_names,' ')) = []; %remove blank spaces for section headers
-structure_names(strcmpi(structure_names,'Structure')) = []; %remove blank spaces for section headers
-names = structure_names;
+    structure_names = unique(excelfile(structName_loc, Excel.structure));
+    structure_names(strcmpi(structure_names,' ')) = []; %remove blank spaces for section headers
+    structure_names(strcmpi(structure_names,'Structure')) = []; %remove blank spaces for section headers
+    names = structure_names;
 
 
 

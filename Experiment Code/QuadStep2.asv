@@ -271,10 +271,11 @@ for vid = 1:nvids
     Y = reshape(y_loc,[numel(y_loc),1]);
 
     % Find points within the masked region and turn to NaN
-    for ii = 1:length(pointLabels(1).finalRound)
-        loc = (((X-pointLabels(1).finalRound(1,ii)).^2 + (Y-pointLabels(1).finalRound(2,ii)).^2).^0.5)<=removalRadius;
-        X(loc) = NaN; Y(loc) = NaN;
-    end
+    if isempty(pointLabels(1).finalRound)
+        for ii = 1:size(pointLabels(1).finalRound,2)
+            loc = (((X-pointLabels(1).finalRound(1,ii)).^2 + (Y-pointLabels(1).finalRound(2,ii)).^2).^0.5)<=removalRadius;
+            X(loc) = NaN; Y(loc) = NaN;
+        end
     % Resize the data to OG structure:
     X = reshape(X,Xdim);
     Y = reshape(Y,Ydim);

@@ -28,7 +28,7 @@ for tt = 1:length(arenaSel)
         disp(['skipped ' arena ' for bad ROI fit'])
         continue
     elseif strcmp(temp,'Cancel')
-        return
+        return 
     end
     fig = gcf;
     close(fig)
