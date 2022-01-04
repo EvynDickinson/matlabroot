@@ -41,7 +41,7 @@ for tt = 1:length(arenaSel)
     % text to set the cd to the desired folder: 
     setCD = ['cd ' rootDir];
     setCD = strrep(setCD, '\', '/');
-    fid = fopen(codeBlockPath,'w');
+    fid = fopen(codeBlockPath,'w');  
     fprintf(fid, setCD);
     fclose(fid);
     
