@@ -27,7 +27,7 @@ indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
 if strcmpi(folderNames{indx}, 'Today')==true
     dir_sel = date_today;
 else
-    dir_sel = folderNames{indx+1};
+    dir_sel = folderNames{indx};
 end
 folder = fullfile(start_dir, dir_sel);
 targetDir = [baseFolder dir_sel];
