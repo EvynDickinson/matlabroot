@@ -1,4 +1,7 @@
 
+%      fig = cropCheck;
+
+
 %% Code to both TRACK and CONVERT to analysis file
 % parameter inputs:
 clear
@@ -25,7 +28,7 @@ for tt = 1:length(arenaSel)
         disp(['skipped ' arena ' for bad ROI fit'])
         continue
     elseif strcmp(temp,'Cancel')
-        return
+        return 
     end
     fig = gcf;
     close(fig)
@@ -38,7 +41,7 @@ for tt = 1:length(arenaSel)
     % text to set the cd to the desired folder: 
     setCD = ['cd ' rootDir];
     setCD = strrep(setCD, '\', '/');
-    fid = fopen(codeBlockPath,'w');
+    fid = fopen(codeBlockPath,'w');  
     fprintf(fid, setCD);
     fclose(fid);
     

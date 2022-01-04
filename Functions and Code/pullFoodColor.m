@@ -34,5 +34,11 @@ switch foodString
         colorname = 'maroon';
 end
 
-kolor = Color(colorname);
+try kolor = Color(colorname);
+catch 
+    if ismember('Yeast', foodString)
+        kolor = Color('gold');
+    elseif ismember('Plant', foodString)
+        kolor = Color('green');
+    end
 end

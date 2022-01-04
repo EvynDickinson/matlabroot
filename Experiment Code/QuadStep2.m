@@ -1,4 +1,5 @@
 
+%  
 
 %% Select Date & Experiment to Process
 clear; close all; clc
@@ -106,92 +107,208 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Data organization by video
+% find number of 
+currFrame = 0;
+for vid = 1:nvids
+    occupancy.frameROI(vid,1) = currFrame+1;
+    nframes = size(data(vid).occupancy_matrix,2);
+    currFrame = nframes + currFrame;
+    occupancy.frameROI(vid,2) = currFrame;
+end
+
+% --------------------------- Mask the food wells & arena ---------------------------
+maskPath = [analysisDir expName arenaSel ' ArenaMask.mat'];
+if ~isfile(maskPath)
+    idx = find(~strcmpi('Empty', wellLabels));
+    % draw out the masks:
+    for ii = 1:length(idx)
+        wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+        % label the ROI
+        f = figure;
+        imshow(demoImg)
+        title(['Outline the ' wellName ' well'])
+        roi = drawpolygon;
+        mask(ii).n = roi.Position;
+        uiwait(f)
+    end
+    % save the food masks:
+    save(maskPath, 'mask')
+else
+    load(maskPath)
+end
+
+% Screen any points outside the arena
+r = 400; %pixel arena radius
+x1 = wellcenters(1,1:2:4);
+y1 = wellcenters(2,1:2:4);
+x2 = wellcenters(1,2:2:4);
+y2 = wellcenters(2,2:2:4);
+[xi,yi] = polyxpoly(x1,y1,x2,y2);
+centre = [xi;yi];
+
 % Tracking matrix locations: [frame, node, xy, fly]
 scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
-% pull info for each video
-flyCount = [];
+
+% MASK FOOD AND ARENA:
+[raw_flyCount, mid_flyCount] = deal([]);
 for vid = 1:nvids
     % number of flies labeled on each frame:
-    flyCount = [flyCount; sum(data(vid).occupancy_matrix)'];
+    raw_flyCount = [raw_flyCount; sum(data(vid).occupancy_matrix)'];
     
     % all data for head tracked location
     headData = squeeze(data(vid).tracks(:,1,:,:));
+    %save the unadjusted data in the same format
+    data(vid).x_loc_raw = squeeze(headData(:,1,:)).*scaleFactor;
+    data(vid).y_loc_raw = squeeze(headData(:,2,:)).*scaleFactor;
     nframes = size(headData,1); 
     
     % x-y coordinates of flies for each frame
     x_loc = squeeze(headData(:,1,:)).*scaleFactor;
     y_loc = squeeze(headData(:,2,:)).*scaleFactor;
-    data(vid).x_loc = x_loc; % save for later convience
-    data(vid).y_loc = y_loc;
-    
-    % temperature alignment
-    
-    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
-    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
-    tempCourse = tempLog(logROI(1):logROI(2),2);
-    x = round(linspace(1, nframes, length(tempCourse)));
-    % upsample the temperature log:
-    fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
 
-    % Find number of flies that are near each well for each frame
-    radii = 165; %110; %distance must be less than this number to count for a well ROI
-    
-    % loop for all wells
-    for well = 1:4
-        b = wellcenters(:,well); 
-        % reshape data points from whole video for optimized maths
-        ntracks = size(x_loc,2);
-        X = reshape(x_loc,numel(x_loc),1); 
-        Y = reshape(y_loc,numel(y_loc),1); 
-        % within well range?
-        euDist = sqrt((b(1)-X).^2 + (b(2)-Y).^2); %euclidian distance from well center
-        well_loc = reshape((euDist<=radii),[nframes,ntracks]);
-        welldata(well).loc = well_loc;
-        % how many within the circle?
-        welldata(well).count = sum(well_loc,2);
-        data(vid).well_counts(:,well) = welldata(well).count;
+    % REMOVE FOOD TRACKED POINTS HERE 
+    Xdim = size(x_loc);
+    Ydim = size(y_loc);
+    %resize the data:
+    X = reshape(x_loc,[numel(x_loc),1]);
+    Y = reshape(y_loc,[numel(y_loc),1]);
+    % Find points within the masked region and turn to NaN
+    for ii = 1:length(mask)
+        [in,on] = inpolygon(X,Y, mask(ii).n(:,1),mask(ii).n(:,2));   % Logical Matrix
+        inon = in | on;                                    % Combine ‘in’ And ‘on’
+        X(inon) = NaN;
+        Y(inon) = NaN;
     end
-    data(vid).tempLog = fullTempList;
+    % Remove any labeled points outside the arena:
+    loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)>=r;
+    X(loc) = NaN; Y(loc) = NaN;
+
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+
+    data(vid).x_loc_mid = X; % save for later convience
+    data(vid).y_loc_mid = Y;
+    
+    % New fly count measure:
+    mid_flyCount = [mid_flyCount; sum(~isnan(X),2)];
 end
 
-% % visual confirmation that the selected points are near the well:
-% AllPoints = [];
-% for vid = 1:nvids
-%    headData = squeeze(data(vid).tracks(:,1,:,:));
-%    x_loc = squeeze(headData(:,1,:));
-%    y_loc = squeeze(headData(:,2,:));
-%    X = reshape(x_loc,numel(x_loc),1); 
-%    Y = reshape(y_loc,numel(y_loc),1); 
-%    X(isnan(X)) = [];
-%    Y(isnan(Y)) = []; 
-%    AllPoints = [AllPoints; X , Y];
-% end
-% 
-% fig = getfig; set(fig, 'color', 'k');
-% hist2d(AllPoints(:,1),AllPoints(:,2), 'probability', 'tile')
-% axis tight; axis square
-% set(gca, 'visible', 'off')
-% c = colorbar;
-% c.Color = [1,1,1];
-% hold on
-% % scatter(X(well_loc),Y(well_loc), 50, 'y') % could automate the color on this
-% % scatter(pts(1,:),pts(2,:), 75, 'r', 'filled') % could automate the color on this
-% viscircles(pts',[radii,radii,radii,radii])
-% b = pts(:,well); % well 1 points
-vid = 1; frame = 1;
-movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
-demoImg = rgb2gray(read(movieInfo,frame));
+% --------------------------- Mask the overtracked points ---------------------------
+removalRadius = 10;
+% Find the video with the greatest avg over-count of fly points:
+for vid = 1:nvids
+    ROI = occupancy.frameROI(vid,:);
+    numberCount(vid) = median(mid_flyCount(ROI(1):ROI(2)));
+end
+% find the top 4 frames and display them
+ptsPath = [analysisDir expName arenaSel ' FalsePoints.mat'];
+if ~isfile(ptsPath)
+    pullFrames = 5;
+    frameList = [];
+    vid_idx = find(numberCount == max(numberCount)); vid_idx = vid_idx(1);
+    ROI = occupancy.frameROI(vid_idx,:);
+    numlist = mid_flyCount(ROI(1):ROI(2));
+    [~,Idx] = (sort(numlist));
+    frameList = Idx(end-pullFrames+1:end); %pull the four highest overcounts
 
-% visual check that the number of tracked flies is close to the actual number
-nrow = 1; ncol = 2;
-fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
-subplot(nrow, ncol, 2)
-    histogram(flyCount); vline(nflies, 'w-'); 
-    xlabel('Number tracked flies'); ylabel('Frame count')
-subplot(nrow, ncol, 1)
-    % Take and save a snapshop pic of the arena w/ labels & well roi
-%     outerColors = {'red', 'yellow', 'blue', 'green'};
-    imshow(demoImg)
+    % pull up the images in order and click on points that ARE NOT FLIES:
+    movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid_idx) '.avi']); %read in video
+    for ii = 1:length(frameList)
+        frame = frameList(ii);
+        img = read(movieInfo,frame);
+        fig = figure;
+        imshow(img);
+            hold on
+            x = data(vid_idx).x_loc_mid(frame,:); x(isnan(x)) = [];
+            y = data(vid_idx).y_loc_mid(frame,:); y(isnan(y)) = [];
+        scatter(x,y, 10, 'y')
+        title(['select all points that are NOT flies ' num2str(ii) '/' num2str(pullFrames)])
+        pointLabels(ii).coord = labelWrongPoints(fig);
+    end
+
+    % Now determine how they are related and if there is consistent overlap
+    % that can be targeted for deletion...
+    fig = figure; set(fig, 'color', 'k')
+    imshow(img)
+    hold on
+    for ii = 1:length(frameList)
+        scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+    end
+    title('Select points with overlap for masking')
+    % save_figure(fig, [analysisDir expName arenaSel ' overtracking point IDs'], '-png');
+    pointLabels(1).finalRound = labelWrongPoints(fig);
+    nmaskpoints = length(frameList);
+
+    % visualize the selected ROIs 
+    fig = figure; set(fig, 'color', 'k');
+    imshow(img)
+    hold on
+    for ii = 1:nmaskpoints
+        scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+    end
+    R = removalRadius*ones(size(pointLabels(1).finalRound,2),1);
+    viscircles(pointLabels(1).finalRound', R ,'Color','r');
+    save_figure(fig,[analysisDir,expName,arenaSel,' overtracking points selected for deletion'], '-png');
+    
+    % save the food masks:
+    save(ptsPath, 'frameList','vid_idx', 'pointLabels','nmaskpoints')
+else
+    load(ptsPath)
+end
+
+% how many flies are in those circles?? TODO integrate the last OG fly count...
+flyCount = [];
+for vid = 1:nvids
+%resize the data:
+    x_loc = data(vid).x_loc_mid; 
+    y_loc = data(vid).y_loc_mid;
+    
+    % how many flies OG
+    Xdim = size(x_loc); 
+    Ydim = size(y_loc);
+    X = reshape(x_loc,[numel(x_loc),1]); 
+    Y = reshape(y_loc,[numel(y_loc),1]);
+
+    % Find points within the masked region and turn to NaN
+    if ~isempty(pointLabels(1).finalRound)
+        for ii = 1:size(pointLabels(1).finalRound,2)
+            loc = (((X-pointLabels(1).finalRound(1,ii)).^2 + (Y-pointLabels(1).finalRound(2,ii)).^2).^0.5)<=removalRadius;
+            X(loc) = NaN; Y(loc) = NaN;
+        end
+    end
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+    flyCount = [flyCount; sum(~isnan(X),2)];
+    
+    data(vid).x_loc = X; % save for later convience
+    data(vid).y_loc = Y;
+end
+
+% save long-term fly count data:
+occupancy.time = linspace(1,(length(mid_flyCount)/3)/60,length(mid_flyCount));
+occupancy.raw_flyCount = raw_flyCount;
+occupancy.mid_flyCount = mid_flyCount;
+occupancy.flycount = flyCount;
+
+
+% ------------------------------ Visualization --------------------------------------
+%read in video
+movieInfo = VideoReader([baseFolder,vidFolder,'\',expName,'_',num2str(vid_idx),'.avi']); 
+frame = frameList(1);
+img = read(movieInfo,frame);
+vid = vid_idx;
+nrows = 4;
+ncols = 3;
+sb(1).idx = [1,2,4,5]; %imshow image
+sb(2).idx = [7,8,10,11]; %time course frame count
+sb(3).idx = 3:3:12; %histogram
+    
+fig = figure; set(fig, 'pos', [37 518 1171 826]);
+% ARENA IMAGE
+subplot(nrows,ncols,sb(1).idx)
+    imshow(img)
     axis tight square
     hold on
     for well = 1:4
@@ -199,28 +316,121 @@ subplot(nrow, ncol, 1)
         scatter(wellcenters(1,well),wellcenters(2,well), 75,...
             'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
     end
-
+    % raw points:
+    x = data(vid).x_loc_raw(frame,:);
+    y = data(vid).y_loc_raw(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 20, 'k')
+    scatter(x,y, 15, Color('grey'),'filled')
+    
+    % intermediate points:
+    x = data(vid).x_loc_mid(frame,:);
+    y = data(vid).y_loc_mid(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 15, Color('orangered'),'filled')
+    
+    % intermediate points:
     x = data(vid).x_loc(frame,:);
     y = data(vid).y_loc(frame,:);
     x(isnan(x)) = []; % remove empty tracks
     y(isnan(y)) = [];
-    
-    scatter(x,y, 15, 'b')
+    scatter(x,y, 15, Color('teal'),'filled')
 
-    l = legend(strrep(wellLabels,'_','-')); 
-    set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
-    viscircles(wellcenters',ones(1,4)*radii);
-    titleName = strrep([folder ' ' expName arenaSel], '_',' ');
-    title(titleName,'color', 'w')
-    formatFig(fig, true,[nrow, ncol]);
-   
+% OVERTRACKING OVER TIME
+subplot(nrows,ncols,sb(2).idx)
+    hold on
+    plot(occupancy.time, raw_flyCount, 'color', Color('grey'))
+    plot(occupancy.time, mid_flyCount,'color', Color('orangered'))
+    plot(occupancy.time, flyCount, 'color', Color('teal'))
+    hline(nflies, 'w')
+    ylabel('Fly count'); xlabel('time (min)')
+
+% FLY COUNT HISTOGRAM
+subplot(nrows,ncols,sb(3).idx)
+    hold on
+    h = histogram(raw_flyCount);
+    h.FaceColor = Color('grey');
+    h = histogram(mid_flyCount);
+    h.FaceColor = Color('orangered'); 
+    h = histogram(flyCount);
+    h.FaceColor = Color('teal');
+    vline(nflies, 'w')
+    xlabel('Number of flies')
+    ylabel('Frame count')
+
+% LABELS AND FORMATTING
+fig = formatFig(fig, true, [nrows, ncols], sb);
+l = legend({['SLEAP ' num2str(mean(raw_flyCount)) ' avg'],...
+            ['wells & arena masks ' num2str(mean(mid_flyCount)) ' avg'],...
+            ['wells, arena & manual ' num2str(mean(flyCount)) ' avg']});
+set(l,'color','k','textcolor','w','edgecolor','k','Position', [0.0169 0.8981 0.3122 0.0877]);
+
 % save and export figure:
 if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 end  
 save_figure(fig, [analysisDir expName arenaSel ' quality control'], '-png');
 
-initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'];
+
+% ----------------------------- zoom-in-take on the tracking correction -------------
+% % visual confirmation that the selected points are near the well:
+% AllPoints = [];
+% for vid = 1:nvids
+%    X = reshape(data(vid).x_loc,numel(data(vid).x_loc),1); 
+%    Y = reshape(data(vid).y_loc,numel(data(vid).y_loc),1); 
+%    X(isnan(X)) = [];
+%    Y(isnan(Y)) = []; 
+%    AllPoints = [AllPoints; X , Y];
+% end
+% fig = getfig; set(fig, 'color', 'k');
+% hist2d(AllPoints(:,1),AllPoints(:,2), 'probability', 'tile')
+% axis tight; axis square
+% set(gca, 'visible', 'off')
+% c = colorbar;
+% c.Color = [1,1,1];
+% hold on 
+% % c = drawcircle('Center', wellcenters(:,5)', 'Radius', r);
+% % hold on
+% % viscircles(wellcenters(:,1:4)',[radii,radii,radii,radii])
+% % b = wellcenters(:,well); % well 1 points
+% save_figure(fig, [analysisDir expName arenaSel ' cropped out food locations quality control'], '-png');
+
+
+initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'; 'occupancy'];
+clearvars('-except',initial_vars{:})
+fprintf('\nNext\n')
+
+%% Find well count + distance from each well + temperature
+% Find number of flies that are near each well for each frame
+for vid = 1:nvids
+    radii = 165; %110; %distance must be less than this number to count for a well ROI 
+    dims = size(data(vid).occupancy_matrix);
+    % loop for all wells 
+    for well = 1:4
+        b = wellcenters(:,well); 
+        % reshape data points from whole video for optimized maths
+        x_loc = reshape(data(vid).x_loc,numel(data(vid).y_loc),1); 
+        y_loc = reshape(data(vid).y_loc,numel(data(vid).y_loc),1); 
+        % within well range?
+        euDist = sqrt((b(1)-x_loc).^2 + (b(2)-y_loc).^2); %euclidian distance from well center
+        well_loc = reshape((euDist<=radii),[dims(2),dims(1)]);
+        welldata(well).loc = well_loc;
+        % how many within the circle?
+        welldata(well).count = sum(well_loc,2);
+        data(vid).well_counts(:,well) = welldata(well).count;
+    end
+    % temperature alignment
+    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
+    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
+    tempCourse = tempLog(logROI(1):logROI(2),2);
+    x = round(linspace(1, dims(2), length(tempCourse)));
+    % upsample the temperature log:
+    fullTempList = interp1(x,tempCourse,1:dims(2),'spline');   
+    data(vid).tempLog = fullTempList;
+end
+
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')
 
@@ -232,16 +442,16 @@ subplotInd(3).idx = 1:3; % fly count
 subplotInd(4).idx = 4:4:20; % histogram
 
 % group data across videos:
-[plotX, plotY, plotZ] = deal([]);
+[plotX, plotY] = deal([]);
 for vid = 1:nvids
     plotX = [plotX, data(vid).tempLog]; % temperature
     plotY = [plotY; data(vid).well_counts]; % flies per well
-    plotZ = [plotZ, sum(data(vid).occupancy_matrix)]; %number of flies tracked
 end
+plotZ = occupancy.flycount;
 plotY = plotY./nflies;
 sSpan = 180;
 LW = 2;
-time = linspace(1,(length(plotX)/3)/60,length(plotX));
+time = occupancy.time;
 
 fig = getfig(''); 
  % tracking accuracy proxy (# flies)
@@ -317,9 +527,7 @@ end
 plotY = plotY./nflies;
 sSpan = 180;
 LW = 1;
-time = linspace(1,(length(plotX)/3)/60,length(plotX));
-
-
+time = occupancy.time;
 
 fig = getfig(''); 
     subplot(nrow,ncol,subplotInd(1).idx)
@@ -378,8 +586,6 @@ occupancy.count = plotY;
 % add total well occupancy to occupancy structure
 occupancy.allwellOcc = sum(occupancy.occ,2);
 
-initial_vars = [initial_vars; 'occupancy'];
-clearvars('-except',initial_vars{:})
 
 % Measure of eccentricity
 %how far are the flies from the center of the arena, on average?
@@ -402,9 +608,10 @@ EDist = [];
 for vid = 1:nvids
     N = [];
     for frame = 1:length(data(vid).tempLog)
-        test = [wellcenters(:,5)'; data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
-        D = squareform(pdist(test));
-        D = D(2:end,1);
+        Y = data(vid).y_loc(frame,:);
+        X = data(vid).x_loc(frame,:);
+        centre = wellcenters(:,5);
+        D = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5); %distance from center of arena
         D(isnan(D)) = [];
         N(frame,:) = [mean(D), std(D)];
     end
@@ -442,8 +649,7 @@ for vid = 1:nvids
     LDist = [LDist,flyDistance]; 
     LD_err = [LD_err,D_err];
 end
-% time = linspace(1,(length(LDist)/3)/60,length(LDist));
-occupancy.time = time;
+
 %add inter-fly-distance to the occupancy time course structure
 occupancy.IFD = LDist;
 occupancy.IFD_err = LD_err;
@@ -456,7 +662,7 @@ else
     vidList = 1:nvids;
 end
 nrow = 2; ncol = length(vidList); ii = 0; 
-[minidx,minidx] = deal([]);
+[~,minidx] = deal([]);
 
 % VISUALIZE a demo of the clustering accuracy
 fig = getfig(''); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
@@ -640,7 +846,7 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Position & Movement Summary Figure 
-%**TODO add in the eccentricity, remove total well occupancy
+% **TODO remove total well occupancy
 % figure parameters:
 nrow = 10; ncol = 1;
 sSpan = 180; %1 minute filter length
@@ -802,7 +1008,6 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Save experiment data thus far:
-
 switch questdlg('Save experiment analysis?')
     case 'Yes'
         clearvars('-except',initial_vars{:})

@@ -1,4 +1,6 @@
+    
 
+  
 %% Load in multiple trials that are grouped into a structure
 clear
 
@@ -25,7 +27,7 @@ for trial = 1:ntrials
     trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
     trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
     disp(trialName)
-
+    
     % build the path for the trial data
     dirc = [baseFolder, trialDate, '\Arena ' trialArena '\analysis\' trialExpID trialArena  ' timecourse data.mat'];
     
@@ -46,7 +48,7 @@ initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars', 'fi
 clearvars('-except',initial_vars{:})
 fprintf('Data loaded\n')
 
-%% visual check of temperature alignment across the experiments:
+%% FIGURE: visual check of temperature alignment across the experiments:
 fig = figure; hold on
 for trial = 1:ntrials
     X = data(trial).occupancy.time;
@@ -64,13 +66,17 @@ save_figure(fig, [figDir ExpGroup ' temperature alignment'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% Distance to food vs temperature (no time component --  quick and dirty)
+%% RUN: Distance to food vs temperature (no time component --  quick and dirty)
 sSpan = 240;
 fig = figure; hold on
 for trial = 1:ntrials
     X = data(trial).occupancy.temp;
     for well = 1:4
-        Y = (data(trial).dist2wells(well).N(:,1));
+        try Y = (data(trial).dist2wells(well).N(:,1));
+        catch 
+            Y = data(trial).occupancy.dist2wells(well).N(:,1);
+            data(trial).dist2wells = data(trial).occupancy.dist2wells;
+        end
         Y = Y./pix2mm; % convert the pixel values to mm
         % reorder the data by temperature:
         [plotX, idx] = sort(X);
@@ -81,14 +87,14 @@ ylabel('Distance to well (mm)')
 xlabel('Temp (\circC)')
 title({'Location from food sources by temperature';...
       ['N = ' num2str(ntrials)]})
-formatFig(fig, true)
+formatFig(fig, true);
 
 save_figure(fig, [figDir ExpGroup ' all temp vs distance'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% Average across trials:
+%% Average Distance vs temp across trials:
 
 sSpan = 240;
 [plant, yeast, empty] = deal([]);
@@ -177,42 +183,248 @@ formatFig(fig,true);
 
 % label key:
 str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
-text(8.5,200, str, 'Color', plotData(1).color, 'FontSize', 12);
+text(8.5,16, str, 'Color', plotData(1).color, 'FontSize', 12);
 str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
-text(8.5,180, str, 'Color', plotData(2).color, 'FontSize', 12);
+text(8.5,15, str, 'Color', plotData(2).color, 'FontSize', 12);
 str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
-text(8.5,160, str, 'Color', plotData(3).color, 'FontSize', 12);
+text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
 
 save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
 
-%% Plot all trials: distance vs time % WORKING HERE TODO
+%% Plot all trials: distance vs time % CAN'T DISTINGUISH WITHIN FOOD TYPE (E.G. PLANT VS PLANT)
+% ADD IN THE TEMPERATURE LINE AS WELL
 sSpan = 240;
-fig = figure; hold on
-for trial = 1:ntrials
-    X = data(trial).occupancy.time;
-    for well = 1:4
+nrows = 3;
+ncols = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:3;
+frame_buffer = 20;
+
+% extract data to plot:
+uni_time = linspace(1,(length(data(1).flyCount)/3)/60,length((data(1).flyCount))+frame_buffer);
+idx = 0;
+pdata = [];
+[pdata(1).Y,pdata(2).Y] = deal(nan([length(data(1).flyCount)+frame_buffer,ntrials]));
+pdata(3).Y = deal(nan([length(data(1).flyCount)+frame_buffer,ntrials*2])); %ASSUMES 2X EMPTY TO TEST
+for well = 1:4
+    for trial = 1:ntrials
         Y = (data(trial).dist2wells(well).N(:,1));
-        plot(X, smooth(Y,sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+        Y = Y./pix2mm; % convert the pixel values to mm
+        Y = smooth(Y,sSpan);
+        % sort based on contents not well#
+        if contains(data(trial).wellLabels{well},'Yeast','IgnoreCase', true) %yeast:
+            pdata(1).Y(1:length(Y),trial) = Y;
+            pdata(1).kolor = pullFoodColor('Yeast');
+        elseif contains(data(trial).wellLabels{well},'Plant','IgnoreCase', true) %yeast:
+            pdata(2).Y(1:length(Y),trial) = Y;
+            pdata(2).kolor = pullFoodColor('Plant');
+        elseif contains(data(trial).wellLabels{well},'Empty','IgnoreCase', true) %yeast:
+            idx = idx+1;
+            pdata(3).Y(1:length(Y),idx) = Y;
+            pdata(3).kolor = pullFoodColor('Empty');
+        end
     end
 end
-ylabel('Distance (a.u.)')
-xlabel('Time (min)')
-title({'Distance from food sources';...
-      ['N = ' num2str(ntrials)]})
-formatFig(fig, true)
+for ii = 1:3 %well contents type
+    % average + error across flies: (excludes data points not covered in all trials)
+    Y_all = pdata(ii).Y;
+    Y_avg = nanmean(Y_all,2);
+    Y_err = std(Y_all,0,2);
+    nanloc = isnan(Y_err);
+    Y_err(nanloc) = [];
+    Y_avg(nanloc) = [];
+    pdata(ii).y_err = Y_err;
+    pdata(ii).y_avg = Y_avg;
+end
 
-save_figure(fig, [figDir ExpGroup ' all distance vs time'], '-png');
+% FIGURE WITH TEMP VS TIME | DISTANCE VS TIME
+fig = figure; set(fig, 'pos', [96 444 660 482]);
+subplot(nrows, ncols, sb(1).idx)
+    hold on
+    for trial = 1:ntrials
+        X = data(trial).occupancy.time;
+        Y = data(trial).occupancy.temp;
+        plot(X, Y, 'linewidth', 1)
+    end
+    xlabel('Time (min)')
+    ylabel('Temp (\circ)')
+    title({'Distance from food sources';...
+          ['N = ' num2str(ntrials)]})
+
+subplot(nrows, ncols, sb(2).idx)
+    hold on
+    % error fills
+    for ii = 1:3
+        kolor = pdata(ii).kolor;
+        y_avg = pdata(ii).y_avg;
+        y_err = pdata(ii).y_err;
+        time = uni_time(1:length(y_avg));
+        fill_data = error_fill(time, y_avg, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h, 'facealpha', 0.4)
+    end
+    % plot avg line
+    for ii = 1:3
+        plot(uni_time(1:length(y_avg)), pdata(ii).y_avg, 'linewidth', 2,'color', pdata(ii).kolor)
+    end
+    ylabel('Distance (mm)')
+    xlabel('Time (min)')   
+formatFig(fig, true,[nrows,ncols],sb);
+    
+save_figure(fig, [figDir ExpGroup ' avg distance vs time'], '-png');    
+
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% FIGURE: Avg movement vs. temperature:
+frame_buffer = 20;
+sSpan = 360;
+[mov, temp] = deal(nan([length(data(1).time)+frame_buffer,ntrials]));
+all = [];
+for trial = 1:ntrials
+    x = data(trial).occupancy.temp(1:end-1)';
+    y = data(trial).occupancy.movement; 
+    % movement data
+    mov(1:length(y),trial) = y;
+    % temperature data
+    temp(1:length(x),trial) = x;
+    % both:
+    all = [all; x,y];
+end
+% sort the 'all' data by temperature dependence:
+[~, idx] = sort(all(:,1));
+sortedData = all(idx,:);
+% avg and err of all the trials
+Y_avg = nanmean(mov,2);
+Y_err = std(mov,0,2);
+nanloc = isnan(Y_err);
+Y_err(nanloc) = [];
+Y_avg(nanloc) = [];
+uni_time = linspace(1,(length(data(1).flyCount)/3)/60,length((data(1).flyCount))+frame_buffer);
+
+xlimits = [8,20]; %change this if the temp range changes drastically!
+nrows = 1;
+ncols = 4;
+sb(1).idx = 1:2;
+sb(2).idx = 3:4;
+kolor = Color('steelblue');
+
+% FIGURE
+fig = figure; set(fig,'pos',[49 778 1491 541]);
+% TIMECOURSE OF MOVEMENT
+subplot(nrows, ncols, sb(1).idx)
+    hold on
+    time = uni_time(1:length(Y_avg));
+    fill_data = error_fill(time, Y_avg, Y_err);
+    h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+    set(h, 'facealpha', 0.4)
+    plot(time, Y_avg, 'linewidth',0.5,'color', kolor)
+    ylabel('Movement (au)')
+    xlabel('Time (min)')
+% TEMP DEPENDENCE
+subplot(nrows, ncols, sb(2).idx) 
+    hold on
+    scatter(smooth(sortedData(:,1),sSpan),smooth(sortedData(:,2),sSpan),10,kolor,'filled')
+    xlim(xlimits)
+    xlabel('Temperature (\circC)')
+    ylabel('Movement (au)')
+fig = formatFig(fig, true, [nrows,ncols],sb);
+
+
+save_figure(fig, [figDir ExpGroup ' movement vs time+temp'], '-png');    
+
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+% TODO: 
+% add an analysis that looks at how different the line is from zero slope
+
+%% Clustering vs temperature
+
+frame_buffer = 20;
+sSpan = 360;
+[clust, temp] = deal(nan([length(data(1).time)+frame_buffer,ntrials]));
+all = [];
+for trial = 1:ntrials
+    x = data(trial).occupancy.temp';
+    y = data(trial).occupancy.IFD./pix2mm;  % interfly distance
+    %normalize to the minimum distance (1=most clustered)...this helps deal with the
+    %fly density variability
+    minY = min(y);
+    maxY = max(y);
+    z = abs(1-((y-minY)./(maxY-minY))); %1=most clustered 0 = no clustering
+    
+    % clustering data
+    clust(1:length(z),trial) = z;
+    % temperature data
+    temp(1:length(x),trial) = x;
+    % both:
+    all = [all; x,z'];
+end
+% sort the 'all' data by temperature dependence:
+[~, idx] = sort(all(:,1));
+sortedData = all(idx,:);
+% avg and err of all the trials
+Y_avg = nanmean(clust,2);
+Y_err = std(clust,0,2);
+nanloc = isnan(Y_err);
+Y_err(nanloc) = [];
+Y_avg(nanloc) = [];
+uni_time = linspace(1,(length(data(1).flyCount)/3)/60,length((data(1).flyCount))+frame_buffer);
+
+xlimits = [8,20]; %change this if the temp range changes drastically!
+ylimits = [0,1];
+nrows = 1;
+ncols = 4;
+sb(1).idx = 1:2;
+sb(2).idx = 3:4;
+kolor = Color('slateblue');
+
+% FIGURE
+fig = figure; set(fig,'pos',[49 778 1491 541]);
+% TIMECOURSE OF MOVEMENT
+subplot(nrows, ncols, sb(1).idx)
+    hold on
+    time = uni_time(1:length(Y_avg));
+    fill_data = error_fill(time, Y_avg, Y_err);
+    h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+    set(h, 'facealpha', 0.4)
+    plot(time, Y_avg, 'linewidth',0.5,'color', kolor)
+    ylabel('Clustering Index')
+    xlabel('Time (min)')
+    ylim(ylimits)
+% TEMP DEPENDENCE
+subplot(nrows, ncols, sb(2).idx) 
+    hold on
+    scatter(smooth(sortedData(:,1),sSpan),smooth(sortedData(:,2),sSpan),10,kolor,'filled')
+    xlim(xlimits)
+    ylim(ylimits)
+    xlabel('Temperature (\circC)')
+    ylabel('Clustering Index')
+fig = formatFig(fig, true, [nrows,ncols],sb);
+
+
+save_figure(fig, [figDir ExpGroup ' clustering vs time+temp'], '-png');    
+
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+
+
+
+
+
+%% SPECIALITY SECTIONS:
 %% Plot female vs. grouped|male trials:
 
 if strcmpi(ExpGroup,'cooling_warming_ramp')
-    female_exps = [7,8];
+    female_exps = [7,8,9,12];
 elseif strcmpi(ExpGroup,'warming_cooling_ramp')
-    female_exps = [2,4];
+    female_exps = [2,4,9,11];
 end
 
 sSpan = 240;
@@ -535,8 +747,8 @@ clearvars('-except',initial_vars{:})
 
 
 
-
-%% Group occupancy across the trials
+%% SECTIONS UNDER EDIT:
+%% Group occupancy across the trials % still in progress!!!
 
 % for now: average across the experiments (assuming they are TEMP locked)
 [A,B,C,D] = deal([]);

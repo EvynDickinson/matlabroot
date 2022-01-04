@@ -362,6 +362,565 @@ disp(pixelperMM_2)
 
 % best of both = the pix to mm conversion
 
+%% try 'cleaning' the videos and see how the tracking compares
+% make some sort of analytic comparison of over/under tracking
+
+
+nflies = excelfile{XLrow,Excel.numflies};
+movieInfo = VideoReader([baseFolder vidFolder '\' expName   '_1.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,1));
+
+
+f = figure;
+imshow(demoImg)
+title('Outline the food well')
+roi = drawpolygon;
+mask1 = roi.Position;
+
+% determine if any tracking points fall within the bounded region??
+
+% all data for head tracked location
+headData = squeeze(data(1).tracks(:,1,:,:));
+nframes = size(headData,1); 
+
+% x-y coordinates of flies for each frame
+scaleFactor = 1.31;
+x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+X = reshape(x_loc,[numel(x_loc),1]);
+Y = reshape(y_loc,[numel(y_loc),1]);
+
+[in,on] = inpolygon(X,Y, mask1(:,1),mask1(:,2));   % Logical Matrix
+inon = in | on;                                    % Combine ‘in’ And ‘on’
+X(inon) = NaN;
+Y(inon) = NaN;
+                                        
+
+%%
+
+idx = find(~strcmpi('Empty', wellLabels));
+% draw out the masks:
+for ii = 1:length(idx)
+    wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+    % label the ROI
+    f = figure;
+    imshow(demoImg)
+    title(['Outline the ' wellName ' well'])
+    roi = drawpolygon;
+    mask(ii).n = roi.Position;
+    uiwait(f)
+end
+
+% Tracking matrix locations: [frame, node, xy, fly]
+scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
+% pull info for each video
+[OG_flyCount, flyCount] = deal([]);
+for vid = 1:nvids
+    % number of flies labeled on each frame:
+    OG_flyCount = [OG_flyCount; sum(data(vid).occupancy_matrix)'];
+    
+    % all data for head tracked location
+    headData = squeeze(data(vid).tracks(:,1,:,:));
+    nframes = size(headData,1); 
+    
+    % x-y coordinates of flies for each frame
+    x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+    y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+
+    % REMOVE FOOD TRACKED POINTS HERE 
+    Xdim = size(x_loc);
+    Ydim = size(y_loc);
+    %resize the data:
+    X = reshape(x_loc,[numel(x_loc),1]);
+    Y = reshape(y_loc,[numel(y_loc),1]);
+    % Find points within the masked region and turn to NaN
+    for ii = 1:length(idx)
+        [in,on] = inpolygon(X,Y, mask(ii).n(:,1),mask(ii).n(:,2));   % Logical Matrix
+        inon = in | on;                                    % Combine ‘in’ And ‘on’
+        X(inon) = NaN;
+        Y(inon) = NaN;
+    end
+
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+
+    data(vid).x_loc = X; % save for later convience
+    data(vid).y_loc = Y;
+    
+    % New fly count measure:
+    flyCount = [flyCount; sum(~isnan(X),2)];
+
+    % temperature alignment
+    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
+    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
+    tempCourse = tempLog(logROI(1):logROI(2),2);
+    x = round(linspace(1, nframes, length(tempCourse)));
+    % upsample the temperature log:
+    fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
+
+    % Find number of flies that are near each well for each frame
+    radii = 165; %110; %distance must be less than this number to count for a well ROI 
+    % loop for all wells
+    for well = 1:4
+        b = wellcenters(:,well); 
+        % reshape data points from whole video for optimized maths
+        ntracks = size(data(vid).x_loc,2);
+        x_loc = reshape(data(vid).x_loc,numel(data(vid).y_loc),1); 
+        y_loc = reshape(data(vid).y_loc,numel(data(vid).y_loc),1); 
+        % within well range?
+        euDist = sqrt((b(1)-x_loc).^2 + (b(2)-y_loc).^2); %euclidian distance from well center
+        well_loc = reshape((euDist<=radii),[nframes,ntracks]);
+        welldata(well).loc = well_loc;
+        % how many within the circle?
+        welldata(well).count = sum(well_loc,2);
+        data(vid).well_counts(:,well) = welldata(well).count;
+    end
+    data(vid).tempLog = fullTempList;
+end
+
+overtrackedFlies = sum(OG_flyCount-flyCount);
+ 
+vid = 1; frame = 1;
+movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,frame));
+
+% visual check that the number of tracked flies is close to the actual number
+nrow = 1; ncol = 2;
+fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
+subplot(nrow, ncol, 2)
+    h = histogram(OG_flyCount);
+    h.FaceColor = Color('grey'); hold on
+    histogram(flyCount); vline(nflies, 'w-'); 
+    xlabel('Number tracked flies'); ylabel('Frame count')
+    title(['Removed ' num2str(overtrackedFlies) ' overtracking points'])
+subplot(nrow, ncol, 1)
+% Take and save a snapshop pic of the arena w/ labels & well roi
+%     outerColors = {'red', 'yellow', 'blue', 'green'};
+    imshow(demoImg)
+    axis tight square
+    hold on
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        scatter(wellcenters(1,well),wellcenters(2,well), 75,...
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+    end
+
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    
+    scatter(x,y, 15, 'b')
+
+    l = legend(strrep(wellLabels,'_','-')); 
+    set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
+    viscircles(wellcenters',ones(1,4)*radii);
+    titleName = strrep([folder ' ' expName arenaSel], '_',' ');
+    title(titleName,'color', 'w')
+    formatFig(fig, true,[nrow, ncol]);
+   
+% save and export figure:
+if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+end  
+save_figure(fig, [analysisDir expName arenaSel ' quality control'], '-png');
+
+initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'];
+clearvars('-except',initial_vars{:})
+fprintf('\nNext\n')
+
+
+
+
+
+
+
+idx = find(~strcmpi('Empty', wellLabels));
+% draw out the masks:
+for ii = 1:length(idx)
+    wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+    % label the ROI
+    f = figure;
+    imshow(demoImg)
+    title(['Outline the ' wellName ' well'])
+    roi = drawpolygon;
+    mask(ii).n = roi.Position;
+    uiwait(f)
+end
+
+
+%% Manual tracking cleanup option
+currFrame = 0;
+for vid = 1:nvids
+    occupancy.frameROI(vid,1) = currFrame+1;
+    nframes = size(data(vid).occupancy_matrix,2);
+    currFrame = nframes + currFrame;
+    occupancy.frameROI(vid,2) = currFrame;
+end
+
+% Find the video with the greatest avg over-count of fly points:
+for vid = 1:nvids
+    ROI = occupancy.frameROI(vid,:);
+    numberCount(vid) = median(occupancy.flycount(ROI(1):ROI(2)));
+end
+% find the top 4 frames and display them
+pullFrames = 5;
+frameList = [];
+vid = find(numberCount == max(numberCount));
+ROI = occupancy.frameROI(vid,:);
+numlist = occupancy.flycount(ROI(1):ROI(2));
+[~,Idx] = (sort(numlist));
+frameList = Idx(end-pullFrames+1:end); %pull the four highest overcounts
+
+% pull up the images in order and click on points that ARE NOT FLIES:
+movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
+for ii = 1:length(frameList)
+    frame = frameList(ii);
+    img = read(movieInfo,frame);
+    fig = figure;
+    imshow(img);
+        hold on
+        x = data(vid).x_loc(frame,:); x(isnan(x)) = [];
+        y = data(vid).y_loc(frame,:); y(isnan(y)) = [];
+    scatter(x,y, 10, 'y')
+    title(['select all points that are NOT flies ' num2str(ii) '/' num2str(pullFrames)])
+    pointLabels(ii).coord = labelWrongPoints(fig);
+end
+
+% Now determine how they are related and if there is consistent overlap
+% that can be targeted for deletion...
+
+fig = figure; set(fig, 'color', 'k')
+imshow(img)
+hold on
+for ii = 1:length(frameList)
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+title('Select points with overlap for masking')
+% save_figure(fig, [analysisDir expName arenaSel ' overtracking point IDs'], '-png');
+pointLabels(1).finalRound = labelWrongPoints(fig);
+nmaskpoints = length(frameList);
+
+% draw circles around the selected ROIs 
+removalRadius = 10;
+fig = figure; set(fig, 'color', 'k');
+imshow(img)
+hold on
+for ii = 1:nmaskpoints
+    scatter(pointLabels(ii).coord(1,:), pointLabels(ii).coord(2,:),20, 'filled')
+end
+R = removalRadius*ones(size(pointLabels(1).finalRound,2),1);
+viscircles(pointLabels(1).finalRound', R ,'Color','r');
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points selected for deletion'], '-png');
+
+% how many flies are in those circles?? TODO integrate the last OG fly count...
+[og_flyCount, new_flyCount, raw_flyCount] = deal([]);
+for vid = 1:nvids
+%resize the data:
+    x_loc = data(vid).x_loc; 
+    y_loc = data(vid).y_loc;
+    
+    % how many flies OG
+    og_flyCount = [og_flyCount; sum(~isnan(x_loc),2)];
+    
+    Xdim = size(x_loc); 
+    Ydim = size(y_loc);
+    X = reshape(x_loc,[numel(x_loc),1]); 
+    Y = reshape(y_loc,[numel(y_loc),1]);
+
+    % Find points within the masked region and turn to NaN
+    for ii = 1:nmaskpoints
+        loc = (((X-pointLabels(1).finalRound(1,ii)).^2 + (Y-pointLabels(1).finalRound(2,ii)).^2).^0.5)<=removalRadius;
+        X(loc) = NaN; Y(loc) = NaN;
+    end
+    % Resize the data to OG structure:
+    X = reshape(X,Xdim);
+    Y = reshape(Y,Ydim);
+    new_flyCount = [new_flyCount; sum(~isnan(X),2)];
+    % raw fly count:
+    raw_flyCount = [raw_flyCount; sum(data(vid).occupancy_matrix)'];
+end
+% number of tracked points:
+overtracked(1) = sum(raw_flyCount)-sum(og_flyCount);
+overtracked(2) = sum(og_flyCount)-sum(new_flyCount);
+overtracked(3) = sum(raw_flyCount)-sum(new_flyCount);
+
+
+
+
+% compare number of points same/different
+nrow = 1;
+ncol = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
+% PLOT TRACKING COUNT OVER TIME
+fig = figure; set(fig, 'pos', [754 631 1936 707])
+subplot(nrow, ncol, sb(1).idx)
+hold on
+plot(occupancy.time, raw_flyCount, 'color', Color('grey'))
+plot(occupancy.time, og_flyCount,'color', Color('orangered'))
+plot(occupancy.time, new_flyCount, 'color', Color('teal'))
+hline(nflies, 'w')
+ylabel('Fly count'); xlabel('time (min)')
+subplot(nrow, ncol, sb(2).idx)
+hold on
+h = histogram(raw_flyCount);
+h.FaceColor = Color('grey');
+h = histogram(og_flyCount);
+h.FaceColor = Color('orangered'); 
+h = histogram(new_flyCount);
+h.FaceColor = Color('teal');
+vline(nflies, 'w')
+xlabel('Number of flies')
+ylabel('Frame count')
+l = legend({['SLEAP ' num2str(mean(raw_flyCount)) ' avg'],...
+            ['wells & arena masks ' num2str(mean(og_flyCount)) ' avg'],...
+            ['wells, arena & manual ' num2str(mean(new_flyCount)) ' avg']});
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.7941 0.8152 0.1524 0.0877]); %
+
+fig = formatFig(fig, true, [nrow, ncol], sb);
+
+save_figure(fig, [analysisDir expName arenaSel ' overtracking points overview'], '-png');
+
+
+
+vid = 1; frame = 1;
+movieInfo = VideoReader([baseFolder vidFolder '\' expName  '_' num2str(vid) '.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,frame));
+
+% visual check that the number of tracked flies is close to the actual number
+nrow = 1; ncol = 2;
+fig = getfig; set(fig, 'pos', [195 157 1413 646]);%[2160 185 1413 646]) <--evynpc
+subplot(nrow, ncol, 2)
+    h = histogram(raw_flyCount);
+    h.FaceColor = Color('grey'); hold on
+    histogram(flyCount); vline(nflies, 'w-'); 
+    xlabel('Number tracked flies'); ylabel('Frame count')
+    title(['Removed ' num2str(overtrackedFlies) ' overtracking points'])
+subplot(nrow, ncol, 1)
+% Take and save a snapshop pic of the arena w/ labels & well roi
+%     outerColors = {'red', 'yellow', 'blue', 'green'};
+    imshow(demoImg)
+    axis tight square
+    hold on
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        scatter(wellcenters(1,well),wellcenters(2,well), 75,...
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+    end
+
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    
+    scatter(x,y, 15, 'b')
+
+    l = legend(strrep(wellLabels,'_','-')); 
+    set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0959 0.7409 0.1271 0.1428]);
+    viscircles(wellcenters',ones(1,4)*radii);
+    titleName = strrep([folder ' ' expName arenaSel], '_',' ');
+    title(titleName,'color', 'w')
+    formatFig(fig, true,[nrow, ncol]);
+
+%%   
+%read in video
+movieInfo = VideoReader([baseFolder,vidFolder,'\',expName,'_',num2str(vid_idx),'.avi']); 
+frame = frameList(1);
+img = read(movieInfo,frame);
+vid = vid_idx;
+nrows = 4;
+ncols = 3;
+sb(1).idx = [1,2,4,5]; %imshow image
+sb(2).idx = [7,8,10,11]; %time course frame count
+sb(3).idx = 3:3:12; %histogram
+    
+fig = figure; set(fig, 'pos', [37 518 1171 826]);
+% ARENA IMAGE
+subplot(nrows,ncols,sb(1).idx)
+    imshow(img)
+    axis tight square
+    hold on
+    for well = 1:4
+        kolor = pullFoodColor(wellLabels{well});
+        scatter(wellcenters(1,well),wellcenters(2,well), 75,...
+            'MarkerFaceColor', kolor, 'MarkerEdgeColor', 'w') 
+    end
+    % raw points:
+    x = data(vid).x_loc_raw(frame,:);
+    y = data(vid).y_loc_raw(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 20, 'k')
+    scatter(x,y, 15, Color('grey'),'filled')
+    
+    % intermediate points:
+    x = data(vid).x_loc_mid(frame,:);
+    y = data(vid).y_loc_mid(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 15, Color('orangered'),'filled')
+    
+    % intermediate points:
+    x = data(vid).x_loc(frame,:);
+    y = data(vid).y_loc(frame,:);
+    x(isnan(x)) = []; % remove empty tracks
+    y(isnan(y)) = [];
+    scatter(x,y, 15, Color('teal'),'filled')
+
+% OVERTRACKING OVER TIME
+subplot(nrows,ncols,sb(2).idx)
+    hold on
+    plot(occupancy.time, raw_flyCount, 'color', Color('grey'))
+    plot(occupancy.time, mid_flyCount,'color', Color('orangered'))
+    plot(occupancy.time, flyCount, 'color', Color('teal'))
+    hline(nflies, 'w')
+    ylabel('Fly count'); xlabel('time (min)')
+
+% FLY COUNT HISTOGRAM
+subplot(nrows,ncols,sb(3).idx)
+    hold on
+    h = histogram(raw_flyCount);
+    h.FaceColor = Color('grey');
+    h = histogram(mid_flyCount);
+    h.FaceColor = Color('orangered'); 
+    h = histogram(flyCount);
+    h.FaceColor = Color('teal');
+    vline(nflies, 'w')
+    xlabel('Number of flies')
+    ylabel('Frame count')
+
+% LABELS AND FORMATTING
+fig = formatFig(fig, true, [nrows, ncols], sb);
+l = legend({['SLEAP ' num2str(mean(raw_flyCount)) ' avg'],...
+            ['wells & arena masks ' num2str(mean(mid_flyCount)) ' avg'],...
+            ['wells, arena & manual ' num2str(mean(flyCount)) ' avg']});
+set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0169 0.8981 0.3122 0.0877]); %
+
+%% Dynamically select files to make a group structure:
+
+
+
+% load current excel file
+[excelfile, Excel, ~] = load_QuadBowlExperiments;
+% number of flies
+temp = (excelfile(2:end,Excel.numflies));
+temp = cell2mat(temp);
+temp(isnan(temp)) = [];
+numberList = unique(temp);
+temp  = ["all"; string(numberList)];
+
+% genotypes
+loc = cellfun(@ischar, excelfile(2:end, Excel.genotype));
+geno = unique(excelfile([false;loc], Excel.genotype));
+
+% food options:
+foodOpt = [];
+for ii = 1:4 %for each well
+    loc = cellfun(@ischar, excelfile(2:end, Excel.(['well_' num2str(ii)])));
+    well = unique(excelfile([false;loc], Excel.(['well_' num2str(ii)])));
+    foodOpt = unique(['all';well;foodOpt]);
+end
+
+% exp ID
+loc = cellfun(@ischar, excelfile(2:end, Excel.expID));
+expID = unique(excelfile([false;loc], Excel.expID));
+expID = ['all'; expID];
+
+% temp protocol
+loc = cellfun(@ischar, excelfile(2:end, Excel.protocol));
+proto = unique(excelfile([false;loc], Excel.protocol));
+proto(strcmpi(proto,'Protocol Name')) = []; 
+proto = ['all'; proto];
+
+
+
+
+structName_loc = cellfun(@ischar, excelfile(:, Excel.structure));
+structure_names = unique(excelfile(structName_loc, Excel.structure));
+structure_names(strcmpi(structure_names,' ')) = []; %remove blank spaces for section headers
+structure_names(strcmpi(structure_names,'Structure')) = []; %remove blank spaces for section headers
+names = structure_names;
+
+
+
+
+
+
+clear
+
+% baseFolder = getCloudPath;
+[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
+baseFolder = getCloudPath;
+
+% isolate only the files that have been processed
+processedfiles = strcmpi('Y',excelfile(:,Excel.processed));
+% find all the 'unique' options to include in the refined search:
+
+
+% Select structure to load:
+[~,~,structInfo] = getExcelStructureNames(true);
+ExpGroup = structInfo.StructName;
+ntrials = structInfo.numTrials;
+      
+% Make a data folder for structure images
+figDir = [baseFolder 'Data structures\' ExpGroup '\'];
+if ~exist(figDir, 'dir'); mkdir(figDir); end
+
+% Load data from each trial in the structure
+data = [];
+fprintf('\nLoading trials: \n')
+for trial = 1:ntrials
+    % print the experiments as they are loaded
+    trialExpID = excelfile{structInfo.rowNum(trial), Excel.expID};
+    trialDate = excelfile{structInfo.rowNum(trial), Excel.date};
+    trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
+    trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
+    disp(trialName)
+    
+    % build the path for the trial data
+    dirc = [baseFolder, trialDate, '\Arena ' trialArena '\analysis\' trialExpID trialArena  ' timecourse data.mat'];
+    
+    % load data
+    todel = load(dirc);
+    variList = fieldnames(todel);
+%     todel = load(dirc, varList{:});
+    data(trial).trialName = trialName;
+    for ii = 1:length(variList)
+        data(trial).(variList{ii}) = todel.(variList{ii});
+    end
+end; clear varList
+
+% parameters:
+pix2mm = 12.8; %conversion from pixels to mm for these videos
+
+initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars', 'figDir', 'pix2mm'};
+clearvars('-except',initial_vars{:})
+fprintf('Data loaded\n')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
