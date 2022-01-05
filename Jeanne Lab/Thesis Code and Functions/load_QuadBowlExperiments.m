@@ -46,6 +46,8 @@ Excel.well_1 = find(strcmpi('Well 1', Excel.headers)==1);
 Excel.well_2 = find(strcmpi('Well 2', Excel.headers)==1);
 Excel.well_3 = find(strcmpi('Well 3', Excel.headers)==1);
 Excel.well_4 = find(strcmpi('Well 4', Excel.headers)==1);
+Excel.sex = find(strcmpi('Sex', Excel.headers)==1);
+Excel.starved_hours = find(strcmpi('Starved Hours', Excel.headers)==1);
 
 
 end

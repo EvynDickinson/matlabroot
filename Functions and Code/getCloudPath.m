@@ -4,6 +4,7 @@ function [path, folder] = getCloudPath(folderOption)
 % folderOption --> list and select a folder from the basepath
 %                  1) basepath & folder selection merged
 %                  2) folder is just the folder name
+%                  3) folder is the path + 'structures' folder
 % folder --> folder/path selected from path
 % 
 % 
@@ -16,29 +17,37 @@ function [path, folder] = getCloudPath(folderOption)
             path = 'G:\My Drive\Jeanne Lab\DATA\';
         case 'EVYNPC'
             path = 'G:\My Drive\Jeanne Lab\DATA\';
+        case '' %shows up as empty on the mac
+            disp('Evyn''s Macbook');
+            path = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/DATA/';
     end 
     
     if nargin == 1
-        dirc = dir(path);
-        dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
-        folderNames = ['Today', {dirc(:).name}];
-        indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
-        if isempty(indx)
-            fprintf('\n No folder selected\n')
-            folder = '';
-            return
-        end
-        if strcmpi(folderNames{indx}, 'Today')==true
-            dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
+        if folderOption==3 %no folder, just data path
+            folder = [path 'Data structures/'];
         else
-            dir_sel = folderNames{indx};
+            dirc = dir(path);
+            dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
+            folderNames = ['Today', {dirc(:).name}];
+            indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
+            if isempty(indx)
+                fprintf('\n No folder selected\n')
+                folder = '';
+                return
+            end
+            if strcmpi(folderNames{indx}, 'Today')==true
+                dir_sel = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
+            else
+                dir_sel = folderNames{indx};
+            end
+            switch folderOption
+                case 1
+                    folder = fullfile(path, dir_sel);
+                case 2
+                    folder = dir_sel;
+
+            end  
         end
-        switch folderOption
-            case 1
-                folder = fullfile(path, dir_sel);
-            case 2
-                folder = dir_sel;
-        end       
     end
 
 

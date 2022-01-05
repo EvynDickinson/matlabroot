@@ -800,28 +800,31 @@ set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0169 0.898
 
 %% Dynamically select files to make a group structure:
 
-
-
+% FIND THE OPTIONS FOR SELECTION 
+clear
 % load current excel file
 [excelfile, Excel, ~] = load_QuadBowlExperiments;
+
 % number of flies
-temp = (excelfile(2:end,Excel.numflies));
-temp = cell2mat(temp);
-temp(isnan(temp)) = [];
-numberList = unique(temp);
-temp  = ["all"; string(numberList)];
+numb = (excelfile(2:end,Excel.numflies));
+numb = cell2mat(numb);
+numb(isnan(numb)) = [];
+numberList = unique(numb);
+numb  = ["all"; string(numberList)];
 
 % genotypes
 loc = cellfun(@ischar, excelfile(2:end, Excel.genotype));
 geno = unique(excelfile([false;loc], Excel.genotype));
+geno = ['all'; geno];
 
 % food options:
 foodOpt = [];
 for ii = 1:4 %for each well
     loc = cellfun(@ischar, excelfile(2:end, Excel.(['well_' num2str(ii)])));
     well = unique(excelfile([false;loc], Excel.(['well_' num2str(ii)])));
-    foodOpt = unique(['all';well;foodOpt]);
+    foodOpt = unique([well;foodOpt]);
 end
+foodOpt = ['all';foodOpt];
 
 % exp ID
 loc = cellfun(@ischar, excelfile(2:end, Excel.expID));
@@ -834,75 +837,175 @@ proto = unique(excelfile([false;loc], Excel.protocol));
 proto(strcmpi(proto,'Protocol Name')) = []; 
 proto = ['all'; proto];
 
+% Sex 
+loc = cellfun(@ischar, excelfile(2:end, Excel.sex));
+sex = excelfile([false;loc], Excel.sex);
+sex = unique(excelfile([false;loc], Excel.sex));
+sex(strcmpi(sex,'Sex')) = []; 
+sex = ['all'; sex];
+sex = unique(strrep(sex, ' ' , '')); % remove any extra spaces in name
+
+% Arena
+arena = {'all', 'A', 'B', 'C', 'D'};
+
+% Selection 'index' -- would be pulled from the gui selected items & can be many!
+num_idx = listdlg('ListString', numb, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+geno_idx = listdlg('ListString', geno, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+foodOpt_idx = listdlg('ListString', foodOpt, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+expID_idx = listdlg('ListString', expID, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+proto_idx = listdlg('ListString', proto, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+sex_idx = listdlg('ListString', sex, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+arena_idx = listdlg('ListString', arena, 'ListSize', [300, 400],...
+                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
+
+                         
+                         
+% Now find the locations of files that match each criteria    
+loc_all = strcmpi(excelfile(:,Excel.processed),'Y');
+temp = excelfile(loc_all,:);
 
 
 
-structName_loc = cellfun(@ischar, excelfile(:, Excel.structure));
-structure_names = unique(excelfile(structName_loc, Excel.structure));
-structure_names(strcmpi(structure_names,' ')) = []; %remove blank spaces for section headers
-structure_names(strcmpi(structure_names,'Structure')) = []; %remove blank spaces for section headers
-names = structure_names;
 
-
-
-
-
-
-clear
-
-% baseFolder = getCloudPath;
-[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-baseFolder = getCloudPath;
-
-% isolate only the files that have been processed
-processedfiles = strcmpi('Y',excelfile(:,Excel.processed));
-% find all the 'unique' options to include in the refined search:
-
-
-% Select structure to load:
-[~,~,structInfo] = getExcelStructureNames(true);
-ExpGroup = structInfo.StructName;
-ntrials = structInfo.numTrials;
-      
-% Make a data folder for structure images
-figDir = [baseFolder 'Data structures\' ExpGroup '\'];
-if ~exist(figDir, 'dir'); mkdir(figDir); end
-
-% Load data from each trial in the structure
-data = [];
-fprintf('\nLoading trials: \n')
-for trial = 1:ntrials
-    % print the experiments as they are loaded
-    trialExpID = excelfile{structInfo.rowNum(trial), Excel.expID};
-    trialDate = excelfile{structInfo.rowNum(trial), Excel.date};
-    trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
-    trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
-    disp(trialName)
-    
-    % build the path for the trial data
-    dirc = [baseFolder, trialDate, '\Arena ' trialArena '\analysis\' trialExpID trialArena  ' timecourse data.mat'];
-    
-    % load data
-    todel = load(dirc);
-    variList = fieldnames(todel);
-%     todel = load(dirc, varList{:});
-    data(trial).trialName = trialName;
-    for ii = 1:length(variList)
-        data(trial).(variList{ii}) = todel.(variList{ii});
+% number of flies:
+loc = [];
+if strcmpi(numb(num_idx),'all')
+    num_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(numb(num_idx)); %selected categories
+    temp = excelfile(:,Excel.numflies);
+    for ii = 1:length(sel)
+        loc(:,ii) = cellfun(@(x) x==str2double(sel(ii)),temp(loc_all), 'uniformOutput', false);
     end
-end; clear varList
+    num_loc  = sum(cell2mat(loc),2)>0;
+end
+  
+% genotypes
+loc = [];
+if strcmpi(geno(geno_idx),'all')
+    geno_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(geno(geno_idx)); %selected categories
+    temp = excelfile(loc_all,Excel.genotype);
+    
+    for ii = 1:length(sel)
+        loc(:,ii) = strcmpi(temp, sel{ii});
+    end
+    geno_loc  = sum(loc,2)>0;
+end
 
-% parameters:
-pix2mm = 12.8; %conversion from pixels to mm for these videos
+% food options % TODO: add a button that limits the food to MUST INCLUDE
+% BOTH or include just one of the options
+exclusiveButton = true;
+loc = [];
+if strcmpi(foodOpt(foodOpt_idx),'all')
+    foodOpt_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(foodOpt(foodOpt_idx)); %selected categories
+    
+    for ii = 1:length(sel) 
+        for well = 1:4
+             temp = excelfile(loc_all,Excel.(['well_' num2str(well)]));
+             well_loc(:,well) = strcmpi(temp, sel{ii});
+        end
+        loc(:,ii) = sum(well_loc,2)>0; % logical for each food type
+    end
+        
+    if exclusiveButton == true %MUST include only these items
+        foodOpt_loc  = sum(loc,2) == length(sel);
+    else 
+        foodOpt_loc  = sum(loc,2)>0; % if even one food was included
+    end
+end
+% sum(foodOpt_loc)
+    
+% experiment IDs
+loc = [];
+if strcmpi(expID(expID_idx),'all')
+    expID_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(expID(expID_idx)); %selected categories
+    temp = excelfile(loc_all,Excel.expID);
+    
+    for ii = 1:length(sel)
+        loc(:,ii) = strcmpi(temp, sel{ii});
+    end
+    expID_loc  = sum(loc,2)>0;
+end
 
-initial_vars = {'baseFolder', 'data', 'ExpGroup', 'ntrials', 'initial_vars', 'figDir', 'pix2mm'};
-clearvars('-except',initial_vars{:})
-fprintf('Data loaded\n')
+% temp protocol
+loc = [];
+if strcmpi(proto(proto_idx),'all')
+    proto_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(proto(proto_idx)); %selected categories
+    temp = excelfile(loc_all,Excel.protocol);
+    
+    for ii = 1:length(sel)
+        loc(:,ii) = strcmpi(temp, sel{ii});
+    end
+    proto_loc  = sum(loc,2)>0;
+end
+
+% sex
+loc = [];
+if strcmpi(sex(sex_idx),'all')
+    sex_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(sex(sex_idx)); %selected categories
+    temp = excelfile(loc_all,Excel.sex);
+    
+    for ii = 1:length(sel)
+        loc(:,ii) = strcmpi(temp, sel{ii});
+    end
+    sex_loc  = sum(loc,2)>0;
+end
+
+% arena
+loc = [];
+if strcmpi(arena(arena_idx),'all')
+    arena_loc = true(sum(loc_all),1);
+else
+    sel = cellstr(arena(arena_idx)); %selected categories
+    temp = excelfile(loc_all,Excel.arena);
+    
+    for ii = 1:length(sel)
+        loc(:,ii) = strcmpi(temp, sel{ii});
+    end
+    arena_loc  = sum(loc,2)>0;
+end
+
+% Find the overlapping criteria:
+
+selLoc = num_loc & geno_loc & foodOpt_loc...
+             & expID_loc & proto_loc & sex_loc & arena_loc;
+numberSelected = sum(selLoc);
+
+% Make variables for each category and all files
+fileList = excelfile(selLoc,:);
+TD = [];
+data2Inc = {'date', 'expID', 'protocol',  'arena', 'sex', 'genotype',...
+                  'numflies', 'well_1', 'well_2', 'well_3', 'well_4'};
+for ii = 1:length(data2Inc)
+    if strcmpi(data2Inc{ii}, 'numflies')
+        TD{:,ii} = string(fileList(:,Excel.(data2Inc{ii})));
+    else
+        TD{:,ii} = fileList(:,Excel.(data2Inc{ii}));
+    end
+end
+
+T = table(TD(:,1),TD(:,2),TD(:,3),TD(:,4),TD(:,5),TD(:,6),...
+              TD(:,7),TD(:,8),TD(:,9),TD(:,10),TD(:,11),...
+              'VariableNames',data2Inc);
 
 
-
-
-
+ 
 
 
 
