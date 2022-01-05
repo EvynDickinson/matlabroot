@@ -1,0 +1,317 @@
+
+% load in data from the GroupDataGUI to compare across the conditions to
+% find any other trends...
+
+%% WITHIN DATA STRUCTURE Load data:
+
+clear
+
+%select data structure(s) from folder names:
+[baseFolder, folder] = getCloudPath(3);
+list_dirs = dir(folder); 
+list_dirs = {list_dirs(:).name};
+list_dirs(1:2) = [];
+idx = listdlg('ListString', list_dirs);
+
+dataDir = [folder list_dirs{idx} '/'];
+ExpGroup = list_dirs{idx};
+
+% load the directory list:
+load([dataDir 'fileList.mat'])
+
+% extract information
+ntrials = size(T,1);
+dates = T.Date;
+arenas = T.Arena;
+expID = T.ExperimentID;
+var2load = {'data', 'dist2wells', 'wellLabels', 'occupancy'}; %variables to pull
+% load data
+for trial = 1:ntrials
+    filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+    temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
+%     variList = fieldnames(todel);
+    for ii = 1:length(var2load)
+        try data(trial).(var2load{ii}) = temp.(var2load{ii});
+        catch data(trial).(var2load{ii}) = [];
+        end
+    end
+    disp(trial)
+end
+
+pix2mm = 12.8; %conversion from pixels to mm for these videos
+
+initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'dataDir', 'filePath',...
+                'initial_vars', 'folder', 'ntrials', 'pix2mm'};
+clearvars('-except',initial_vars{:})
+fprintf('Data loaded\n')
+
+%% Average Distance vs temp across trials:
+sSpan = 240;
+[plant, yeast, empty] = deal([]);
+for trial = 1:ntrials
+    for well = 1:4
+        x = data(trial).occupancy.temp';
+        try y = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm; %convert the data to mm
+        catch y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+        end
+        % plant food well:
+        if strfind(data(trial).wellLabels{well},'Plant')
+            plant = [plant; x, y];
+        end
+        % yeast food well:
+        if strfind(data(trial).wellLabels{well},'Yeast')
+            yeast = [yeast; x, y];
+        end
+        % empty food well:
+        if strfind(data(trial).wellLabels{well},'Empty')
+            empty = [empty; x, y];
+        end 
+    end
+end 
+
+numFitPoints = 1000;
+threshHigh = 19.88;
+threshLow = 8.02;
+plotData = [];
+% Plant data:
+for ii = 1:3
+    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
+    switch ii
+        case 1 % plant food
+            inputData = plant;
+            kolor = pullFoodColor('Plant');
+            plotData(ii).name = 'Plant';
+        case 2 % yeast food
+            inputData = yeast;
+            kolor = pullFoodColor('Yeast');
+            plotData(ii).name = 'Yeast';
+        case 3 % empty
+            inputData = empty;
+            kolor = pullFoodColor('Empty');
+            plotData(ii).name = 'Empty';
+    end
+    % cut off the high and low ends of data (to clean):
+    loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+    inputData(loc,:) = [];
+    % sort all the data by temperature:
+    [~,idx] = sort(inputData(:,1));
+    sortedData = inputData(idx,:);
+    smoothData(:,1) = smooth(sortedData(:,1),sSpan);
+    smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+    % find the line of best fit:
+    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
+    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+    yFit = polyval(coefficients, xFit);
+    yfit = polyval(coefficients, smoothData(:,1));
+    yResid = smoothData(:,2)-yfit;
+    SSresid = sum(yResid.^2);
+    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+    rsq = 1 - SSresid/SStotal; % get the R-square value
+    % coefficient of correlation
+    R = corrcoef(smoothData(:,1),smoothData(:,2));
+    R = R(2,1);
+    % save data for plotting:
+    plotData(ii).smoothed = smoothData;
+    plotData(ii).bestfit = [smoothData(:,1),yfit];
+    plotData(ii).color = kolor;
+    plotData(ii).rsq = round(rsq,2);
+    plotData(ii).R = round(R,2);
+end
+
+% save PLOTDATA for future comparisions:
+save([dataDir, 'avg temp vs distance by food type'], 'plotData')
+
+% FIGURE: 
+LW = 2;
+fig = getfig; hold on
+for ii = 1:3
+    scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color)
+end
+for ii = 1:3
+%     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
+end
+ylim([10,40])
+
+% Labels:
+xlabel('temperature (\circC)')
+ylabel('distance from well (mm)')
+title(strrep(ExpGroup,'_',' '))
+formatFig(fig,true);
+
+% label key:
+str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
+text(8.5,16, str, 'Color', plotData(1).color, 'FontSize', 12);
+str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
+text(8.5,15, str, 'Color', plotData(2).color, 'FontSize', 12);
+str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
+text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
+
+
+save_figure(fig, [strrep(dataDir,'/','\') 'Avg temp vs distance by food type'], '-png');
+clearvars('-except',initial_vars{:})
+%% ACROSS DATA STRUCUTRES load data:
+clear
+
+%select data structure(s) from folder names:
+[baseFolder, folder] = getCloudPath(3);
+list_dirs = dir(folder); 
+list_dirs = {list_dirs(:).name};
+list_dirs(1:2) = [];
+idx = listdlg('ListString', list_dirs);
+
+% loop through for each specific data structure
+var2load = {'data', 'dist2wells', 'wellLabels', 'occupancy'}; %variables to pull
+nstruct = length(idx);
+group = struct;
+for n = 1:nstruct
+    group(n).dataDir = [folder list_dirs{idx(n)} '/'];
+    group(n).ExpGroup = list_dirs{idx(n)};
+
+    % load the directory list:
+    load([group(n).dataDir 'fileList.mat'])
+    group(n).T = T;
+
+    % extract information
+    group(n).ntrials = size(T,1);
+    dates = T.Date;
+    arenas = T.Arena;
+    expID = T.ExperimentID;
+    
+    % load data
+    for trial = 1:group(n).ntrials
+        filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+        temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
+    %     variList = fieldnames(todel);
+        for ii = 1:length(var2load)
+            try data(trial).(var2load{ii}) = temp.(var2load{ii});
+            catch data(trial).(var2load{ii}) = [];
+            end
+        end
+        disp(trial)
+    end
+    group(n).data = data;
+    disp(['Group ' num2str(n) ' done'])
+end
+
+pix2mm = 12.8; %conversion from pixels to mm for these videos
+
+initial_vars = {'group','nstruct', 'baseFolder','folder','initial_vars', 'pix2mm'};
+                
+clearvars('-except',initial_vars{:})
+fprintf('Data loaded\n')
+
+
+%% Average Distance vs temp between groups:
+sSpan = 240;
+
+
+[plant, yeast, empty] = deal([]);
+for trial = 1:ntrials
+    for well = 1:4
+        x = data(trial).occupancy.temp';
+        try y = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm; %convert the data to mm
+        catch y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+        end
+        % plant food well:
+        if strfind(data(trial).wellLabels{well},'Plant')
+            plant = [plant; x, y];
+        end
+        % yeast food well:
+        if strfind(data(trial).wellLabels{well},'Yeast')
+            yeast = [yeast; x, y];
+        end
+        % empty food well:
+        if strfind(data(trial).wellLabels{well},'Empty')
+            empty = [empty; x, y];
+        end 
+    end
+end 
+
+numFitPoints = 1000;
+threshHigh = 19.88;
+threshLow = 8.02;
+plotData = [];
+% Plant data:
+for ii = 1:3
+    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
+    switch ii
+        case 1 % plant food
+            inputData = plant;
+            kolor = pullFoodColor('Plant');
+            plotData(ii).name = 'Plant';
+        case 2 % yeast food
+            inputData = yeast;
+            kolor = pullFoodColor('Yeast');
+            plotData(ii).name = 'Yeast';
+        case 3 % empty
+            inputData = empty;
+            kolor = pullFoodColor('Empty');
+            plotData(ii).name = 'Empty';
+    end
+    % cut off the high and low ends of data (to clean):
+    loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+    inputData(loc,:) = [];
+    % sort all the data by temperature:
+    [~,idx] = sort(inputData(:,1));
+    sortedData = inputData(idx,:);
+    smoothData(:,1) = smooth(sortedData(:,1),sSpan);
+    smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+    % find the line of best fit:
+    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
+    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+    yFit = polyval(coefficients, xFit);
+    yfit = polyval(coefficients, smoothData(:,1));
+    yResid = smoothData(:,2)-yfit;
+    SSresid = sum(yResid.^2);
+    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+    rsq = 1 - SSresid/SStotal; % get the R-square value
+    % coefficient of correlation
+    R = corrcoef(smoothData(:,1),smoothData(:,2));
+    R = R(2,1);
+    % save data for plotting:
+    plotData(ii).smoothed = smoothData;
+    plotData(ii).bestfit = [smoothData(:,1),yfit];
+    plotData(ii).color = kolor;
+    plotData(ii).rsq = round(rsq,2);
+    plotData(ii).R = round(R,2);
+end
+
+% save PLOTDATA for future comparisions:
+save([dataDir, 'avg temp vs distance by food type'], 'plotData')
+
+% FIGURE: 
+LW = 2;
+fig = getfig; hold on
+for ii = 1:3
+    scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color)
+end
+for ii = 1:3
+%     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
+end
+ylim([10,40])
+
+% Labels:
+xlabel('temperature (\circC)')
+ylabel('distance from well (mm)')
+title(strrep(ExpGroup,'_',' '))
+formatFig(fig,true);
+
+% label key:
+str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
+text(8.5,16, str, 'Color', plotData(1).color, 'FontSize', 12);
+str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
+text(8.5,15, str, 'Color', plotData(2).color, 'FontSize', 12);
+str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
+text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
+
+
+save_figure(fig, [strrep(dataDir,'/','\') 'Avg temp vs distance by food type'], '-png');
+clearvars('-except',initial_vars{:})
+
+%% Compare the 
+
+
+
+
