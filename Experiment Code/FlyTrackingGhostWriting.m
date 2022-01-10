@@ -8,7 +8,7 @@ clear
 defaultModel = 'G:\My Drive\Jeanne Lab\DATA\Tracking\models';
 model_1 = 'centered_instance_model';
 model_2 = 'centroid_model';
-
+ 
 % select the folder to analyze 
 [~, folder] = getCloudPath(1);
 

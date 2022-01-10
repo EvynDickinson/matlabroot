@@ -1,5 +1,5 @@
 
-function results = save_figure(fig_handle, figure_name, type)
+function results = save_figure(fig_handle, figure_name, type, autoSave)
 % 
 % results = save_figure(fig_handle, figure_name)
 % 
