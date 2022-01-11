@@ -1,5 +1,6 @@
 
 % TODO: automate so it can loop through 'autosaving' after the initial manual work
+autoSave = true;
 
 %% Select Date & Experiment to Process
 clear; close all; clc
@@ -506,11 +507,13 @@ titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
 title(titleName,'color', 'w')
 
 % Save image
-if autoSave == true
-if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+if autoSave==true
+    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+else strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 end  
-save_figure(fig, [analysisDir expName arenaSel ' summary figure'], '-png');
+save_figure(fig, imgName, '-png', autoSave);
+
 
 clearvars('-except',initial_vars{:})
 fprintf('\nNext\n')

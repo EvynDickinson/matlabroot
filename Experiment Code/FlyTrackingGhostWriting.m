@@ -3,7 +3,7 @@
 
 
 %% Code to both TRACK and CONVERT to analysis file
-% parameter inputs:
+% parameter inputs: 
 clear
 defaultModel = 'G:\My Drive\Jeanne Lab\DATA\Tracking\models';
 model_1 = 'centered_instance_model';
