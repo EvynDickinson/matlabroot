@@ -404,7 +404,7 @@ initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'; 'occupancy'];
 clearvars('-except',initial_vars{:})
 
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
-save([analysisDir 'preformed data'])
+save([analysisDir expName arenaSel ' preformed data'])
 disp('Formatted data saved')
 disp('Done')
 

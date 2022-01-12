@@ -1,7 +1,97 @@
 
 % load in data from the GroupDataGUI to compare across the conditions to
 % find any other trends...
-%% ACROSS data structure analysis (e.g. 2 flies vs 3 flies in the arena)
+
+%% WITHIN DATA STRUCTURE Load data:
+
+clear
+
+%select data structure(s) from folder names:
+[baseFolder, folder] = getCloudPath(3);
+list_dirs = dir(folder); 
+list_dirs = {list_dirs(:).name};
+list_dirs(1:2) = [];
+idx = listdlg('ListString', list_dirs);
+
+dataDir = [folder list_dirs{idx} '/'];
+ExpGroup = list_dirs{idx};
+
+% load the directory list:
+load([dataDir 'fileList.mat'])
+
+% extract information
+ntrials = size(T,1);
+dates = T.Date;
+arenas = T.Arena;
+expID = T.ExperimentID;
+var2load = {'data', 'dist2wells', 'wellLabels', 'occupancy'}; %variables to pull
+% load data
+for trial = 1:ntrials
+    filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+    temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
+%     variList = fieldnames(todel);
+    for ii = 1:length(var2load)
+        try data(trial).(var2load{ii}) = temp.(var2load{ii});
+        catch data(trial).(var2load{ii}) = [];
+        end
+    end
+    disp(trial)
+end
+
+pix2mm = 12.8; %conversion from pixels to mm for these videos
+
+initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'dataDir', 'filePath',...
+                'initial_vars', 'folder', 'ntrials', 'pix2mm'};
+clearvars('-except',initial_vars{:})
+fprintf('Data loaded\n')
+
+%% FIGURE: visual demo of temperature alignment across the experiments:
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.time;
+    Y = data(trial).occupancy.temp;
+    plot(X, Y, 'linewidth', 1)
+end
+xlabel('Time (min)')
+ylabel('Temp (\circ)')
+title({'temperature alignment across experiments';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true)
+
+save_figure(fig, [dataDir ExpGroup ' temperature alignment'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+%% FIGURE: Distance to food vs temperature for each food 
+sSpan = 240;
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.temp;
+    for well = 1:4
+        try Y = (data(trial).dist2wells(well).N(:,1));
+        catch 
+            Y = data(trial).occupancy.dist2wells(well).N(:,1);
+            data(trial).dist2wells = data(trial).occupancy.dist2wells;
+        end
+        Y = Y./pix2mm; % convert the pixel values to mm
+        % reorder the data by temperature:
+        [plotX, idx] = sort(X);
+        plot(plotX, smooth(Y(idx),sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+    end
+end
+ylabel('Distance to well (mm)')
+xlabel('Temp (\circC)')
+title({'Location from food sources by temperature';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true);
+
+save_figure(fig, [figDir ExpGroup ' all temp vs distance'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+%% Average Distance vs temp across trials:
 sSpan = 240;
 [plant, yeast, empty] = deal([]);
 for trial = 1:ntrials
@@ -75,7 +165,7 @@ for ii = 1:3
 end
 
 % save PLOTDATA for future comparisions:
-save([figDir, 'avg temp vs distance by food type'], 'plotData')
+save([dataDir, 'avg temp vs distance by food type'], 'plotData')
 
 % FIGURE: 
 LW = 2;
@@ -104,10 +194,8 @@ str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)
 text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
 
 
-save_figure(fig, [strrep(figDir,'/','\') 'Avg temp vs distance by food type'], '-png');
+save_figure(fig, [strrep(dataDir,'/','\') 'Avg temp vs distance by food type'], '-png');
 clearvars('-except',initial_vars{:})
-
-
 %% ACROSS DATA STRUCUTRES load data:
 clear
 

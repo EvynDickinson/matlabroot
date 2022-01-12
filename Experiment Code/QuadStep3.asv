@@ -1,8 +1,11 @@
     
+
+  
 %% Load in multiple trials that are grouped into a structure
 clear; warning off
 
 if strcmpi('Yes', questdlg('Use excel named structure?'))
+
     % baseFolder = getCloudPath;
     [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
     baseFolder = getCloudPath;
@@ -40,7 +43,9 @@ if strcmpi('Yes', questdlg('Use excel named structure?'))
         end
     end
 
-else %select data structure(s) from folder names out of GroupDataGUI:
+else 
+
+    %select data structure(s) from folder names:
     [baseFolder, folder] = getCloudPath(3);
     list_dirs = dir(folder); 
     list_dirs = {list_dirs(:).name};
@@ -74,14 +79,14 @@ else %select data structure(s) from folder names out of GroupDataGUI:
         end
         disp(trial)
     end
-end
-
-pix2mm = 12.8; %conversion from pixels to mm for these videos
     
-initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
-                'initial_vars', 'folder', 'ntrials', 'pix2mm'};
-clearvars('-except',initial_vars{:})
-fprintf('Data loaded\n')
+    pix2mm = 12.8; %conversion from pixels to mm for these videos
+    
+    initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
+                    'initial_vars', 'folder', 'ntrials', 'pix2mm'};
+    clearvars('-except',initial_vars{:})
+    fprintf('Data loaded\n')
+end
 
 %% FIGURE: visual check of temperature alignment across the experiments:
 fig = figure; hold on
@@ -324,6 +329,7 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 
+%% all works to here...
 %% FIGURE: Avg movement vs. temperature:
 sSpan = 360;
 timeLen = zeros(1,ntrials);
@@ -350,7 +356,6 @@ end
 sortedData = all(idx,:);
 % avg and err of all the trials
 Y_avg = nanmean(mov,2);
-mov_avg = nanmean(Y_avg);
 Y_err = std(mov,0,2);
 nanloc = isnan(Y_err);
 Y_err(nanloc) = [];
@@ -373,11 +378,8 @@ subplot(nrows, ncols, sb(1).idx)
     h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
     set(h, 'facealpha', 0.4)
     plot(time, Y_avg, 'linewidth',0.5,'color', kolor)
-    hline(mov_avg, 'w:')
     ylabel('Movement (au)')
     xlabel('Time (min)')
-    title(['Avg movement: ' num2str(mov_avg)])
-    ylim([-5,20])
 % TEMP DEPENDENCE
 subplot(nrows, ncols, sb(2).idx) 
     hold on
@@ -386,6 +388,7 @@ subplot(nrows, ncols, sb(2).idx)
     xlabel('Temperature (\circC)')
     ylabel('Movement (au)')
 fig = formatFig(fig, true, [nrows,ncols],sb);
+
 
 save_figure(fig, [figDir ExpGroup ' movement vs time+temp'], '-png');    
 
