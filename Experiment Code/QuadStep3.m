@@ -1,4 +1,4 @@
-    
+%    GroupDataGUI
 %% Load in multiple trials that are grouped into a structure
 clear; warning off
 
