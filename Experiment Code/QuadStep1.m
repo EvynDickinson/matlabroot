@@ -383,7 +383,7 @@ save_figure(fig, [analysisDir expName arenaSel ' quality control'], '-png');
 %    X = reshape(data(vid).x_loc,numel(data(vid).x_loc),1); 
 %    Y = reshape(data(vid).y_loc,numel(data(vid).y_loc),1); 
 %    X(isnan(X)) = [];
-%    Y(isnan(Y)) = []; 
+%    Y(isnan(Y)) = []; 4
 %    AllPoints = [AllPoints; X , Y];
 % end
 % fig = getfig; set(fig, 'color', 'k');
@@ -602,4 +602,3 @@ disp('Done')
 %         end
 %         toc
 % end
-
