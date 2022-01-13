@@ -13,7 +13,7 @@ list_dirs(1:2) = [];
 idx = listdlg('ListString', list_dirs);
 
 % loop through for each specific data structure
-var2load = {'data', 'dist2wells', 'wellLabels', 'occupancy'}; %variables to pull
+var2load = {'dist2wells', 'wellLabels', 'occupancy'}; %variables to pull: 'data', 
 nstruct = length(idx);
 group = struct;
 for n = 1:nstruct
@@ -237,7 +237,9 @@ sSpan = 240;
 for trial = 1:ntrials
     for well = 1:4
         x = data(trial).occupancy.temp';
-        y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+        try y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+        catch; y = (data(trial).occupancy.dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+        end
         % well 1:
         switch well
             case 1
@@ -304,8 +306,9 @@ for ii = 1:4
     scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color,'filled')
 end
 for ii = 1:4
-%     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
-    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW+1)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', plotData(ii).color,...
+         'linewidth', LW, 'LineStyle', '-.')
 end
 ylim([10,40])
 
@@ -331,7 +334,7 @@ set(l, 'TextColor', 'w')
 % str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
 % text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
 
-save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
+save_figure(fig, [figDir ExpGroup ' avg temp vs well location'], '-png');
 clearvars('-except',initial_vars{:})
 
 %% FIGURE: histogram of well + food pairings
@@ -363,75 +366,49 @@ end
 %normalize
 kolors = {'Plant', 'Yeast', 'Empty'};
 wellID_per = round((well_ID./sum(well_ID,2))*100);
-fig = figure; hold on
+% PLOT
+fig = figure;
+hold on
 for ii = 1:3
-    plot(1:4,wellID_per(ii,:),'Marker', '*', 'Color', pullFoodColor(kolors{ii}), 'LineWidth', 2)
+%     plot(1:4,wellID_per(ii,:),'Marker', '*', 'Color', pullFoodColor(kolors{ii}), 'LineWidth', 2)
+    plot(1:4,well_ID(ii,:),'Marker', '*', 'Color', pullFoodColor(kolors{ii}), 'LineWidth', 2)
 end
+xlim([0,5])
+ylim([0,30])
 set(gca, 'XTick', 1:4)
 xlabel('Well')
-ylabel('Instances (%)')
-title('Well location compared to food identity')
+ylabel('Instances')
+title({'Well location compared to food identity'; '  '})
+fig = formatFig(fig, true);
+l = legend(kolors);
+set(l, 'TextColor', 'w')
 
 
-fig = figure; hold on
-h = histogram(empty);
-set(h,'FaceColor', pullFoodColor('Empty'), 'EdgeColor', pullFoodColor('Empty'))
-h = histogram(plant);
-set(h,'FaceColor', pullFoodColor('Plant'), 'EdgeColor', pullFoodColor('Plant'))
-h = histogram(yeast);
-set(h,'FaceColor', pullFoodColor('Yeast'), 'EdgeColor', pullFoodColor('Yeast'))
+% save_figure(fig, [figDir ExpGroup ' well to food identity spread'], '-png');
+save_figure(fig, [figDir ExpGroup ' well to food identity spread absolute'], '-png');
 
+% ---------------------------------
+% Sum of each within wells 1+4 vs 2+3:
+pair_1 = [1,4];
+pair_2 = [2,3];
+P_1 = sum(well_ID(:,pair_1),2);
+P_2 = sum(well_ID(:,pair_2),2);
 
-% find the percent of each number:
-
-fig = figure; hold on
-
-
-
-numFitPoints = 1000;
-threshHigh = 19.88;
-threshLow = 8.02;
-plotData = [];
-for ii = 1:4
-    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); %#ok<*ASGLU>
-    switch ii
-        case 1 % well 1
-            inputData = well_1;
-        case 2 % well 2
-            inputData = well_2;
-        case 3 % well 3
-            inputData = well_3;
-        case 4
-            inputData = well_4;
-    end
-    kolor = Color(kolors{ii});
-    % cut off the high and low ends of data (to clean):
-    loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
-    inputData(loc,:) = [];
-    % sort all the data by temperature:
-    [~,idx] = sort(inputData(:,1));
-    sortedData = inputData(idx,:);
-    smoothData(:,1) = smooth(sortedData(:,1),sSpan);
-    smoothData(:,2) = smooth(sortedData(:,2),sSpan);
-    % find the line of best fit:
-    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
-    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
-    yFit = polyval(coefficients, xFit);
-    yfit = polyval(coefficients, smoothData(:,1));
-    yResid = smoothData(:,2)-yfit;
-    SSresid = sum(yResid.^2);
-    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
-    rsq = 1 - SSresid/SStotal; % get the R-square value
-    % coefficient of correlation
-    R = corrcoef(smoothData(:,1),smoothData(:,2));
-    R = R(2,1);
-    % save data for plotting:
-    plotData(ii).smoothed = smoothData;
-    plotData(ii).bestfit = [smoothData(:,1),yfit];
-    plotData(ii).color = kolor;
-    plotData(ii).rsq = round(rsq,2);
-    plotData(ii).R = round(R,2);
+k_list = {'green', 'gold', 'grey'};
+fig = figure;
+h = bar([P_1';P_2']);
+for ii = 1:3
+    h(ii).FaceColor = Color(k_list{ii});
 end
+ylabel('Instances')
+set(gca, 'XTickLabels', {'Wells 1 & 4', 'Wells 2 & 3'},'FontSize', 20)
+fig = formatFig(fig, true);
+
+save_figure(fig, [figDir ExpGroup ' well counts paired'], '-png');
+
+clearvars('-except',initial_vars{:})
+
+%%  FIGURE: bin preference by temperature... might to be cleaner to look at...
 
 
 

@@ -2,7 +2,7 @@
 %% Load in multiple trials that are grouped into a structure
 clear; warning off
 
-if strcmpi('Yes', questdlg('Use excel named structure?'))
+if strcmpi('Yes', questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No'))
     % baseFolder = getCloudPath;
     [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
     baseFolder = getCloudPath;
@@ -61,7 +61,7 @@ else %select data structure(s) from folder names out of GroupDataGUI:
     
     % load data
     n = cell(1,ntrials);
-    data = struct('data', n, 'dist2wells', n, 'wellLabels', n, 'occupancy', n);
+    data = struct('dist2wells', n, 'wellLabels', n, 'occupancy', n); %'data', n, 
     var2load = fieldnames(data);
     
     for trial = 1:ntrials
@@ -72,7 +72,7 @@ else %select data structure(s) from folder names out of GroupDataGUI:
             catch; data(trial).(var2load{ii}) = [];
             end
         end
-        disp(trial)
+        disp([expID{trial} arenas{trial}])
     end
 end
 
@@ -396,8 +396,10 @@ fprintf('Next\n')
 % TODO: 
 % add an analysis that looks at how different the line is from zero slope
 
-%% Clustering vs temperature
-
+%% Clustering vs temperature 
+if ntrials > 15
+    warndlg('There are too many data points for this analysis'); return
+end
 sSpan = 360;
 timeLen = zeros(1,ntrials);
 for trial = 1:ntrials
@@ -474,9 +476,90 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 
+%%  FIGURE: bin preference by temperature... might to be cleaner to look at...
+
+sSpan = 240;
+[plant, yeast, empty] = deal([]);
+for trial = 1:ntrials
+    for well = 1:4
+        x = data(trial).occupancy.temp';
+        y = (data(trial).dist2wells(well).N(:,1))./pix2mm; %convert the data to mm
+        % plant food well:
+        if strfind(data(trial).wellLabels{well},'Plant')
+            plant = [plant; x, y];
+        end
+        % yeast food well:
+        if strfind(data(trial).wellLabels{well},'Yeast')
+            yeast = [yeast; x, y];
+        end
+        % empty food well:
+        if strfind(data(trial).wellLabels{well},'Empty')
+            empty = [empty; x, y];
+        end 
+    end
+end 
+
+% Sort data by temperature into degree-bins
 
 
 
+
+% Pull plotting data:
+plotData = [];
+for ii = 1:3
+    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
+    switch ii
+        case 1 % plant food
+            inputData = plant;
+            plotData(ii).kolor = pullFoodColor('Plant');
+        case 2 % yeast food
+            inputData = yeast;
+            plotData(ii).kolor = pullFoodColor('Yeast');
+        case 3 % empty
+            inputData = empty;
+            plotData(ii).kolor = pullFoodColor('Empty');
+    end
+    % cut off the high and low ends of data (to clean):
+    loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+    inputData(loc,:) = [];
+    % sort all the data by temperature:
+    t_roi = 6:26;
+    idx = discretize(inputData(:,1),t_roi);
+    [cnt_unique, unique_a] = hist(idx,unique(idx));
+    len = max(cnt_unique);
+    mt = nan(len,length(unique_a));
+    for tt = 1:length(unique_a)
+        cue = unique_a(tt); %index number
+        loc = idx==cue;
+        mt(1:sum(loc),tt) = inputData(loc,2);
+        y_err(tt) = std(inputData(loc,2));
+        plotData(ii).y_avg(tt) = mean(inputData(loc,2));
+    end
+    plotData(ii).y_err = y_err./sqrt(ntrials);
+    plotData(ii).xdata = t_roi(unique_a);
+end
+    
+% PLOT
+fig = figure; hold on
+for ii = 1:3
+    fill_data = error_fill(plotData(ii).xdata, plotData(ii).y_avg, plotData(ii).y_err);
+    h = fill(fill_data.X, fill_data.Y, plotData(ii).kolor, 'EdgeColor','none');
+    set(h, 'facealpha', 0.35)
+    plot(plotData(ii).xdata, plotData(ii).y_avg, 'Color', plotData(ii).kolor, 'LineWidth', 2)
+    plot(plotData(ii).xdata, plotData(ii).y_avg+plotData(ii).y_err, 'Color', plotData(ii).kolor, 'LineWidth', 0.25)
+    plot(plotData(ii).xdata, plotData(ii).y_avg-plotData(ii).y_err, 'Color', plotData(ii).kolor, 'LineWidth', 0.25)
+end
+%Labels:
+% xlim([7,20])
+xlabel('temperature (\circC)')
+ylabel('distance from well (mm)')
+title(strrep(ExpGroup,'_',' '))
+formatFig(fig,true);
+ax = gca;
+set(ax, 'FontSize', 18)
+
+save_figure(fig, [figDir ExpGroup ' temp_err vs well distance'], '-png');
+clearvars('-except',initial_vars{:})
 
 %% SPECIALITY SECTIONS:
 %% Plot female vs. grouped|male trials:
