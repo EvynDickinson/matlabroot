@@ -42,7 +42,7 @@ for ii = 1:length(fileIdx)
             end
         end
     end
-    disp(['Finished ' FileNames (ii)])         
+    disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
 %% Select Date & Experiment to Process

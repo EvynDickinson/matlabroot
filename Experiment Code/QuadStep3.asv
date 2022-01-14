@@ -501,23 +501,23 @@ end
 
 % Sort data by temperature into degree-bins
 
-
-
-
-% Pull plotting data:
+numFitPoints = 1000;
+threshHigh = 19.88;
+threshLow = 8.02;
 plotData = [];
+% Pull plotting data:
 for ii = 1:3
     [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
     switch ii
         case 1 % plant food
             inputData = plant;
-            plotData(ii).kolor = pullFoodColor('Plant');
+            kolor = pullFoodColor('Plant');
         case 2 % yeast food
             inputData = yeast;
-            plotData(ii).kolor = pullFoodColor('Yeast');
+            kolor = pullFoodColor('Yeast');
         case 3 % empty
             inputData = empty;
-            plotData(ii).kolor = pullFoodColor('Empty');
+            kolor = pullFoodColor('Empty');
     end
     % cut off the high and low ends of data (to clean):
     loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
@@ -528,37 +528,64 @@ for ii = 1:3
     [cnt_unique, unique_a] = hist(idx,unique(idx));
     len = max(cnt_unique);
     mt = nan(len,length(unique_a));
-    for tt = 1:length(unique_a)
-        cue = unique_a(tt); %index number
+    for ii = 1:length(unique_a)
+        cue = unique_a(ii); %index number
         loc = idx==cue;
-        mt(1:sum(loc),tt) = inputData(loc,2);
-        y_err(tt) = std(inputData(loc,2));
-        plotData(ii).y_avg(tt) = mean(inputData(loc,2));
+        mt(1:sum(loc),ii) = inputData(loc,2);
     end
-    plotData(ii).y_err = y_err./sqrt(ntrials);
-    plotData(ii).xdata = t_roi(unique_a);
+
+
+    smoothData(:,1) = smooth(sortedData(:,1),sSpan);
+    smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+    % find the line of best fit:
+    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
+    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+    yFit = polyval(coefficients, xFit);
+    yfit = polyval(coefficients, smoothData(:,1));
+    yResid = smoothData(:,2)-yfit;
+    SSresid = sum(yResid.^2);
+    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+    rsq = 1 - SSresid/SStotal; % get the R-square value
+    % coefficient of correlation
+    R = corrcoef(smoothData(:,1),smoothData(:,2));
+    R = R(2,1);
+    % save data for plotting:
+    plotData(ii).smoothed = smoothData;
+    plotData(ii).bestfit = [smoothData(:,1),yfit];
+    plotData(ii).color = kolor;
+    plotData(ii).rsq = round(rsq,2);
+    plotData(ii).R = round(R,2);
 end
-    
-% PLOT
-fig = figure; hold on
+
+% FIGURE: 
+LW = 2;
+fig = getfig; hold on
 for ii = 1:3
-    fill_data = error_fill(plotData(ii).xdata, plotData(ii).y_avg, plotData(ii).y_err);
-    h = fill(fill_data.X, fill_data.Y, plotData(ii).kolor, 'EdgeColor','none');
-    set(h, 'facealpha', 0.35)
-    plot(plotData(ii).xdata, plotData(ii).y_avg, 'Color', plotData(ii).kolor, 'LineWidth', 2)
-    plot(plotData(ii).xdata, plotData(ii).y_avg+plotData(ii).y_err, 'Color', plotData(ii).kolor, 'LineWidth', 0.25)
-    plot(plotData(ii).xdata, plotData(ii).y_avg-plotData(ii).y_err, 'Color', plotData(ii).kolor, 'LineWidth', 0.25)
+    scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color)
 end
-%Labels:
-% xlim([7,20])
+for ii = 1:3
+%     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
+end
+ylim([10,40])
+
+% Labels:
 xlabel('temperature (\circC)')
 ylabel('distance from well (mm)')
 title(strrep(ExpGroup,'_',' '))
 formatFig(fig,true);
 ax = gca;
-set(ax, 'FontSize', 18)
+set(ax, 'FontSize', 25)
 
-save_figure(fig, [figDir ExpGroup ' temp_err vs well distance'], '-png');
+% label key:
+str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
+text(8.5,16, str, 'Color', plotData(1).color, 'FontSize', 12);
+str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
+text(8.5,15, str, 'Color', plotData(2).color, 'FontSize', 12);
+str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
+text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
+
+save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
 
 %% SPECIALITY SECTIONS:
