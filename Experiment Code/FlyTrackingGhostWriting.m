@@ -126,7 +126,7 @@ for tt = 1:length(arenaSel)
                 analName = [vidName(1:end-4) '.h5'];
                 convertStr = ['\n' 'sleap-convert --format analysis -o '...
                             '"' analName '" '... % analysis file
-                            '"' predName '"']; %prediciton file
+                            '"' predName '"']; %prediciton file 
                 fprintf(fid, convertStr);
             end
         end
