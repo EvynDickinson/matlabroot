@@ -6,7 +6,7 @@ essentialfigs = true;
 %% ---------------------Select Date & Experiment to Process ------------------------------
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-if questdlg('Use Excel sheet to select experiment?')
+if questdlg('excel select file?')
     loc1 = cellfun(@isnan,excelfile(2:end,Excel.numflies));
     loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
     loc = loc1 & loc2;
@@ -34,14 +34,10 @@ else
     expName = expName(1:end-1);clear expNames
 end
 
-% Saving and Loading Directories:
+% Directories:
 vidFolder = [folder '\Arena ' arenaSel];
 analysisDir = [baseFolder vidFolder '\analysis\'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
-expPDF = [analysisDir folder expName arenaSel ' summary.pdf'];
-XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
-             strcmpi(excelfile(:,Excel.expID), expName) & ...
-             strcmpi(excelfile(:,Excel.arena), arenaSel(end:end))); %rows with sel date with ARENA ID
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off 
@@ -49,8 +45,12 @@ expData = load([baseFolder folder '\' expName ' dataMat.mat']);
 tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
-% load tracking predictions   
-data = struct;
+expPDF = [analysisDir folder expName arenaSel ' summary.pdf'];
+XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
+             strcmpi(excelfile(:,Excel.expID), expName) & ...
+             strcmpi(excelfile(:,Excel.arena), arenaSel(end:end))); %rows with sel date with ARENA ID
+
+% load tracking predictions         
 for vid = 1:nvids
     filePath = [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
     data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
