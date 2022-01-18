@@ -6,32 +6,35 @@ essentialfigs = true;
 %% ---------------------Select Date & Experiment to Process ------------------------------
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-if questdlg('Use Excel sheet to select experiment?')
-    loc1 = cellfun(@isnan,excelfile(2:end,Excel.numflies));
-    loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
-    loc = loc1 & loc2;
-    rownums = find(loc)+1;
-    eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]);
-    FileNames = join(eligible_files);
-    fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);    
-    % get file info:
-    baseFolder = getCloudPath;
-    folder = eligible_files{fileIdx,1};
-    arenaSel = eligible_files{fileIdx,2};
-    expName = eligible_files{fileIdx,3};
-    clear loc1 loc2 loc eligible_files FileNames rownums fileIdx
-else
-    %get base folder pathway
-    [baseFolder, folder] = getCloudPath(2);    
-    %select arena to work with:
-    arenaList = {'A', 'B', 'C', 'D'};
-    arenaSel = arenaList{listdlg('ListString', arenaList)};
-    % Select the complete experiments to process
-    list_dirs = dir([baseFolder folder, '\*dataMat.mat']); %only matlab files
-    list_dirs = {list_dirs(:).name};
-    expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
-    expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-    expName = expName(1:end-1);clear expNames
+switch questdlg('Use Excel sheet to select experiment?')
+    case 'Yes'
+        loc1 = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+        loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
+        loc = loc1 & loc2;
+        rownums = find(loc)+1;
+        eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]);
+        FileNames = join(eligible_files);
+        fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);    
+        % get file info:
+        baseFolder = getCloudPath;
+        folder = eligible_files{fileIdx,1};
+        arenaSel = eligible_files{fileIdx,2};
+        expName = eligible_files{fileIdx,3};
+        clear loc1 loc2 loc eligible_files FileNames rownums fileIdx
+    case 'No'
+        %get base folder pathway
+        [baseFolder, folder] = getCloudPath(2);    
+        %select arena to work with:
+        arenaList = {'A', 'B', 'C', 'D'};
+        arenaSel = arenaList{listdlg('ListString', arenaList)};
+        % Select the complete experiments to process
+        list_dirs = dir([baseFolder folder, '\*dataMat.mat']); %only matlab files
+        list_dirs = {list_dirs(:).name};
+        expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
+        expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
+        expName = expName(1:end-1);clear expNames
+    case 'Cancel'
+        return
 end
 
 % Saving and Loading Directories:
