@@ -49,7 +49,7 @@ for tt = 1:length(arenaSel)
     list_dirs = dir([rootDir '*.avi']); %only matlab files
     videoNames = {list_dirs(:).name};
     
-    % generate new text block for each selected video:
+    % generate new text block for each selected video: 
     fid = fopen(codeBlockPath,'a+');
     for ii = 1:length(videoNames)
         vidName = videoNames{ii};
