@@ -12,6 +12,10 @@ switch questdlg('Use Excel sheet to select experiment?')
         loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
         loc = loc1 & loc2;
         rownums = find(loc)+1;
+        if isempty(rownums)
+            warndlg('No available experiments')
+            return
+        end
         eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]);
         FileNames = join(eligible_files);
         fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);    
