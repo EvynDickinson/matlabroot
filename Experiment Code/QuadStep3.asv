@@ -608,6 +608,7 @@ threshHigh = 26;
 threshLow = 6;
 numFitPoints = 100;
 
+
 % Fit the data:
 plotData = [];
 for gg = 1:ngroup
@@ -660,7 +661,7 @@ end
 LW = 3;
 nrows = 1;
 ncols = 3;
-fig = figure; set(fig,'pos', [274 156 973 680]);
+fig = figure; 
 for ii = 1:3
     subplot(nrows,ncols,ii)
     hold on
@@ -673,10 +674,10 @@ for ii = 1:3
             title('Yeast Food')
         case 3
             color_mat = Color('White', 'Gray', ngroup);
-            title('Empty')
+            title('Yeast')
     end
     for gg = 1:ngroup
-        scatter(plotData(gg,ii).smoothed(:,1), plotData(gg,ii).smoothed(:,2), 30, color_mat(gg,:),'filled')
+        scatter(plotData(gg,ii).smoothed(:,1), plotData(gg,ii).smoothed(:,2), 30, color_mat(gg,:))
     %     scatter(plotData(gg,ii).rawData(:,1), plotData(gg,ii).rawData(:,2), 30, color_mat(gg,:))
     end
     for gg = 1:ngroup
@@ -684,22 +685,48 @@ for ii = 1:3
             'color', 'w', 'linewidth', LW+2)
         plot(plotData(gg,ii).bestfit(:,1),plotData(gg,ii).bestfit(:,2),...
             'color', color_mat(gg,:), 'linewidth', LW)
-    end    
+    end
+    
     % Labels:
-    ylim([5,45])
+%     ylim([5,50])
     xlabel('temperature (\circC)')
-    if ii==1; ylabel('distance from well (mm)'); end
-end
-fig = formatFig(fig, true, [nrows,ncols]);
-for ii = 1:3
-    subplot(nrows,ncols,ii)
+    ylabel('distance from well (mm)')
+    
+    % ax = gca;
+    % set(ax, 'FontSize', 25)
     l = legend(leg); set(l, 'TextColor', 'w');
+
 end
 
-save_figure(fig, [figDir ExpGroup ' temp-dist by num flies'], '-png');
-clearvars('-except',initial_vars{:})
 
+            
+% FIGURE: 
+LW = 2;
+fig = getfig; hold on
+for ii = 1:3
+    scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color)
+end
+for ii = 1:3
+%     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
+    plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
+end
+ylim([10,40])
 
+% Labels:
+xlabel('temperature (\circC)')
+ylabel('distance from well (mm)')
+title(strrep(ExpGroup,'_',' '))
+formatFig(fig,true);
+ax = gca;
+set(ax, 'FontSize', 25)
+
+% label key:
+str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
+text(8.5,16, str, 'Color', plotData(1).color, 'FontSize', 12);
+str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
+text(8.5,15, str, 'Color', plotData(2).color, 'FontSize', 12);
+str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
+text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
 
 
 
