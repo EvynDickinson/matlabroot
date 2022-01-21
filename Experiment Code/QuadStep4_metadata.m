@@ -1,8 +1,8 @@
 
-% load in data from the GroupDataGUI to compare across the conditions to
+% This script loads in data from the GroupDataGUI to compare across the conditions to
 % find any other trends...
 
-%% ACROSS DATA STRUCUTRES load data:
+%% LOAD: ACROSS DATA STRUCUTRES load data:
 clear
 
 %select data structure(s) from folder names:
@@ -232,7 +232,7 @@ fprintf('Next\n')
 
 %% Average Distance vs temp across trials:
 kolors = {'DeepPink', 'Orange', 'Lime', 'DodgerBlue'};
-sSpan = 240;
+sSpan = 900;
 [well_1, well_2, well_3, well_4] = deal([]);
 for trial = 1:ntrials
     for well = 1:4
