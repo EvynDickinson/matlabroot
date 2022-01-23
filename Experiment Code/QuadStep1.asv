@@ -138,21 +138,20 @@ end
 maskPath = [analysisDir expName arenaSel ' ArenaMask.mat'];
 if ~isfile(maskPath)
     idx = find(~strcmpi('Empty', wellLabels));
-    if ~isempty(idx)
-        % draw out the masks:
-        for ii = 1:length(idx)
-            wellName = strrep(wellLabels{idx(ii)}, '_', '-');
-            % label the ROI
-            f = figure;
-            imshow(demoImg)
-            title(['Outline the ' wellName ' well'])
-            roi = drawpolygon;
-            mask(ii).n = roi.Position;
-            uiwait(f)
-        end
-        % save the food masks:
-        save(maskPath, 'mask')
+    
+    % draw out the masks:
+    for ii = 1:length(idx)
+        wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+        % label the ROI
+        f = figure;
+        imshow(demoImg)
+        title(['Outline the ' wellName ' well'])
+        roi = drawpolygon;
+        mask(ii).n = roi.Position;
+        uiwait(f)
     end
+    % save the food masks:
+    save(maskPath, 'mask')
 else
     load(maskPath)
 end
@@ -193,13 +192,11 @@ for vid = 1:nvids
     X = reshape(x_loc,[numel(x_loc),1]);
     Y = reshape(y_loc,[numel(y_loc),1]);
     % Find points within the masked region and turn to NaN
-    if exist('mask','var')
-        for ii = 1:length(mask)
-            [in,on] = inpolygon(X,Y, mask(ii).n(:,1),mask(ii).n(:,2));   % Logical Matrix
-            inon = in | on;                                    % Combine ‘in’ And ‘on’
-            X(inon) = NaN;
-            Y(inon) = NaN;
-        end
+    for ii = 1:length(mask)
+        [in,on] = inpolygon(X,Y, mask(ii).n(:,1),mask(ii).n(:,2));   % Logical Matrix
+        inon = in | on;                                    % Combine ‘in’ And ‘on’
+        X(inon) = NaN;
+        Y(inon) = NaN;
     end
     % Remove any labeled points outside the arena:
     loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)>=r;
