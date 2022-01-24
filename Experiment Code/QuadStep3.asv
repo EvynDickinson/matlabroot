@@ -1286,7 +1286,7 @@ for sex = 1:3 % only cycle through M,F,Mix
     title(sexLab{sex})
     fig = formatFig(fig, true);
 
-    save_figure(fig, [figDir ExpGroup ' temp distance across food for ' sexLab{sex}], '-png');
+    save_figure(fig, [figDir ExpGroup ' temp distance across food for ' foodOpt{K}], '-png');
 end
       
 
