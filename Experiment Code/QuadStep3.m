@@ -157,15 +157,23 @@ for trial = 1:ntrials
     end
 end 
 
+FitType = questdlg('Select data for linear fit:', '', 'Smoothed data', 'All data','Cancel', 'All data');
+
 numFitPoints = 1000;
-% threshHigh = 19.88;
-% threshLow = 8.02;
-threshHigh = 24.5;
-threshLow = 6.5;
+switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
+    case 'Low (8-20)'
+        threshHigh = 19.88;
+        threshLow = 8.02;
+    case 'High (6-25)'
+        threshHigh = 24.5;
+        threshLow = 6.5;
+    case 'Cancel'
+end
+
 plotData = [];
 % Fit the data:
 for ii = 1:3
-    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); %#ok<*ASGLU>
+    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
     switch ii
         case 1 % plant food
             inputData = plant;
@@ -185,21 +193,27 @@ for ii = 1:3
     sortedData = inputData(idx,:);
     smoothData(:,1) = smooth(sortedData(:,1),sSpan);
     smoothData(:,2) = smooth(sortedData(:,2),sSpan);
+    switch FitType
+        case 'Smoothed data'
+            fitdata = smoothData;
+        case 'All data'
+            fitdata = sortedData;
+    end
     % find the line of best fit:
-    coefficients = polyfit(smoothData(:,1), smoothData(:,2),1);
-    xFit = linspace(smoothData(1,1), smoothData(end,1), numFitPoints);
+    coefficients = polyfit(fitdata(:,1), fitdata(:,2),1);
+    xFit = linspace(fitdata(1,1), fitdata(end,1), numFitPoints);
     yFit = polyval(coefficients, xFit);
-    yfit = polyval(coefficients, smoothData(:,1));
-    yResid = smoothData(:,2)-yfit;
+    yfit = polyval(coefficients, fitdata(:,1));
+    yResid = fitdata(:,2)-yfit;
     SSresid = sum(yResid.^2);
-    SStotal = (length(smoothData(:,2))-1) * var(smoothData(:,2));
+    SStotal = (length(fitdata(:,2))-1) * var(fitdata(:,2));
     rsq = 1 - SSresid/SStotal; % get the R-square value
     % coefficient of correlation
-    R = corrcoef(smoothData(:,1),smoothData(:,2));
+    R = corrcoef(fitdata(:,1),fitdata(:,2));
     R = R(2,1);
     % save data for plotting:
     plotData(ii).smoothed = smoothData;
-    plotData(ii).bestfit = [smoothData(:,1),yfit];
+    plotData(ii).bestfit = [fitdata(:,1),yfit];
     plotData(ii).color = kolor;
     plotData(ii).rsq = round(rsq,2);
     plotData(ii).R = round(R,2);
@@ -363,7 +377,15 @@ nanloc = isnan(Y_err);
 Y_err(nanloc) = [];
 Y_avg(nanloc) = [];
 
-xlimits = [8,20]; %change this if the temp range changes drastically!
+switch questdlg('Select temp cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
+    case 'Low (8-20)'
+        xlimits = [8,20];
+    case 'High (6-25)'
+        xlimits = [6,25];
+    case 'Cancel'
+end
+
+ %change this if the temp range changes drastically!
 nrows = 1;
 ncols = 4;
 sb(1).idx = 1:2;
@@ -507,15 +529,19 @@ for trial = 1:ntrials
     end
 end 
 
-% threshHigh = 19.88;
-% threshLow = 8.02;
-threshHigh = 24.5;
-threshLow = 6.5;
+switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
+    case 'Low (8-20)'
+        threshHigh = 19.88;
+        threshLow = 8.02;
+    case 'High (6-25)'
+        threshHigh = 24.5;
+        threshLow = 6.5;
+    case 'Cancel'
+end
 
 % Pull plotting data:
 plotData = [];
 for ii = 1:3 %each food type
-    [smoothData,coefficients,xFit,yFit,sortedData,yfit,] = deal([]); 
     switch ii
         case 1 % plant food
             inputData = plant;
@@ -531,7 +557,7 @@ for ii = 1:3 %each food type
     loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
     inputData(loc,:) = [];
     % sort all the data by temperature:
-    t_roi = floor(threshLow):ceil(threshHigh); % TODO: dynamically adjust this to the thresholds...
+    t_roi = floor(threshLow):ceil(threshHigh); 
     idx = discretize(inputData(:,1),t_roi);
     [cnt_unique, unique_a] = hist(idx,unique(idx));
     len = max(cnt_unique);
@@ -578,16 +604,19 @@ for trial = 1:ntrials
 end
 flyNums = unique(nflies);
 inputdata = struct;
+% edges = [1,8,13,18,26]; % bin edges
+edges = [3,7,10:3:19,26]; % bin edges
 
-% fig = figure; histogram(nflies);
-% xlabel('Number of flies in arena')
-% ylabel('Count')
-% fig = formatFig(fig, true);
-% set(gca, 'fontsize', 18)
-% save_figure(fig, [figDir ExpGroup ' num flies histogram'], '-png');
+fig = figure; h = histogram(nflies);
+set(h, 'facecolor', Color('deeppink'),'edgecolor', 'k','facealpha', 1)
+xlabel('Number of flies in arena')
+ylabel('Count')
+v_line(edges-0.5,'deepskyblue','-',1)
+fig = formatFig(fig, true);
+set(gca, 'fontsize', 18)
+save_figure(fig, [figDir ExpGroup ' num flies histogram ' num2str(ngroup) ' bins'], '-png');
 
 % binned fly numbers:
-edges = [1,8,13,18,26];
 bIdx = discretize(nflies,edges);
 ngroup = length(edges)-1;
 nflies(2,:) = bIdx;
@@ -620,10 +649,17 @@ for trial = 1:ntrials
     end
 end
 
-threshHigh = 19.88;
-threshLow = 8.02;
-% threshHigh = 24.5;
-% threshLow = 6.5;
+FitType = questdlg('Select data for linear fit:', '', 'Smoothed data', 'All data','Cancel', 'All data');
+
+switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
+    case 'Low (8-20)'
+        threshHigh = 19.88;
+        threshLow = 8.02;
+    case 'High (6-25)'
+        threshHigh = 24.5;
+        threshLow = 6.5;
+    case 'Cancel'
+end
 numFitPoints = 100;
 
 % Fit the data:
@@ -651,8 +687,12 @@ for gg = 1:ngroup
     smoothData(:,1) = smooth(sortedData(:,1),sSpan);
     smoothData(:,2) = smooth(sortedData(:,2),sSpan);
     % find the line of best fit:
-%     fitData = smoothData;
-    fitData = sortedData; %fit on all the data, but later plot the smoothed data
+    switch FitType
+        case 'Smoothed data'
+            fitData = smoothData;
+        case 'All data'
+            fitData = sortedData;
+    end
     coefficients = polyfit(fitData(:,1), fitData(:,2),1);
     xFit = linspace(fitData(1,1), fitData(end,1), numFitPoints);
     yFit = polyval(coefficients, xFit);
@@ -676,7 +716,8 @@ for gg = 1:ngroup
   end
 end
         
-        
+CList = {'Lavender','Thistle', 'Plum', 'MediumPurple', 'BlueViolet', 'Indigo'};
+
 % PLOT the data:
 LW = 3;
 nrows = 1;
@@ -697,32 +738,29 @@ for ii = 1:3
             title('Empty')
     end
     for gg = 1:ngroup
-        scatter(plotData(gg,ii).smoothed(:,1), plotData(gg,ii).smoothed(:,2), 30, color_mat(gg,:),'filled')
+        scatter(plotData(gg,ii).smoothed(:,1), plotData(gg,ii).smoothed(:,2), 30, Color(CList{gg}),'filled')
     %     scatter(plotData(gg,ii).rawData(:,1), plotData(gg,ii).rawData(:,2), 30, color_mat(gg,:))
     end
     for gg = 1:ngroup
         plot(plotData(gg,ii).bestfit(:,1),plotData(gg,ii).bestfit(:,2),...
             'color', 'w', 'linewidth', LW+2)
         plot(plotData(gg,ii).bestfit(:,1),plotData(gg,ii).bestfit(:,2),...
-            'color', color_mat(gg,:), 'linewidth', LW)
+            'color', Color(CList{gg}), 'linewidth', LW)
     end    
     % Labels:
-    ylim([10,40])
+    ylim([15,40])
     xlabel('temperature (\circC)')
     if ii==1; ylabel('distance from well (mm)'); end
 end
 fig = formatFig(fig, true, [nrows,ncols]);
-for ii = 1:3
+for ii = 3:3
     subplot(nrows,ncols,ii)
     l = legend(leg); set(l, 'TextColor', 'w');
 end
 
-save_figure(fig, [figDir ExpGroup ' temp-dist by num flies - binned'], '-png');
+save_figure(fig, [figDir ExpGroup ' temp-dist by num flies - ' num2str(ngroup) ' bins'], '-png');
 
 % SLOPE OF BEST FIT LINES
-CList = {'Thistle', 'Orchid', 'MediumPurple', 'Indigo'};
-% CList = {'DeepPink', 'Orange', 'Lime', 'DodgerBlue'};
-
 % Find the slope of the line of best fit: 
 for gg = 1:ngroup %number of flies
     for ii = 1:3 %food types
@@ -742,7 +780,7 @@ for gg = 1:ngroup
    set(p, 'Marker','d','MarkerSize', 10,'MarkerFaceColor', Color(CList{gg}));
 end
 xlim([0.75,3.25])
-ylim([-0.7,0.21])
+ylim([-0.81,0.21])
 set(gca, 'xtick', 1:3,'xticklabel', {'Plant', 'Yeast', 'Empty'})
 xlabel({' '; 'Foods'})
 ylabel('Slope of best-fit line')
@@ -750,7 +788,7 @@ fig = formatFig(fig, true);
 l = legend(leg); set(l, 'TextColor', 'w');
 set(gca, 'fontsize', 15)
 
-save_figure(fig, [figDir ExpGroup ' slope of temp-dist by num flies'], '-png');
+save_figure(fig, [figDir ExpGroup ' slope of temp-dist by num flies with ' num2str(ngroup) ' bins'], '-png');
 
 
 clearvars('-except',initial_vars{:})
@@ -1238,10 +1276,10 @@ foodOpt = {'Plant', 'Yeast', 'Empty'};
 sz = 50; width = 0.35;
 
 for K = 1:3
-    fig = figure; set(fig, 'pos', [815 462 442 624])
+    fig = figure; set(fig, 'pos', [815 350 442 624])
     hold on
     % food = plant;
-    for sex = 1:5
+    for sex = 1:nsex
         kolor = pullFoodColor(foodOpt{K});
         plotdata = G(sex).food(K).slope;
         x = linspace(sex,sex+width,length(plotdata));
@@ -1259,25 +1297,29 @@ for K = 1:3
     save_figure(fig, [figDir ExpGroup ' temp distance by sex for ' foodOpt{K}], '-png');
 end
       
-
-
 % --------- PLOT BY FOOD TYPE --------------
 foodOpt = {'Plant', 'Yeast', 'Empty'};
 sz = 50; width = 0.35;
 
 for sex = 1:3 % only cycle through M,F,Mix
-    fig = figure; set(fig, 'pos', [815 462 442 624])
+    fig = figure; set(fig, 'pos', [815 350 442 624])
     hold on
     % try to set up for just plant vs. yeast right now
     plotdata1 = G(sex).food(1).slope; %plant
     plotdata2 = G(sex).food(2).slope; %yeast
     N = length(plotdata1);
-    kolors = Color('powderblue', 'blue',N);
+    kolors = Color('white', 'blue',N); %'powderblue', 'blue'
+    % for fun:
+    temp = plotdata2 - plotdata1;
+    [~,idx] = sort(temp);
+    pdata = [plotdata1(idx),plotdata2(idx)];
+    F(sex).diff = pdata(:,1)-pdata(:,2);
     for ii = 1:N
-        p = plot([1,2],[plotdata1(ii),plotdata2(ii)],'color', kolors(ii,:), 'linewidth', 2);
+        p = plot([1,2],[pdata(ii,1),pdata(ii,2)],'color', kolors(ii,:), 'linewidth', 2);
         set(p, 'marker', 'd', 'markerfacecolor', kolors(ii,:));
     end
     xlim([0.75,2.25])
+    ylim([-2,1.5])
     hline(0,'w:')
 
     set(gca,'xtick',[1,2],'xticklabels',{'Plant', 'Yeast'})
@@ -1288,19 +1330,82 @@ for sex = 1:3 % only cycle through M,F,Mix
 
     save_figure(fig, [figDir ExpGroup ' temp distance across food for ' sexLab{sex}], '-png');
 end
-      
 
-
-
-
-
+clearvars('-except',initial_vars{:},'F','sexLab')
+% ----- Plot relationship between plant and yeast preference ------
+CList = {'deeppink', 'dodgerblue', 'white'};
+fig = figure; hold on
+for sex = 1:3
+    pdata = F(sex).diff;
+    h = histogram(pdata);
+    set(h, 'facecolor',Color(CList{sex}),'facealpha', 0.75)
+end
+fig = formatFig(fig, true);
+l = legend(sexLab{1:3});
+set(l,'textcolor', 'w')
+ylabel('Count'); xlabel('Diff in plant-yeast temperature slope')
+save_figure(fig, [figDir ExpGroup ' temp slope comparison by sex'], '-png');
 clearvars('-except',initial_vars{:})
 
+%% FIGURE: Temperature hysteresis -- does temp ramp direction matter?
+% TODO ... make this a manual selection for temp up vs temp down...
+
+% manually select the temp points
+tempProto = T.TempProtocol;
+tempList = unique(tempProto);
+for ii = 1:length(tempList)
+    tPoints = getTempTurnPoints(tempList{ii});
+end
 
 
 
+figure; 
+plot(temp)
 
 
+% step 1: smooth temp ramp and label temp points as increasing or decreasing
+X = data(1).occupancy.temp; % temperature
+Y = data(1).occupancy.dist2wells(1).N(:,1); %distance to wells
+
+temp = smooth(X,180); % this is the avg. temp for the previous 180 data points (except at start and end)
+direct = diff(temp); % this tells me if the previous point was decreasing or increasing
+increase = smooth(direct,360)>0;
+decrease = smooth(direct,360)<0;
+
+
+% 10 minute bins for determining temp history
+dur = 10*60*3; %min * sec/min * frames/sec
+a = smooth(increase,dur)>0.75; %increasing temp points
+b = smooth(decrease,dur)>0.75;
+
+upPoints = (a==~b);
+
+
+figure; 
+subplot(3,1,1) 
+plot(temp)
+title('temp')
+subplot(3,1,2); hold on
+plot(upPoints, 'color', 'g')
+plot(a)
+title('increasing')
+subplot(3,1,3);
+plot(b)
+title('decreasing')
+
+
+
+figure; 
+subplot(3,1,1) 
+plot(temp)
+subplot(3,1,2)
+plot(direct)
+subplot(3,1,3);
+plot(increase)
+
+
+figure;
+plot(smooth(increase,90))
 
 
 

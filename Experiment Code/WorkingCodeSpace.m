@@ -1004,6 +1004,27 @@ T = table(TD(:,1),TD(:,2),TD(:,3),TD(:,4),TD(:,5),TD(:,6),...
               TD(:,7),TD(:,8),TD(:,9),TD(:,10),TD(:,11),...
               'VariableNames',data2Inc);
 
+%% auto adjust the food names in the diff arenas
+
+
+for i = 1:4
+    for well = 1:4
+        switch well
+            case 1
+                input = 'Empty';
+            case 2
+                input = 'Yeast_1_4_22';
+            case 3
+                input = 'Empty';
+            case 4
+                input = 'Plant_1_18_22';
+        end
+        parameters.(['Arena' Alphabet(i)]).(['well_' num2str(well)]) = input;
+    end
+end
+
+
+load('G:\My Drive\Jeanne Lab\DATA\01.20.2022\PlantYeastChoice_1 parameters.mat')
 
 
 
