@@ -1477,9 +1477,15 @@ switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','C
     case 'Cancel'
 end
 
-% %----------- plot the alignment of the increase|decreasing areas ---------
+% manually select the temp points
+tempProto = T.TempProtocol;
+tempList = unique(tempProto);
+for ii = 1:length(tempList)
+    tPoints = getTempTurnPoints(tempList{ii});
+end
+% tPoints = getTempTurnPoints(T.TempProtocol{trial});
 
-% % tPoints = getTempTurnPoints(T.TempProtocol{trial});
+% %----------- plot the alignment of the increase|decreasing areas ---------
 % fig = figure; hold on
 % for trial = 1:ntrials
 %     plot(data(trial).occupancy.temp,'color', 'w')

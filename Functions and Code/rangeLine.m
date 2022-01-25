@@ -1,6 +1,6 @@
 
-function y = rangeLine(fig_handle)
-% y = rangeLine(fig_handle)
+function y = rangeLine(fig_handle,offset_percent)
+% y = rangeLine(fig_handle,offset_percent)
 % get the y value for a point just below the 
 % top of the graph -- used for plotting the
 % range of a stimulus, like the laser
@@ -9,8 +9,9 @@ function y = rangeLine(fig_handle)
 
 
 figure(fig_handle); %activate the desired figure
-
-offset_percent = 5;
+if nargin==1
+    offset_percent = 5;
+end
 yMax = max(ylim);
 
 yRange = range(ylim);
