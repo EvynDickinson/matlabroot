@@ -10,6 +10,11 @@ switch TempProtocolString
                          64819,93739];
         tempPoints.up = [34629,64818;...
                            93740,141259];
+    case 'double_eaton_warming_cooling_ramp'
+        tempPoints.down = [5720,34628;...
+                         64819,93739];
+        tempPoints.up = [34629,64818;...
+                           93740,141259];
     case 'eaton_cooling_warming_ramp'
         tempPoints.down = [5700,34799];
         tempPoints.up = [34800,64000];

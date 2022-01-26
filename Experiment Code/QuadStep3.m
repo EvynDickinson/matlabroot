@@ -1477,9 +1477,9 @@ switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','C
     case 'Cancel'
 end
 
-% %----------- plot the alignment of the increase|decreasing areas ---------
-
-% % tPoints = getTempTurnPoints(T.TempProtocol{trial});
+% % %----------- plot the alignment of the increase|decreasing areas ---------
+% 
+% tPoints = getTempTurnPoints(T.TempProtocol{trial});
 % fig = figure; hold on
 % for trial = 1:ntrials
 %     plot(data(trial).occupancy.temp,'color', 'w')
@@ -1598,7 +1598,7 @@ for K = 1:3
 end
 fig = formatFig(fig,true, [nrows,ncols]);
 subplot(nrows,ncols,3); 
-l = legend({'','Increasing', '','Decreasing'});
+l = legend({'SEM','Increasing', 'SEM','Decreasing'});
 set(l, 'textcolor', 'w')
 save_figure(fig, [figDir ExpGroup ' temp hysteresis'], '-png');
 

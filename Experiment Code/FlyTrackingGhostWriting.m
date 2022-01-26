@@ -50,7 +50,7 @@ for tt = 1:length(arenaSel)
     videoNames = {list_dirs(:).name};
     
     % generate new text block for each selected video: 
-    fid = fopen(codeBlockPath,'a+');
+    fid = fopen(codeBlockPath,'a+'); 
     for ii = 1:length(videoNames)
         vidName = videoNames{ii};
         trackStr = ['\n' 'sleap-track --tracking.tracker simple '...
