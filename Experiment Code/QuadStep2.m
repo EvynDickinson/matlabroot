@@ -6,7 +6,7 @@ essentialfigs = true;
 excelWrite = true;
 
 %% -------- Find the files that haven't been analyized yet and run them -------------
-  
+   
 %load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 loc = cellfun(@isnan,excelfile(2:end,Excel.numflies));

@@ -57,7 +57,8 @@ expData = load([baseFolder folder '\' expName ' dataMat.mat']);
 tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
-% load tracking predictions   
+% load tracking predictions     
+
 data = struct;
 for vid = 1:nvids
     filePath = [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
