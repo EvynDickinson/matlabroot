@@ -158,18 +158,10 @@ for trial = 1:ntrials
 end 
 
 FitType = questdlg('Select data for linear fit:', '', 'Smoothed data', 'All data','Cancel', 'All data');
-
 numFitPoints = 1000;
-switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
-    case 'Low (8-20)'
-        threshHigh = 19.88;
-        threshLow = 8.02;
-    case 'High (6-25)'
-        threshHigh = 24.5;
-        threshLow = 6.5;
-    case 'Cancel'
-end
+[threshHigh, threshLow] = getTempThresholds;
 
+emptyFood = false(1,3);
 plotData = [];
 % Fit the data:
 for ii = 1:3
@@ -184,6 +176,11 @@ for ii = 1:3
         case 3 % empty
             inputData = empty;
             kolor = pullFoodColor('Empty');
+    end
+    %skip empty data sets (e.g. no yeast in trials)
+    if isempty(inputData)
+        emptyFood(ii) = true;
+        continue; 
     end
     % cut off the high and low ends of data (to clean):
     loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
@@ -223,9 +220,11 @@ end
 LW = 2;
 fig = getfig; hold on
 for ii = 1:3
+    if emptyFood(ii); continue; end
     scatter(plotData(ii).smoothed(:,1), plotData(ii).smoothed(:,2), 30, plotData(ii).color)
 end
 for ii = 1:3
+    if emptyFood(ii); continue; end
 %     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'r', 'linewidth', LW+1)
     plot(plotData(ii).bestfit(:,1),plotData(ii).bestfit(:,2), 'color', 'w', 'linewidth', LW)
 end
@@ -240,12 +239,14 @@ ax = gca;
 set(ax, 'FontSize', 25)
 
 % label key:
-str = ['Plant :   R = ' num2str(plotData(1).R) '  R^2 = ' num2str(plotData(1).rsq)];
-text(8.5,16, str, 'Color', plotData(1).color, 'FontSize', 12);
-str = ['Yeast :  R = ' num2str(plotData(2).R) '  R^2 = ' num2str(plotData(2).rsq)];
-text(8.5,15, str, 'Color', plotData(2).color, 'FontSize', 12);
-str = ['Empty : R = ' num2str(plotData(3).R) '  R^2 = ' num2str(plotData(3).rsq)];
-text(8.5,14, str, 'Color', plotData(3).color, 'FontSize', 12);
+foodLab = {'Plant', 'Yeast', 'Empty'};
+printLoc = [8.5,16; 8.5,15; 8.5,14];
+for ii = 1:3
+  if ~emptyFood(ii)
+    str = [foodLab{ii} ' :   R = ' num2str(plotData(ii).R) '  R^2 = ' num2str(plotData(ii).rsq)];
+    text(printLoc(ii,1),printLoc(ii,2), str, 'Color', plotData(ii).color, 'FontSize', 12);
+  end
+end
 
 save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
@@ -377,13 +378,8 @@ nanloc = isnan(Y_err);
 Y_err(nanloc) = [];
 Y_avg(nanloc) = [];
 
-switch questdlg('Select temp cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
-    case 'Low (8-20)'
-        xlimits = [8,20];
-    case 'High (6-25)'
-        xlimits = [6,25];
-    case 'Cancel'
-end
+[threshHigh, threshLow] = getTempThresholds;
+xlimits = [floor(threshLow), ceil(threshHigh)];
 
  %change this if the temp range changes drastically!
 nrows = 1;
@@ -504,9 +500,8 @@ save_figure(fig, [figDir ExpGroup ' clustering vs time+temp'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-
 %% FIGURE: Fly distance binned by Temperature
-
+emptyFood = false(1,3);
 [plant, yeast, empty] = deal([]);
 for trial = 1:ntrials
     for well = 1:4
@@ -529,16 +524,14 @@ for trial = 1:ntrials
     end
 end 
 
-switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
-    case 'Low (8-20)'
-        threshHigh = 19.88;
-        threshLow = 8.02;
-    case 'High (6-25)'
-        threshHigh = 26;  %24.5;
-        threshLow = 5; %6.5;
-    case 'Cancel'
+% Temperature range and bin size formatting
+[threshHigh, threshLow] = getTempThresholds;
+binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
+t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
+if t_roi(end)<ceil(threshHigh)
+    t_roi(end+1) = ceil(threshHigh) + binSpace;
 end
-
+    
 % Pull plotting data:
 plotData = [];
 for ii = 1:3 %each food type
@@ -553,11 +546,14 @@ for ii = 1:3 %each food type
             inputData = empty;
             plotData(ii).kolor = pullFoodColor('Empty');
     end
+    if isempty(inputData)
+        emptyFood(ii) = true;
+        continue
+    end
     % cut off the high and low ends of data (to clean):
     loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
     inputData(loc,:) = [];
     % sort all the data by temperature:
-    t_roi = floor(threshLow):ceil(threshHigh); 
     idx = discretize(inputData(:,1),t_roi);
     [cnt_unique, unique_a] = hist(idx,unique(idx));
     len = max(cnt_unique);
@@ -577,6 +573,9 @@ end
 fig = figure; set(fig,'pos', [260 196 413 692]);
 hold on
 for ii = 1:3
+    if emptyFood(ii)
+        continue
+    end
     fill_data = error_fill(plotData(ii).xdata, plotData(ii).y_avg, plotData(ii).y_err);
     h = fill(fill_data.X, fill_data.Y, plotData(ii).kolor, 'EdgeColor','none');
     set(h, 'facealpha', 0.35)
@@ -593,7 +592,7 @@ formatFig(fig,true);
 ax = gca;
 set(ax, 'FontSize', 18)
 
-save_figure(fig, [figDir ExpGroup ' temp_err vs well distance'], '-png');
+save_figure(fig, [figDir ExpGroup ' temp_err vs well distance bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
 
 %% FIGURE: Number of Flies Effect Size
@@ -608,14 +607,14 @@ inputdata = struct;
 % edges = [1,8,13,18,26]; % bin edges
 edges = [3,7,10:3:19,26]; % bin edges
 
-fig = figure; h = histogram(nflies);
-set(h, 'facecolor', Color('deeppink'),'edgecolor', 'k','facealpha', 1)
-xlabel('Number of flies in arena')
-ylabel('Count')
-v_line(edges-0.5,'deepskyblue','-',1)
-fig = formatFig(fig, true);
-set(gca, 'fontsize', 18)
-save_figure(fig, [figDir ExpGroup ' num flies histogram ' num2str(ngroup) ' bins'], '-png');
+% fig = figure; h = histogram(nflies);
+% set(h, 'facecolor', Color('deeppink'),'edgecolor', 'k','facealpha', 1)
+% xlabel('Number of flies in arena')
+% ylabel('Count')
+% v_line(edges-0.5,'deepskyblue','-',1)
+% fig = formatFig(fig, true);
+% set(gca, 'fontsize', 18)
+% save_figure(fig, [figDir ExpGroup ' num flies histogram ' num2str(ngroup) ' bins'], '-png');
 
 % binned fly numbers:
 bIdx = discretize(nflies,edges);
@@ -1178,19 +1177,13 @@ save_figure(fig, [figDir ExpGroup ' slope of well distance by arena'], '-png');
 
 clearvars('-except',initial_vars{:})
 %% FIGURE: individual distance line fit by food
+% TODO: update this to work for variable food options (e.g. 1 plant, 3 empty)
+% Currently only works for 
 sSpan = 120;
 numFitPoints = 20;
 % Fit each trial individually and then plot them all...
 FitType = questdlg('Select data for linear fit:', '', 'Smoothed data', 'All data','Cancel', 'All data');
-switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
-    case 'Low (8-20)'
-        threshHigh = 19.88;
-        threshLow = 8.02;
-    case 'High (6-25)'
-        threshHigh = 24.5;
-        threshLow = 6.5;
-    case 'Cancel'
-end
+[threshHigh, threshLow] = getTempThresholds;
 
 %build empty arena to stuff with data
 food = struct;
@@ -1319,19 +1312,9 @@ save_figure(fig, [figDir ExpGroup ' fly sex histogram'], '-png');
 % ----------------------------------
 
 % Fit each trial individually and then plot them all...
-FitType = questdlg('Select data for linear fit:', '', 'Smoothed data', 'All data','Cancel', 'All data');
-
-sex = [];
 numFitPoints = 20;
-switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
-    case 'Low (8-20)'
-        threshHigh = 19.88;
-        threshLow = 8.02;
-    case 'High (6-25)'
-        threshHigh = 24.5;
-        threshLow = 6.5;
-    case 'Cancel'
-end
+FitType = questdlg('Select data for linear fit:', '', 'Smoothed data', 'All data','Cancel', 'All data');
+[threshHigh, threshLow] = getTempThresholds;
 
 %build empty arena to stuff with data
 G = struct('food',cell(1,3));
@@ -1396,8 +1379,12 @@ sz = 50; width = 0.35;
 for K = 1:3
     fig = figure; set(fig, 'pos', [815 350 442 624])
     hold on
-    % food = plant;
     for sex = 1:nsex
+        % skip absent food groups
+        a = G(sex).food.slope;
+        if isempty(a)
+            continue
+        end
         kolor = pullFoodColor(foodOpt{K});
         plotdata = G(sex).food(K).slope;
         x = linspace(sex,sex+width,length(plotdata));
@@ -1418,7 +1405,6 @@ end
 % --------- PLOT BY FOOD TYPE --------------
 foodOpt = {'Plant', 'Yeast', 'Empty'};
 sz = 50; width = 0.35;
-
 for sex = 1:3 % only cycle through M,F,Mix
     fig = figure; set(fig, 'pos', [815 350 442 624])
     hold on
@@ -1467,29 +1453,13 @@ clearvars('-except',initial_vars{:})
 
 %% FIGURE: Temperature hysteresis -- does temp ramp direction matter?
 
-switch questdlg('Select linear fit cutoffs:', '', 'Low (8-20)', 'High (6-25)','Cancel', 'Low (8-20)')
-    case 'Low (8-20)'
-        threshHigh = 20; %19.88;
-        threshLow = 8; %8.02;
-    case 'High (6-25)'
-        threshHigh = 25;  %24.5;
-        threshLow = 6; %6.5;
-    case 'Cancel'
-end
+[threshHigh, threshLow] = getTempThresholds;
 
-% manually select the temp points
-tempProto = T.TempProtocol;
-tempList = unique(tempProto);
-for ii = 1:length(tempList)
-    tPoints = getTempTurnPoints(tempList{ii});
-end
+% %%-----plot the alignment of the increase|decreasing areas for a single trial------
+% trial = 1;
 % tPoints = getTempTurnPoints(T.TempProtocol{trial});
-
-% %----------- plot the alignment of the increase|decreasing areas ---------
 % fig = figure; hold on
-% for trial = 1:ntrials
-%     plot(data(trial).occupancy.temp,'color', 'w')
-% end
+% plot(data(trial).occupancy.temp,'color', 'w')
 % y = rangeLine(fig);
 % for ii = 1:tPoints.nUp
 %     plot(tPoints.up(ii,:),[y,y],'color', Color('teal'),'linewidth',1)
@@ -1503,13 +1473,14 @@ end
 % fig = formatFig(fig, true);
 % ylabel('temp (\circC)')
 % xlabel('time (data points)')
-% save_figure(fig, [figDir ExpGroup ' temp ramp delineation'], '-png');
+% save_figure(fig,...
+%     [figDir ExpGroup ' temp ramp delineation for ' T.TempProtocol{trial}], '-png');
 % %-------------------------------------------------------------------------
 
 % Pull the data from segments 
 [plant, yeast, empty] = deal(struct('up', [], 'down',[]));
 for trial = 1:ntrials
-    tPoints = getTempTurnPoints(T.TempProtocol{trial});
+    tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
     X = data(trial).occupancy.temp; % temperature
     for well = 1:4
         [~,K] = pullFoodColor(data(trial).wellLabels{well});
@@ -1532,10 +1503,12 @@ for trial = 1:ntrials
         end
     end
 end
+
 % Organize data for plotting - bin by temp (deg)
+emptyData = false(1,3);
 plotData = [];
 t_roi = floor(threshLow):ceil(threshHigh); 
-for K = 1:3
+for K = 1:3 %food type
     for type = 1:2
         % pull appropriate data:
         switch K
@@ -1549,12 +1522,16 @@ for K = 1:3
                 UpData = empty.up;
                 DownData = empty.down;
         end
+        if isempty(UpData) || isempty(DownData)
+            emptyData(K) = true;
+            continue 
+        end
         if type == 1 
             inputData = UpData;
         else 
             inputData = DownData;
         end
-        [loc,idx,cnt_unique,unique_a,len,mt] = deal([]);
+%         [loc,idx,cnt_unique,unique_a,len,mt] = deal([]);
         % cut off the high and low ends of data (to clean):
         loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
         inputData(loc,:) = [];
@@ -1578,18 +1555,24 @@ for K = 1:3
 end
  
 % PLOT the grouped & binned data points :
-nrows = 1; ncols = 3;
+nPlots = sum(~emptyData);
+nrows = 1; ncols = nPlots;
 titleList = {'Plant', 'Yeast', 'Empty'};
 CList = {'teal', 'orangered'}; %up and down colors
 
-
-fig = figure; set(fig, 'pos', [132 83 1097 693]);
+ii = 0;
+fig = figure; set(fig, 'pos', [132 83 365*nPlots 693]);
 for K = 1:3
-    subplot(nrows, ncols, K)
+    % skips absent food types
+    if emptyData(K)
+        continue
+    else
+        ii = ii+1;
+    end
+    subplot(nrows, ncols, ii)
     hold on
     for type = 1:2
         kolor = Color(CList{type});
-        [x,y,yerr] = deal([]);
         x = plotData(K,type).xdata;
         y = plotData(K,type).y_avg;
         yerr = plotData(K,type).y_err;
@@ -1597,14 +1580,15 @@ for K = 1:3
         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
           set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2)
+        ylimits(ii,:) = yliml
     end
     xlabel('temperature (\circC)')
     ylabel('distance from well (mm)')
     title(titleList{K})
 end
 fig = formatFig(fig,true, [nrows,ncols]);
-subplot(nrows,ncols,3); 
-l = legend({'','Increasing', '','Decreasing'});
+subplot(nrows,ncols,nPlots); 
+l = legend({'SEM','Increasing', 'SEM','Decreasing'});
 set(l, 'textcolor', 'w')
 save_figure(fig, [figDir ExpGroup ' temp hysteresis'], '-png');
 

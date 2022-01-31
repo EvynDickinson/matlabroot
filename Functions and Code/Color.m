@@ -17,7 +17,6 @@ function color_output = Color(color_1, color_2, N)
 %
 % e.g. [1, 0.5, 0] = Color('orange')
 % Find current colors in 'Color Palette' 
-% on the google drive
 % 
 % ES Dickinson, University of Washington, Dec 2018
 

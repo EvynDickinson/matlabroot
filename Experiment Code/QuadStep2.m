@@ -45,6 +45,8 @@ for ii = 1:length(fileIdx)
     disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
+return
+
 %% Select Date & Experiment to Process
 
 %get base folder pathway
