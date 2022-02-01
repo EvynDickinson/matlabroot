@@ -1,36 +1,21 @@
-function v_line(x, in1, in2, in3)
+function h_line(y, in1, in2, in3)
 % v_line(x, color, style, linewidth)
+% y = y coordinate to place horizontal lines
 % 
 % Allows for multiple x inputs for vertical lines
 % Each can have same or diff line colors and styles
 %
 % ES Dickinson
-% Yale University, 2020
+% Yale University, 2022
 %
-% Adaptaton of 'vline' by Brandon Kuczenski
+% Adaptaton of 'hline' by Brandon Kuczenski
 % brandon_kuczenski@kensingtonlabs.com
-
-% %type of color input allowable:
-% a = 'w';
-% A = 'white';
-% aa = {'w', 'b'};
-% AA = {'w', 'blue'};
-% aaa = [0 1 0];
-% AAA = [0 1 0; 0 0 0];
-
-% type of linestyle inputs:
-% ':'
-% {':','--','-'}
-
 
 % turn hold to on:
 g = ishold(gca);
 hold on
-%get ylimits
-y = get(gca,'ylim');
-
-
-% ADD LINES
+%get xlimits
+x = get(gca,'xlim');
 
 % defaults:
 LW = 0.5;
@@ -38,9 +23,9 @@ linetype = '--';
 RGB = 'r';
 
 % user inputs:
-for ii = 1:length(x)
+for ii = 1:length(y)
     % x value for vline
-    xval = x(ii); 
+    yval = y(ii); 
     
     % find line color 
     if nargin>1 
@@ -85,9 +70,10 @@ for ii = 1:length(x)
             LW = in3;
         end
     end
-    
-    plot([xval, xval], y,'color', RGB, 'linestyle', linetype, 'linewidth', LW)
-end  
+   
+    % put the line on the graph
+    plot(x, [yval, yval], 'color', RGB, 'linestyle', linetype, 'linewidth', LW)
+    end  
     
      
 % return hold status
@@ -100,7 +86,3 @@ end
 
 
 
-
-
-
-end
