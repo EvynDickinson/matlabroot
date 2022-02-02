@@ -1028,8 +1028,9 @@ load('G:\My Drive\Jeanne Lab\DATA\01.20.2022\PlantYeastChoice_1 parameters.mat')
 
 %% Finding specific flies within the jumble
 
+% Exemplary Trials
+% ===================================================================================
 loc = true(ntrials,1);
-
 
 % take only positive plant relationship
 loc(food(1).slope<0)=false;
@@ -1040,16 +1041,47 @@ flies = T(loc,:);
 
 flyData = [food(1).slope(loc),food(2).slope(loc)];
 
-figure; hold on
+fig = figure; hold on
 for ii = 1:sum(loc)
-    plot(flyData(ii,1), flyData(ii,2))
-
+    plot([1,2], flyData(ii,:),'Color', Color('powderblue'), 'linewidth', 1)
 end
+hline(0,'r--')
+xlim([0.8, 2.2])
+ylabel('Temp-distance relation')
+xlabel('Food Type')
+set(gca, 'xtick', [1,2], 'xticklabels', {'Plant', 'Yeast'})
+title('Exemplary trials')
+fig = formatFig(fig, true);
+
+save_figure(fig, [figDir ExpGroup ' exemplar temp-distance trials'], '-png');
 
 
+% Non-Exemplary Trials
+% ===================================================================================
+loc = true(ntrials,1);
 
+% take only positive plant relationship
+loc(food(1).slope>=0)=false;
+% take only negative yeast slopes
+loc(food(2).slope<=0)=false;
 
+flies = T(loc,:);
 
+flyData = [food(1).slope(loc),food(2).slope(loc)];
+
+fig = figure; hold on
+for ii = 1:sum(loc)
+    plot([1,2], flyData(ii,:),'Color', Color('paleyellow'), 'linewidth', 1)
+end
+hline(0,'r--')
+xlim([0.8, 2.2])
+ylabel('Temp-distance relation')
+xlabel('Food Type')
+set(gca, 'xtick', [1,2], 'xticklabels', {'Plant', 'Yeast'})
+title('Exemplary trials')
+fig = formatFig(fig, true);
+
+save_figure(fig, [figDir ExpGroup ' exemplar temp-distance trials'], '-png');
 
 
 
