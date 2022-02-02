@@ -60,6 +60,7 @@ order = [1,2,3]; %S,M,F
 % Ramp durations
 fullTimes = [180,72,36];
 halfTimes = [90, 36, 18];
+cList = {'Cyan','DarkViolet','Orange'};
 % Target Temperatures
 maxTemp = 25;
 minTemp = 7;
@@ -70,19 +71,35 @@ startTime = 15;
 %START HOLD:
 step(1).time = [0,startTime];
 step(1).temp = [startTemp, startTemp];
-% INCREASE TO RAMP S
+% INCREASE TO TEMP MAX at order 1 rate
+tEnd = step(1).time(end);
+step(2).time = [tEnd,tEnd+halfTimes(order(1))];
+step(2).temp = [startTemp, maxTemp];
+% DECREASE TO TEMP MIN at order 1 rate
+tEnd = step(1).time(end);
+step(2).time = [tEnd,tEnd+halfTimes(order(1))];
+step(2).temp = [startTemp, startTemp];
 
 % Graph...
 fig = figure; hold on
 plot(step(1).time,step(1).temp,'color', 'w')
+plot(step(2).time,step(2).temp,'color', Color(cList{order(1)}))
 
 
+%% 
 
+tempLog = readmatrix("G:\My Drive\Jeanne Lab\DATA\02.01.2022\TempRatePlantFood_RampLog(1).csv");
+x = linspace(0,length(tempLog)*5,length(tempLog));
+x = x./(60*60);
+y = tempLog(:,2);
 
+fig = figure; hold on
+plot(x,y, 'Color',Color('powderblue'), 'LineWidth',2)
 
-
-
-
+plot(x,y, 'Color',Color('powderblue'), 'LineWidth',2)
+ylabel('Temp (\circC)')
+xlabel('Time (hr)')
+fig = formatFig(fig, true);
 
 
 

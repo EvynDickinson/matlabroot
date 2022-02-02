@@ -86,12 +86,21 @@ plot(step(1).time,step(1).temp,'color', 'w')
 plot(step(2).time,step(2).temp,'color', Color(cList{order(1)}))
 
 
+%% 
 
+tempLog = readmatrix("G:\My Drive\Jeanne Lab\DATA\02.01.2022\TempRatePlantFood_RampLog(1).csv");
+x = tempLog(:,1); %time (in seconds)
+x = x./(60*60);
+y1 = tempLog(:,3); %set temp
+y2 = tempLog(:,2); %actual temp
 
-
-
-
-
+fig = figure; hold on
+plot(x,y1, 'Color',Color('red'), 'LineWidth',1, 'LineStyle',':')
+plot(x,y2, 'Color',Color('white'), 'LineWidth',2)
+ylabel('Temp (\circC)')
+xlabel('Time (hr)')
+fig = formatFig(fig, true);
+save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\Temp Control\Exp 1 temp readout','-png');
 
 
 
