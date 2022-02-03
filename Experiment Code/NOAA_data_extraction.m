@@ -462,6 +462,12 @@ x = x./(60*60);
 y1 = tempLog(:,3); %set temp
 y2 = tempLog(:,2); %actual temp
 
+figure;
+y = tempLog(:,4); %time (in seconds)
+plot(y)
+hold on
+plot(tempLog(:,2))
+
 fig = figure; set(fig, 'pos', [497 219 1372 288]); hold on
 plot(x,y1, 'Color',Color('red'), 'LineWidth',1, 'LineStyle',':')
 plot(x,y2, 'Color',Color('white'), 'LineWidth',2)
