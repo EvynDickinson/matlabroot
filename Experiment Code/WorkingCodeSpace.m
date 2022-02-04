@@ -1140,6 +1140,64 @@ fig = formatFig(fig, true);
 
 save_figure(fig, [figDir ExpGroup ' positive cold relationship temp-distance trials'], '-png');
 
+%% Fly clustering by temp bin:
+
+ROI = 1:40490; % take the first 225 minutes only | [] =  all data
+
+if ntrials > 15
+    warndlg('There are too many data points for this analysis'); return
+end
+sSpan = 360;
+timeLen = zeros(1,ntrials);
+for trial = 1:ntrials
+    timeLen(trial) = length(data(trial).occupancy.flycount);
+end
+len = max(timeLen); %max number of frames (or time) within the selected experiments
+uni_time = linspace(1,(len/3)/60,len); % universal time component...
+
+sSpan = 360;
+[clust, temp] = deal(nan([len,ntrials]));
+all = [];
+for trial = 1:ntrials
+    
+    x = data(trial).occupancy.temp';
+    y = data(trial).occupancy.IFD./pix2mm;  % interfly distance in mm
+    
+    if ~isempty(ROI)
+        x = x(ROI);
+        y = y(ROI);
+    end
+
+%     %normalize to the minimum distance (1=most clustered)...this helps deal with the
+%     %fly density variability
+%     minY = min(y);
+%     maxY = max(y);
+%     z = abs(1-((y-minY)./(maxY-minY))); %1=most clustered 0 = no clustering
+    % TODO: group the reponses by temp degree bins
+    % clustering data
+    clust(1:length(z),trial) = z;
+    % temperature data
+    temp(1:length(x),trial) = x;
+    % both:
+    all = [all; x,z'];
+end
+% sort the 'all' data by temperature dependence:
+[~, idx] = sort(all(:,1));
+sortedData = all(idx,:);
+% avg and err of all the trials
+Y_avg = nanmean(clust,2);
+Y_err = std(clust,0,2);
+nanloc = isnan(Y_err);
+Y_err(nanloc) = [];
+Y_avg(nanloc) = [];
+
+xlimits = [8,20]; %TODO: change this if the temp range changes drastically!
+ylimits = [0,1];
+nrows = 1;
+ncols = 4;
+sb(1).idx = 1:2;
+sb(2).idx = 3:4;
+kolor = Color('slateblue');
 
 
 

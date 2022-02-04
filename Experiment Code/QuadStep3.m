@@ -434,6 +434,8 @@ fprintf('Next\n')
 % add an analysis that looks at how different the line is from zero slope
 
 %% FIGURE: Clustering vs temperature 
+ROI = 1:40490; % take the first 225 minutes only | [] =  all data
+
 if ntrials > 15
     warndlg('There are too many data points for this analysis'); return
 end
@@ -449,8 +451,15 @@ sSpan = 360;
 [clust, temp] = deal(nan([len,ntrials]));
 all = [];
 for trial = 1:ntrials
+    
     x = data(trial).occupancy.temp';
     y = data(trial).occupancy.IFD./pix2mm;  % interfly distance
+    
+    if ~isempty(ROI)
+        x = x(ROI);
+        y = y(ROI);
+    end
+
     %normalize to the minimum distance (1=most clustered)...this helps deal with the
     %fly density variability
     minY = min(y);
@@ -474,13 +483,14 @@ nanloc = isnan(Y_err);
 Y_err(nanloc) = [];
 Y_avg(nanloc) = [];
 
-xlimits = [8,20]; %change this if the temp range changes drastically!
+xlimits = [8,20]; %TODO: change this if the temp range changes drastically!
 ylimits = [0,1];
 nrows = 1;
 ncols = 4;
 sb(1).idx = 1:2;
 sb(2).idx = 3:4;
 kolor = Color('slateblue');
+
 
 % FIGURE
 fig = figure; set(fig,'pos',[49 200 1491 541]);
