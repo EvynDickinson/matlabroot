@@ -1,6 +1,10 @@
 
 % TODO: automate so it can loop through 'autosaving' after the initial manual work
 
+
+ans = inputdlg('  ')
+str2double(ans{:})
+
 %% -------- Find the files that haven't been analyized yet and run them -------------
 clear; close all; clc
 autoSave = true;

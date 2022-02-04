@@ -4,7 +4,7 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 
 
 % Use this to find temp points for new temp protocols:
-% figure; plot(data(1).occupancy.temp,'color', 'k')
+% figure; plot(smooth(data(1).occupancy.temp),'color', 'k')
 
 
 % pull the appropriate start|end points:
@@ -27,7 +27,7 @@ switch TempProtocolString
     case 'eaton_warming_cooling_ramp'
         tempPoints.down = [34800,64000];
         tempPoints.up = [5700,34799];
-        
+    % =======================================    
     case 'double_linear_cooling_ramp'
         tempPoints.down = [5477,28299;...
                            52140,75509;...
@@ -42,7 +42,8 @@ switch TempProtocolString
         tempPoints.down = [28300, 52139;...
                          75510,98339;...
                          122300,147700];
-        
+    % =======================================  
+    case '
 end
 
 % increasing|decreasing ROI:

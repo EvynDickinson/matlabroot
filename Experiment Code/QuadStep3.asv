@@ -1571,7 +1571,7 @@ end
 nPlots = sum(~emptyData);
 nrows = 1; ncols = nPlots;
 titleList = {'Plant', 'Yeast', 'Empty'};
-CList = {'red', 'deepskyblue'}; %heating and cooling colors
+CList = {'red', 'blue'}; %heating and cooling colors
 
 ii = 0;
 fig = figure; set(fig, 'pos', [132 83 365*nPlots 693]);
@@ -1605,7 +1605,7 @@ for ii = 1:nPlots
 subplot(nrows,ncols,ii)
 ylim([min(ylimits(:,1)),max(ylimits(:,2))])
 end
-l = legend({'SEM','Heating', 'SEM','Cooling'});
+l = legend({'SEM','Increasing', 'SEM','Decreasing'});
 set(l, 'textcolor', 'w','position', [0.5997 0.1556 0.1781 0.1176])
 save_figure(fig, [figDir ExpGroup ' temp hysteresis'], '-png');
 

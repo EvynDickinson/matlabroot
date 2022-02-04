@@ -1,0 +1,159 @@
+
+
+% Run this script after initial data processing with:
+% QuadStep1.m
+% QuadStep2.m
+% GroupDataGUI
+
+%% Load data file
+% Load data for now from the first step of QuadStep3.m
+
+clearvars('-except',initial_vars{:})
+
+%% Colormap plot of temp-rate and distance to food source
+[threshHigh, threshLow] = getTempThresholds;
+% step 1) get the temp rate, temp, amd distance from food
+
+temp = data(1).occupancy.temp;
+temp_s = smooth(temp,5);
+temp_rate = (diff(temp_s)./(1/3)); %divide by frame rate
+
+figure;
+subplot(3,1,1)
+plot(temp_s)
+subplot(3,1,2)
+plot(temp_rate)
+
+
+
+
+
+
+
+
+
+
+% Pull the data from segments 
+[plant, yeast, empty] = deal(struct('up', [], 'down',[]));
+for trial = 1:ntrials
+    tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
+    X = data(trial).occupancy.temp; % temperature
+    for well = 1:4
+        [~,K] = pullFoodColor(data(trial).wellLabels{well});
+        % pull the dist2well data for each trial
+        try Y = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm; %distance to wells
+        catch; Y = data(trial).dist2wells(well).N(:,1)./pix2mm;
+        end
+        raw = [X',Y];
+        % sort the data by food type
+        switch K
+            case 1
+                plant.up = [plant.up; raw(tPoints.UpROI,:)];
+                plant.down = [plant.down; raw(tPoints.DownROI,:)];
+            case 2
+                yeast.up = [yeast.up; raw(tPoints.UpROI,:)];
+                yeast.down = [yeast.down; raw(tPoints.DownROI,:)];
+            case 3
+                empty.up = [empty.up; raw(tPoints.UpROI,:)];
+                empty.down = [empty.down; raw(tPoints.DownROI,:)];
+        end
+    end
+end
+
+
+
+
+
+% Organize data for plotting - bin by temp (deg)
+emptyData = false(1,3);
+plotData = [];
+t_roi = floor(threshLow):ceil(threshHigh); 
+for K = 1:3 %food type
+    for type = 1:2
+        % pull appropriate data:
+        switch K
+            case 1 %plant
+                UpData = plant.up;
+                DownData = plant.down;
+            case 2 %yeast
+                UpData = yeast.up;
+                DownData = yeast.down;
+            case 3 %empty
+                UpData = empty.up;
+                DownData = empty.down;
+        end
+        if isempty(UpData) || isempty(DownData)
+            emptyData(K) = true;
+            continue 
+        end
+        if type == 1 
+            inputData = UpData;
+        else 
+            inputData = DownData;
+        end
+%         [loc,idx,cnt_unique,unique_a,len,mt] = deal([]);
+        % cut off the high and low ends of data (to clean):
+        loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
+        inputData(loc,:) = [];
+        
+        % sort all the data by temperature:
+        idx = discretize(inputData(:,1),t_roi);
+        [cnt_unique, unique_a] = hist(idx,unique(idx));
+        len = max(cnt_unique);
+        mt = nan(len,length(unique_a));
+        for tt = 1:length(unique_a)
+            cue = unique_a(tt); %index number
+            loc = idx==cue;
+            mt(1:sum(loc),tt) = inputData(loc,2);
+            y_err(tt) = std(inputData(loc,2));
+            plotData(K,type).y_avg(tt) = mean(inputData(loc,2));
+        end
+        plotData(K,type).y_err = y_err./sqrt(ntrials);
+        plotData(K,type).xdata = t_roi(unique_a);
+        inputData = [];
+    end
+end
+ 
+% PLOT the grouped & binned data points :
+nPlots = sum(~emptyData);
+nrows = 1; ncols = nPlots;
+titleList = {'Plant', 'Yeast', 'Empty'};
+CList = {'red', 'deepskyblue'}; %heating and cooling colors
+
+ii = 0;
+fig = figure; set(fig, 'pos', [132 83 365*nPlots 693]);
+for K = 1:3
+    % skips absent food types
+    if emptyData(K)
+        continue
+    else
+        ii = ii+1;
+    end
+    subplot(nrows, ncols, ii)
+    hold on
+    for type = 1:2
+        kolor = Color(CList{type});
+        x = plotData(K,type).xdata;
+        y = plotData(K,type).y_avg;
+        yerr = plotData(K,type).y_err;
+        fill_data = error_fill(x, y, yerr);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+          set(h, 'facealpha', 0.2)
+        plot(x,y,'color', kolor, 'linewidth', 2)
+    end
+    ylimits(ii,:) = ylim;
+    xlabel('temperature (\circC)')
+    ylabel('distance from well (mm)')
+    title(titleList{K})
+end
+fig = formatFig(fig,true, [nrows,ncols]);
+%set uniform y axis
+for ii = 1:nPlots
+subplot(nrows,ncols,ii)
+ylim([min(ylimits(:,1)),max(ylimits(:,2))])
+end
+l = legend({'SEM','Heating', 'SEM','Cooling'});
+set(l, 'textcolor', 'w','position', [0.5997 0.1556 0.1781 0.1176])
+save_figure(fig, [figDir ExpGroup ' temp hysteresis'], '-png');
+
+clearvars('-except',initial_vars{:})
