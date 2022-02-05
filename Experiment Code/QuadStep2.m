@@ -21,7 +21,7 @@ fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);
 %pull the list of dates and arenas to be 
 List.date = eligible_files(fileIdx,1);
 List.arena = eligible_files(fileIdx,2);
-List.expID = eligible_files(fileIdx,3);
+List.expID = eligible_files(fileIdx,3); 
 
 %get base folder pathway
 baseFolder = getCloudPath;
@@ -42,7 +42,7 @@ for ii = 1:length(fileIdx)
             end
         end
     end
-    disp(['Finished ' FileNames(fileIdx(ii))])         
+disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
 return % prevent auto running the whole script

@@ -43,7 +43,22 @@ switch TempProtocolString
                          75510,98339;...
                          122300,147700];
     % =======================================  
-    case '
+    case 'Velocity Ramp A Up'
+        tempPoints.up = [2924, 19150;...
+                         51340,64090;... 
+                         77100,83630;... 
+                         90200,122500];
+        tempPoints.down = [19151,51339;... 
+                           64091,77099;... 
+                           83631,90199;... 
+                           122501,154500];
+    % =======================================  
+    case 'Velocity Ramp B Up'
+    case 'Velocity Ramp C Up'
+    case 'Velocity Ramp D Up'
+    case 'Velocity Ramp E Up'
+    case 'Velocity Ramp F Up'
+  
 end
 
 % increasing|decreasing ROI:
@@ -63,3 +78,10 @@ for ii = 1:nDown
 end
 tempPoints.UpROI = UpROI;
 tempPoints.DownROI = DownROI;
+
+tempPoints.transitions = 
+
+
+
+
+

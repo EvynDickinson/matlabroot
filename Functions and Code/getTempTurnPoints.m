@@ -78,3 +78,15 @@ for ii = 1:nDown
 end
 tempPoints.UpROI = UpROI;
 tempPoints.DownROI = DownROI;
+
+% just pull all the points where the temp ramp changes rate:
+temp = [tempPoints.up; tempPoints.down];
+temp = [1; sort(temp(:))];
+loc = diff(temp)<10;
+temp(loc) = [];
+tempPoints.transitions = temp;
+
+
+
+
+

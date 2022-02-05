@@ -166,6 +166,11 @@ x2 = wellcenters(1,2:2:4);
 y2 = wellcenters(2,2:2:4);
 [xi,yi] = polyxpoly(x1,y1,x2,y2);
 centre = [xi;yi];
+% 
+% % pic preview of mask circle:
+% figure; hold on
+% imshow(demoImg)
+% viscircles(centre', r);
 
 % Tracking matrix locations: [frame, node, xy, fly]
 scaleFactor = 1.31; % WHY IS THIS NECESSARY??? TODO
