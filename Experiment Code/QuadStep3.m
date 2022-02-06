@@ -134,6 +134,7 @@ save_figure(fig, [figDir ExpGroup ' all temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+
 %% FIGURE: Average Distance vs temp across trials:
 
 sSpan = 240;
@@ -1485,17 +1486,18 @@ clearvars('-except',initial_vars{:})
 % plot(data(trial).occupancy.temp,'color', 'w')
 % y = rangeLine(fig);
 % for ii = 1:tPoints.nUp
-%     plot(tPoints.up(ii,:),[y,y],'color', Color('teal'),'linewidth',1)
+%     plot(tPoints.up(ii,:),[y,y],'color', Color('red'),'linewidth',1)
 % end
 % v_line(reshape(tPoints.up,numel(tPoints.up),1),'w')
 % for ii = 1:tPoints.nUp
-%     plot(tPoints.down(ii,:),[y,y],'color', Color('orangered'),'linewidth',1)
+%     plot(tPoints.down(ii,:),[y,y],'color', Color('deepskyblue'),'linewidth',1)
 % end
 % % scatter(tPoints.UpROI,27*ones(1,length(tPoints.UpROI)),10,'g','filled')
 % % scatter(tPoints.DownROI,27*ones(1,length(tPoints.DownROI)),10,'r','filled')
-% fig = formatFig(fig, true);
 % ylabel('temp (\circC)')
 % xlabel('time (data points)')
+% title(ExpGroup)
+% fig = formatFig(fig, true);
 % save_figure(fig,...
 %     [figDir ExpGroup ' temp ramp delineation for ' T.TempProtocol{trial}], '-png');
 % %-------------------------------------------------------------------------
