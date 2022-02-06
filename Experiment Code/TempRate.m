@@ -4,6 +4,7 @@
 % QuadStep1.m
 % QuadStep2.m
 % GroupDataGUI
+clear 
 
 %% Load data file
 % Load data for now from the first step of QuadStep3.m
@@ -11,7 +12,13 @@
 clearvars('-except',initial_vars{:})
 
 %% Trial by trial figures: 
-disp_figs = false;
+disp_figs = true;
+auto_save_figs = true;
+ind_fig_loc = [figDir 'Trial by trial\'];
+if ~isfolder(ind_fig_loc); mkdir(ind_fig_loc); end
+vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace',...
+        'G', 'disp_figs','auto_save_figs','ind_fig_loc'];
+
 [threshHigh, threshLow] = getTempThresholds;
 binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
 
@@ -49,6 +56,10 @@ for trial = 12:ntrials
     % === Demo plot for single trial =====:
     title_str = [T.Date{trial} ' Arena ' T.Arena{trial}];
     if disp_figs 
+        fig_file = [ind_fig_loc ExpGroup ' temp temp_rate dist ' title_str];
+        if isfile([fig_file '.png']) %skip already generated figures
+            continue
+        end
         time = data(trial).occupancy.time(1:end-1);
         fig = figure; set(fig, 'pos', [689 48 1628 960])
         % temp
@@ -76,7 +87,7 @@ for trial = 12:ntrials
         subplot(3,1,3)
         yyaxis left 
         set(gca,'YColor', 'w')
-        save_figure(fig, [figDir ExpGroup ' temp temp_rate dist ' title_str], '-png');
+        save_figure(fig, fig_file, '-png',auto_save_figs);
     end
     % Temp-rate identification and sorting: 
     buffSize = 0.05;
@@ -133,6 +144,10 @@ for trial = 12:ntrials
 
     % PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
     if disp_figs
+        fig_file = [ind_fig_loc ExpGroup ' temp temp_rate dist heatmap ' title_str];
+        if isfile([fig_file '.png']) %skip already generated figures
+            continue
+        end
 %         colormap default
         fig = figure; set(fig, 'pos', [560 127 983 417]);
         hold on
@@ -158,13 +173,11 @@ for trial = 12:ntrials
         % flip colormap around to make yellow closer to food
         cmap = colormap;
         set(gca, 'colormap', flip(cmap))
-        save_figure(fig, [figDir ExpGroup ' temp temp_rate dist heatmap ' title_str], '-png');
+        save_figure(fig, fig_file, '-png', auto_save_figs);
     end
     
-    vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace', 'G', 'disp_figs'];
 clearvars('-except',vars{:}) 
 end
-
 
 % Save Data structure:
 if questdlg('Save loaded data?')

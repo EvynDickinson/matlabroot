@@ -4,6 +4,7 @@
 % QuadStep1.m
 % QuadStep2.m
 % GroupDataGUI
+clear 
 
 %% Load data file
 % Load data for now from the first step of QuadStep3.m
@@ -12,12 +13,19 @@ clearvars('-except',initial_vars{:})
 
 %% Trial by trial figures: 
 disp_figs = true;
+auto_save_figs = true;
+ind_fig_loc = [figDir 'Trial by trial\'];
+if ~isdir(ind_fig_loc); mkdir(ind_fig_loc); end
+vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace',...
+        'G', 'disp_figs','auto_save_figs','ind_fig_loc'];
+
 [threshHigh, threshLow] = getTempThresholds;
 binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
 
 G = struct;
+
 % Get the temp rate, temp, and distance from food
-for trial = 2:2%ntrials
+for trial = 12:ntrials
     T_rates = [];
     % temperature
     temp = data(trial).occupancy.temp;
@@ -75,7 +83,7 @@ for trial = 2:2%ntrials
         subplot(3,1,3)
         yyaxis left 
         set(gca,'YColor', 'w')
-        save_figure(fig, [figDir ExpGroup ' temp temp_rate dist ' title_str], '-png');
+        save_figure(fig, [ind_fig_loc ExpGroup ' temp temp_rate dist ' title_str], '-png',auto_save_figs);
     end
     % Temp-rate identification and sorting: 
     buffSize = 0.05;
@@ -103,7 +111,7 @@ for trial = 2:2%ntrials
 
     end
     plotData(:,4) = rateData;
-    plotData(:,5) = IdrateIdxx; %rate bin
+    plotData(:,5) = rateIdx; %rate bin
     G(trial).rateIdx = rateIdx;
     G(trial).rates = T_rates;
     G(trial).data = plotData;
@@ -131,42 +139,52 @@ for trial = 2:2%ntrials
     G(trial).heatmap = heatMapData;
 
     % PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
-    colormap default
-    fig = figure; set(fig, 'pos', [560 127 983 417]);
-    hold on
-    imAlpha=ones(size(heatMapData));
-    imAlpha(isnan(heatMapData))=0;
-    imagesc(heatMapData,'AlphaData',imAlpha);
-    set(gca,'color',0*[1 1 1]);
-    axis tight
-    title(title_str)
-    % Axes formatting
-    ax = gca;
-    fig = formatFig(fig, true);
-    XtickNum = ax.XTick;
-    ax.XTickLabel = t_roi(XtickNum);
-    YtickNum = ax.YTick;
-    set(gca, 'ytick', 1:nRates,'YTickLabel',T_rates)
-    ylabel('\DeltaT/dt (\circC/min)')
-    xlabel('Temp (\circC)')
-    % Colorbar formatting
-    cbh = colorbar(); 
-    cbh.Label.String = 'Distance from food (mm)';
-    cbh.Color = Color('white');
-    % flip colormap around to make yellow closer to food
-    cmap = colormap;
-    set(gca, 'colormap', flip(cmap))
-
-    save_figure(fig, [figDir ExpGroup ' temp temp_rate dist heatmap ' title_str], '-png');
-    vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace', 'G'];
+    if disp_figs
+        fig_file = [ind_fig_loc ExpGroup ' temp temp_rate dist heatmap ' title_str];
+        if isfile([fig_file '.png']) %skip alread 
+            continue
+        end
+%         colormap default
+        fig = figure; set(fig, 'pos', [560 127 983 417]);
+        hold on
+        imAlpha=ones(size(heatMapData));
+        imAlpha(isnan(heatMapData))=0;
+        imagesc(heatMapData,'AlphaData',imAlpha);
+        set(gca,'color',0*[1 1 1]);
+        axis tight
+        title(title_str)
+        % Axes formatting
+        ax = gca;
+        fig = formatFig(fig, true);
+        XtickNum = ax.XTick;
+        ax.XTickLabel = t_roi(XtickNum);
+        YtickNum = ax.YTick;
+        set(gca, 'ytick', 1:nRates,'YTickLabel',T_rates)
+        ylabel('\DeltaT/dt (\circC/min)')
+        xlabel('Temp (\circC)')
+        % Colorbar formatting
+        cbh = colorbar(); 
+        cbh.Label.String = 'Distance from food (mm)';
+        cbh.Color = Color('white');
+        % flip colormap around to make yellow closer to food
+        cmap = colormap;
+        set(gca, 'colormap', flip(cmap))
+        save_figure(fig, fig_file, '-png', auto_save_figs);
+    end
+    
+    
 clearvars('-except',vars{:}) 
 end
 
 
+% Save Data structure:
+if questdlg('Save loaded data?')
+    save([figDir ExpGroup ' temp rate'])
+end
 
 
-
-%% Grouped hysteresis heatmap output
+%% Grouped hysteresis heatmap output 
+% TODO: reformat this to take advantage of the previously processed data
 % Fly by fly average:
 
 [threshHigh, threshLow] = getTempThresholds;
