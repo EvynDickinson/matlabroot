@@ -471,14 +471,18 @@ save_figure(fig, [analysisDir expName arenaSel ' quality control'], '-png');
 %% Temp vs fly count
 
 fig = figure;
+boxplot(full_temp, flyCount)
+
+
+fig = figure;
 idx = discretize(full_temp,1:30);
 boxplot(flyCount, idx,'Plotstyle', 'traditional','colors', 'w')
 h_line(nflies, 'Teal', '-',3)
-xlabel('Temperature (\circC)')
-ylabel('Tracking Fly Count')
+xlabel(
 fig = formatFig(fig, true);
 
-save_figure(fig, [analysisDir expName arenaSel ' fly count v temperature'], '-png',true);
+
+
 
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
 initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'; 'occupancy'];

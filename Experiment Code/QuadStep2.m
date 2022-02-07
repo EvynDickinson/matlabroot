@@ -28,6 +28,7 @@ baseFolder = getCloudPath;
 for ii = 1:length(fileIdx)
     inputPath = [baseFolder List.date{ii} '/Arena ' List.arena{ii} '/analysis/'...
                  List.expID{ii} List.arena{ii} ' preformed data.mat'];
+%     results = runQuadStep2_excludePoorFrames(inputPath,autoSave,essentialfigs);
     results = runQuadStep2(inputPath,autoSave,essentialfigs); % Run the basic figures
     if excelWrite == true
         if strcmpi(results, 'Saved Data')

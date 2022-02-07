@@ -185,358 +185,240 @@ if questdlg('Save loaded data?')
 end
 
 
+
 %% Grouped hysteresis heatmap output 
 % TODO: reformat this to take advantage of the previously processed data
 % Fly by fly average:
+clearvars('-except',vars{:}) 
 
-[threshHigh, threshLow] = getTempThresholds;
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
-foodNum = 1; % search for plant food currently
-% identify the food well:
+
+% Find the total number and id of temp rates:
+allRates=[];
 for trial = 1:ntrials
-    % distance from food
-    for well = 1:4
-        [kolor,num] = pullFoodColor(data(trial).wellLabels{well});
-        if num==foodNum
-            wellIdx(trial) = well;
-            break
+    allRates = [allRates,G(trial).rates];
+end
+tRates = sort(unique(allRates));
+nRates = length(tRates);
+nTemps = G(1).nTemps; %these should all be the same since they're held constant above
+
+% Group the data for each temp rate
+tempData = nan(nRates,nTemps,ntrials);
+for trial = 1:ntrials
+    for rr = 1:nRates
+        idx = find(G(trial).rates==tRates(rr));
+        if isempty(idx)
+            continue
         end
+        tempData(rr,:,trial) = G(trial).heatmap(idx,:);
     end
 end
 
-
-% Get the temp rate, temp, amd distance from food
-for trial = 1:ntrials
-
-    % temperature
-    temp = data(trial).occupancy.temp;
-    G(trial).plotData(:,1) = temp(1:end-1); 
-    % distance from food
-    well = wellIdx(trial);
-    y = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm;
-    G(trial).plotData(:,3) = y(1:end-1);
+% Find the mean and err of each temp bin:
+plotData.avg = mean(tempData,3,'omitnan');
+plotData.err = std(tempData,0,3,'omitnan')./sqrt(ntrials);
 
 
-    % rate of temperature change
-    dT = diff(smooth(temp,180)); %180 = 1 minute smoothing kernal
-    dt = diff(data(trial).occupancy.time); 
-    G(trial).plotData(:,2) = dT./dt'; 
-
-    % find the mean temp rate during each ramp period:
-    tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
-    for ii = 1:length(tPoints.transitions)-1
-        roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
-        distD = median(G(trial).plotData(roi,2));
-       G(trial).plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
-    end
-
-    % Temp-rate identification and sorting: 
-    T_rates = sort(unique(G(trial).plotData(:,4)));
-    buff = diff(T_rates)/2;
-    buff = [buff(1); buff];
-    bin_edges = T_rates - buff;
-    bin_edges = [bin_edges; T_rates(end)+buff(end)];
-    rateIdx = discretize(G(trial).plotData(:,4), bin_edges);
-    G(trial).rateIdx = rateIdx;
-    nRates = length(T_rates);
-
-
-    % Temperature range and bin size formatting
-    t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
-    if t_roi(end)<ceil(threshHigh)
-        t_roi(end+1) = ceil(threshHigh) + binSpace;
-    end
-    nTemps = length(t_roi);
-    tempIdx = discretize(G(trial).plotData(:,1), t_roi);
-    G(trial).tempIdx = tempIdx;
-
-    % assign distance data to the appropriate place on the heatmap
-    heatMapData = [];
-    for col = 1:nTemps
-        for row = 1:nRates
-        % Pull the data that matches this category
-        loc = (rateIdx==row) & (tempIdx==col);
-        heatMapData(row,col) = mean(G(trial).plotData(loc,3));
-        end
-    end
-    G(trial).hMap = heatMapData;
-end
-
-% Group the distance data (average of trials -- not combined all mashed up)
-heatMapData = [];
-Hmap = nan(nRates,nTemps,ntrials);
-for trial = 1:ntrials
-    Hmap(:,:,trial) = G(trial).hMap;
-end
-heatMapData = mean(Hmap,3);
-loc = isnan(heatMapData);
-
-% PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
-title_str = [ExpGroup];
-colormap default
+% ========= HeatMap of dT/dt vs T =============
+heatMapData = plotData.avg;
+t_roi = G(trial).temps;
+title_str = [ExpGroup ' (n = ' num2str(ntrials) ')'];
 
 fig = figure; set(fig, 'pos', [560 127 983 417]);
-hold on
-imAlpha=ones(size(heatMapData));
-imAlpha(isnan(heatMapData))=0;
-h = imagesc(heatMapData,'AlphaData',imAlpha);
-set(gca,'color',0*[1 1 1]);
-axis tight
-title(title_str)
-% Axes formatting
-ax = gca;
-fig = formatFig(fig, true);
-XtickNum = ax.XTick;
-ax.XTickLabel = t_roi(XtickNum);
-YtickNum = ax.YTick;
-ax.YTickLabel = T_rates(YtickNum);
-ylabel('\DeltaT/dt (\circC/min)')
-xlabel('Temp (\circC)')
-% Colorbar formatting
-cbh = colorbar(); 
-cbh.Label.String = 'Distance from food (mm)';
-cbh.Color = Color('white');
-% flip colormap around to make yellow closer to food
-cmap = colormap;
-set(gca, 'colormap', flip(cmap))
-
-save_figure(fig, [figDir ExpGroup ' temp temp_rate dist heatmap ' title_str], '-png');
-
-clearvars('-except',initial_vars{:})
-
-
-
-%% How do the temp-distance relationships compare between heating and cooling for each temp rate?
-
-[threshHigh, threshLow] = getTempThresholds;
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
-foodNum = 1; % search for plant food currently
-% identify the food well:
-for trial = 1:ntrials
-    % distance from food
-    for well = 1:4
-        [kolor,num] = pullFoodColor(data(trial).wellLabels{well});
-        if num==foodNum
-            wellIdx(trial) = well;
-            break
-        end
-    end
-end
-
-
-% Get the temp rate, temp, amd distance from food
-All_tempRates = [];
-for trial = 1:ntrials
-
-    % temperature
-    temp = data(trial).occupancy.temp;
-    G(trial).plotData(:,1) = temp(1:end-1); 
-    % distance from food
-    well = wellIdx(trial);
-    y = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm;
-    G(trial).plotData(:,3) = y(1:end-1);
-
-
-    % rate of temperature change
-    dT = diff(smooth(temp,180)); %180 = 1 minute smoothing kernal
-    dt = diff(data(trial).occupancy.time); 
-    G(trial).plotData(:,2) = dT./dt'; 
-
-    % find the mean temp rate during each ramp period:
-    tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
-    for ii = 1:length(tPoints.transitions)-1
-        roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
-        distD = median(G(trial).plotData(roi,2));
-       G(trial).plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
-    end
-
-    % Temp-rate identification and sorting: 
-    T_rates = sort(unique(G(trial).plotData(:,4)));
-    All_tempRates = [All_tempRates;T_rates]; %save the rates into group structure
-    G(trial).t_rates = T_rates;
-    buff = diff(T_rates)/2;
-    buff = [buff(1); buff];
-    bin_edges = T_rates - buff;
-    bin_edges = [bin_edges; T_rates(end)+buff(end)];
-    rateIdx = discretize(G(trial).plotData(:,4), bin_edges);
-    G(trial).rateIdx = rateIdx;
-    nRates = length(T_rates);
-
-
-    % Temperature range and bin size formatting
-    t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
-    if t_roi(end)<ceil(threshHigh)
-        t_roi(end+1) = ceil(threshHigh) + binSpace;
-    end
-    nTemps = length(t_roi);
-    tempIdx = discretize(G(trial).plotData(:,1), t_roi);
-    G(trial).tempIdx = tempIdx;
-
-    % assign distance data to the appropriate place on the heatmap
-    heatMapData = [];
-    for col = 1:nTemps
-        for row = 1:nRates
-        % Pull the data that matches this category
-        loc = (rateIdx==row) & (tempIdx==col);
-        heatMapData(row,col) = mean(G(trial).plotData(loc,3));
-        end
-    end
-    G(trial).hMap = heatMapData;
-end
-
-
-% Find temperature rates that align (increasing and decreasing)
-groupRates = unique(abs(All_tempRates));
-nRates = length(groupRates);
-
-% 
-% for tt = 1:nRates
-%     speed = groupRates(tt);
-%     % find opposing temperature rate:
-%     loc = find(groupRates==speed);
-    
-    
-
-
-% Group the distance data (average of trials -- not combined all mashed up)
-heatMapData = [];
-Hmap = nan(nRates,nTemps,ntrials);
-for trial = 1:ntrials
-    Hmap(:,:,trial) = G(trial).hMap;
-end
-heatMapData = mean(Hmap,3);
-loc = isnan(heatMapData);
-
-% PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
-title_str = [ExpGroup];
-colormap default
-
-fig = figure; set(fig, 'pos', [560 127 983 417]);
-hold on
-imAlpha=ones(size(heatMapData));
-imAlpha(isnan(heatMapData))=0;
-h = imagesc(heatMapData,'AlphaData',imAlpha);
-set(gca,'color',0*[1 1 1]);
-axis tight
-title(title_str)
-% Axes formatting
-ax = gca;
-fig = formatFig(fig, true);
-XtickNum = ax.XTick;
-ax.XTickLabel = t_roi(XtickNum);
-YtickNum = ax.YTick;
-ax.YTickLabel = T_rates(YtickNum);
-ylabel('\DeltaT/dt (\circC/min)')
-xlabel('Temp (\circC)')
-% Colorbar formatting
-cbh = colorbar(); 
-cbh.Label.String = 'Distance from food (mm)';
-cbh.Color = Color('white');
-% flip colormap around to make yellow closer to food
-cmap = colormap;
-set(gca, 'colormap', flip(cmap))
-
-save_figure(fig, [figDir ExpGroup ' temp temp_rate dist heatmap ' title_str], '-png');
-
-clearvars('-except',initial_vars{:})
-
-
-
-
-
-% Organize data for plotting - bin by temp (deg)
-emptyData = false(1,3);
-plotData = [];
-t_roi = floor(threshLow):ceil(threshHigh); 
-for K = 1:3 %food type
-    for type = 1:2
-        % pull appropriate data:
-        switch K
-            case 1 %plant
-                UpData = plant.up;
-                DownData = plant.down;
-            case 2 %yeast
-                UpData = yeast.up;
-                DownData = yeast.down;
-            case 3 %empty
-                UpData = empty.up;
-                DownData = empty.down;
-        end
-        if isempty(UpData) || isempty(DownData)
-            emptyData(K) = true;
-            continue 
-        end
-        if type == 1 
-            inputData = UpData;
-        else 
-            inputData = DownData;
-        end
-%         [loc,idx,cnt_unique,unique_a,len,mt] = deal([]);
-        % cut off the high and low ends of data (to clean):
-        loc = inputData(:,1)>threshHigh | inputData(:,1)<threshLow;
-        inputData(loc,:) = [];
-        
-        % sort all the data by temperature:
-        idx = discretize(inputData(:,1),t_roi);
-        [cnt_unique, unique_a] = hist(idx,unique(idx));
-        len = max(cnt_unique);
-        mt = nan(len,length(unique_a));
-        for tt = 1:length(unique_a)
-            cue = unique_a(tt); %index number
-            loc = idx==cue;
-            mt(1:sum(loc),tt) = inputData(loc,2);
-            y_err(tt) = std(inputData(loc,2));
-            plotData(K,type).y_avg(tt) = mean(inputData(loc,2));
-        end
-        plotData(K,type).y_err = y_err./sqrt(ntrials);
-        plotData(K,type).xdata = t_roi(unique_a);
-        inputData = [];
-    end
-end
- 
-
-% LINE GRAPH PLOT CODE
-% PLOT the grouped & binned data points :
-nPlots = sum(~emptyData);
-nrows = 1; ncols = nPlots;
-titleList = {'Plant', 'Yeast', 'Empty'};
-CList = {'red', 'deepskyblue'}; %heating and cooling colors
-
-ii = 0;
-fig = figure; set(fig, 'pos', [132 83 365*nPlots 693]);
-for K = 1:3
-    % skips absent food types
-    if emptyData(K)
-        continue
-    else
-        ii = ii+1;
-    end
-    subplot(nrows, ncols, ii)
     hold on
-    for type = 1:2
-        kolor = Color(CList{type});
-        x = plotData(K,type).xdata;
-        y = plotData(K,type).y_avg;
-        yerr = plotData(K,type).y_err;
-        fill_data = error_fill(x, y, yerr);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-          set(h, 'facealpha', 0.2)
-        plot(x,y,'color', kolor, 'linewidth', 2)
+    imAlpha=ones(size(heatMapData));
+    imAlpha(isnan(heatMapData))=0;
+    imagesc(heatMapData,'AlphaData',imAlpha);
+    set(gca,'color',0*[1 1 1]);
+    axis tight
+    title(title_str)
+    % Axes formatting
+    ax = gca;
+    fig = formatFig(fig, true);
+    XtickNum = ax.XTick;
+    ax.XTickLabel = t_roi(XtickNum);
+    YtickNum = ax.YTick;
+    ax.YTickLabel = tRates(YtickNum);
+    ylabel('\DeltaT/dt (\circC/min)')
+    xlabel('Temp (\circC)')
+    % Colorbar formatting
+    cbh = colorbar(); 
+    cbh.Label.String = 'Distance from food (mm)';
+    cbh.Color = Color('white');
+    % flip colormap around to make yellow closer to food
+    cmap = colormap;
+    set(gca, 'colormap', flip(cmap))
+
+save_figure(fig, [figDir ExpGroup ' temp temp_rate dist heatmap ' ExpGroup], '-png');
+
+% ========== Line plots of each rate comparison ==============
+cList = {'Orange', 'DarkViolet', 'Turquoise','white', 'Turquoise', 'DarkViolet', 'Orange'};
+LS = {'--','-.','-'}; %cooling|stationary|heating
+
+fig = figure;
+hold on
+for rr = 1:nRates
+    if tRates(rr)>0
+        lstyle = LS{3};
+    elseif tRates(rr)<0
+        lstyle = LS{1};
+    elseif tRates(rr)==0
+        continue
+        lstyle = LS{2};
     end
-    ylimits(ii,:) = ylim;
-    xlabel('temperature (\circC)')
-    ylabel('distance from well (mm)')
-    title(titleList{K})
+    x = t_roi;
+    y = plotData.avg(rr,:);
+    plot(x,y,'color', Color(cList{rr}), 'linewidth', 2, 'linestyle', lstyle)
 end
-fig = formatFig(fig,true, [nrows,ncols]);
-%set uniform y axis
-for ii = 1:nPlots
-subplot(nrows,ncols,ii)
-ylim([min(ylimits(:,1)),max(ylimits(:,2))])
+title(ExpGroup)
+ylabel('Distance to food (mm)')
+xlabel('Temperature (\circC)')
+
+fig = formatFig(fig, true);
+save_figure(fig, [figDir ExpGroup ' temp temp_rate dist all rates ' ExpGroup], '-png');
+
+
+
+% ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
+cList = {'Orange', 'DarkViolet', 'Turquoise','white', 'Turquoise', 'DarkViolet', 'Orange'};
+LS = {'--','-.','-'}; %cooling|stationary|heating
+legStr = {'SEM','Cooling','SEM','Heating'};
+ncol = 2;
+nrow = 2;
+
+fig = figure; set(fig, 'pos',[296 35 1224 956])
+% All trials
+    subplot(nrow, ncol, 1); hold on
+    for rr = 1:nRates
+        if tRates(rr)>0
+            lstyle = LS{3};
+        elseif tRates(rr)<0
+            lstyle = LS{1};
+        elseif tRates(rr)==0
+            lstyle = LS{2};
+            continue
+        end
+        x = t_roi;
+        y = plotData.avg(rr,:);
+        plot(x,y,'color', Color(cList{rr}), 'linewidth', 2, 'linestyle', lstyle)
+    end
+    title([ExpGroup ' (n = ' num2str(ntrials) ')'])
+    ylabel('Distance to food (mm)')
+    xlabel('Temperature (\circC)')
+% Fast
+    subplot(nrow, ncol, 2); hold on
+    for rr = [1,7]
+        if tRates(rr)>0
+            lstyle = LS{3};
+        elseif tRates(rr)<0
+            lstyle = LS{1};
+        elseif tRates(rr)==0
+            lstyle = LS{2};
+            continue
+        end
+        x = t_roi(1:end-1);
+        y = plotData.avg(rr,1:end-1);
+        kolor = Color(cList{rr});
+        err = plotData.err(rr,1:end-1);
+        fill_data = error_fill(x, y, err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h, 'facealpha', 0.2)
+        plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+    end
+    title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
+    ylabel('Distance to food (mm)')
+    xlabel('Temperature (\circC)')
+    l = legend(legStr);
+    set(l,'textcolor', 'w','box', 'off')
+% Medium
+    subplot(nrow, ncol, 3); hold on
+    for rr = [2,6]
+        if tRates(rr)>0
+            lstyle = LS{3};
+        elseif tRates(rr)<0
+            lstyle = LS{1};
+        elseif tRates(rr)==0
+            lstyle = LS{2};
+            continue
+        end
+        x = t_roi(1:end-1);
+        y = plotData.avg(rr,1:end-1);
+        kolor = Color(cList{rr});
+        err = plotData.err(rr,1:end-1);
+        fill_data = error_fill(x, y, err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h, 'facealpha', 0.2)
+        plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+    end
+    title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
+    ylabel('Distance to food (mm)')
+    xlabel('Temperature (\circC)')
+    l = legend(legStr);
+    set(l,'textcolor', 'w','box', 'off')
+% Slow
+    subplot(nrow, ncol, 4); hold on
+    for rr = [3,5]
+        if tRates(rr)>0
+            lstyle = LS{3};
+        elseif tRates(rr)<0
+            lstyle = LS{1};
+        elseif tRates(rr)==0
+            lstyle = LS{2};
+            continue
+        end
+        x = t_roi(1:end-1);
+        y = plotData.avg(rr,1:end-1);
+        kolor = Color(cList{rr});
+        err = plotData.err(rr,1:end-1);
+        fill_data = error_fill(x, y, err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h, 'facealpha', 0.2)
+        plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+    end
+    title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
+    ylabel('Distance to food (mm)')
+    xlabel('Temperature (\circC)')
+    l = legend(legStr);
+    set(l,'textcolor', 'w','box', 'off')
+    
+fig = formatFig(fig, true,[nrow,ncol]);
+save_figure(fig, [figDir ExpGroup ' temp rate food preference dependence ' ExpGroup], '-png');
+
+clearvars('-except',initial_vars{:})
+
+
+
+
+
+
+%% CLOSER LOOK: confounding variables | circumstances
+% TODO: set this to demo across individual trials to see how it correlates...
+
+disp_figs = true;
+auto_save_figs = true;
+ind_fig_loc = [figDir 'Trial by trial\'];
+if ~isfolder(ind_fig_loc); mkdir(ind_fig_loc); end
+vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace',...
+        'G', 'disp_figs','auto_save_figs','ind_fig_loc'];
+tempRange = 1:30;
+
+for trial = 1:ntrials
+    title_str = [T.Date{trial} ' Arena ' T.Arena{trial}];
+    fig_file = [ind_fig_loc ExpGroup ' fly count vs temp ' title_str];
+    if isfile([fig_file '.png']) %skip already generated figures
+        continue
+    end
+    fig = figure;
+    idx = discretize(data(trial).occupancy.temp,tempRange);
+    boxplot(data(trial).occupancy.flycount, idx,'Plotstyle', 'traditional','colors', 'w')
+    h_line(T.NumFlies(trial), 'Teal', '-',3)
+    xlabel('Temperature (\circC)')
+    ylabel('Tracking Fly Count')
+    fig = formatFig(fig, true);
+
+    save_figure(fig, fig_file, '-png',true);
 end
-l = legend({'SEM','Heating', 'SEM','Cooling'});
-set(l, 'textcolor', 'w','position', [0.5997 0.1556 0.1781 0.1176])
-save_figure(fig, [figDir ExpGroup ' temp hysteresis'], '-png');
+
+
 
 
 

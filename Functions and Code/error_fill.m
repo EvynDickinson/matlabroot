@@ -1,8 +1,9 @@
 
 function fill_data = error_fill(xdata, ydata, error)
 % fill_data = error_fill(xdata, ydata, error)
-% 
-% use this function afterwards:
+% use in this context:
+%
+% fill_data = error_fill(xdata, ydata, error)
 % h = fill(fill_data.X, fill_data.Y, get_color(color), 'EdgeColor','none');
 % set(h, 'facealpha', 0.2)
 %
