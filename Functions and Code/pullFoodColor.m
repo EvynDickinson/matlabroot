@@ -6,6 +6,7 @@ function [kolor,num] = pullFoodColor(foodString)
 % num : 1 - plant | 2 - yeast | 3 - empty
 % 
 
+num = nan; %default
 switch foodString
     case {'Yeast', 'yeast'}
         colorname = 'gold';
@@ -48,6 +49,16 @@ switch foodString
     case 'Yeast_9_20'
         colorname = 'maroon';
         num = 2;
+    % --------------------------------
+    % TEMPERATURE RATES....
+    case {-0.5, 0.5}
+        colorname = 'orange';
+    case {-0.25, 0.25}
+        colorname = 'DarkViolet';
+    case {-0.1,0.1}
+        colorname = 'Turquoise';
+    case 0
+        colorname = 'white';
 end
 
 try kolor = Color(colorname);

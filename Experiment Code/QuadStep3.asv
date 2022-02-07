@@ -709,8 +709,8 @@ for gg = 1:ngroup
     % sort all the data by temperature:
     [~,idx] = sort(raw(:,1));
     sortedData = raw(idx,:);
-    filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-    filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan);
+    filteredData(:,1) = smoothdata(sortedData(:,1),sSpan);
+    filteredData(:,2) = smoothdata(sortedData(:,2),sSpan);
     % find the line of best fit:
     switch FitType
         case 'Smoothed data'
@@ -877,8 +877,8 @@ for ii = 1:4
     % sort all the data by temperature:
     [~,idx] = sort(inputData(:,1));
     sortedData = inputData(idx,:);
-    filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-    filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan);
+    filteredData(:,1) = smoothdata(sortedData(:,1),sSpan);
+    filteredData(:,2) = smoothdata(sortedData(:,2),sSpan);
     % find the line of best fit:
     switch FitType
         case 'Smoothed data'
@@ -1115,8 +1115,8 @@ for arena = 1:4
     % sort all the data by temperature:
     [~,idx] = sort(inputData(:,1));
     sortedData = inputData(idx,:);
-    filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-    filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan);
+    filteredData(:,1) = smoothdata(sortedData(:,1),sSpan);
+    filteredData(:,2) = smoothdata(sortedData(:,2),sSpan);
     % find the line of best fit:
     switch FitType
         case 'Smoothed data'
@@ -1252,8 +1252,8 @@ for trial = 1:ntrials
         % fit the data
         [~,idx] = sort(raw(:,1));
         sortedData = raw(idx,:);
-        filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-        filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan); 
+        filteredData(:,1) = smoothdata(sortedData(:,1),sSpan);
+        filteredData(:,2) = smoothdata(sortedData(:,2),sSpan); 
         switch FitType
             case 'Smoothed data'
                 fitData = filteredData;
@@ -1369,8 +1369,8 @@ for trial = 1:ntrials
         % fit the data
         [~,idx] = sort(raw(:,1));
         sortedData = raw(idx,:);
-        filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-        filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan); 
+        filteredData(:,1) = smoothdata(sortedData(:,1),sSpan);
+        filteredData(:,2) = smoothdata(sortedData(:,2),sSpan); 
         switch FitType
             case 'Smoothed data'
                 fitData = filteredData;
@@ -1631,16 +1631,16 @@ clearvars('-except',initial_vars{:})
 X = data(1).occupancy.temp; % temperature
 Y = data(1).occupancy.dist2wells(1).N(:,1); %distance to wells
 
-temp = smoothdata(X,'movmean',180); % this is the avg. temp for the previous 180 data points (except at start and end)
+temp = smooth(X,180); % this is the avg. temp for the previous 180 data points (except at start and end)
 direct = diff(temp); % this tells me if the previous point was decreasing or increasing
-increase = smoothdata(direct,'movmean',360)>0;
-decrease = smoothdata(direct,'movmean',360)<0;
+increase = smooth(direct,360)>0;
+decrease = smooth(direct,360)<0;
 
 
 % 10 minute bins for determining temp history
 dur = 10*60*3; %min * sec/min * frames/sec
-a = smoothdata(increase,'movmean',dur)>0.75; %increasing temp points
-b = smoothdata(decrease,'movmean',dur)>0.75;
+a = smooth(increase,dur)>0.75; %increasing temp points
+b = smooth(decrease,dur)>0.75;
 
 upPoints = (a==~b);
 
@@ -1669,7 +1669,7 @@ plot(increase)
 
 
 figure;
-plot(smoothdata(increase,'movmean',90))
+plot(smooth(increase,90))
 
 
 
@@ -1759,8 +1759,8 @@ for ii = 1:6 %for each well type
     % sort all the data by temperature:
     [~,idx] = sort(inputData(:,1));
     sortedData = inputData(idx,:);
-    filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-    filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan);
+    filteredData(:,1) = smooth(sortedData(:,1),sSpan);
+    filteredData(:,2) = smooth(sortedData(:,2),sSpan);
     % find the line of best fit:
     coefficients = polyfit(filteredData(:,1), filteredData(:,2),1);
     xFit = linspace(filteredData(1,1), filteredData(end,1), numFitPoints);
@@ -1921,8 +1921,8 @@ for ii = 1:9 %for each well type
     % sort all the data by temperature:
     [~,idx] = sort(inputData(:,1));
     sortedData = inputData(idx,:);
-    filteredData(:,1) = smoothdata(sortedData(:,1),'movmean',sSpan);
-    filteredData(:,2) = smoothdata(sortedData(:,2),'movmean',sSpan);
+    filteredData(:,1) = smooth(sortedData(:,1),sSpan);
+    filteredData(:,2) = smooth(sortedData(:,2),sSpan);
     % find the line of best fit:
     coefficients = polyfit(filteredData(:,1), filteredData(:,2),1);
     xFit = linspace(filteredData(1,1), filteredData(end,1), numFitPoints);
@@ -2039,8 +2039,8 @@ subplot(nrows, ncols, subs(1).idx)
 subplot(nrows, ncols, subs(2).idx)
     sSpan = 240;
     hold on
-    Y = [smoothdata(mean(A,2),'movmean',sSpan), smoothdata(mean(B,2),'movmean',sSpan),...
-         smoothdata(mean(C,2),'movmean',sSpan), smoothdata(mean(D,2),'movmean',sSpan)];
+    Y = [smooth(mean(A,2),sSpan), smooth(mean(B,2),sSpan),...
+         smooth(mean(C,2),sSpan), smooth(mean(D,2),sSpan)];
     h = area(TAT,Y);
     for well = 1:4
         h(well).FaceColor = pullFoodColor(data(1).wellLabels{well});
