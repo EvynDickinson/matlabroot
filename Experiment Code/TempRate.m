@@ -3,6 +3,7 @@
 % Run this script after initial data processing with:
 % QuadStep1.m
 % QuadStep2.m
+% QuadStep3.m
 % GroupDataGUI
 clear 
 
@@ -48,11 +49,15 @@ for trial = 1:ntrials
 
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
+    keepLoc = false(1,size(plotData,1));
     for ii = 1:length(tPoints.transitions)-1
         roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
         distD = median(plotData(roi,2));
         plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+        keepLoc(roi) = true;
     end
+    % need to exclude data that's not within the prescribed ROI regions
+    plotData(~keepLoc,:) = nan;
 
     % === Demo plot for single trial =====:
     title_str = [T.Date{trial} ' Arena ' T.Arena{trial}];
@@ -80,7 +85,9 @@ for trial = 1:ntrials
             xlabel('time (min)')
             ylabel('distance (mm)')
             yyaxis right
-            plot(time, smooth(data(trial).occupancy.occ(1:end-1,well),180),'color', 'w')
+            yy = data(trial).occupancy.occ(1:end-1,well);
+            yy(~keepLoc) = nan;
+            plot(time, smoothdata(yy,'movmean',180),'color', 'w')
             ylabel('occupancy (prob)')
             fig = formatFig(fig, true, [3,1]);
             subplot(3,1,3)
@@ -113,7 +120,6 @@ for trial = 1:ntrials
 %        figure; hold on
 %        plot(rateData)
 %        plot(plotData(:,4))
-
     end
     plotData(:,4) = rateData;
     plotData(:,5) = rateIdx; %rate bin
@@ -131,6 +137,8 @@ for trial = 1:ntrials
     G(trial).nTemps = nTemps;
     G(trial).tempIdx = tempIdx;
     G(trial).temps = t_roi;
+    
+%     figure; yyaxis left; plot(tempIdx); yyaxis right; plot(rateIdx)
 
     % turn coordinates of heatmap into a vector to fill in 2D
     heatMapData = [];
@@ -279,7 +287,8 @@ save_figure(fig, [figDir ExpGroup ' temp temp_rate dist all rates ' ExpGroup], '
 % ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
 cList = {'Orange', 'DarkViolet', 'Turquoise','white', 'Turquoise', 'DarkViolet', 'Orange'};
 LS = {'--','-.','-'}; %cooling|stationary|heating
-legStr = {'SEM','Cooling','','','SEM','Heating','',''};
+% legStr = {'SEM','Cooling','','','SEM','Heating','',''};
+legStr = {'Cooling','','','Heating','',''};
 ncol = 2;
 nrow = 2;
 
@@ -317,9 +326,9 @@ fig = figure; set(fig, 'pos',[296 35 1224 956])
         y = plotData.avg(rr,1:end-1);
         kolor = Color(cList{rr});
         err = plotData.err(rr,1:end-1);
-        fill_data = error_fill(x, y, err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
+%         fill_data = error_fill(x, y, err);
+%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%         set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
         plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
         plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
@@ -344,9 +353,9 @@ fig = figure; set(fig, 'pos',[296 35 1224 956])
         y = plotData.avg(rr,1:end-1);
         kolor = Color(cList{rr});
         err = plotData.err(rr,1:end-1);
-        fill_data = error_fill(x, y, err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
+%         fill_data = error_fill(x, y, err);
+%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%         set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
         plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
         plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
@@ -371,9 +380,9 @@ fig = figure; set(fig, 'pos',[296 35 1224 956])
         y = plotData.avg(rr,1:end-1);
         kolor = Color(cList{rr});
         err = plotData.err(rr,1:end-1);
-        fill_data = error_fill(x, y, err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
+%         fill_data = error_fill(x, y, err);
+%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%         set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
         plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
         plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
@@ -388,10 +397,6 @@ fig = formatFig(fig, true,[nrow,ncol]);
 save_figure(fig, [figDir ExpGroup ' temp rate food preference dependence ' ExpGroup], '-png');
 
 clearvars('-except',initial_vars{:})
-
-
-
-
 
 
 %% CLOSER LOOK: confounding variables | circumstances
@@ -539,7 +544,7 @@ end
 %% FIGURE: grouped -- Fly count vs temperature hysteresis
 % TODO: reformat this to take advantage of the previously processed data
 % Fly by fly average:
-clearvars('-except',vars{:}) 
+% clearvars('-except',vars{:}) 
 
 
 % Find the total number and id of temp rates:
@@ -633,7 +638,8 @@ save_figure(fig, [figDir ExpGroup ' fly count all rates ' ExpGroup], '-png');
 % ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
 cList = {'Orange', 'DarkViolet', 'Turquoise','white', 'Turquoise', 'DarkViolet', 'Orange'};
 LS = {'--','-.','-'}; %cooling|stationary|heating
-legStr = {'SEM','Cooling','','','SEM','Heating','',''};
+% legStr = {'SEM','Cooling','','','SEM','Heating','',''};
+legStr = {'Cooling','','','Heating','',''};
 ncol = 2;
 nrow = 2;
 yLab = 'Fly count (#)';
@@ -672,9 +678,9 @@ fig = figure; set(fig, 'pos',[296 35 1224 956])
         y = plotData.avg(rr,1:end-1);
         kolor = Color(cList{rr});
         err = plotData.err(rr,1:end-1);
-        fill_data = error_fill(x, y, err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
+%       fill_data = error_fill(x, y, err);
+%       h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%       set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
         plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
         plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
@@ -699,9 +705,9 @@ fig = figure; set(fig, 'pos',[296 35 1224 956])
         y = plotData.avg(rr,1:end-1);
         kolor = Color(cList{rr});
         err = plotData.err(rr,1:end-1);
-        fill_data = error_fill(x, y, err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
+%         fill_data = error_fill(x, y, err);
+%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%         set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
         plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
         plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
@@ -726,9 +732,9 @@ fig = figure; set(fig, 'pos',[296 35 1224 956])
         y = plotData.avg(rr,1:end-1);
         kolor = Color(cList{rr});
         err = plotData.err(rr,1:end-1);
-        fill_data = error_fill(x, y, err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
+%         fill_data = error_fill(x, y, err);
+%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%         set(h, 'facealpha', 0.2)
         plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
         plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
         plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)

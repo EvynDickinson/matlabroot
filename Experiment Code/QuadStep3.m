@@ -99,7 +99,7 @@ xlabel('Time (min)')
 ylabel('Temp (\circ)')
 title({'temperature alignment across experiments';...
       ['N = ' num2str(ntrials)]})
-formatFig(fig, true)
+formatFig(fig, true);
 
 save_figure(fig, [figDir ExpGroup ' temperature alignment'], '-png');
 
