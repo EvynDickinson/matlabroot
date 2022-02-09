@@ -770,7 +770,8 @@ for trial = 1:ntrials
 end
 
 
-%% Histogram of tracked fly counts -- up vs down tracking numbers:
+%% Histogram of all tracked files -- up vs down tracking numbers:
+
 
 heating = []; 
 cooling = [];
@@ -795,19 +796,31 @@ edges = cRange(1):cRange(2);
 
 
 fig = figure; hold on
-    h = histogram(heating,edges);
-    h.EdgeColor = 'r';
-    h.FaceColor = 'none';
-    c = histogram(cooling,edges);
-    c.EdgeColor = Color('deepskyblue');
-    c.FaceColor = 'none';
-    xlabel('Incorrectly tracked flies')
-    ylabel('Count')
-    title(ExpGroup)
-    formatFig(fig, true);
-    legend({'Heating', 'Cooling'},'TextColor', 'w', 'box', 'off');
+h = histogram(heating,edges);
+h.EdgeColor = 'r';
+h.FaceColor = 'none';
+c = histogram(cooling,edges);
+c.EdgeColor = Color('deepskyblue');
+c.FaceColor = 'none';
+xlabel('Incorrectly tracked flies')
+ylabel('Count')
+title(ExpGroup)
+formatFig(fig, true);
+legend({'Cooling', 'Heating'},'TextColor', 'w', 'box', 'off');
 save_figure(fig, figDir, '-png',true);
 
+
+    % find the mean temp rate during each ramp period:
+    tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
+    
+    for ii = 1:length(tPoints.transitions)-1
+        roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
+        distD = median(plotData(roi,2));
+        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+        keepLoc(roi) = true;
+    end
+    % need to exclude data that's not within the prescribed ROI regions
+    plotData(~keepLoc,:) = nan;
 
 
 

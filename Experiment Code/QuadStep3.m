@@ -254,7 +254,7 @@ end
 save_figure(fig, [figDir ExpGroup ' avg temp vs distance'], '-png');
 clearvars('-except',initial_vars{:})
 
-%% FIGURE: timecourse of well distance % CAN'T DISTINGUISH WITHIN FOOD TYPE (E.G. PLANT VS PLANT)
+%% FIGURE: Timecourse of well distance % CAN'T DISTINGUISH WITHIN FOOD TYPE (E.G. PLANT VS PLANT)
 % ADD IN THE TEMPERATURE LINE AS WELL
 sSpan = 240;
 nrows = 3;
