@@ -4,7 +4,7 @@
 %% -------- Find the files that haven't been analyized yet and run them -------------
 clear; close all; clc
 autoSave = true;
-essentialfigs = true;
+essentialfigs = true; 
 excelWrite = true;
 
 %load excel file:
