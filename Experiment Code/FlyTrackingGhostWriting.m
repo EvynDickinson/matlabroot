@@ -71,7 +71,7 @@ fprintf('\nDone\n')
 %% Find and print out list of missing tracking or prediction files:
 clear
 
-% select the folder to analyze 
+% select the folder to analyze s
 [~, folder] = getCloudPath(1);
 arenaList = {'Arena A', 'Arena B', 'Arena C', 'Arena D'};
 arenaSel = listdlg('ListString', arenaList);
