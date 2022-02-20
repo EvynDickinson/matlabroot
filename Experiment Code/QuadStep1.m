@@ -3,6 +3,7 @@ clear; close all; clc
 autoSave = true;
 essentialfigs = true;
 %% ---------------------Select Date & Experiment to Process ------------------------------
+
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 switch questdlg('Use Excel sheet to select experiment?')
@@ -57,7 +58,6 @@ tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
 % load tracking predictions     
-
 data = struct;
 for vid = 1:nvids
     filePath = [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
@@ -157,8 +157,22 @@ else
     load(maskPath)
 end
 
+% Check the video size
+if all(size(demoImg)==946)
+    r = 400; %radius of the arena for the quadbowl
+else
+    warndlg('Not expected video pixel size...manually set radius')
+    return
+    
+    % manually select an arena radius?
+    
+    % % pic preview of mask circle:
+    % figure; hold on
+    % imshow(demoImg)
+    % viscircles(centre', r);
+end
+
 % Screen any points outside the arena
-r = 400; %pixel arena radius
 x1 = wellcenters(1,1:2:4);
 y1 = wellcenters(2,1:2:4);
 x2 = wellcenters(1,2:2:4);
