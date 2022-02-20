@@ -1507,7 +1507,9 @@ clearvars('-except',initial_vars{:})
 % Pull the data from segments 
 [plant, yeast, empty] = deal(struct('up', [], 'down',[]));
 for trial = 1:ntrials
+ 
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
+
     X = data(trial).occupancy.temp; % temperature
     for well = 1:4
         [~,K] = pullFoodColor(data(trial).wellLabels{well});

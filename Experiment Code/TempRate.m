@@ -14,7 +14,7 @@ clearvars('-except',initial_vars{:})
 initial_vars{end+1} = 'G';
 
 %% Trial by trial figures: 
-disp_figs = false;
+disp_figs = true;
 auto_save_figs = true;
 ind_fig_loc = [figDir 'Trial by trial\'];
 if ~isfolder(ind_fig_loc); mkdir(ind_fig_loc); end
@@ -411,7 +411,7 @@ clearvars('-except',initial_vars{:})
 
 %% FIGURE: by trial -- Comparison of temp rates & tracking counts
 
-disp_figs = false;
+disp_figs = true;
 auto_save_figs = true;
 ind_fig_loc = [figDir 'Trial by trial\'];
 if ~isfolder(ind_fig_loc); mkdir(ind_fig_loc); end
