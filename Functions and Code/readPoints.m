@@ -23,7 +23,7 @@ yold = 0;
 k = 0;
 hold on;           % and keep it there while we plot
 while 1
-    [xi, yi, but] = ginput(1);      % get a point
+    [xi, yi, but] = crosshairs(1);      % get a point
     if ~isequal(but, 1)             % stop if not button 1
         break
     end
