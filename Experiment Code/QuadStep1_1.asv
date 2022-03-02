@@ -356,31 +356,18 @@ fig = figure; set(fig, 'pos', [99 200 895 635])
 save_figure(fig, [analysisDir 'Fly Count Histogram'],'-png');
 
 % Tracking with temperature
-CList = {'DeepPink','Orange', 'Lime', 'DodgerBlue'};
-sSpan = 180;
+CList = {'DeepPink','Orange', ''};
 LW = 2;
-nrows = 3; ncols = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:3;
-fig = figure; set(fig, 'pos', [298 260 508 483])
-subplot(nrows, ncols, sb(1).idx)
+nrows = 2; ncols = 1;
+fig = figure; 
+subplot(nrows, ncols, 1)
 plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', LW)
-xlabel('Time (min)')
-ylabel('Temp (\circC)')
-subplot(nrows, ncols, sb(2).idx)
+subplot(nrows, ncols, 2)
 hold on
 for arena = 1:4
-    y = arenaData(arena).flyCount-arenaData(arena).nflies;
-    plot(occupancy.time, smooth(y,sSpan), 'color', Color(CList{arena}), 'linewidth', LW)
-end
-h_line(0,'grey',':',1)
-xlabel('Time (min)')
-ylabel('Fly count offset (#)')
-formatFig(fig, true, [nrows, ncols],sb);
+    plot(occupancy.time, arenaData(arena).flyCount-arenaData(arena).nflies,'color', )
 
-save_figure(fig, [analysisDir 'Fly Count over time'],'-png');
 
-%% WORKING HERE!!! 3.2.22
 
 
 %% --------------------------- Mask the food wells & arena ---------------------------

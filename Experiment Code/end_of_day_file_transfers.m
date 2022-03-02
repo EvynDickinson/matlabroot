@@ -50,15 +50,8 @@ videosDirD = [targetDir '\Arena D\'];
 if ~isfolder(videosDirD); mkdir(videosDirD); end
 
 % Copy tracking models over to new folder: 
-model_1 = 'centered_instance_model';
-model_2 = 'centroid_model';
-batchCode = 'batch.py';
-trackingDir = [baseFolder 'Tracking\'];
-
-% Copy model and program into selected folder
-copyfile([trackingDir model_1], targetDir)
-copyfile([trackingDir model_2], targetDir)
-copyfile([trackingDir batchCode], targetDir)
+trackingDir = [baseFolder 'Tracking'];
+copyfile(trackingDir, targetDir)
 
 fprintf('done')
 
