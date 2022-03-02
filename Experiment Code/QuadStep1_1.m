@@ -23,16 +23,16 @@ switch questdlg('Use Excel sheet to select experiment?')
         % get file info:
         baseFolder = getCloudPath;
         folder = eligible_files{fileIdx,1};
-        arenaSel = eligible_files{fileIdx,2};
+%         arenaSel = eligible_files{fileIdx,2};
         expName = eligible_files{fileIdx,3};
         clear loc1 loc2 loc eligible_files FileNames rownums fileIdx
     case 'No'
         %get base folder pathway
         [baseFolder, folder] = getCloudPath(2);    
-        %select arena to work with:
-        arenaList = {'A', 'B', 'C', 'D'};
-        arenaSel = arenaList{listdlg('ListString', arenaList)};
-        % Select the complete experiments to process
+%         %select arena to work with:
+%         arenaList = {'A', 'B', 'C', 'D'};
+%         arenaSel = arenaList{listdlg('ListString', arenaList)};
+%         % Select the complete experiments to process
         list_dirs = dir([baseFolder folder, '\*dataMat.mat']); %only matlab files
         list_dirs = {list_dirs(:).name};
         expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
@@ -43,13 +43,13 @@ switch questdlg('Use Excel sheet to select experiment?')
 end
 
 % Saving and Loading Directories:
-vidFolder = [folder '\Arena ' arenaSel];
-analysisDir = [baseFolder vidFolder '\analysis\'];
+% vidFolder = [baseFolderfolder '\Arena ' arenaSel];
+analysisDir = [baseFolder folder '\analysis\'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
-expPDF = [analysisDir folder expName arenaSel ' summary.pdf'];
+% expPDF = [analysisDir folder expName arenaSel ' summary.pdf'];
 XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
-             strcmpi(excelfile(:,Excel.expID), expName) & ...
-             strcmpi(excelfile(:,Excel.arena), arenaSel(end:end))); %rows with sel date with ARENA ID
+             strcmpi(excelfile(:,Excel.expID), expName)); % & ...
+%              strcmpi(excelfile(:,Excel.arena), arenaSel(end:end))%rows with sel date with ARENA ID
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off 
@@ -57,40 +57,127 @@ expData = load([baseFolder folder '\' expName ' dataMat.mat']);
 tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
-% load tracking predictions     
+%load tracking predictions     
 data = struct;
 for vid = 1:nvids
-    filePath = [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
+    try
+    filePath = [baseFolder folder '\' expName '_' num2str(vid) '.h5'];
     data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
     data(vid).tracks = h5read(filePath,'/tracks');
+    catch
+        filePath = [baseFolder folder '\' expName '_' num2str(vid) '.avi.predictions.analysis.h5'];
+        data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+        data(vid).tracks = h5read(filePath,'/tracks');
+    end
 end; clear filePath
 
 initial_vars = who; initial_vars{end+1} = 'initial_vars';
 fprintf('\nNext\n')
 
+%% Determine the outlines for each arena
+movieInfo = VideoReader([baseFolder folder '\' expName   '_1.avi']); %read in video
+demoImg = rgb2gray(read(movieInfo,1));
+
+% Select the well centers from top right corner and go clockwise:
+if ~exist([analysisDir 'well_locations.mat'],'file')
+    h = warndlg('Select the well locations starting at "9 o''clock" in the upper left arena and proceed clock wise'); uiwait(h)
+    wellcenters = readPoints(demoImg,16); % get locations of the wells from the image
+    r = 435; % radius of the arena
+    arenaIdx = {'B', 'D', 'C', 'A'}; % order of arenas on video going clockwise from upper left corner
+    % save the arena well locations:
+    save([analysisDir 'well_locations.mat'], 'wellcenters','arenaIdx','r');
+else
+    load([analysisDir 'well_locations.mat']);
+end
+
+arenaData = struct;
+
+fig = figure; 
+imshow(demoImg); set(fig, 'color', 'k')
+hold on
+% Screen any points outside the arena
+for arena = 1:4
+    arenaData(arena).name = ['Arena ' arenaIdx{arena}];
+    % Divide well centers by arena
+    roi = (arena-1)*4 + 1 : (arena-1)*4 + 4;
+    arenaData(arena).wellcenters = wellcenters(:,roi);
+    
+    % Find the center of each arena
+    x1 = arenaData(arena).wellcenters(1,1:2:4);
+    y1 = arenaData(arena).wellcenters(2,1:2:4);
+    x2 = arenaData(arena).wellcenters(1,2:2:4);
+    y2 = arenaData(arena).wellcenters(2,2:2:4);
+    [xi,yi] = polyxpoly(x1,y1,x2,y2);
+    arenaData(arena).centre = [xi;yi];
+
+    % Overlay the arena screen:
+    viscircles(arenaData(arena).centre', r, 'color', Color('white'));
+end
+
+% Does the arena fit work???
+answer = questdlg('Okay arena alignment?');
+if strcmp('Yes', answer)
+    save_figure(fig, [analysisDir 'Arena outlines'],'-png',true);
+else
+    return
+end
+
+% Tidy variables / environment 
+initial_vars = [initial_vars; 'arenaData'; 'arenaIdx'; 'r'; 'wellcenters'; 'demoImg'];
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
 %% --------------------- Parameter extraction ----------------------------------------
+
 % Number of flies:
-nflies = excelfile{XLrow,Excel.numflies};
-movieInfo = VideoReader([baseFolder vidFolder '\' expName   '_1.avi']); %read in video
+for arena = 1:4
+    arenaData(arena).nflies = excelfile{XLrow(arena),Excel.numflies};
+    nflies(arena) = arenaData(arena).nflies;
+end
+movieInfo = VideoReader([baseFolder folder '\' expName   '_1.avi']); %read in video
 ii = randi(size(data(1).occupancy_matrix,2),[3,1]); %random selection of frames to count fly number
 demoImg = rgb2gray(read(movieInfo,1));
-if isnan(nflies)
+if any(isnan(nflies)) %TODO
     % manual count of flies
     fprintf('\nCount the number of flies in the picture by clicking them\n then hit ENTER\n')
     T = true;
-    while T % get the number of flies in the arena
+   while T % get the number of flies in the arena
         for jj = 1:3
             demoImg = rgb2gray(read(movieInfo,ii(jj)));
-            nflies(jj) = size(readPoints(demoImg),2);
+            PT(jj).frame = readPoints(demoImg);
+            for arena = 1:4
+                centre = arenaData(arena).centre;
+                X = PT(jj).frame(1,:);
+                Y = PT(jj).frame(2,:);
+                % find points within each arena sphere
+                loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)<=r;
+                nflies(arena,jj) = sum(loc);
+            end
         end
-        fprintf(['\nNumber of flies counted: ' num2str(nflies) '\n'])
-        if sum(~diff(nflies)==0)==0
-            nflies = nflies(1); 
+        disp('Number of flies counted')
+        A = nflies(4,:)'; B = nflies(1,:)'; C = nflies(3,:)'; D = nflies(2,:)';
+        numFlies = [A,B,C,D];
+        disp(table(A,B,C,D))
+        count_match = (diff(numFlies,2,1)==0);
+        if all(count_match)
+            for arena = 1:4
+                nflies(arena) = median(numFlies(:,arena)); 
+            end
             T = false;
         else
             switch questdlg(['Nonmatching fly counts, manually select number?: ' num2str(nflies)])
                 case 'Yes'
-                    nflies = str2double(inputdlg('Input number of flies'));
+                    for arena = 1:4
+                        arenaNums{arena} = num2str(median(numFlies(:,arena)));
+                        if ~count_match(arena)
+                            arenaNums{arena} = 'NaN';
+                        end
+                    end
+                    prompt = {'Arena A','Arena B', 'Arena C', 'Arena D'}; dlgtitle = 'Input';
+                    answer = inputdlg(prompt,dlgtitle,[1 25],arenaNums);
+                    for arena = 1:4
+                        arenaData(arena).nflies = str2double(answer{arena});
+                    end
                     T = false;
                 case 'No'
                     T = true;
@@ -101,31 +188,40 @@ if isnan(nflies)
     end
     % write number of flies into the excel sheet
     try
-        xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
+        for arena = 1:4
+            xlswrite(xlFile, {num2str(nflies(arena))}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow(arena))]);
+        end
     catch
         h = warndlg('Close Experiment Summary excel file and then close this warning box');
         uiwait(h)
-        xlswrite(xlFile, {num2str(nflies)}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow)]);
+        for arena = 1:4
+            xlswrite(xlFile, {num2str(nflies(arena))}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow(arena))]);
+        end
     end
 end
-fprintf(['\nNumber of flies: ' num2str(nflies) '\n'])
+disp('Number of flies:')
+disp(nflies)
 
-% Find food wells and their identities %TODO
-h = warndlg('Select the well locations starting at "9 o''clock" and proceeding clock wise'); uiwait(h)
-% label the wells:
-wellLabels = {expData.parameters.(['Arena' arenaSel]).well_1;...
-              expData.parameters.(['Arena' arenaSel]).well_2;...
-              expData.parameters.(['Arena' arenaSel]).well_3;...
-              expData.parameters.(['Arena' arenaSel]).well_4};   
+%TODO
+% ID the wells:
+for arena = 1:4
+    AI = ['Arena' arenaIdx{arena}];
+    wellLabels = {expData.parameters.(AI).well_1;...
+                  expData.parameters.(AI).well_2;...
+                  expData.parameters.(AI).well_3;...
+                  expData.parameters.(AI).well_4};   
+    arenaData(arena).wellLabels = wellLabels;
+end
+A = [arenaData(4).wellLabels,arenaData(1).wellLabels,arenaData(3).wellLabels,arenaData(2).wellLabels];
+wellLabels = array2table(A,"VariableNames",["Arena A","Arena B","Arena C","Arena D"]);
 disp(wellLabels)
-wellcenters = readPoints(demoImg,4); % get locations of the wells from the image
 
-initial_vars = [initial_vars; 'nflies'; 'wellLabels'; 'wellcenters'; 'demoImg'];
+initial_vars = [initial_vars; 'nflies'; 'demoImg','wellLabels'];
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% ----------------------------- Data organization by video ---------------------------
-% find number of flies per frame
+% find number of frames per vid
 currFrame = 0;
 for vid = 1:nvids
     occupancy.frameROI(vid,1) = currFrame+1;
@@ -134,59 +230,112 @@ for vid = 1:nvids
     occupancy.frameROI(vid,2) = currFrame;
 end
 
-%% --------------------------- Mask the food wells & arena ---------------------------
-maskPath = [analysisDir expName arenaSel ' ArenaMask.mat'];
-if ~isfile(maskPath)
-    idx = find(~strcmpi('Empty', wellLabels));
-    if ~isempty(idx)
-        % draw out the masks:
-        for ii = 1:length(idx)
-            wellName = strrep(wellLabels{idx(ii)}, '_', '-');
-            % label the ROI
-            f = figure;
-            imshow(demoImg)
-            title(['Outline the ' wellName ' well'])
-            roi = drawpolygon;
-            mask(ii).n = roi.Position;
-            uiwait(f)
-        end
-        % save the food masks:
-        save(maskPath, 'mask')
+%% Find the fly counts and head tracking points for each frame
+scaleFactor = 1;
+flyCount = nan(occupancy.frameROI(end,2),4);
+arena_idx = [4,1,3,2];
+
+for vid = 1:nvids
+    raw_flyCount = [];
+    
+    % all data for head tracked location
+    headData = squeeze(data(vid).tracks(:,1,:,:));
+    
+    % x-y coordinates of flies for each frame
+    x_loc = squeeze(headData(:,1,:)).*scaleFactor;
+    y_loc = squeeze(headData(:,2,:)).*scaleFactor;
+    data(vid).x_loc_raw = x_loc;
+    data(vid).y_loc_raw = y_loc;
+    nframes = size(headData,1); 
+    
+    % --------- Find data points that lie within each arena ---------
+    Xdim = size(x_loc);
+    Ydim = size(y_loc);
+    %resize the data:
+
+    for arena = 1:4
+        X = reshape(x_loc,[numel(x_loc),1]);
+        Y = reshape(y_loc,[numel(y_loc),1]);
+        centre = arenaData(arena).centre;
+        % find points within each arena sphere
+        loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)>=r;
+        X(loc) = NaN;
+        Y(loc) = NaN;
+        %resize the data:
+        X = reshape(X,Xdim);
+        Y = reshape(Y,Ydim);
+    
+        % save tracking points into structure:
+        data(vid).(arenaIdx{arena}).x_loc = X;
+        data(vid).(arenaIdx{arena}).y_loc = Y;
+    
+        % number of flies within this arena:
+        ROI = occupancy.frameROI(vid,1):occupancy.frameROI(vid,2);
+        flyCount(arena_idx(arena),ROI) = sum(~isnan(X),2);
     end
-else
-    load(maskPath)
 end
-
-% Check the video size
-if all(size(demoImg)==946)
-    r = 400; %radius of the arena for the quadbowl
-else
-    warndlg('Not expected video pixel size...manually set radius')
-    return
     
-    % manually select an arena radius?
-    
-    % % pic preview of mask circle:
-    % figure; hold on
-    % imshow(demoImg)
-    % viscircles(centre', r);
-end
+arenaData(arena).flyCount = raw_flyCount;
 
-% Screen any points outside the arena
-x1 = wellcenters(1,1:2:4);
-y1 = wellcenters(2,1:2:4);
-x2 = wellcenters(1,2:2:4);
-y2 = wellcenters(2,2:2:4);
-[xi,yi] = polyxpoly(x1,y1,x2,y2);
-centre = [xi;yi];
-% 
+%% --------------------------- Mask the food wells & arena ---------------------------
+% maskPath = [analysisDir expName ' ArenaMask.mat'];
+% if ~isfile(maskPath)
+%     idx = find(~strcmpi('Empty', wellLabels));
+%     if ~isempty(idx)
+%         % draw out the masks:
+%         for ii = 1:length(idx)
+%             wellName = strrep(wellLabels{idx(ii)}, '_', '-');
+%             % label the ROI
+%             f = figure;
+%             imshow(demoImg)
+%             title(['Outline the ' wellName ' well'])
+%             roi = drawpolygon;
+%             mask(ii).n = roi.Position;
+%             uiwait(f)
+%         end
+%         % save the food masks:
+%         save(maskPath, 'mask')
+%     end
+% else
+%     load(maskPath)
+% end
+
+% % Check the video size
+% if all(size(demoImg)==946)
+%     r = 400; %radius of the arena for the quadbowl
+% else
+%     warndlg('Not expected video pixel size...manually set radius')
+%     return
+%     
+%     % manually select an arena radius?
+%     
+%     % % pic preview of mask circle:
+%     % figure; hold on
+%     % imshow(demoImg)
+%     % viscircles(centre', r);
+% end
+
+% % Screen any points outside the arena
+% x1 = wellcenters(1,1:2:4);
+% y1 = wellcenters(2,1:2:4);
+% x2 = wellcenters(1,2:2:4);
+% y2 = wellcenters(2,2:2:4);
+% [xi,yi] = polyxpoly(x1,y1,x2,y2);
+% centre = [xi;yi];
+% % 
 % % pic preview of mask circle:
 % figure; hold on
 % imshow(demoImg)
 % viscircles(centre', r);
 
-% Tracking matrix locations: [frame, node, xy, fly]
-scaleFactor = 1.31; % offset from the video encoding compression
+% % Tracking matrix locations: [frame, node, xy, fly]
+% scaleFactor = 1.31; % offset from the video encoding compression
+
+
+
+
+
+
 
 % MASK FOOD AND ARENA:
 [raw_flyCount, mid_flyCount] = deal([]);

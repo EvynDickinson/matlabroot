@@ -1,6 +1,7 @@
-clear
 
-%% 
+
+%% Move videos from computer drive to google drive
+clear
 %raw data folder: 
 h = warndlg('Turn off IR lights on rig');
 uiwait(h)
@@ -47,6 +48,38 @@ if ~isfolder(videosDirC); mkdir(videosDirC); end
 
 videosDirD = [targetDir '\Arena D\'];
 if ~isfolder(videosDirD); mkdir(videosDirD); end
+
+% Copy tracking models over to new folder: 
+model_1 = 'centered_instance_model';
+model_2 = 'centroid_model';
+batchCode = 'batch.py';
+trackingDir = [baseFolder 'Tracking\'];
+
+% Copy model and program into selected folder
+copyfile([trackingDir model_1], targetDir)
+copyfile([trackingDir model_2], targetDir)
+copyfile([trackingDir batchCode], targetDir)
+
+fprintf('done')
+
+
+
+%% Copy folders for models over to selected location
+% Move the 
+clear
+% select the folder to analyze 
+[basePath, folder] = getCloudPath(1);
+
+% parameter inputs: 
+model_1 = 'centered_instance_model';
+model_2 = 'centroid_model';
+batchCode = 'batch.py';
+trackingDir = [basePath 'Tracking\'];
+
+% Copy model and program into selected folder
+copyfile([trackingDir model_1], folder)
+copyfile([trackingDir model_2], folder)
+copyfile([trackingDir batchCode], folder)
 
 fprintf('done')
 

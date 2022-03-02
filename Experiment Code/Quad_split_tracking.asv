@@ -154,6 +154,8 @@ frame = 1;
 movieInfo = VideoReader([dataDir vidList(vid).name]); %read in video
 demoImg = rgb2gray(read(movieInfo,frame));
 
+
+
 for vid = 1:nvids
     [raw_flyCount, mid_flyCount] = deal([]);
     
@@ -192,11 +194,11 @@ for vid = 1:nvids
     
         % number of flies within this arena:
         raw_flyCount = [raw_flyCount; sum(~isnan(X),2)];
-        arenaData(arena).flyCount = raw_flyCount;
+        
     end
 end
     
-
+arenaData(arena).flyCount = raw_flyCount;
 
 
 %% Check tracking locations:
@@ -315,6 +317,13 @@ end
 
 
 
+%% 
+
+% Load tracking data'
+vidPath = "G:\My Drive\Jeanne Lab\DATA\02.24.2022\PlantFood_LinearRamps_3.avi";
+filePath = [vidPath '.predictions.analysis.h5']; % [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
+occupancy_matrix = h5read(filePath,'/track_occupancy');
+tracks = h5read(filePath,'/tracks');
 
 
 

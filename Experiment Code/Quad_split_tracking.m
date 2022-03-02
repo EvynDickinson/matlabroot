@@ -317,6 +317,13 @@ end
 
 
 
+%% 
+
+% Load tracking data'
+vidPath = 'G:\My Drive\Jeanne Lab\DATA\02.24.2022\PlantFood_LinearRamps_3.avi';
+filePath = [vidPath '.predictions.analysis.h5']; % [baseFolder vidFolder '\' expName '_' num2str(vid) '.h5'];
+occupancy_matrix = h5read(filePath,'/track_occupancy');
+tracks = h5read(filePath,'/tracks');
 
 
 

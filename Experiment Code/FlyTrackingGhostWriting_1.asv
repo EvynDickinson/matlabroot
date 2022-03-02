@@ -71,14 +71,14 @@ trackNames = {list_dirs(:).name};
 tracking = cellfun(@(x) strsplit(x, '.'), trackNames, 'UniformOutput', false);
 tracking = vertcat(tracking{:}); % To remove nesting of cell array newA
 tracking = tracking(:,1);
-% Pull list of prediction files:
-list_dirs = dir([vidPath, '*.h5']); %only matlab files
-predictionNames = {list_dirs(:).name};
-predictions = cellfun(@(x) strsplit(x, '.'), predictionNames, 'UniformOutput', false);
-for ii = 1:size(predictions,2)
-    new_predictions{ii,1} = predictions{1,ii}{1}; % To remove nesting of cell array
-end
-
+    % Pull list of prediction files:
+    list_dirs = dir([vidPath, '*.h5']); %only matlab files
+    predictionNames = {list_dirs(:).name};
+    predictions = cellfun(@(x) strsplit(x, '.'), predictionNames, 'UniformOutput', false);
+    for ii = 1:length(predictions)
+    predictions = vertcat(predictions{:}); % To remove nesting of cell array
+    predictions = predictions(:,1);
+    
     % Find and reprint the missing files:
     trackFail = find(ismember(videos, tracking)==false);
     precictFail = find(ismember(videos, predictions)==false);
