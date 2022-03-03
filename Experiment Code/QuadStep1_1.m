@@ -148,10 +148,13 @@ fig = figure;
 
 % Does the arena fit work???
 answer = questdlg('Okay arena alignment?');
-if strcmp('Yes', answer)
-    save_figure(fig, [analysisDir 'Arena outlines'],'-png',true);
-else
-    return
+switch answer
+    case 'Yes'
+        save_figure(fig, [analysisDir 'Arena outlines'],'-png',true);
+    case 'Cancel'
+        % don't save figure but keep going
+    case 'No'
+        return
 end
 
 % Tidy variables / environment 
@@ -237,72 +240,245 @@ end
 disp('Number of flies:')
 disp(nflies)
 
-% find number of frames per vid
+%% Start data table that concatenates across all videos:
+
+[vidNums, vidFrame, frame, temperature, tempWork] = deal([]);
 currFrame = 0;
 for vid = 1:nvids
+% find number of frames per vid
     occupancy.frameROI(vid,1) = currFrame+1;
     nframes = size(data(vid).occupancy_matrix,2);
     currFrame = nframes + currFrame;
     occupancy.frameROI(vid,2) = currFrame;
+    % video numbers
+    vidNums = [vidNums; vid*ones(nframes,1)];
+    % frame num in video
+    vidFrame = [vidFrame; (1:nframes)'];
+    % total frame count
+    frame = [frame; (occupancy.frameROI(vid,1):occupancy.frameROI(vid,2))'];
+    % temperature log
+    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
+    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
+    tempCourse = tempLog(logROI(1):logROI(2),2);
+    x = round(linspace(1, nframes, length(tempCourse)));
+    fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
+    data(vid).tempLog = fullTempList;
+    temperature = [temperature; fullTempList']; 
+    % temp plate work log
+    workCourse = tempLog(logROI(1):logROI(2),4);
+    x = round(linspace(1, nframes, length(workCourse)));
+    fullWorkList = interp1(x,workCourse,1:nframes,'spline');   
+    tempWork = [tempWork; fullWorkList']; 
 end
+occupancy.temp = temperature;
+% Time count
+time = (linspace(1, (frame(end)/3)/60, frame(end)))';
+occupancy.time = time;
 
-initial_vars = [initial_vars; 'nflies'; 'demoImg','wellLabels'; 'occupancy'];
+% Data table with continuous variables:
+T = table(frame, time, temperature, tempWork, vidNums, vidFrame);
+
+initial_vars = [initial_vars; 'nflies'; 'demoImg','wellLabels'; 'occupancy'; 'T'];
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% Find the fly counts and head tracking points for each frame
-flyCount = nan(occupancy.frameROI(end,2),4);
+%% Save the fly locations into a single dataset
 
-for vid = 1:nvids    
-    % all data for head tracked location
+% how many tracks max within this whole experiment?
+w = 0;
+for vid = 1:nvids
+    w = max([size(data(vid).occupancy_matrix,1),w]);
+end
+[X, Y] = deal(nan(T.frame(end),w));
+
+% load fly locations into the X & Y matrices
+for vid = 1:nvids
+    % ---- fly tracked locations -------
     headData = squeeze(data(vid).tracks(:,1,:,:));
-    
     % x-y coordinates of flies for each frame
     x_loc = squeeze(headData(:,1,:));
     y_loc = squeeze(headData(:,2,:));
     data(vid).x_loc_raw = x_loc;
     data(vid).y_loc_raw = y_loc;
-    nframes = size(headData,1); 
-    
-    % --------- Find data points that lie within each arena ---------
-    Xdim = size(x_loc);
-    Ydim = size(y_loc);
-    for arena = 1:4
-        %resize the data:
-        X = reshape(x_loc,[numel(x_loc),1]);
-        Y = reshape(y_loc,[numel(y_loc),1]);
-        centre = arenaData(arena).centre;
-        % find points within each arena sphere
-        loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)>=r;
-        X(loc) = NaN;
-        Y(loc) = NaN;
-        %resize the data:
-        X = reshape(X,Xdim);
-        Y = reshape(Y,Ydim);
-    
-        % save tracking points into structure:
-        data(vid).(arenaIdx{arena}).x_loc = X;
-        data(vid).(arenaIdx{arena}).y_loc = Y;
-        FliesPerFrame = sum(~isnan(X),2);
-        data(vid).(arenaIdx{arena}).FliesPerFrame = FliesPerFrame;
-        % number of flies within this arena:
-        ROI = occupancy.frameROI(vid,1):occupancy.frameROI(vid,2);
-        flyCount(ROI, arena) = FliesPerFrame;
-    end
+    dims = size(x_loc); 
+    roi_1 = occupancy.frameROI(vid,1):occupancy.frameROI(vid,2);
+    roi_2 = 1:dims(2);
+    X(roi_1,roi_2) = x_loc;
+    Y(roi_1,roi_2) = y_loc;
 end
+
+% Add X and Y to the data table:
+T = addvars(T,X,Y);
+% head(T,5)
+   
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+%% Determine the fly tracked points for each arena
+
+flyCount = [];
+% which points are within the sphere of each arena?
 for arena = 1:4
-    arenaData(arena).flyCount = flyCount(:,arena);
+    % Pull variables:
+    X = T.X;
+    Y = T.Y;
+    centre = arenaData(arena).centre;
+    c1 = centre(1);
+    c2 = centre(2);
+    
+    % Find points within arena:
+    loc = sqrt((X-c1).^2 + (Y-c2).^2)<=r; % tracked points within circle
+    X(~loc) = nan;
+    Y(~loc) = nan;
+    flyNum = sum(loc,2); % how many points tracked
+
+    % Save into data structure:
+    data(vid).x_loc = X;
+    data(vid).y_loc = Y;
+
+    % Remove some nans to make smaller matrix
+    dims = size(X);
+    [x_loc, y_loc] = deal(nan(dims(1),max(flyNum)));
+    for ii = 1:dims(1)
+        keep_loc = ~isnan(X(ii,:));
+        x_loc(ii,1:flyNum(ii)) = X(ii,keep_loc);
+        y_loc(ii,1:flyNum(ii)) = Y(ii,keep_loc);
+    end
+    arenaData(arena).x_loc = x_loc;
+    arenaData(arena).y_loc = y_loc;
+    
+    % fly count for this arena
+    flyCount = [flyCount,flyNum];
+    arenaData(arena).flyCount = flyNum;
+    % Save to structures
+    switch arena
+        case 1
+            flyCount_A = flyNum;
+            xA = x_loc;
+            yA = y_loc;
+        case 2
+            flyCount_B = flyNum;
+            xB = x_loc;
+            yB = y_loc;
+        case 3
+            flyCount_C = flyNum;
+            xC = x_loc;
+            yC = y_loc;
+        case 4
+            flyCount_D = flyNum;
+            xD = x_loc;
+            yD = y_loc;
+    end
+    
 end
+
+% save the sata to appropriate structures:
+try 
+    T.flyCount = flyCount;
+    T.flyCount_A = flyCount_A;
+    T.flyCount_B = flyCount_B;
+    T.flyCount_C = flyCount_C;
+    T.flyCount_D = flyCount_D;
+    T.xA = xA; T.yA = yA;
+    T.xB = xB; T.yB = yB;
+    T.xC = xC; T.yC = yC;
+    T.xD = xD; T.yD = yD;
+catch 
+    T = addvars(T,flyCount,flyCount_A,flyCount_B,flyCount_C,flyCount_D,xA,yA,xB,yB,xC,yC,xD,yD);
+    T = movevars(T,'X','After','flyCount_D');
+    T = movevars(T,'Y','After','X');
+end
+
 occupancy.flyCount = flyCount;
 
 initial_vars = [initial_vars; 'flyCount'];
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% Convert temperature log into frames and find rough # of flies within each well sphere
+% T = movevars(T,'X','After','flyCount_D');
+% T = movevars(T,'Y','After','X');
+% head(T,1)
+% T.Properties.VariableNames
+% T = removevars(T,{'flyCount_1','flyCount_A_1','flyCount_C_1','flyCount_D_1','flyCount_B_1'});
+
+%% Visual check on the number of flies per arena
+n = 2; % how many miscounted frames to look at
+
+% Check flycount offset by arena:
+for arena = 2:4
+    offset = flyCount(:,arena)-nflies(arena);
+    [~,idx] = sort(offset);
+    lowIDX = idx(1:n);          % lowest fly count frame index
+    highIDX = idx(end-n+1:end); % highest fly count frame index
+    
+    % -------------- LOW COUNTS ---------------
+    % load video information
+    for ii = 1:n
+        frame = lowIDX(ii);
+        vidNum = T.vidNums(frame);
+        vidframe = T.vidFrame(frame);
+        movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vidNum) '.avi']); %read in video
+        img = read(movieInfo,vidframe);
+        fig = figure;
+            imshow(img); set(fig,'color', 'k')
+            hold on
+            x = T.X(frame,:);
+            y = T.Y(frame,:);
+            scatter(x,y, 10, 'y')
+            % draw arena circle
+            kolor = arenaData(arena).color;
+            centre = arenaData(arena).centre;
+            viscircles(centre', r, 'color', kolor);
+            % write the number of frames that are offset
+            for a = 1:4
+                AC = arenaData(a).centre;
+                str = num2str(T.flyCount(frame,a)-nflies(a));
+                text(AC(1),AC(2),str,'color','w','fontsize',14,'horizontalAlignment', 'center')
+            end
+            % Add title with temperature
+            title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
+                'color', 'w')
+        % save image??
+        save_loc = [baseFolder folder '\Arena ' arenaIdx{arena} '\UnderTrackedImage ' num2str(ii)];
+        save_figure(fig, save_loc, '-png',true);
+    end
+
+     % -------------- HIGH COUNTS ---------------
+    % load video information
+    for ii = 1:n
+        frame = highIDX(ii);
+        vidNum = T.vidNums(frame);
+        vidframe = T.vidFrame(frame);
+        movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vidNum) '.avi']); %read in video
+        img = read(movieInfo,vidframe);
+        fig = figure;
+            imshow(img); set(fig,'color', 'k')
+            hold on
+            x = T.X(frame,:);
+            y = T.Y(frame,:);
+            scatter(x,y, 10, 'y')
+            % draw arena circle
+            kolor = arenaData(arena).color;
+            centre = arenaData(arena).centre;
+            viscircles(centre', r, 'color', kolor);
+            % write the number of frames that are offset
+            for a = 1:4
+                AC = arenaData(a).centre;
+                str = num2str(T.flyCount(frame,a)-nflies(a));
+                text(AC(1),AC(2),str,'color','w','fontsize',14,'horizontalAlignment', 'center')
+            end
+            % Add title with temperature
+            title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
+                'color', 'w')
+        % save image??
+        save_loc = [baseFolder folder '\Arena ' arenaIdx{arena} '\OverTrackedImage ' num2str(ii)];
+        save_figure(fig, save_loc, '-png',true);
+    end
+end
+
+%% Find # of flies within each well sphere
 
 % Find number of flies that are near each well for each frame
-full_temp = [];
 for vid = 1:nvids
     dims = size(data(vid).occupancy_matrix);
     for arena = 1:4
@@ -325,20 +501,11 @@ for vid = 1:nvids
         end
         arenaData(arena).welldata = welldata;
     end
-    % temperature alignment
-    logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
-    logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
-    tempCourse = tempLog(logROI(1):logROI(2),2);
-    x = round(linspace(1, dims(2), length(tempCourse)));
-    % upsample the temperature log:
-    fullTempList = interp1(x,tempCourse,1:dims(2),'spline');   
-    data(vid).tempLog = fullTempList;
-    full_temp = [full_temp, data(vid).tempLog]; % temperature
 end
-occupancy.temp = full_temp;
 occupancy.time = linspace(1,(length(flyCount)/3)/60,length(flyCount));
 
 clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
 %% FIGURES : Visualize tracking across all four quadrants
 
@@ -397,6 +564,9 @@ save_figure(fig, [analysisDir 'Fly Count over time'],'-png');
 
 clearvars('-except',initial_vars{:})
 
+%% FIGURES: insepction of the over | under-tracked frames
+
+
 %% Figures: arena occupation & temp vs time
 % TODO....
 LW = 1;
@@ -415,7 +585,63 @@ subplot(nrows,ncols,1)
 %% WORKING HERE!!! 3.2.22
 % figure out how to sort and save the information into the four arenas to match the
 % former data set formats
+%% ------------------- Save preformatted data for QuadStep2 ------------------------
+initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'; 'occupancy'];
+clearvars('-except',initial_vars{:})
+save([analysisDir expName arenaSel ' preformed data'])
+disp('Formatted data saved')
+disp('Done')
 
+%% Find the fly counts and head tracking points for each frame
+% flyCount = nan(occupancy.frameROI(end,2),4);
+% 
+% for vid = 1:nvids    
+%     % all data for head tracked location
+%     headData = squeeze(data(vid).tracks(:,1,:,:));
+%     
+%     % x-y coordinates of flies for each frame
+%     x_loc = squeeze(headData(:,1,:));
+%     y_loc = squeeze(headData(:,2,:));
+%     data(vid).x_loc_raw = x_loc;
+%     data(vid).y_loc_raw = y_loc;
+%     nframes = size(headData,1); 
+%     
+%     % --------- Find data points that lie within each arena ---------
+%     Xdim = size(x_loc);
+%     Ydim = size(y_loc);
+%     for arena = 1:4
+%         %resize the data:
+%         X = reshape(x_loc,[numel(x_loc),1]);
+%         Y = reshape(y_loc,[numel(y_loc),1]);
+%         centre = arenaData(arena).centre;
+%         % find points within each arena sphere
+%         loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)>=r;
+%         X(loc) = NaN;
+%         Y(loc) = NaN;
+%         %resize the data:
+%         X = reshape(X,Xdim);
+%         Y = reshape(Y,Ydim);
+% 
+%         
+%     
+%         % save tracking points into structure:
+%         data(vid).(arenaIdx{arena}).x_loc = X;
+%         data(vid).(arenaIdx{arena}).y_loc = Y;
+%         FliesPerFrame = sum(~isnan(X),2);
+%         data(vid).(arenaIdx{arena}).FliesPerFrame = FliesPerFrame;
+%         % number of flies within this arena:
+%         ROI = occupancy.frameROI(vid,1):occupancy.frameROI(vid,2);
+%         flyCount(ROI, arena) = FliesPerFrame;
+%     end
+% end
+% for arena = 1:4
+%     arenaData(arena).flyCount = flyCount(:,arena);
+% end
+% occupancy.flyCount = flyCount;
+% 
+% initial_vars = [initial_vars; 'flyCount'];
+% clearvars('-except',initial_vars{:})
+% fprintf('Next\n')
 %% --------------------------- Mask the food wells & arena ---------------------------
 % maskPath = [analysisDir expName ' ArenaMask.mat'];
 % if ~isfile(maskPath)
