@@ -162,7 +162,7 @@ initial_vars = [initial_vars; 'arenaData'; 'arenaIdx'; 'r'; 'wellcenters'; 'demo
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% --------------------- Parameter extraction ----------------------------------------
+%% Get the number of flies in each arena
 % Number of flies:
 nframes = 2;
 for arena = 1:4
@@ -282,7 +282,7 @@ initial_vars = [initial_vars; 'nflies'; 'demoImg','wellLabels'; 'occupancy'; 'T'
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% Save the fly locations into a single dataset
+%% Find the x-y coordinates for each fly
 
 % how many tracks max within this whole experiment?
 w = 0;
@@ -395,13 +395,13 @@ initial_vars = [initial_vars; 'flyCount'];
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-% T = movevars(T,'X','After','flyCount_D');
-% T = movevars(T,'Y','After','X');
+T = movevars(T,'X','After','flyCount_D');
+T = movevars(T,'Y','After','X');
 % head(T,1)
 % T.Properties.VariableNames
 % T = removevars(T,{'flyCount_1','flyCount_A_1','flyCount_C_1','flyCount_D_1','flyCount_B_1'});
 
-%% Visual check on the number of flies per arena
+%% FIGURES: check on the number of flies per arena
 n = 2; % how many miscounted frames to look at
 
 % Check flycount offset by arena:
@@ -476,39 +476,7 @@ for arena = 2:4
     end
 end
 
-%% Find # of flies within each well sphere
-
-% Find number of flies that are near each well for each frame
-for vid = 1:nvids
-    dims = size(data(vid).occupancy_matrix);
-    for arena = 1:4
-        welldata = [];
-        ID = arenaIdx{arena};
-        wellcenters = arenaData(arena).wellcenters;
-        % loop for all wells 
-        for well = 1:4
-            b = wellcenters(:,well); 
-            % reshape data points from whole video for optimized maths
-            x_loc = reshape(data(vid).(ID).x_loc,numel(data(vid).(ID).y_loc),1); 
-            y_loc = reshape(data(vid).(ID).y_loc,numel(data(vid).(ID).y_loc),1); 
-            % within well range?
-            euDist = sqrt((b(1)-x_loc).^2 + (b(2)-y_loc).^2); %euclidian distance from well center
-            well_loc = reshape((euDist<=radii),[dims(2),dims(1)]);
-            welldata(well).loc = well_loc;
-            % how many within the circle?
-            welldata(well).count = sum(well_loc,2);
-            data(vid).(ID).well_counts(:,well) = welldata(well).count;
-        end
-        arenaData(arena).welldata = welldata;
-    end
-end
-occupancy.time = linspace(1,(length(flyCount)/3)/60,length(flyCount));
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
 %% FIGURES : Visualize tracking across all four quadrants
-
 nrows = 2;
 ncols = 3;
 sb(1).idx = 4; %A
@@ -546,14 +514,14 @@ sb(1).idx = 1;
 sb(2).idx = 2:3;
 fig = figure; set(fig, 'pos', [298 260 508 483])
 subplot(nrows, ncols, sb(1).idx)
-plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', LW)
+plot(T.time, T.temperature,'color', 'w','linewidth', LW)
 xlabel('Time (min)')
 ylabel('Temp (\circC)')
 subplot(nrows, ncols, sb(2).idx)
 hold on
 for arena = 1:4
     y = arenaData(arena).flyCount-arenaData(arena).nflies;
-    plot(occupancy.time, smooth(y,sSpan), 'color', arenaData(arena).color, 'linewidth', LW)
+    plot(T.time, smooth(y,sSpan), 'color', arenaData(arena).color, 'linewidth', LW)
 end
 h_line(0,'grey',':',1)
 xlabel('Time (min)')
@@ -564,31 +532,99 @@ save_figure(fig, [analysisDir 'Fly Count over time'],'-png');
 
 clearvars('-except',initial_vars{:})
 
-%% FIGURES: insepction of the over | under-tracked frames
+%% Find number of flies within each well sphere & fly distance to wells
+pix2mm = 12.8; %conversion from pixels to mm for these videos
+for arena = 1:4
+    % Pull fly coordinate position data for this arena 
+    X = T.(['x' arenaIdx{arena}]);
+    Y = T.(['y' arenaIdx{arena}]);
+    
+    % Get center position for each well
+    centers = arenaData(arena).wellcenters;
 
+    % Calculate distance to food and occupancy counts
+    for well = 1:4
+        % center of the well coordinates
+        c1 = centers(1,well);
+        c2 = centers(2,well);
 
-%% Figures: arena occupation & temp vs time
-% TODO....
+        % Find distance to well center
+        dist2well = sqrt((X-c1).^2 + (Y-c2).^2);
+        
+        % Find points within arena:
+        loc = dist2well<=radii; % tracked points within circle
+        N = sum(loc,2); % how many points tracked
+        
+        % store data
+        arenaData(arena).dist2well(:,well) = mean(dist2well./pix2mm,2,'omitnan');
+        arenaData(arena).dist2well_err(:,well) = std(dist2well./pix2mm,0,2,'omitnan');
+        arenaData(arena).occ_N(:,well) = N;
+        arenaData(arena).occ_P(:,well) = N/nflies(arena);
+    end
+end
+
+initial_vars{end+1} = 'pix2mm';
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+%% FIGURE: distance to food and well occupancy acros the experiment
+sSpan = 360;
 LW = 1;
 nrows = 5;
 ncols = 1;
+sb(1).idx = 1;   % temperature
+sb(2).idx = 2:3; % occupancy
+sb(3).idx = 4:5; % distance to food
 
-fig = figure; 
-% TEMPERATURE
-subplot(nrows,ncols,1)
-    plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', LW)
-    ylabel('Temp (\circC)')
-% OCCUPATION
+for arena = 1:4
+    fig = figure; set(fig, 'pos', [294 143 1065 704])
+    % TEMPERATURE
+    subplot(nrows,ncols,sb(1).idx)
+        plot(T.time, T.temperature,'color', 'w','linewidth', LW)
+        ylabel('Temp (\circC)')
+    % OCCUPATION
+    subplot(nrows,ncols,sb(2).idx)
+        hold on
+        for well = 1:4
+            kolor = pullFoodColor(arenaData(arena).wellLabels{well});
+            y = smooth(arenaData(arena).occ_P(:,well),sSpan);
+            plot(T.time, y, 'linewidth', LW, 'color', kolor);
+        end
+        ylabel('occupation probability')
+    
+    % DISTANCE TO FOOD
+    subplot(nrows,ncols,sb(3).idx)
+        hold on
+        for well = 1:4
+            kolor = pullFoodColor(arenaData(arena).wellLabels{well});
+            y = smooth(arenaData(arena).dist2well(:,well),sSpan);
+            plot(T.time, y, 'linewidth', LW, 'color', kolor);
+        end
+        ylabel('distance to food (mm)')
+        xlabel('time (min)');
+        
+    formatFig(fig, true, [nrows,ncols],sb);
+    subplot(nrows,ncols,sb(2).idx)
+    l = legend(strrep(arenaData(arena).wellLabels,'_','-'));
+    set(l, 'box', 'off', 'textcolor', 'w','edgecolor', 'k','location', 'northwest');
+    subplot(nrows, ncols, sb(1).idx)
+    titleName = strrep([folder ' ' expName ' Arena ' arenaIdx{arena}], '_',' ');
+    title(titleName,'color', 'w')
+    
+    save_loc = [baseFolder folder '\Arena ' arenaIdx{arena} '\time course overview'];
+    save_figure(fig, save_loc, '-png',true);
+end
 
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
-
-%% WORKING HERE!!! 3.2.22
+%% WORKING HERE!!! 3.4.22
 % figure out how to sort and save the information into the four arenas to match the
 % former data set formats
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
-initial_vars = [initial_vars; 'radii'; 'welldata'; 'flyCount'; 'occupancy'];
+
 clearvars('-except',initial_vars{:})
-save([analysisDir expName arenaSel ' preformed data'])
+save([analysisDir expName ' preformed data'])
 disp('Formatted data saved')
 disp('Done')
 

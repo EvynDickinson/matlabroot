@@ -69,6 +69,12 @@ catch
     elseif ismember('Plant', foodString)
         kolor = Color('green');
         num = 1;
+    elseif ismember('Glucose', foodString)
+        kolor = Color('yellow');
+        num = 2;
+    elseif ismember('Molasses', foodString)
+        kolor = Color('Chocolate');
+        num = 2;
     end
 end
 
