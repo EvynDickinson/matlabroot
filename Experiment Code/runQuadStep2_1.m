@@ -1,10 +1,5 @@
 
 
-function results = runQuadStep2(inputPath,autoSave,essentialfigs)
-% results = runQuadStep2(inputPath,autoSave,essentialfigs)
-%
-%
-% ES Dickinson
 
 % Load in the selected data file: 
 load(inputPath);

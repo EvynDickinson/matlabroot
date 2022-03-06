@@ -618,9 +618,6 @@ end
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% WORKING HERE!!! 3.4.22
-% figure out how to sort and save the information into the four arenas to match the
-% former data set formats
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
 
 clearvars('-except',initial_vars{:})
