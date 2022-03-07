@@ -1,12 +1,8 @@
 
 
-function results = runQuadStep2(inputPath,autoSave,essentialfigs)
-% results = runQuadStep2(inputPath,autoSave,essentialfigs)
-%
-%
-% ES Dickinson
 
 % Load in the selected data file: 
+warning off
 load(inputPath);
 disp(['Starting figures for ' folder ' ' expName])
 
@@ -162,16 +158,17 @@ if essentialfigs == false
   fprintf('\nNext\n')
 end
 
-%% Calculate several parameters: eccentricity, movement, clustering
+%% Calculate several parameters: eccentricity, movement, clustering, temp_rate???
 
 % organize data for forward compatability
-for arena = 1:nArenas
+for arena = 2:nArenas
     occupancy.temp = T.temperature;
     occupancy.occ = arenaData(arena).occ_P;
     occupancy.count = arenaData(arena).occ_N;
     occupancy.allwellOcc = sum(occupancy.occ,2);
 
     % ECCENTRICITY
+    N = [];
     x1 = arenaData(arena).wellcenters(1,1:2:4);
     y1 = arenaData(arena).wellcenters(2,1:2:4);
     x2 = arenaData(arena).wellcenters(1,2:2:4);
@@ -190,51 +187,468 @@ for arena = 1:nArenas
     occupancy.eccentricity = N;
     
     % CLUSTERING
-    LDist = []; LD_err = [];
-    flyDistance = []; D_err = [];
-    for frame = 1:T.frame
+    [LDist,LD_err] = deal([]); 
+    for frame = 1:T.frame(end)
         inputData = [arenaData(arena).x_loc(frame,:)',arenaData(arena).y_loc(frame,:)'];
         inputData(isnan(inputData(:,1)),:) = [];
         D = pdist(inputData);
         LDist(frame) = mean(D);
         LD_err(frame) = std(D);
-
     end
-    data(vid).flyDistance = flyDistance;
-    LDist = [LDist,flyDistance]; 
-    LD_err = [LD_err,D_err];
-
-    %add inter-fly-distance to the occupancy time course structure
     occupancy.IFD = LDist;
     occupancy.IFD_err = LD_err;
     
+    % MOVEMENT: 
+    nbins = 100;
+    N = [];
+    for frame = 1:T.frame(end)
+        X = arenaData(arena).x_loc(frame,:); X(isnan(X)) = [];
+        Y = arenaData(arena).y_loc(frame,:); Y(isnan(Y)) = [];
+        N(:,:,frame) = histcounts2(X,Y,nbins);
+    end
+    binDiff = diff(N,1,3);
+    binDiff(binDiff<0) = 0;
+    occupancy.movement = squeeze(sum(sum(binDiff,1),2));
+    
     % save data into occupancy structure:
+    occupancy.dist2wells = arenaData(arena).dist2well;
     arenaData(arena).occupancy = occupancy;
+end
+
+for arena = 1:nArenas
+    arenaData(arena).genotype = expData.parameters.(['Arena' arenaIdx{arena}]).genotype;
 end
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% -----------------------Calculate degree of clustering------------------------------
-% pull info for each video
-LDist = []; LD_err = [];
-for vid = 1:nvids
-    flyDistance = []; D_err = [];
-    for frame = 1:length(data(vid).tempLog)
-        test = [data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
-        D = pdist(test);
-        D(isnan(D)) = [];
-        flyDistance(frame) = mean(D);
-        D_err(frame) = std(D);
+%% Temp rate heat map: 
+initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
+[threshHigh, threshLow] = getTempThresholds;
+binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
+
+% Get the temp rate, temp, and distance from food
+for arena = 1:nArenas
+    [TR,T_rates] = deal([]); % temp rate data will go here then get saved into Arena Data
+
+    % temperature
+    temp = T.temperature;
+    time = T.time(1:end-1);
+    plotData(:,1) = temp(1:end-1); 
+
+    % rate of temperature change
+    dT = diff(smooth(temp,180)); %180 = 1 minute smoothing kernal
+    dt = diff(T.time(:)); 
+    plotData(:,2) = dT./dt; 
+    % figure; plot(T.time(1:end-1),plotData(:,2)) %to look at the calculated temp rate
+
+    % distance from food
+    for well = 1:4
+        [kolor,num] = pullFoodColor(arenaData(arena).wellLabels{well});
+        if ~(num==3) % aka not an empty well
+            y = arenaData(arena).dist2well(:,well);
+            foodwell = well;
+            arenaData(arena).foodwell = foodwell;
+            plotData(:,3) = y(1:end-1);
+            break
+        end
     end
-    data(vid).flyDistance = flyDistance;
-    LDist = [LDist,flyDistance]; 
-    LD_err = [LD_err,D_err];
+
+    % find the mean temp rate during each ramp period:
+    tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
+    keepLoc = false(1,size(plotData,1));
+    for ii = 1:length(tPoints.transitions)-1
+        roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
+        distD = median(plotData(roi,2));
+        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+        keepLoc(roi) = true;
+    end
+    plotData(~keepLoc,:) = nan; % exclude data outside prescribed ROI regions
+%     figure; 
+%     plot(T.time(1:end-1),plotData(:,2))
+%     hold on 
+%     time = T.time(1:end-1);
+%     scatter(time(keepLoc),plotData(keepLoc,2))
+
+    % Temp-rate identification and sorting: 
+    buffSize = 0.05;
+    for ii = 1:tPoints.nRates
+        edges(ii,:) = [tPoints.rates(ii)-buffSize, tPoints.rates(ii)+buffSize];
+    end  
+    rateData = plotData(:,4);
+    nRates = tPoints.nRates;
+    rateIdx = discretize(rateData,nRates);
+    for ii = 1:nRates
+        TD = rateData(rateIdx==ii);
+        T_rates(ii) = round(mean(TD,'omitnan'),2);
+        % do these match the assumed rates?
+        idx = find(T_rates(ii) > edges(:,1) & T_rates(ii) < edges(:,2));
+        if isempty(idx)
+            warndlg('Temp rate not within expected range')
+            return
+        end
+        % set the rate value to the uniform cross-group value:
+        rateData(rateIdx==ii) = tPoints.rates(ii);
+        T_rates(ii) = tPoints.rates(ii);
+%        figure; hold on
+%        plot(rateData)
+%        plot(plotData(:,4))
+    end
+    plotData(:,4) = rateData;
+    plotData(:,5) = rateIdx; %rate bin
+    TR.rateIdx = rateIdx;
+    TR.rates = T_rates;
+    TR.data = plotData;
+    
+    % Temperature range and bin size formatting
+    t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
+    if t_roi(end)<ceil(threshHigh)
+        t_roi(end+1) = ceil(threshHigh) + binSpace;
+    end
+    nTemps = length(t_roi);
+    tempIdx = discretize(plotData(:,1), t_roi);
+    TR.nTemps = nTemps;
+    TR.tempIdx = tempIdx;
+    TR.temps = t_roi;
+
+    % turn coordinates of heatmap into a vector to fill in 2D
+    [HM,FC,FD,dist_mat,FC_mat] = deal([]);
+    for col = 1:nTemps
+        for row = 1:nRates
+        % Pull the data that matches this category
+        loc = (rateIdx==row) & (tempIdx==col);
+
+        % fly count data: (for tracking assessment)
+        fc = flyCount(loc,arena);
+        FC(row,col).data = fc;
+        FC(row,col).mean = mean(fc,'omitnan');
+        FC(row,col).err = std(fc,0,'omitnan');
+        FC_mat.avg(row,col) = FC(row,col).mean;
+        FC_mat.err(row,col) = FC(row,col).err;
+
+        % distance data:
+        dist = plotData(loc,3);
+        HM(row,col) = mean(dist,'omitnan'); %heat map
+        FD(row,col).data = dist;
+        FD(row,col).mean = mean(dist,'omitnan');
+        FD(row,col).err = std(dist,0,'omitnan');
+        dist_mat.avg(row,col) = FD(row,col).mean;
+        dist_mat.err(row,col) = FD(row,col).err;
+        end
+    end
+    TR.heatmap = HM;
+    TR.dist_mat = dist_mat;
+    TR.FC_mat = FC_mat;
+    TR.nRates = length(TR.rates);
+    arenaData(arena).TR = TR;
+
+    % FIGURE: show the temp rate break down 
+    if arena == 1
+    fig = figure; yyaxis left; plot(time,tempIdx,'Color', Color('DodgerBlue')); ylabel('Temp bins');
+        yyaxis right; plot(time,rateIdx,'color', Color('orange')); ylabel('Heating vs. cooling'); 
+        formatFig(fig,true); yyaxis right; set(gca, 'YColor', Color('orange')); 
+        yyaxis left; set(gca, 'YColor', Color('DodgerBlue'));xlabel('Time (min)')
+        save_figure(fig, [analysisDir 'Temp rate assignment'],'-png');
+    end
+
+    % FIGURE: temperature rate aligment 
+    title_str = [folder ' ' arenaData(arena).name ' ' arenaData(arena).genotype];
+    fig_file = [arenaData(arena).figDir expName ' temp temp_rate dist'];
+    if ~isfile([fig_file '.png']) %skip already generated figures
+        fig = figure; set(fig, 'pos', [283 226 1019 622])
+        % temp
+        subplot(3,1,1)
+            plot(time, plotData(:,1),'color','w')
+            v_line(time(tPoints.transitions),'y',':')
+            ylabel('Temp (\circC)')
+            title(title_str)
+        % temp rate
+        subplot(3,1,2); hold on
+            plot(time, plotData(:,2),'color','w')
+            plot(time, plotData(:,4),'color','r','linewidth', 2)
+            v_line(time(tPoints.transitions),'y',':')
+            ylabel('dT/dt (\circC/min)')
+        % distance from food
+        subplot(3,1,3)
+            plot(time, plotData(:,3),'color',kolor)
+            v_line(time(tPoints.transitions),'y',':')
+            xlabel('time (min)')
+            ylabel('distance (mm)')
+            yyaxis right
+            yy = arenaData(arena).occ_P(1:end-1,foodwell);
+            yy(~keepLoc) = nan;
+            plot(time, smoothdata(yy,'movmean',180),'color', 'w')
+            ylabel('occupancy (prob)')
+        fig = formatFig(fig, true, [3,1]);
+            subplot(3,1,3)
+            yyaxis left 
+            set(gca,'YColor', kolor)
+            save_figure(fig, fig_file, '-png', true);
+    end
+    
+    % PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
+    fig_file = [arenaData(arena).figDir expName ' temp temp_rate dist heatmap'];
+    if ~isfile([fig_file '.png']) %skip already generated figures
+    %   colormap default
+        fig = figure; set(fig, 'pos', [560 127 983 417]);
+            hold on
+            imAlpha=ones(size(heatMapData));
+            imAlpha(isnan(heatMapData))=0;
+            imagesc(heatMapData,'AlphaData',imAlpha);
+            set(gca,'color',0*[1 1 1]);
+            axis tight
+            title(title_str)
+            % Axes formatting
+            ax = gca;
+            fig = formatFig(fig, true);
+            XtickNum = ax.XTick;
+            ax.XTickLabel = t_roi(XtickNum);
+            YtickNum = ax.YTick;
+            set(gca, 'ytick', 1:nRates,'YTickLabel',T_rates)
+            ylabel('\DeltaT/dt (\circC/min)')
+            xlabel('Temp (\circC)')
+            % Colorbar formatting
+            cbh = colorbar(); 
+            cbh.Label.String = 'Distance from food (mm)';
+            cbh.Color = Color('white');
+            % flip colormap around to make yellow closer to food
+            cmap = colormap;
+            set(gca, 'colormap', flip(cmap))
+        save_figure(fig, fig_file, '-png', true);
+    end
+    
+    % FIGURE: Line plots of each rate comparison 
+    fig_file = [arenaData(arena).figDir 'fly count hysteresis'];
+    if ~isfile([fig_file '.png'])
+        LS = {'--','-.','-'}; %cooling|stationary|heating
+        nrows = 1;
+        ncols = 3;
+        sb(1).idx = 1; %distance vs temp
+        sb(2).idx = 2; %fly count vs temp
+        sb(3).idx = 3; %fly count across temp rates
+        fig = figure; set(fig, 'pos', [17 49 1354 603])
+        % DISTANCE
+        subplot(nrows,ncols,sb(1).idx)
+        hold on
+        for rr = 1:TR.nRates
+            curr_rate = TR.rates(rr);
+            kolor = pullFoodColor(curr_rate);
+            if curr_rate>0
+                lstyle = LS{3};
+            elseif curr_rate<0
+                lstyle = LS{1};
+            elseif curr_rate==0
+                continue
+                lstyle = LS{2};
+            end
+            x = TR.temps;
+            y = dist_mat.avg(rr,:);
+            % err = dist_mat.err(rr,:);
+            plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+        end
+    
+        ylabel('Distance to food (mm)')
+        xlabel('Temperature (\circC)')
+        
+        % FLY COUNT by rate
+        subplot(nrows,ncols,sb(2).idx)
+        hold on
+        for rr = 1:nRates
+            curr_rate = TR.rates(rr);
+            kolor = pullFoodColor(curr_rate);
+            if curr_rate>0
+                lstyle = LS{3};
+            elseif curr_rate<0
+                lstyle = LS{1};
+            elseif curr_rate==0
+                continue
+                lstyle = LS{2};
+            end
+            x = TR.temps;
+            y = FC_mat.avg(rr,:);
+            % err = dist_mat.err(rr,:);
+            plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+        end
+    %     h_line(T.NumFlies(trial),'r',':',1)
+        ylabel('Fly Count (#)')
+        xlabel('Temperature (\circC)')
+        title(title_str)
+        fig = formatFig(fig, true,[nrows,ncols],sb);
+        
+        % FLY COUNT across all temps
+        subplot(nrows,ncols,sb(3).idx)
+        idx = discretize(T.temperature(:),TR.temps);
+        boxplot(flyCount(:,arena), idx,'Plotstyle', 'traditional','colors', 'w')
+        h_line(arenaData(arena).nflies, 'Teal', '-',3)
+        xlabel('Temperature (\circC)')
+        ylabel('Tracking Fly Count')
+        
+        set(gca, 'color', 'k','box', 'off','XColor', 'w', 'YColor',...
+                 'w','XTickLabels', TR.temps,...
+                 'FontSize', 14)
+        save_figure(fig, fig_file, '-png',true);
+    end
+
+clearvars('-except',initial_vars{:}) 
 end
 
-%add inter-fly-distance to the occupancy time course structure
-occupancy.IFD = LDist;
-occupancy.IFD_err = LD_err;
+%% Build a data structure for each arena from occupancy, T, and TR data
+
+for arena = 1:nArenas
+    AD = T(:,1:6); % shared variables across all trials
+    AD = addvars(AD,T.flyCount(:,arena),'NewVariableNames','flyCount');
+    AD = addvars(AD,arenaData(arena).occ_P,'NewVariableNames','occ_P');
+    AD = addvars(AD,arenaData(arena).occ_N,'NewVariableNames','occ_N');
+    AD = addvars(AD,arenaData(arena).occupancy.eccentricity,'NewVariableNames','eccentricity');
+    AD = addvars(AD,[arenaData(arena).occupancy.movement;nan],'NewVariableNames','movement');
+    AD = addvars(AD,[arenaData(arena).occupancy.IFD',arenaData(arena).occupancy.IFD_err'],...
+        'NewVariableNames','IFD');
+    AD = addvars(AD,arenaData(arena).occupancy.dist2wells,'NewVariableNames','dist2wells');    
+    AD = addvars(AD,arenaData(arena).occupancy.dist2wells(:,arenaData(arena).foodwell),...
+        'NewVariableNames','dist2food');
+    AD = addvars(AD,[arenaData(arena).TR.rateIdx; nan],'NewVariableNames','temprateIdx');
+    temp = arenaData(arena).TR.data;
+    AD = addvars(AD,[temp(:,4); nan],'NewVariableNames','temprate');
+    % add degree-binned temp column:
+    temp = AD.temperature;
+    AD = addvars(AD,round(temp),'NewVariableNames','binTemp');
+    % save data
+    arenaData(arena).T = AD;
+end  
+clearvars('-except',initial_vars{:})
+
+%% FIGURE: Temperature dependence of distance to food
+LS = {'--','-.','-'}; %cooling|stationary|heating
+for arena = 1:nArenas
+    title_str = [folder ' ' expName ' ' arenaData(arena).genotype];
+    fig_file = [arenaData(arena).figDir 'fly count hysteresis'];
+    LW = 1.5;
+    % pull data
+    AD = arenaData(arena).T;
+    nRates = arenaData(arena).TR.nRates;
+    nTemps = arenaData(arena).TR.nTemps;
+    temp_list = arenaData(arena).TR.temps;
+    rate_list = arenaData(arena).TR.rates;
+    temp = AD.binTemp;
+    rate = AD.temprate;
+
+    fig = figure; set(fig, 'pos', [80 218 1318 740])
+    % Temp vs distance (all directions and rates)
+    subplot(1,2,1); hold on
+    bin_edges = threshLow:0.25:threshHigh;
+    for well = 1:4
+        plotData = [];
+        x = AD.temperature;
+        y = AD.dist2wells(:,well);
+        idx = discretize(x,bin_edges);
+        for ii = 1:length(bin_edges)
+            loc = idx==ii;
+            plotData(ii,:) = [mean(x(loc)),mean(y(loc))];
+        end
+        if well==arenaData(arena).foodwell
+            kolor = 'green';
+        else
+            kolor = 'grey';
+        end
+        plot(plotData(:,1),plotData(:,2),'color', Color(kolor),'linewidth', LW)
+    end
+    ylabel('Distance (mm)')
+    xlabel('Temperature (\circC)')
+    title('All wells')
+    
+    % temp rate isolated
+    subplot(1,2,2)
+    hold on
+    for rr = 1:nRates
+        curr_rate = arenaData(arena).TR.rates(rr);
+        kolor = pullFoodColor(curr_rate);
+        if curr_rate>0
+            lstyle = LS{3};
+        elseif curr_rate<0
+            lstyle = LS{1};
+        elseif curr_rate==0
+            continue
+            lstyle = LS{2};
+        end
+        x = arenaData(arena).TR.temps;
+        y = arenaData(arena).TR.dist_mat.avg(rr,:);
+        % err = dist_mat.err(rr,:);
+        plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+    end
+    ylabel('Distance to food (mm)')
+    xlabel('Temperature (\circC)')
+    title('Only food well')
+
+    % format figure
+    fig = formatFig(fig, true, [1,2]);
+    subplot(1,2,1)
+    legend(strrep(arenaData(arena).wellLabels,'_',' '),'textcolor','w','location', 'best','box','off')
+    subplot(1,2,2)
+    for rr = 1:nRates
+        str{rr} = [num2str(arenaData(arena).TR.rates(rr)) '\circC/min'];
+    end
+    legend(str,'textcolor','w','box','off','location', 'best')
+
+save_figure(fig,fig_file,'-png',true);
+end
+clearvars('-except',initial_vars{:}) 
+
+%%
+
+% Save Data structures:
+if questdlg('Save loaded data?')
+    for arena = 1:nArenas
+        data = arenaData(arena);
+        data.date = folder;
+        data.r = r;
+        data.radii = radii;
+
+
+        save([figDir ExpGroup ' temp rate'],{'data','expData','expName','tempLog'})
+end
+
+
+
+
+%% FIGURE: Distance to food vs temperature -- ALL trial lines
+sSpan = 240;
+fig = figure; hold on
+for trial = 1:ntrials
+    X = data(trial).occupancy.temp;
+    for well = 1:4
+        try Y = (data(trial).dist2wells(well).N(:,1));
+        catch 
+            Y = data(trial).occupancy.dist2wells(well).N(:,1);
+            data(trial).dist2wells = data(trial).occupancy.dist2wells;
+        end
+        Y = Y./pix2mm; % convert the pixel values to mm
+        % reorder the data by temperature:
+        [plotX, idx] = sort(X);
+        plot(plotX, smoothdata(Y(idx),'movmean', sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+    end
+end
+ylabel('Distance to well (mm)')
+xlabel('Temp (\circC)')
+title({'Location from food sources by temperature';...
+      ['N = ' num2str(ntrials)]})
+formatFig(fig, true);
+
+save_figure(fig, [figDir ExpGroup ' all temp vs distance'], '-png');
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+    
+
+
+
+    
+
+    
+    
+    
+
+%% -----------------------Calculate degree of clustering------------------------------
 
 % demo the clustering proxy
 if nvids>8

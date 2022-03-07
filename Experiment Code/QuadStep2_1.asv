@@ -21,6 +21,8 @@ fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);
 %pull the list of dates and arenas to be 
 List.date = eligible_files(fileIdx,1);
 List.expID = eligible_files(fileIdx,3); 
+List.date = unique(List.date);
+List.expID = unique(List.expID);
 
 %get base folder pathway
 finishedFiles = [];

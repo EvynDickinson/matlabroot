@@ -9,22 +9,25 @@ function [threshHigh, threshLow] = getTempThresholds
 % ES Dickinson, Jan 2022
 
 
-tempList = {'Low (8-20)', 'Mid (6-25)', 'Mid (6-26)', 'High (5-30)','Other'};
+tempList = {'(8-20)', '(6-25)', '(6-26)', '(7-23)', '(5-30)','Other'};
 UserChoice = tempList{listdlg('ListString', tempList,'ListSize', [100, 150],'SelectionMode','single')};
 
 switch UserChoice
-    case 'Low (8-20)'
+    case '(8-20)'
         threshHigh = 19.88;
         threshLow = 8.02;
-    case 'Mid (6-25)'
+    case '(6-25)'
         threshHigh = 24.5;
         threshLow = 6.5;
-    case 'High (5-30)'
+    case '(5-30)'
         threshHigh = 29.88;
         threshLow = 5.02;
-    case 'Mid (6-26)'
+    case '(6-26)'
         threshHigh = 26;
         threshLow = 6;
+    case '(7-23)'
+        threshHigh = 23;
+        threshLow = 7;
     case 'Other'
         prompt = {'Low temp threshold:','High temp threshold:'};
         dlgtitle = 'Input';

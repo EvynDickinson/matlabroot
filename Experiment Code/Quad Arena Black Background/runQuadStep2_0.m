@@ -1,6 +1,6 @@
 
 
-function results = runQuadStep2(inputPath,autoSave,essentialfigs)
+function results = runQuadStep2_0(inputPath,autoSave,essentialfigs)
 % results = runQuadStep2(inputPath,autoSave,essentialfigs)
 %
 %

@@ -50,24 +50,30 @@ switch foodString
         colorname = 'maroon';
         num = 2;
     % --------------------------------
+    case 'Merlot'
+        colorname = 'Purple';
+        num = 2;
+    case 'Water'
+        colorname = 'DodgerBlue';
+        num = 2;
+    case 'Sugar_water'
+        colorname = 'Blue';
+        num = 2;
+    case 'Water_and_ACV'
+        colorname = 'Gold';
+        num = 2;
+    % --------------------------------
     % TEMPERATURE RATES....
     case {-0.5, 0.5}
         colorname = 'orange';
     case {-0.25, 0.25}
         colorname = 'DarkViolet';
+    case {-0.16, 0.16}
+        colorname = 'DodgerBlue';
     case {-0.1,0.1}
         colorname = 'Turquoise';
     case 0
         colorname = 'white';
-    % --------------------------------
-    case 'Merlot'
-        colorname = 'Purple';
-    case 'Water'
-        colorname = 'DodgerBlue';
-    case 'Sugar_water'
-        colorname = 'Blue';
-    case 'Water_and_ACV'
-        colorname = 'Gold';
 end
 
 try kolor = Color(colorname);
