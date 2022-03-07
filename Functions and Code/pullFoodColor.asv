@@ -62,12 +62,6 @@ switch foodString
     % --------------------------------
     case 'Merlot'
         colorname = 'Purple';
-    case 'Water'
-        colorname = 'DodgerBlue';
-    case 'Sugar_water'
-        colorname = 'Blue';
-    case 'Water_and_ACV'
-        colorname = 'Gold';
 end
 
 try kolor = Color(colorname);

@@ -190,55 +190,23 @@ for arena = 1:nArenas
     occupancy.eccentricity = N;
     
     % CLUSTERING
-    [LDist,LD_err] = deal([]); 
-    for frame = 1:T.frame(end)
+    LDist = []; LD_err = [];
+    flyDistance = []; D_err = [];
+    for frame = 1:T.frame
         inputData = [arenaData(arena).x_loc(frame,:)',arenaData(arena).y_loc(frame,:)'];
         inputData(isnan(inputData(:,1)),:) = [];
         D = pdist(inputData);
         LDist(frame) = mean(D);
         LD_err(frame) = std(D);
+
     end
+    data(vid).flyDistance = flyDistance;
+    LDist = [LDist,flyDistance]; 
+    LD_err = [LD_err,D_err];
+
+    %add inter-fly-distance to the occupancy time course structure
     occupancy.IFD = LDist;
     occupancy.IFD_err = LD_err;
-    
-    
-    % MOVEMENT: TODO
-    nbins = 100;
-    
-    
-    
-    spaceChange = []; 
-    N = [];
-    for frame = 1:T.frame(end)
-        X = arenaData(arena).x_loc(frame,:); X(isnan(X)) = [];
-        Y = arenaData(arena).y_loc(frame,:); Y(isnan(Y)) = [];
-        N(:,:,frame) = histcounts2(X,Y,nbins);
-    end
-    binDiff = diff(N,1,3);
-    binDiff(binDiff<0) = 0;
-    BinChange = squeeze(sum(sum(binDiff,1),2));
-
-%      TODO 3.6
-%      ---------------------------------------------------------------------------------------------
-
-        % save pertinent information:
-%         data(vid).BinChange = BinChange;
-%         spaceChange = [spaceChange; BinChange];
-%     end
-%     occupancy.movement = spaceChange;
-    
-
-    % preview the movement average
-    if essentialfigs==false
-        fig = getfig;  hold on
-        plot(occupancy.time(2:end), occupancy.movement,'color', Color('teal'))
-        plot(occupancy.time(2:end), smooth(occupancy.movement,180),...
-            'linewidth', 2, 'color', 'w')
-        xlabel('time (min)'), ylabel('movement (a.u.)')
-        formatFig(fig, true);
-        save_figure(fig, [analysisDir expName arenaSel ' movement over time'], '-pdf', autoSave);
-    end
-
     
     % save data into occupancy structure:
     arenaData(arena).occupancy = occupancy;
@@ -248,6 +216,25 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% -----------------------Calculate degree of clustering------------------------------
+% pull info for each video
+LDist = []; LD_err = [];
+for vid = 1:nvids
+    flyDistance = []; D_err = [];
+    for frame = 1:length(data(vid).tempLog)
+        test = [data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
+        D = pdist(test);
+        D(isnan(D)) = [];
+        flyDistance(frame) = mean(D);
+        D_err(frame) = std(D);
+    end
+    data(vid).flyDistance = flyDistance;
+    LDist = [LDist,flyDistance]; 
+    LD_err = [LD_err,D_err];
+end
+
+%add inter-fly-distance to the occupancy time course structure
+occupancy.IFD = LDist;
+occupancy.IFD_err = LD_err;
 
 % demo the clustering proxy
 if nvids>8
