@@ -64,12 +64,18 @@ switch foodString
         num = 2;
     % --------------------------------
     % TEMPERATURE RATES....
+    case {-0.65, 0.65}
+        colorname = 'goldenrod';
     case {-0.5, 0.5}
         colorname = 'orange';
+    case {-0.30, 0.30}
+        colorname = 'Purple';
     case {-0.25, 0.25}
-        colorname = 'DarkViolet';
+        colorname = 'DarkViolet';    
     case {-0.16, 0.16}
         colorname = 'DodgerBlue';
+    case {-0.15, 0.15}
+        colorname = 'SkyBlue';
     case {-0.1,0.1}
         colorname = 'Turquoise';
     case 0

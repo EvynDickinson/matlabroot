@@ -23,7 +23,7 @@ threshLow = tPoints.threshLow;
 binSpace = 1; %temp degree bin widths
 initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
 
-%% ------------------------------ Summary figure -------------------------------------
+%% ------------------------------ summary figure -------------------------------------
 nrow = 5; ncol = 4;
 subplotInd(1).idx = 5:7; % temperature
 subplotInd(2).idx = [9:11,13:15,17:19]; % occupation
@@ -166,7 +166,7 @@ if essentialfigs == false
   fprintf('\nNext\n')
 end
 
-%% Calculate several parameters: eccentricity, movement, clustering, temp_rate???
+%% Calculate several parameters: eccentricity, movement, clustering
 
 % organize data for forward compatability
 for arena = 1:nArenas
@@ -207,7 +207,7 @@ for arena = 1:nArenas
     end
     occupancy.IFD = LDist;
     occupancy.IFD_err = LD_err;
-    
+     
     % MOVEMENT: 
     nbins = 100;
     N = [];
@@ -282,6 +282,9 @@ for arena = 1:nArenas
 
     % Temp-rate identification and sorting: 
     buffSize = 0.05;
+    if any(ismember(strsplit(expData.parameters.protocol,'_'),'sweeps')) %account for high freq jitter
+        buffSize = 0.1;
+    end
     for ii = 1:tPoints.nRates
         edges(ii,:) = [tPoints.rates(ii)-buffSize, tPoints.rates(ii)+buffSize];
     end  
@@ -412,8 +415,12 @@ for arena = 1:nArenas
             ax = gca;
             fig = formatFig(fig, true);
             XtickNum = ax.XTick;
-            ax.XTickLabel = t_roi(XtickNum);
-            YtickNum = ax.YTick;
+            try ax.XTickLabel = t_roi(XtickNum);
+            catch
+                ax.XTick = 1:length(t_roi);
+                ax.XTickLabel = t_roi(ax.XTick);
+            end
+%             YtickNum = ax.YTick;
             set(gca, 'ytick', 1:nRates,'YTickLabel',T_rates)
             ylabel('\DeltaT/dt (\circC/min)')
             xlabel('Temp (\circC)')
