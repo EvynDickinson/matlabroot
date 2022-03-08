@@ -7,16 +7,16 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 % figure; plot(smooth(data(1).occupancy.temp),'color', 'k')
 % figure; plot(smooth(T.temperature,360),'color', 'k')
 
-temp = smooth(T.temperature,5);
-sel = (max(temp)-min(temp))/4;
-
-minLoc = peakfinder(temp,sel,[],-1);
-maxLoc = peakfinder(temp,sel,[],1);
-
-figure;hold on 
-plot(temp)
-scatter(minLoc,temp(minLoc))
-scatter(maxLoc,temp(maxLoc))
+% temp = smooth(T.temperature,5);
+% sel = (max(temp)-min(temp))/4;
+% 
+% minLoc = peakfinder(temp,sel,[],-1);
+% maxLoc = peakfinder(temp,sel,[],1);
+% 
+% figure;hold on 
+% plot(temp)
+% scatter(minLoc,temp(minLoc))
+% scatter(maxLoc,temp(maxLoc))
 
 % pull the appropriate start|end points:
 switch TempProtocolString
