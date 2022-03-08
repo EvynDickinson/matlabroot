@@ -1,5 +1,9 @@
 
-
+function results = runQuadStep2_1(inputPath,autoSave,essentialfigs)
+% results = runQuadStep2(inputPath,autoSave,essentialfigs)
+%
+%
+% ES Dickinson
 
 % Load in the selected data file: 
 warning off
@@ -13,7 +17,11 @@ figDir = [baseFolder folder '\'];
 for arena = 1:nArenas
     arenaData(arena).figDir = [figDir arenaData(arena).name '\'];
 end
-
+tPoints = getTempTurnPoints(expData.parameters.protocol);
+threshHigh = tPoints.threshHigh;
+threshLow = tPoints.threshLow;
+binSpace = 1; %temp degree bin widths
+initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
 
 %% ------------------------------ Summary figure -------------------------------------
 nrow = 5; ncol = 4;
@@ -101,7 +109,7 @@ fprintf('\nNext\n')
 
 %% -------Simple visualization: relationship between temp & well occupation-----------
 if essentialfigs == false
-  for arena = 1:4
+  for arena = 1:nArenas
     nrow = 4;
     ncol = 1;
     subplotInd(1).idx = 1;
@@ -161,7 +169,9 @@ end
 %% Calculate several parameters: eccentricity, movement, clustering, temp_rate???
 
 % organize data for forward compatability
-for arena = 2:nArenas
+for arena = 1:nArenas
+    tic
+    disp(['Starting ' arenaIdx{arena}'])
     occupancy.temp = T.temperature;
     occupancy.occ = arenaData(arena).occ_P;
     occupancy.count = arenaData(arena).occ_N;
@@ -213,19 +223,19 @@ for arena = 2:nArenas
     % save data into occupancy structure:
     occupancy.dist2wells = arenaData(arena).dist2well;
     arenaData(arena).occupancy = occupancy;
+    toc
 end
 
 for arena = 1:nArenas
     arenaData(arena).genotype = expData.parameters.(['Arena' arenaIdx{arena}]).genotype;
 end
 
+save([analysisDir 'half processed data.mat'])
+
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Temp rate heat map: 
-initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
-[threshHigh, threshLow] = getTempThresholds;
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
 
 % Get the temp rate, temp, and distance from food
 for arena = 1:nArenas
@@ -348,7 +358,7 @@ for arena = 1:nArenas
         yyaxis right; plot(time,rateIdx,'color', Color('orange')); ylabel('Heating vs. cooling'); 
         formatFig(fig,true); yyaxis right; set(gca, 'YColor', Color('orange')); 
         yyaxis left; set(gca, 'YColor', Color('DodgerBlue'));xlabel('Time (min)')
-        save_figure(fig, [analysisDir 'Temp rate assignment'],'-png');
+        save_figure(fig, [analysisDir 'Temp rate assignment'],'-png',true);
     end
 
     % FIGURE: temperature rate aligment 
@@ -392,9 +402,9 @@ for arena = 1:nArenas
     %   colormap default
         fig = figure; set(fig, 'pos', [560 127 983 417]);
             hold on
-            imAlpha=ones(size(heatMapData));
-            imAlpha(isnan(heatMapData))=0;
-            imagesc(heatMapData,'AlphaData',imAlpha);
+            imAlpha=ones(size(HM));
+            imAlpha(isnan(HM))=0;
+            imagesc(HM,'AlphaData',imAlpha);
             set(gca,'color',0*[1 1 1]);
             axis tight
             title(title_str)
@@ -593,450 +603,33 @@ save_figure(fig,fig_file,'-png',true);
 end
 clearvars('-except',initial_vars{:}) 
 
-%%
-
-% Save Data structures:
-if questdlg('Save loaded data?')
+%% Save Data structures:
+if autoSave == true
     for arena = 1:nArenas
         data = arenaData(arena);
         data.date = folder;
         data.r = r;
         data.radii = radii;
-
-
-        save([figDir ExpGroup ' temp rate'],{'data','expData','expName','tempLog'})
-end
-
-
-
-
-%% FIGURE: Distance to food vs temperature -- ALL trial lines
-sSpan = 240;
-fig = figure; hold on
-for trial = 1:ntrials
-    X = data(trial).occupancy.temp;
-    for well = 1:4
-        try Y = (data(trial).dist2wells(well).N(:,1));
-        catch 
-            Y = data(trial).occupancy.dist2wells(well).N(:,1);
-            data(trial).dist2wells = data(trial).occupancy.dist2wells;
-        end
-        Y = Y./pix2mm; % convert the pixel values to mm
-        % reorder the data by temperature:
-        [plotX, idx] = sort(X);
-        plot(plotX, smoothdata(Y(idx),'movmean', sSpan), 'linewidth', 1,'color', pullFoodColor(data(trial).wellLabels{well}))
+        save([arenaData(arena).figDir expName arenaIdx{arena} ' timecourse data.mat'],...
+            'data','expData','expName','tempLog');
     end
-end
-ylabel('Distance to well (mm)')
-xlabel('Temp (\circC)')
-title({'Location from food sources by temperature';...
-      ['N = ' num2str(ntrials)]})
-formatFig(fig, true);
-
-save_figure(fig, [figDir ExpGroup ' all temp vs distance'], '-png');
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-    
-
-
-
-    
-
-    
-    
-    
-
-%% -----------------------Calculate degree of clustering------------------------------
-
-% demo the clustering proxy
-if nvids>8
-    divisor = round(nvids/6);
-    vidList = 1:divisor:nvids;
-else
-    vidList = 1:nvids;
-end
-nrow = 2; ncol = length(vidList); ii = 0; 
-[~,minidx] = deal([]);
-
-% VISUALIZE a demo of the clustering accuracy
-if essentialfigs == false
-    fig = getfig(''); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
-    for vid = vidList
-        ii = ii+1;
-        movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
-        headData = squeeze(data(vid).tracks(:,1,:,:));
-
-        % Most clustered:
-        [M,minidx(ii)] = min(data(vid).flyDistance);
-        img = read(movieInfo,minidx(ii));
-        subplot(nrow, ncol, ii)
-        imshow(img); hold on
-        axis tight square
-        set(gca, 'visible', 'off')
-        x = data(vid).x_loc(minidx(ii),:); x(isnan(x)) = [];
-        y = data(vid).y_loc(minidx(ii),:); y(isnan(y)) = [];
-    %     x = squeeze(headData(minidx(ii), 1, :)); x(isnan(x)) = [];
-    %     y = squeeze(headData(minidx(ii), 2, :)); y(isnan(y)) = [];
-        scatter(x,y, 10, 'y', 'filled')
-        title(num2str(M))
-        % overlay 'size bar' for min dist:
-        plot([100,100+M], [20,20], 'linewidth', 0.5, 'color', 'r')
-
-        % Least clustered:
-        [M,maxidx(ii)] = max(data(vid).flyDistance);
-        img = read(movieInfo,maxidx(ii));
-        subplot(nrow, ncol, ii+length(vidList))
-        imshow(img); hold on
-        axis tight square
-        set(gca, 'visible', 'off')
-        x = data(vid).x_loc(maxidx(ii),:); x(isnan(x)) = [];
-        y = data(vid).y_loc(maxidx(ii),:); y(isnan(y)) = [];
-    %     x = squeeze(headData(maxidx(ii), 1, :)); x(isnan(x)) = [];
-    %     y = squeeze(headData(maxidx(ii), 2, :)); y(isnan(y)) = [];
-        scatter(x,y, 10, 'y', 'filled')
-        title(num2str(M))
-        % overlay 'size bar' for min dist:
-        plot([100,100+M], [20,20], 'linewidth', 0.5, 'color', 'r')
-    end
-    labelHandles = findall(gcf, 'type', 'text', 'handlevisibility', 'off');
-    set(labelHandles,'FontSize', 15, 'color', 'w')
-
-    save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-pdf', autoSave);
-end
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-%% ------------------------------Movement analysis------------------------------------
-%bin frame and check bin occupation changes across frames as proxy for
-%movement --> won't give an accurate 'speed' etc. but it might give
-%movement.
-tic
-nbins = 100;
-spaceChange = [];
-
-for vid = 1:nvids   
-    N = [];
-    for frame = 1:length(data(vid).tempLog)
-        X = data(vid).x_loc(frame,:); X(isnan(X)) = [];
-        Y = data(vid).y_loc(frame,:); Y(isnan(Y)) = [];
-        N(:,:,frame) = histcounts2(X,Y,nbins);
-    end
-    if vid>1 % add last frame of previous vid to prevent frame loss 
-        N = cat(3, lastFrame, N);
-    end
-    lastFrame =  N(:,:,end);
-    binDiff = diff(N,1,3);
-    binDiff(binDiff<0) = 0;
-    BinChange = squeeze(sum(sum(binDiff,1),2));
-    % save pertinent information:
-    data(vid).BinChange = BinChange;
-    spaceChange = [spaceChange; BinChange];
-end
-occupancy.movement = spaceChange;
-toc
-
-% preview the movement average
-if essentialfigs==false
-    fig = getfig;  hold on
-    plot(occupancy.time(2:end), occupancy.movement,'color', Color('teal'))
-    plot(occupancy.time(2:end), smooth(occupancy.movement,180),...
-        'linewidth', 2, 'color', 'w')
-    xlabel('time (min)'), ylabel('movement (a.u.)')
-    formatFig(fig, true);
-    save_figure(fig, [analysisDir expName arenaSel ' movement over time'], '-pdf', autoSave);
-end
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-%% -----------------------Time course feature comparison------------------------------
-% plot parameters:
-nrow = 8; ncol = 1;
-sSpan = 180; %1 minute filter length
-sbpts(1).idx = 1;
-sbpts(2).idx = 2:4;
-sbpts(3).idx = 5:6;
-sbpts(4).idx = 7:8;
-LW = 1.5;
-
-% FIGURE:
-fig = getfig; set(fig, 'pos', [157 86 1232 878])
-% TEMPERATURE
-subplot(nrow,ncol,sbpts(1).idx)
-plot(occupancy.time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
-ylabel('(\circ)')
-title('temperature')
-ax = gca;
-x_lim = ax.XLim;
-
-% OCCUPANCY
-subplot(nrow,ncol,sbpts(2).idx)
-hold on
-y = [];
-for well = 1:4
-   y = [y, smooth(occupancy.occ(:,well),sSpan)];
-end
-h = area(occupancy.time,y);
-for well = 1:4
-    h(well).FaceColor = pullFoodColor(wellLabels{well});
-end
-xlim(x_lim)
-set(gca, 'tickdir', 'out')
-l = legend(strrep(wellLabels,'_','-'));
-set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k',...
-'position', [0.7972 0.7194 0.1039 0.0792]);% [0.8780 0.8119 0.0963 0.1126])%
-ylabel('occupancy probability')
-title('individual well occupancy')
-
-% 
-% hold on
-% for well = 1:4
-%     kolor = pullFoodColor(wellLabels{well});
-%     plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
-% end
-% plot(time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
-% ylabel('occupancy probability')
-% title('individual well occupancy')
-% legend(wellLabels)
-% l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
-% set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
-%     'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
-
-% CLUSTERING
-subplot(nrow,ncol,sbpts(3).idx); hold on
-y_avg = smooth(occupancy.IFD,sSpan);
-y_err = smooth(occupancy.IFD_err,sSpan);
-x = occupancy.time;
-fill_data = error_fill(x, y_avg, y_err);
-h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
-set(h, 'facealpha', 0.2)
-plot(occupancy.time,smooth(occupancy.IFD,sSpan),'linewidth', LW, 'color', 'w')
-ylabel('pixels')
-title('inter-fly-distance')
-
-% MOVEMENT
-subplot(nrow,ncol,sbpts(4).idx); hold on
-y_avg = smooth(occupancy.movement,sSpan);
-y_err = movstd(occupancy.movement,sSpan);
-x = occupancy.time(2:end);
-fill_data = error_fill(x, y_avg, y_err);
-h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
-set(h, 'facealpha', 0.2)
-plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
-ylabel('(a.u.)')
-title('movement')
-xlabel('time (min)')
-
-formatFig(fig,true,[nrow, ncol], sbpts);
-for ii = 1:3
-    subplot(nrow,ncol,sbpts(ii).idx)
-    set(gca, 'XColor', 'k')
-end
-
-% save and export figure
-if autoSave==true
-    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
-else
-    if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
-        export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
-    end
-end  
-save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png',autoSave);
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-%% ---------------------Position & Movement Summary Figure----------------------------
-% **TODO remove total well occupancy
-% figure parameters:
-nrow = 10; ncol = 1;
-sSpan = 180; %1 minute filter length
-sbpts(1).idx = 1;    % temp
-sbpts(2).idx = 2:5;  % occupancy
-sbpts(3).idx = 6:8;  % clustering & eccentricity
-sbpts(4).idx = 9:10; % movement
-LW = 1.5;
-
-% FIGURE:
-fig = getfig; set(fig, 'pos', [157 86 1232 878])
-subplot(nrow,ncol,sbpts(1).idx)
-plot(occupancy.time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
-ylabel('Temp(\circ)')
-% title('temperature')
-
-subplot(nrow,ncol,sbpts(2).idx)
-hold on
-for well = 1:4
-    kolor = pullFoodColor(wellLabels{well});
-    plot(occupancy.time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
-end
-% plot(occupancy.time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
-ylabel('occupancy probability')
-% title('individual well occupancy')
-legend(wellLabels)
-% l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
-l = legend(strrep(wellLabels,'_','-'));
-set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
-    'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
-
-% CLUSTERING
-subplot(nrow,ncol,sbpts(3).idx); hold on
-y_avg = smooth(occupancy.IFD,sSpan);
-y_err = smooth(occupancy.IFD_err,sSpan);
-x = occupancy.time;
-fill_data = error_fill(x, y_avg, y_err);
-h(1) = fill(fill_data.X, fill_data.Y, get_color('teal'), 'EdgeColor','none');
-set(h, 'facealpha', 0.2)
-plot(occupancy.time,smooth(occupancy.IFD,sSpan),'linewidth', LW, 'color', Color('teal'))
-% ECCENTRICITY
-y_avg = smooth(occupancy.eccentricity(:,1),sSpan);
-y_err = smooth(occupancy.eccentricity(:,2),sSpan);
-x = occupancy.time;
-fill_data = error_fill(x, y_avg, y_err);
-h(2) = fill(fill_data.X, fill_data.Y, get_color('orange'), 'EdgeColor','none');
-set(h, 'facealpha', 0.2)
-plot(x,y_avg, 'linewidth', LW, 'color', Color('orange'))  
-ylabel('pixels')
-l2 = legend({'','inter fly distance', '', 'eccentricity'});
-set(get(get(h(1),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-set(get(get(h(2),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-set(l2, 'color', 'k', 'textcolor', 'w','FontSize', 8,'edgecolor', 'k',...
-    'position', [0.1350 0.4638 0.1039 0.0370]);% 
-
-% MOVEMENT
-subplot(nrow,ncol,sbpts(4).idx); hold on
-y_avg = smooth(occupancy.movement,sSpan);
-y_err = movstd(occupancy.movement,sSpan);
-x = occupancy.time(2:end);
-fill_data = error_fill(x, y_avg, y_err);
-h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
-set(h, 'facealpha', 0.2)
-plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
-ylabel('movement (a.u.)')
-% title('movement')
-xlabel('time (min)')
-
-formatFig(fig,true,[nrow, ncol], sbpts);
-for ii = 1:3
-    subplot(nrow,ncol,sbpts(ii).idx)
-    set(gca, 'XColor', 'k')
-end
-
-% save and export figure
-if autoSave==true
-    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
-else
-    if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
-        export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
-    end
-end
-save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png',autoSave);
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
-
-%% ----------------Average distance between each fly and each food source-------------
-%(takes a full 2 mins to run)
-
-% find distance from center for each fly:
-tic
-FDist = [];
-idx = 0;
-for vid = 1:nvids
-    for frame = 1:length(data(vid).tempLog)
-        idx = idx+1;
-        for well = 1:4
-            test = [wellcenters(:,well)'; data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
-            D = squareform(pdist(test));
-            D = D(2:end,1);
-            D(isnan(D)) = [];
-            FDist(well).N(idx,:) = [median(D), std(D)];
-        end
-    end
-end
-toc
-
-occupancy.dist2wells = FDist;
-
-% occupancy.eccentricity = EDist;
-nrow = 4;
-ncol = 1;
-subplotInd(1).idx = 1;
-subplotInd(2).idx = 2:4;
-% group data across videos:
-plotX = occupancy.time;
-sSpan = 180;
-LW = 1;
-
-fig = getfig(''); 
-    subplot(nrow,ncol,subplotInd(1).idx)
-    y = smooth(occupancy.temp,sSpan);
-    plot(plotX(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
-    ylabel('temp (\circC)')
-    ylim([5,27])
-    
-    subplot(nrow,ncol,subplotInd(2).idx)
-    hold on
-    % error fills
-    for well = 1:4
-        kolor = pullFoodColor(wellLabels{well}); % plotting color for food
-        y_avg(:,well) = smooth(FDist(well).N(:,1),sSpan);
-        y_err(:,well) = smooth(FDist(well).N(:,2),sSpan);
-        fill_data = error_fill(plotX, y_avg(:,well), y_err(:,well));
-        h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h(well), 'facealpha', 0.2)
-    end
-    % average line
-    for well = 1:4
-        kolor = pullFoodColor(wellLabels{well});
-        plot(occupancy.time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
-    end
-    xlabel('time (min)'); ylabel('avg distance between fly and food (a.u.)')
-    
-formatFig(fig, true, [nrow, ncol], subplotInd);
-l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
-set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
-for well = 1:4
-    set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-end
-subplot(nrow,ncol,subplotInd(1).idx)
-set(gca, 'XColor', 'k')
-titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
-title(titleName,'color', 'w')
- 
-% save and export figure
-if autoSave==true
-    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
-else
-    if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
-        export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
-    end
-end
-save_figure(fig, [analysisDir expName arenaSel ' avg distance to well'], '-png', autoSave);
-
-clearvars('-except',initial_vars{:})
-
-
-%% ----------------------- Save experiment data thus far -----------------------------
-if autoSave == true
-    clearvars('-except',initial_vars{:})
-    initial_vars = unique(initial_vars);
-    save([analysisDir expName arenaSel ' timecourse data'])
-    copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')
     fprintf('Experiment data saved\n')
     results = 'Saved data';
+%     copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')    
 else
     switch questdlg('Save experiment analysis?')
         case 'Yes'
-            clearvars('-except',initial_vars{:})
-            initial_vars = unique(initial_vars);
-            save([analysisDir expName arenaSel ' timecourse data'])
-            copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')
-            fprintf('Experiment data saved\n')
-            results = 'Saved data';
+            for arena = 1:nArenas
+                data = arenaData(arena);
+                data.date = folder;
+                data.r = r;
+                data.radii = radii;
+                save([arenaData(arena).figDir expName arenaIdx{arena} ' timecourse data.mat'],...
+                    'data','expData','expName','tempLog');
+            end
+    fprintf('Experiment data saved\n')
+    results = 'Saved data';
+%     copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')    
         case 'No'
             results = 'No data saved';
             return
@@ -1045,3 +638,408 @@ else
             return
     end
 end
+
+
+
+    
+
+    
+    
+    
+ %% -----------------------Calculate degree of clustering------------------------------
+% 
+% % demo the clustering proxy
+% if nvids>8
+%     divisor = round(nvids/6);
+%     vidList = 1:divisor:nvids;
+% else
+%     vidList = 1:nvids;
+% end
+% nrow = 2; ncol = length(vidList); ii = 0; 
+% [~,minidx] = deal([]);
+% 
+% % VISUALIZE a demo of the clustering accuracy
+% if essentialfigs == false
+%     fig = getfig(''); set(fig, 'pos',[120 331 1244 368], 'color', 'k');
+%     for vid = vidList
+%         ii = ii+1;
+%         movieInfo = VideoReader([baseFolder vidFolder '\' expName '_' num2str(vid) '.avi']); %read in video
+%         headData = squeeze(data(vid).tracks(:,1,:,:));
+% 
+%         % Most clustered:
+%         [M,minidx(ii)] = min(data(vid).flyDistance);
+%         img = read(movieInfo,minidx(ii));
+%         subplot(nrow, ncol, ii)
+%         imshow(img); hold on
+%         axis tight square
+%         set(gca, 'visible', 'off')
+%         x = data(vid).x_loc(minidx(ii),:); x(isnan(x)) = [];
+%         y = data(vid).y_loc(minidx(ii),:); y(isnan(y)) = [];
+%     %     x = squeeze(headData(minidx(ii), 1, :)); x(isnan(x)) = [];
+%     %     y = squeeze(headData(minidx(ii), 2, :)); y(isnan(y)) = [];
+%         scatter(x,y, 10, 'y', 'filled')
+%         title(num2str(M))
+%         % overlay 'size bar' for min dist:
+%         plot([100,100+M], [20,20], 'linewidth', 0.5, 'color', 'r')
+% 
+%         % Least clustered:
+%         [M,maxidx(ii)] = max(data(vid).flyDistance);
+%         img = read(movieInfo,maxidx(ii));
+%         subplot(nrow, ncol, ii+length(vidList))
+%         imshow(img); hold on
+%         axis tight square
+%         set(gca, 'visible', 'off')
+%         x = data(vid).x_loc(maxidx(ii),:); x(isnan(x)) = [];
+%         y = data(vid).y_loc(maxidx(ii),:); y(isnan(y)) = [];
+%     %     x = squeeze(headData(maxidx(ii), 1, :)); x(isnan(x)) = [];
+%     %     y = squeeze(headData(maxidx(ii), 2, :)); y(isnan(y)) = [];
+%         scatter(x,y, 10, 'y', 'filled')
+%         title(num2str(M))
+%         % overlay 'size bar' for min dist:
+%         plot([100,100+M], [20,20], 'linewidth', 0.5, 'color', 'r')
+%     end
+%     labelHandles = findall(gcf, 'type', 'text', 'handlevisibility', 'off');
+%     set(labelHandles,'FontSize', 15, 'color', 'w')
+% 
+%     save_figure(fig, [analysisDir expName arenaSel ' linear clustering demo'], '-pdf', autoSave);
+% end
+% 
+% clearvars('-except',initial_vars{:})
+% fprintf('Next\n')
+% 
+% %% ------------------------------Movement analysis------------------------------------
+% %bin frame and check bin occupation changes across frames as proxy for
+% %movement --> won't give an accurate 'speed' etc. but it might give
+% %movement.
+% tic
+% nbins = 100;
+% spaceChange = [];
+% 
+% for vid = 1:nvids   
+%     N = [];
+%     for frame = 1:length(data(vid).tempLog)
+%         X = data(vid).x_loc(frame,:); X(isnan(X)) = [];
+%         Y = data(vid).y_loc(frame,:); Y(isnan(Y)) = [];
+%         N(:,:,frame) = histcounts2(X,Y,nbins);
+%     end
+%     if vid>1 % add last frame of previous vid to prevent frame loss 
+%         N = cat(3, lastFrame, N);
+%     end
+%     lastFrame =  N(:,:,end);
+%     binDiff = diff(N,1,3);
+%     binDiff(binDiff<0) = 0;
+%     BinChange = squeeze(sum(sum(binDiff,1),2));
+%     % save pertinent information:
+%     data(vid).BinChange = BinChange;
+%     spaceChange = [spaceChange; BinChange];
+% end
+% occupancy.movement = spaceChange;
+% toc
+% 
+% % preview the movement average
+% if essentialfigs==false
+%     fig = getfig;  hold on
+%     plot(occupancy.time(2:end), occupancy.movement,'color', Color('teal'))
+%     plot(occupancy.time(2:end), smooth(occupancy.movement,180),...
+%         'linewidth', 2, 'color', 'w')
+%     xlabel('time (min)'), ylabel('movement (a.u.)')
+%     formatFig(fig, true);
+%     save_figure(fig, [analysisDir expName arenaSel ' movement over time'], '-pdf', autoSave);
+% end
+% 
+% clearvars('-except',initial_vars{:})
+% fprintf('Next\n')
+% 
+% %% -----------------------Time course feature comparison------------------------------
+% % plot parameters:
+% nrow = 8; ncol = 1;
+% sSpan = 180; %1 minute filter length
+% sbpts(1).idx = 1;
+% sbpts(2).idx = 2:4;
+% sbpts(3).idx = 5:6;
+% sbpts(4).idx = 7:8;
+% LW = 1.5;
+% 
+% % FIGURE:
+% fig = getfig; set(fig, 'pos', [157 86 1232 878])
+% % TEMPERATURE
+% subplot(nrow,ncol,sbpts(1).idx)
+% plot(occupancy.time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
+% ylabel('(\circ)')
+% title('temperature')
+% ax = gca;
+% x_lim = ax.XLim;
+% 
+% % OCCUPANCY
+% subplot(nrow,ncol,sbpts(2).idx)
+% hold on
+% y = [];
+% for well = 1:4
+%    y = [y, smooth(occupancy.occ(:,well),sSpan)];
+% end
+% h = area(occupancy.time,y);
+% for well = 1:4
+%     h(well).FaceColor = pullFoodColor(wellLabels{well});
+% end
+% xlim(x_lim)
+% set(gca, 'tickdir', 'out')
+% l = legend(strrep(wellLabels,'_','-'));
+% set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k',...
+% 'position', [0.7972 0.7194 0.1039 0.0792]);% [0.8780 0.8119 0.0963 0.1126])%
+% ylabel('occupancy probability')
+% title('individual well occupancy')
+% 
+% % 
+% % hold on
+% % for well = 1:4
+% %     kolor = pullFoodColor(wellLabels{well});
+% %     plot(time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+% % end
+% % plot(time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+% % ylabel('occupancy probability')
+% % title('individual well occupancy')
+% % legend(wellLabels)
+% % l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
+% % set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
+% %     'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
+% 
+% % CLUSTERING
+% subplot(nrow,ncol,sbpts(3).idx); hold on
+% y_avg = smooth(occupancy.IFD,sSpan);
+% y_err = smooth(occupancy.IFD_err,sSpan);
+% x = occupancy.time;
+% fill_data = error_fill(x, y_avg, y_err);
+% h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
+% set(h, 'facealpha', 0.2)
+% plot(occupancy.time,smooth(occupancy.IFD,sSpan),'linewidth', LW, 'color', 'w')
+% ylabel('pixels')
+% title('inter-fly-distance')
+% 
+% % MOVEMENT
+% subplot(nrow,ncol,sbpts(4).idx); hold on
+% y_avg = smooth(occupancy.movement,sSpan);
+% y_err = movstd(occupancy.movement,sSpan);
+% x = occupancy.time(2:end);
+% fill_data = error_fill(x, y_avg, y_err);
+% h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
+% set(h, 'facealpha', 0.2)
+% plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
+% ylabel('(a.u.)')
+% title('movement')
+% xlabel('time (min)')
+% 
+% formatFig(fig,true,[nrow, ncol], sbpts);
+% for ii = 1:3
+%     subplot(nrow,ncol,sbpts(ii).idx)
+%     set(gca, 'XColor', 'k')
+% end
+% 
+% % save and export figure
+% if autoSave==true
+%     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+% else
+%     if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+%         export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+%     end
+% end  
+% save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png',autoSave);
+% 
+% clearvars('-except',initial_vars{:})
+% fprintf('Next\n')
+% 
+% %% ---------------------Position & Movement Summary Figure----------------------------
+% % **TODO remove total well occupancy
+% % figure parameters:
+% nrow = 10; ncol = 1;
+% sSpan = 180; %1 minute filter length
+% sbpts(1).idx = 1;    % temp
+% sbpts(2).idx = 2:5;  % occupancy
+% sbpts(3).idx = 6:8;  % clustering & eccentricity
+% sbpts(4).idx = 9:10; % movement
+% LW = 1.5;
+% 
+% % FIGURE:
+% fig = getfig; set(fig, 'pos', [157 86 1232 878])
+% subplot(nrow,ncol,sbpts(1).idx)
+% plot(occupancy.time,smooth(occupancy.temp,sSpan),'linewidth', LW, 'color', 'w')
+% ylabel('Temp(\circ)')
+% % title('temperature')
+% 
+% subplot(nrow,ncol,sbpts(2).idx)
+% hold on
+% for well = 1:4
+%     kolor = pullFoodColor(wellLabels{well});
+%     plot(occupancy.time,smooth(occupancy.occ(:,well),sSpan),'linewidth', LW, 'color', kolor)
+% end
+% % plot(occupancy.time,smooth(occupancy.allwellOcc,sSpan),':','linewidth',LW,'color', Color('slateblue'))
+% ylabel('occupancy probability')
+% % title('individual well occupancy')
+% legend(wellLabels)
+% % l = legend(strrep([wellLabels; {'all wells'}],'_','-'));
+% l = legend(strrep(wellLabels,'_','-'));
+% set(l, 'color', 'k', 'textcolor', 'w','FontSize', 10,'edgecolor', 'k',...
+%     'position', [0.1552 0.6918 0.0963 0.1126] );% [0.8780 0.8119 0.0963 0.1126])%
+% 
+% % CLUSTERING
+% subplot(nrow,ncol,sbpts(3).idx); hold on
+% y_avg = smooth(occupancy.IFD,sSpan);
+% y_err = smooth(occupancy.IFD_err,sSpan);
+% x = occupancy.time;
+% fill_data = error_fill(x, y_avg, y_err);
+% h(1) = fill(fill_data.X, fill_data.Y, get_color('teal'), 'EdgeColor','none');
+% set(h, 'facealpha', 0.2)
+% plot(occupancy.time,smooth(occupancy.IFD,sSpan),'linewidth', LW, 'color', Color('teal'))
+% % ECCENTRICITY
+% y_avg = smooth(occupancy.eccentricity(:,1),sSpan);
+% y_err = smooth(occupancy.eccentricity(:,2),sSpan);
+% x = occupancy.time;
+% fill_data = error_fill(x, y_avg, y_err);
+% h(2) = fill(fill_data.X, fill_data.Y, get_color('orange'), 'EdgeColor','none');
+% set(h, 'facealpha', 0.2)
+% plot(x,y_avg, 'linewidth', LW, 'color', Color('orange'))  
+% ylabel('pixels')
+% l2 = legend({'','inter fly distance', '', 'eccentricity'});
+% set(get(get(h(1),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+% set(get(get(h(2),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+% set(l2, 'color', 'k', 'textcolor', 'w','FontSize', 8,'edgecolor', 'k',...
+%     'position', [0.1350 0.4638 0.1039 0.0370]);% 
+% 
+% % MOVEMENT
+% subplot(nrow,ncol,sbpts(4).idx); hold on
+% y_avg = smooth(occupancy.movement,sSpan);
+% y_err = movstd(occupancy.movement,sSpan);
+% x = occupancy.time(2:end);
+% fill_data = error_fill(x, y_avg, y_err);
+% h = fill(fill_data.X, fill_data.Y, get_color('white'), 'EdgeColor','none');
+% set(h, 'facealpha', 0.2)
+% plot(x,y_avg, 'linewidth', LW, 'color', 'w')  
+% ylabel('movement (a.u.)')
+% % title('movement')
+% xlabel('time (min)')
+% 
+% formatFig(fig,true,[nrow, ncol], sbpts);
+% for ii = 1:3
+%     subplot(nrow,ncol,sbpts(ii).idx)
+%     set(gca, 'XColor', 'k')
+% end
+% 
+% % save and export figure
+% if autoSave==true
+%     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+% else
+%     if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+%         export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+%     end
+% end
+% save_figure(fig, [analysisDir expName arenaSel ' timecourse features'], '-png',autoSave);
+% 
+% clearvars('-except',initial_vars{:})
+% fprintf('Next\n')
+% 
+% %% ----------------Average distance between each fly and each food source-------------
+% %(takes a full 2 mins to run)
+% 
+% % find distance from center for each fly:
+% tic
+% FDist = [];
+% idx = 0;
+% for vid = 1:nvids
+%     for frame = 1:length(data(vid).tempLog)
+%         idx = idx+1;
+%         for well = 1:4
+%             test = [wellcenters(:,well)'; data(vid).x_loc(frame,:)',data(vid).y_loc(frame,:)'];
+%             D = squareform(pdist(test));
+%             D = D(2:end,1);
+%             D(isnan(D)) = [];
+%             FDist(well).N(idx,:) = [median(D), std(D)];
+%         end
+%     end
+% end
+% toc
+% 
+% occupancy.dist2wells = FDist;
+% 
+% % occupancy.eccentricity = EDist;
+% nrow = 4;
+% ncol = 1;
+% subplotInd(1).idx = 1;
+% subplotInd(2).idx = 2:4;
+% % group data across videos:
+% plotX = occupancy.time;
+% sSpan = 180;
+% LW = 1;
+% 
+% fig = getfig(''); 
+%     subplot(nrow,ncol,subplotInd(1).idx)
+%     y = smooth(occupancy.temp,sSpan);
+%     plot(plotX(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
+%     ylabel('temp (\circC)')
+%     ylim([5,27])
+%     
+%     subplot(nrow,ncol,subplotInd(2).idx)
+%     hold on
+%     % error fills
+%     for well = 1:4
+%         kolor = pullFoodColor(wellLabels{well}); % plotting color for food
+%         y_avg(:,well) = smooth(FDist(well).N(:,1),sSpan);
+%         y_err(:,well) = smooth(FDist(well).N(:,2),sSpan);
+%         fill_data = error_fill(plotX, y_avg(:,well), y_err(:,well));
+%         h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%         set(h(well), 'facealpha', 0.2)
+%     end
+%     % average line
+%     for well = 1:4
+%         kolor = pullFoodColor(wellLabels{well});
+%         plot(occupancy.time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
+%     end
+%     xlabel('time (min)'); ylabel('avg distance between fly and food (a.u.)')
+%     
+% formatFig(fig, true, [nrow, ncol], subplotInd);
+% l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
+% set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+% for well = 1:4
+%     set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+% end
+% subplot(nrow,ncol,subplotInd(1).idx)
+% set(gca, 'XColor', 'k')
+% titleName = strrep([folder ' ' expName ' Arena ' arenaSel], '_',' ');
+% title(titleName,'color', 'w')
+%  
+% % save and export figure
+% if autoSave==true
+%     export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+% else
+%     if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+%         export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-rgb','-append');
+%     end
+% end
+% save_figure(fig, [analysisDir expName arenaSel ' avg distance to well'], '-png', autoSave);
+% 
+% clearvars('-except',initial_vars{:})
+% 
+% 
+% %% ----------------------- Save experiment data thus far -----------------------------
+% if autoSave == true
+%     clearvars('-except',initial_vars{:})
+%     initial_vars = unique(initial_vars);
+%     save([analysisDir expName arenaSel ' timecourse data'])
+%     copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')
+%     fprintf('Experiment data saved\n')
+%     results = 'Saved data';
+% else
+%     switch questdlg('Save experiment analysis?')
+%         case 'Yes'
+%             clearvars('-except',initial_vars{:})
+%             initial_vars = unique(initial_vars);
+%             save([analysisDir expName arenaSel ' timecourse data'])
+%             copyfile(expPDF,'G:\My Drive\Jeanne Lab\DATA\Analysis')
+%             fprintf('Experiment data saved\n')
+%             results = 'Saved data';
+%         case 'No'
+%             results = 'No data saved';
+%             return
+%         case 'Cancel'
+%             results = 'No data saved';
+%             return
+%     end
+% end

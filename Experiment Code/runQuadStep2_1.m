@@ -170,6 +170,8 @@ end
 
 % organize data for forward compatability
 for arena = 1:nArenas
+    tic
+    disp(['Starting ' arenaIdx{arena}'])
     occupancy.temp = T.temperature;
     occupancy.occ = arenaData(arena).occ_P;
     occupancy.count = arenaData(arena).occ_N;
@@ -221,11 +223,14 @@ for arena = 1:nArenas
     % save data into occupancy structure:
     occupancy.dist2wells = arenaData(arena).dist2well;
     arenaData(arena).occupancy = occupancy;
+    toc
 end
 
 for arena = 1:nArenas
     arenaData(arena).genotype = expData.parameters.(['Arena' arenaIdx{arena}]).genotype;
 end
+
+save([analysisDir 'half processed data.mat'])
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')

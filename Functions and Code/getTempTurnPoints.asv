@@ -5,7 +5,18 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 
 % Use this to find temp points for new temp protocols:
 % figure; plot(smooth(data(1).occupancy.temp),'color', 'k')
-% figure; plot(smooth(T.temperature),'color', 'k')
+% figure; plot(smooth(T.temperature,360),'color', 'k')
+
+temp = smooth(T.temperature,5);
+sel = (max(x0)-min(x0))/4;
+
+minLoc = peakfinder(temp,'extrema',-1);
+maxLoc = peakfinder(temp,'extrema',1);
+
+figure;hold on
+plot(temp)
+scatter(minLoc,temp(minLoc))
+scatter(maxLoc,temp(minLoc))
 
 % pull the appropriate start|end points:
 switch TempProtocolString
@@ -71,7 +82,10 @@ switch TempProtocolString
                            83631,90199;... 
                            122501,154500];
         tempPoints.nRates = 7;
-        tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5]; 
+%         tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5]; 
+        tempPoints.rates = [-0.5, -0.25, -0.1, 0.1, 0.25, 0.5]; 
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 25;
     case 'Velocity Ramp B Up'
         tempPoints.hold = [];
         tempPoints.up =   [2371 19210;...
@@ -83,7 +97,10 @@ switch TempProtocolString
                            77291 90229;...
                            122501 154500];
         tempPoints.nRates = 7;
-        tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5];
+        %         tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5]; 
+        tempPoints.rates = [-0.5, -0.25, -0.1, 0.1, 0.25, 0.5]; 
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 25;
     case 'Velocity Ramp C Up'
         tempPoints.hold = [];
         tempPoints.up =   [2853 9312;...
@@ -95,7 +112,10 @@ switch TempProtocolString
                            93306 99883;...
                            112744 125577];
         tempPoints.nRates = 7;
-        tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5];
+        %         tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5]; 
+        tempPoints.rates = [-0.5, -0.25, -0.1, 0.1, 0.25, 0.5]; 
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 25;
     case 'Velocity Ramp D Up'
         tempPoints.up =   [2864 9338;...
                            22217 28625;...
@@ -107,7 +127,10 @@ switch TempProtocolString
                            112804 125516];
         tempPoints.hold = [];
         tempPoints.nRates = 7;
-        tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5];
+        %         tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5]; 
+        tempPoints.rates = [-0.5, -0.25, -0.1, 0.1, 0.25, 0.5]; 
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 25;
     case 'Velocity Ramp E Up'
         tempPoints.up =   [2781 6005;...
                            12570 45089;...
@@ -119,7 +142,10 @@ switch TempProtocolString
                            109400 115800];
         tempPoints.hold = [];
         tempPoints.nRates = 7;
-        tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5];
+        %         tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5]; 
+        tempPoints.rates = [-0.5, -0.25, -0.1, 0.1, 0.25, 0.5]; 
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 25;
     case 'Velocity Ramp F Up'
         tempPoints.up =   [2809 6016;...
                            12604 25504;...
@@ -132,13 +158,35 @@ switch TempProtocolString
         tempPoints.hold = [];
         tempPoints.nRates = 7;
         tempPoints.rates = [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5];
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 25;
     % ======================================= 
     case 'looping_ramps_up'
         tempPoints.up =   [2810 11924;...
                            29826 47748;...
                            65705 83597;...
                            101612 119747];
-        tempPoints.down = [11925 298]
+        tempPoints.down = [11925 29825;...
+                           47749 65704;...
+                           83598 101611];
+        tempPoints.hold = [];
+        tempPoints.nRates = 2;
+        tempPoints.rates = [-0.16, 0.16];
+        tempPoints.threshLow = 7;
+        tempPoints.threshHigh = 23;
+    case 'looping_ramps_down'
+        tempPoints.down =   [2810 11924;...
+                           29826 47748;...
+                           65705 83597;...
+                           101612 119747];
+        tempPoints.up = [11925 29825;...
+                           47749 65704;...
+                           83598 101611];
+        tempPoints.hold = [];
+        tempPoints.nRates = 2;
+        tempPoints.rates = [-0.16, 0.16];
+        tempPoints.threshLow = 7;
+        tempPoints.threshHigh = 23;
 end
 
 % increasing|decreasing ROI:
@@ -159,12 +207,13 @@ end
 tempPoints.UpROI = UpROI;
 tempPoints.DownROI = DownROI;
 
+tempPoints.nRates = length(tempPoints.rates);
+
 % just pull all the points where the temp ramp changes rate:
 
 temp = [tempPoints.up; tempPoints.down; tempPoints.hold];
-
-    
-temp = [1; sort(temp(:))];
+% temp = [1; sort(temp(:))];
+temp = sort(temp(:)); % white background adjustment
 loc = diff(temp)<10;
 temp(loc) = [];
 tempPoints.transitions = temp;
