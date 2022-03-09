@@ -94,7 +94,7 @@ catch
         kolor = Color('yellow');
         num = 2;
     elseif ismember('Molasses', foodString)
-        kolor = Color('Chocolate');
+        kolor = Color('purple');
         num = 2;
     end
 end
