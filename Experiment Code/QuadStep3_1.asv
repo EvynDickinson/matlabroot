@@ -276,7 +276,7 @@ legend(str,'textcolor', 'w', 'location', L_loc, 'box', 'off','fontsize',12)
 save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
 
-%% FIGURE: Average movement | cluserting | eccentricity vs temp across trials:
+%% FIGURE: Average movement | cluserting | eccenvs temp across trials:
 
 inputVar =  questdlg('Which data type to compare?','','movement','clustering','eccentricity','movement');
 switch inputVar
