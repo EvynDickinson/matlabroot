@@ -11,6 +11,9 @@ function fig = getfig(name, ~)
     case 'EVYNPC'
         basePos = [50, 50, 1450, 900];
         outPos = [-1044 261 997 724];
+     case ''
+        basePos = [50, 50, 1450, 900];
+        outPos = [-1044 261 997 724];
 end
     
 

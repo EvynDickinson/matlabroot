@@ -19,6 +19,8 @@ switch getenv('COMPUTERNAME')
         baseFolder = 'G:\My Drive\Jeanne Lab\';
     case 'EVYNPC'
         baseFolder = 'G:\My Drive\Jeanne Lab\';
+    case ''
+        baseFolder = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/';
 end
 
 % [baseName, folder] = uigetfile('*xlsx', 'Select the Fly Summary 2 file');

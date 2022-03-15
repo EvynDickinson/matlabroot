@@ -13,9 +13,9 @@ disp(['Starting figures for ' folder ' ' expName])
 nArenas = 4;
 initial_vars{end+1} = 'nArenas';
 initial_vars{end+1} = 'figDir';
-figDir = [baseFolder folder '\'];
+figDir = [baseFolder folder '/'];
 for arena = 1:nArenas
-    arenaData(arena).figDir = [figDir arenaData(arena).name '\'];
+    arenaData(arena).figDir = [figDir arenaData(arena).name '/'];
 end
 tPoints = getTempTurnPoints(expData.parameters.protocol);
 threshHigh = tPoints.threshHigh;
@@ -533,6 +533,7 @@ for arena = 1:nArenas
     arenaData(arena).T = AD;
 end  
 clearvars('-except',initial_vars{:})
+disp('next')
 
 %% FIGURE: Temperature dependence of distance to food
 LS = {'--','-.','-'}; %cooling|stationary|heating

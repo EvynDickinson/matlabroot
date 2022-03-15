@@ -15,7 +15,7 @@ alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 % determine if letter or number:
 if ischar(input)
     output = find(alphabet==input);
-elseif isdouble(input)
+else
     if input > 22
         start = fix(input/22);
         last = rem(input,22);
