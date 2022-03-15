@@ -9,7 +9,8 @@ function results = runQuadStep2_1(inputPath,autoSave,essentialfigs)
 warning off
 load(inputPath);
 disp(['Starting figures for ' folder ' ' expName])
-
+baseFolder = getCloudPath;
+analysisDir = [baseFolder folder '/analysis/'];
 nArenas = 4;
 initial_vars{end+1} = 'nArenas';
 initial_vars{end+1} = 'figDir';
@@ -21,7 +22,9 @@ tPoints = getTempTurnPoints(expData.parameters.protocol);
 threshHigh = tPoints.threshHigh;
 threshLow = tPoints.threshLow;
 binSpace = 1; %temp degree bin widths
+
 initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
+
 
 %% ------------------------------ summary figure -------------------------------------
 nrow = 5; ncol = 4;
@@ -56,7 +59,7 @@ for arena = 1:nArenas
         roi = 2:length(y)-1;
         plot(time(roi), y(roi), 'linewidth', LW, 'color', 'w')
         ylabel('temp (\circC)')
-        ylim([5,26])
+%         ylim([5,26])
 
      % occupation probability
      subplot(nrow,ncol,subplotInd(2).idx)
@@ -128,7 +131,7 @@ if essentialfigs == false
         y = smooth(T.temperature,sSpan);
         plot(T.time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
         ylabel('temp (\circC)')
-        ylim([5,27])
+%         ylim([5,27])
         % OCCUPANCY
         subplot(nrow,ncol,subplotInd(2).idx)
         hold on

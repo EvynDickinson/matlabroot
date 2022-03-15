@@ -84,7 +84,7 @@ end
 
 %Pull and reorganize data within the structure:
 
-pix2mm = 12.8; %conversion from pixels to mm for these videos
+% pix2mm = 12.8; %conversion from pixels to mm for these videos
     
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'pix2mm'};
@@ -216,6 +216,9 @@ for ii = 1:nfoods+1
 end
 for trial = 1:ntrials
     x = data(trial).occupancy.temp; % temperature data
+    % Screen out data pre/post data 
+    tempPoints = getTempTurnPoints(T.TempProtocol{trial});
+    roi = sort([tempPoints.DownROI,tempPoints.UpROI]);
     for well = 1:4
         switch inputVar
             case 'distance'
@@ -225,9 +228,9 @@ for trial = 1:ntrials
         end
         if well==T.foodLoc(trial)
             foodType = find(strcmp(T.foodName{trial},foodNames));
-            food(foodType).N = [food(foodType).N; x, y];
+            food(foodType).N = [food(foodType).N; x(roi), y(roi)];
         else % empty well
-            food(nfoods+1).N = [food(nfoods+1).N; x, y];
+            food(nfoods+1).N = [food(nfoods+1).N; x(roi), y(roi)];
         end
     end
 end 
@@ -283,7 +286,7 @@ set(ax, 'FontSize', 18)
 str = strrep([foodNames; 'Empty'],'_',' ');
 legend(str,'textcolor', 'w', 'location', L_loc, 'box', 'off','fontsize',12)
 
-save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
+save_figure(fig, [figDir 'Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
 
 %% FIGURE: Average movement | cluserting | eccentricity vs temp across trials:
@@ -307,6 +310,9 @@ end
 food = struct;
 food.N = [];
 for trial = 1:ntrials
+    % Screen out data pre/post data 
+    tempPoints = getTempTurnPoints(T.TempProtocol{trial});
+    roi = sort([tempPoints.DownROI,tempPoints.UpROI]);
     switch inputVar
         case 'movement'
             x = data(trial).occupancy.temp(1:end-1);
@@ -318,7 +324,7 @@ for trial = 1:ntrials
             y = data(trial).occupancy.eccentricity;
             x = data(trial).occupancy.temp;
     end 
-    food.N = [food.N; x,y];
+    food.N = [food.N; x(roi),y(roi)];
 end 
 
 % Temperature range and bin size formatting
@@ -401,7 +407,11 @@ for trial = 1:ntrials
 
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
+%     threshLow = tPoints.threshLow;
+%     threshHigh = tPoints.threshHigh;
     keepLoc = false(1,size(plotData,1));
+%     roi = sort([tPoints.DownROI,tPoints.UpROI,tPoints.HoldROI]);
+%     keepLoc(roi) = true;
     for ii = 1:length(tPoints.transitions)-1
         roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
         distD = median(plotData(roi,2));
@@ -605,119 +615,119 @@ save_figure(fig, [figDir ExpGroup ' temp temp_rate dist all rates ' ExpGroup], '
 % TODO: adjust this to account for actual data...
 if nRates > 3
 
-    LS = {'--','-.','-'}; %cooling|stationary|heating
-    % legStr = {'SEM','Cooling','','','SEM','Heating','',''};
-    legStr = {'Cooling','','','Heating','',''};
-    ncol = 2;
-    nrow = 2;
-
-    fig = figure; set(fig, 'pos',[296 35 1224 956])
-    % All trials
-        subplot(nrow, ncol, 1); hold on
-        for rr = 1:nRates
-            kolor = pullFoodColor(tRates(rr));
-            if tRates(rr)>0
-                lstyle = LS{3};
-            elseif tRates(rr)<0
-                lstyle = LS{1};
-            elseif tRates(rr)==0
-                lstyle = LS{2};
-                continue
-            end
-            x = t_roi;
-            y = plotData.avg(rr,:);
-            plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
-        end
-        title([ExpGroup ' (n = ' num2str(ntrials) ')'])
-        ylabel('Distance to food (mm)')
-        xlabel('Temperature (\circC)')
-    % Fast
-        subplot(nrow, ncol, 2); hold on
-        for rr = [1,7]
-            kolor = pullFoodColor(tRates(rr));
-            if tRates(rr)>0
-                lstyle = LS{3};
-            elseif tRates(rr)<0
-                lstyle = LS{1};
-            elseif tRates(rr)==0
-                lstyle = LS{2};
-                continue
-            end
-            x = t_roi(1:end-1);
-            y = plotData.avg(rr,1:end-1);
-    %         kolor = Color(cList{rr});
-            err = plotData.err(rr,1:end-1);
-    %         fill_data = error_fill(x, y, err);
-    %         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-    %         set(h, 'facealpha', 0.2)
-            plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
-            plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-            plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-        end
-        title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
-        ylabel('Distance to food (mm)')
-        xlabel('Temperature (\circC)')
-        l = legend(legStr);
-        set(l,'textcolor', 'w','box', 'off')
-    % Medium
-        subplot(nrow, ncol, 3); hold on
-        for rr = [2,6]
-            if tRates(rr)>0
-                lstyle = LS{3};
-            elseif tRates(rr)<0
-                lstyle = LS{1};
-            elseif tRates(rr)==0
-                lstyle = LS{2};
-                continue
-            end
-            x = t_roi(1:end-1);
-            y = plotData.avg(rr,1:end-1);
-    %         kolor = Color(cList{rr});
-            kolor = pullFoodColor(tRates(rr));
-            err = plotData.err(rr,1:end-1);
-    %         fill_data = error_fill(x, y, err);
-    %         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-    %         set(h, 'facealpha', 0.2)
-            plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
-            plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-            plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-        end
-        title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
-        ylabel('Distance to food (mm)')
-        xlabel('Temperature (\circC)')
-        l = legend(legStr);
-        set(l,'textcolor', 'w','box', 'off')
-    % Slow
-        subplot(nrow, ncol, 4); hold on
-        for rr = [3,5]
-            if tRates(rr)>0
-                lstyle = LS{3};
-            elseif tRates(rr)<0
-                lstyle = LS{1};
-            elseif tRates(rr)==0
-                lstyle = LS{2};
-                continue
-            end
-            x = t_roi(1:end-1);
-            y = plotData.avg(rr,1:end-1);
-    %         kolor = Color(cList{rr});
-            kolor = pullFoodColor(tRates(rr));
-            err = plotData.err(rr,1:end-1);
-    %         fill_data = error_fill(x, y, err);
-    %         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-    %         set(h, 'facealpha', 0.2)
-            plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
-            plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-            plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-        end
-        title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
-        ylabel('Distance to food (mm)')
-        xlabel('Temperature (\circC)')
-        l = legend(legStr);
-        set(l,'textcolor', 'w','box', 'off')
-
-    fig = formatFig(fig, true,[nrow,ncol]);
-    save_figure(fig, [figDir ExpGroup ' temp rate food preference dependence ' ExpGroup], '-png');
+%     LS = {'--','-.','-'}; %cooling|stationary|heating
+%     % legStr = {'SEM','Cooling','','','SEM','Heating','',''};
+%     legStr = {'Cooling','','','Heating','',''};
+%     ncol = 2;
+%     nrow = 2;
+% 
+%     fig = figure; set(fig, 'pos',[296 35 1224 956])
+%     % All trials
+%         subplot(nrow, ncol, 1); hold on
+%         for rr = 1:nRates
+%             kolor = pullFoodColor(tRates(rr));
+%             if tRates(rr)>0
+%                 lstyle = LS{3};
+%             elseif tRates(rr)<0
+%                 lstyle = LS{1};
+%             elseif tRates(rr)==0
+%                 lstyle = LS{2};
+%                 continue
+%             end
+%             x = t_roi;
+%             y = plotData.avg(rr,:);
+%             plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+%         end
+%         title([ExpGroup ' (n = ' num2str(ntrials) ')'])
+%         ylabel('Distance to food (mm)')
+%         xlabel('Temperature (\circC)')
+%     % Fast
+%         subplot(nrow, ncol, 2); hold on
+%         for rr = [1,7]
+%             kolor = pullFoodColor(tRates(rr));
+%             if tRates(rr)>0
+%                 lstyle = LS{3};
+%             elseif tRates(rr)<0
+%                 lstyle = LS{1};
+%             elseif tRates(rr)==0
+%                 lstyle = LS{2};
+%                 continue
+%             end
+%             x = t_roi(1:end-1);
+%             y = plotData.avg(rr,1:end-1);
+%     %         kolor = Color(cList{rr});
+%             err = plotData.err(rr,1:end-1);
+%     %         fill_data = error_fill(x, y, err);
+%     %         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%     %         set(h, 'facealpha', 0.2)
+%             plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+%             plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%             plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%         end
+%         title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
+%         ylabel('Distance to food (mm)')
+%         xlabel('Temperature (\circC)')
+%         l = legend(legStr);
+%         set(l,'textcolor', 'w','box', 'off')
+%     % Medium
+%         subplot(nrow, ncol, 3); hold on
+%         for rr = [2,6]
+%             if tRates(rr)>0
+%                 lstyle = LS{3};
+%             elseif tRates(rr)<0
+%                 lstyle = LS{1};
+%             elseif tRates(rr)==0
+%                 lstyle = LS{2};
+%                 continue
+%             end
+%             x = t_roi(1:end-1);
+%             y = plotData.avg(rr,1:end-1);
+%     %         kolor = Color(cList{rr});
+%             kolor = pullFoodColor(tRates(rr));
+%             err = plotData.err(rr,1:end-1);
+%     %         fill_data = error_fill(x, y, err);
+%     %         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%     %         set(h, 'facealpha', 0.2)
+%             plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+%             plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%             plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%         end
+%         title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
+%         ylabel('Distance to food (mm)')
+%         xlabel('Temperature (\circC)')
+%         l = legend(legStr);
+%         set(l,'textcolor', 'w','box', 'off')
+%     % Slow
+%         subplot(nrow, ncol, 4); hold on
+%         for rr = [3,5]
+%             if tRates(rr)>0
+%                 lstyle = LS{3};
+%             elseif tRates(rr)<0
+%                 lstyle = LS{1};
+%             elseif tRates(rr)==0
+%                 lstyle = LS{2};
+%                 continue
+%             end
+%             x = t_roi(1:end-1);
+%             y = plotData.avg(rr,1:end-1);
+%     %         kolor = Color(cList{rr});
+%             kolor = pullFoodColor(tRates(rr));
+%             err = plotData.err(rr,1:end-1);
+%     %         fill_data = error_fill(x, y, err);
+%     %         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%     %         set(h, 'facealpha', 0.2)
+%             plot(x,y,'color', kolor, 'linewidth', 2, 'linestyle', lstyle)
+%             plot(x,y+err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%             plot(x,y-err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%         end
+%         title(['dT/dt = ' num2str(tRates(rr)) ' (\circC/min)'])
+%         ylabel('Distance to food (mm)')
+%         xlabel('Temperature (\circC)')
+%         l = legend(legStr);
+%         set(l,'textcolor', 'w','box', 'off')
+% 
+%     fig = formatFig(fig, true,[nrow,ncol]);
+%     save_figure(fig, [figDir ExpGroup ' temp rate food preference dependence ' ExpGroup], '-png');
 end
 clearvars('-except',vars{:})
 

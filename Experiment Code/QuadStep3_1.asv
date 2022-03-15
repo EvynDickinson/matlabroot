@@ -84,7 +84,7 @@ end
 
 %Pull and reorganize data within the structure:
 
-pix2mm = 12.8; %conversion from pixels to mm for these videos
+% pix2mm = 12.8; %conversion from pixels to mm for these videos
     
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'pix2mm'};
@@ -124,14 +124,26 @@ for trial = 1:ntrials
     end
 end
 
-% find the types of food available:
-names = [];
+% group names into 'classes' and extract the food group identities
+[foodName,foodLoc,foodCat] = deal([]);
+bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot'};
 for trial = 1:ntrials
-    names = unique([data(trial).wellLabels; names]);
+    loc = ~strcmp(data(trial).wellLabels,'Empty');
+    foodName{trial,1} = data(trial).wellLabels{loc};
+    foodLoc(trial,1) = find(loc);
+    % find the 'category' of food:
+    for ii = 1:length(bin_foods)
+        if strfind(foodName{trial}, bin_foods{ii})
+            foodCat{trial,1} = bin_foods{ii};
+        end
+    end
 end
-nfoods = length(names)-1;
-foodNames = names;
-foodNames(strcmp(names, 'Empty')) = [];
+
+disp(table(foodName, foodLoc, foodCat))
+% TODO: add a check here to not double add the columns of data
+T = addvars(T, foodName, foodLoc, foodCat);
+foodNames = unique(foodName);
+nfoods = length(foodNames);
 
 initial_vars{end+1} = 'nfoods';
 initial_vars{end+1} = 'foodNames';
@@ -203,7 +215,14 @@ for ii = 1:nfoods+1
     end
 end
 for trial = 1:ntrials
-    x = data(trial).occupancy.temp;
+    x = data(trial).occupancy.temp; % temperature data
+
+    % Screen out data pre/post data 
+    tempPoints = getTempTurnPoints(T.TempProtocol{trial});
+    roi = sort([tempPoints.DownROI,tempPoints.UpROI]);
+    screenPoints = 1:length
+
+    
     for well = 1:4
         switch inputVar
             case 'distance'
@@ -211,13 +230,11 @@ for trial = 1:ntrials
             case 'occupation probability'
                 y = data(trial).occupancy.occ(:,well);
         end
-        % empty food well:
-        wellID = data(trial).wellLabels{well};
-        if contains(wellID,'Empty')
+        if well==T.foodLoc(trial)
+            foodType = find(strcmp(T.foodName{trial},foodNames));
+            food(foodType).N = [food(foodType).N; x, y];
+        else % empty well
             food(nfoods+1).N = [food(nfoods+1).N; x, y];
-        else 
-            loc = find(strcmp(wellID,foodNames));
-            food(loc).N = [food(loc).N; x, y];
         end
     end
 end 
@@ -245,7 +262,7 @@ for ii = 1:nfoods+1 %each food type
 end
     
 % FIGURE: plot the avg. temp vs. distance data
-CList = Color('SteelBlue', 'Navy', nfoods);
+CList = Color('SteelBlue', 'magenta', nfoods);
 CList(nfoods+1,:) = Color('White');
 
 fig = figure; set(fig,'pos', [67 82 675 692]);
@@ -354,13 +371,6 @@ set(ax, 'FontSize', 18)
 
 save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
-
-
-
-
-
-
-
 
 %% ANALYSIS: Get temp rate information from all trials
 G = struct;
@@ -488,15 +498,7 @@ for trial = 1:ntrials
 clearvars('-except',vars{:}) 
 end
 
-
-
-
-
-
-%% FIGURE: temp rate hysteresis 
-
 %% FIGURE: grouped -- temp distance hysteresis figures 
-% TODO: reformat this to take advantage of the previously processed data
 % Fly by fly average:
 
 % Find the total number and id of temp rates:
@@ -607,6 +609,7 @@ save_figure(fig, [figDir ExpGroup ' temp temp_rate dist all rates ' ExpGroup], '
 
 
 % ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
+% TODO: adjust this to account for actual data...
 if nRates > 3
 
     LS = {'--','-.','-'}; %cooling|stationary|heating
@@ -727,19 +730,8 @@ clearvars('-except',vars{:})
 
 %% FIGURE: hysteresis across different foods and summed for all rates
 
-% find the 'categories' of food:
-[foodIdx,foodBin] = deal([]);
-bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot'};
-for ii = 1:nfoods
-    for jj = 1:length(bin_foods)
-        if strfind(foodNames{ii}, bin_foods{jj})
-            foodIdx(ii,1) = jj;
-            foodBin{ii,1} = bin_foods{jj};
-        end
-    end
-end
-foodT = table(foodNames,foodIdx,foodBin);
-disp(foodT)
+foodCat = unique(T.foodCat);
+n_food = length(foodCat);
 
 % Find the total number and id of temp rates:
 allRates=[];
@@ -753,16 +745,13 @@ abs_rates = unique(abs(tRates));
 
 %allocate empty data structure & set params
 HM = struct;
-for ii = 1:size(foodT,1)
+for ii = 1:n_food % rotate through food types
     % Group the data for each temp rate & food type:
     tempData = nan(nRates,nTemps,1);
     loc = 0;
     for trial = 1:ntrials
         % is this trial within the food bin?
-        food_ID = data(trial).wellLabels{~strcmp(data(trial).wellLabels,'Empty')};
-        N = foodT.foodIdx(strcmp(food_ID,foodNames));
-        % Add data to structure if it is
-        if N==ii
+        if strcmp(foodCat{ii},T.foodCat{trial})
             loc = loc + 1;
             for rr = 1:nRates
                 idx = find(G(trial).TR.rates==tRates(rr));
@@ -776,20 +765,18 @@ for ii = 1:size(foodT,1)
     % Find the mean and err of each temp bin for this food:
     HM(ii).avg = mean(tempData,3,'omitnan');
     HM(ii).err = std(tempData,0,3,'omitnan')./sqrt(loc);
-    HM(ii).data = plotData.avg;
-    HM(ii).name = foodT.foodBin{foodT.foodIdx==ii};
+    HM(ii).name = foodCat{ii};
 end
-
-% find 
 
 % FIGURE: same temp rates compared across foods:
 LS = {'--','-.','-'}; %cooling|stationary|heating
 x = G(trial).TR.temps;
 
-for rr = 1:length(abs_rates)
+for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
+  % FIGURE FOR EACH TEMPERATURE RATE  
   fig = figure; hold on; set(fig, 'pos', [57 118 598 642]);
     idx = 1; str = [];
-    for ii = 1:size(foodT,1) % cycle through each food group
+    for ii = 1:n_food % cycle through each food group
         rateList = find(abs(tRates)==abs_rates(rr));
         for jj = rateList
             plotRate = tRates(jj);
@@ -802,12 +789,11 @@ for rr = 1:length(abs_rates)
             elseif plotRate==0
                 lstyle = LS{2};
             end
-            HM(ii).avg
-            kolor = pullFoodColor(foodT.foodBin{ii});
+            kolor = pullFoodColor(foodCat{ii});
             y = HM(ii).avg(jj,:);
             y_err = HM(ii).err(jj,:);
-            plot(x,y,'color', kolor, 'linewidth', 2.5, 'linestyle', lstyle)
-            str{idx} = [foodT.foodBin{ii} ' ' str_tag]; idx = idx+1;
+            plot(x,y,'color', kolor, 'linewidth', 2.5, 'linestyle', lstyle);
+            str{idx} = [foodCat{ii} ' ' str_tag]; idx = idx+1;
         end
     end
     % legends, labels, keys
@@ -817,8 +803,106 @@ for rr = 1:length(abs_rates)
     formatFig(fig, true);
     legend(str,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 10)
 %Save figure
-save_figure(fig, [figDir 'temp hysteresis ' foodT.foodBin{ii} ' food ' num2str(abs_rates(rr))], '-png');
+% save_figure(fig, ['temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
+save_figure(fig, [figDir 'temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
 end
+
+clearvars('-except',vars{:})
+
+%% Heat map of location within the arena at key points during the temp ramp
+% use the temperatures : 8:2:22 for key points to check location of flies
+clearvars('-except',vars{:})
+
+tempList = [8,12,17,22];
+rateList = [0.16,-0.16];
+n = 10; % number of spatial bins
+tt = 1; 
+buffer = 0.5; % temperature buffer around target temperature
+idx = 1;
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList)   
+    temp = tempList(tt); % temp in C
+    rate = find(rateList(rr)==G(trial).TR.rates);
+    HM = zeros(n);
+    for trial = 1:ntrials
+        % frame location selection
+        tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
+        rLoc = G(trial).TR.rateIdx==rate;
+        frames = tLoc & rLoc;
+
+        % pull the position data for these frames and concatenate into a large
+        % structure for this temp rate and temp location
+        x = data(trial).data.x_loc(frames,:);
+        y = data(trial).data.y_loc(frames,:);
+        X = reshape(x,numel(x),1);
+        Y = reshape(y,numel(y),1);
+        pos = [X,Y];
+
+        % get the 'square' units for partitioning space
+        C = data(trial).data.centre;
+        r = data(trial).data.r;
+        x_edge = linspace(C(1)-r,C(1)+r,n);
+        y_edge = linspace(C(2)-r,C(2)+r,n);
+
+        % find x and y that are within each 'box'
+        xInd = discretize(pos(:,1),x_edge);
+        yInd = discretize(pos(:,2),y_edge);
+
+        % find the number of flies within each spatial bin:
+        for row = 1:n
+            for col = 1:n
+                nflies(row,col) = sum(yInd==row & xInd==col);
+            end
+        end
+
+        % Rotate the matrix if needed to align to a well position of '2'
+        k = T.foodLoc(trial)-2;
+        B = rot90(nflies,k);
+
+%         fig = figure; imagesc(B);
+%         uiwait(fig)
+
+        % Save matrix to the structure:
+        HM = HM + B;
+    end
+    plotData(rr,tt).HM = HM;
+    cmaps(idx,1) = min(min(HM));
+    cmaps(idx,2) = max(max(HM));
+    idx = idx + 1;
+  end
+end
+
+
+% figures
+idx = 0;
+fig = figure; set(fig, 'color', 'k')
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList)
+    idx = idx+1;
+    subplot(length(rateList),length(tempList),idx)
+        imagesc(plotData(rr,tt).HM)
+        ax = gca;
+        set(ax, 'xscale', 'log', 'yscale', 'log')
+        axis tight
+        set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);
+        c = colorbar;
+        c.Label.String = 'Number of flies';
+        c.Label.Color = 'w';
+        c.Color = 'w';
+        title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'w')
+        caxis([min(cmaps(:,1)) max(cmaps(:,2))]) 
+  end
+end
+
+% save_figure(fig, ['Four temp hysteresis position heatmaps'], '-png');
+
+
+
+
+
+
+
+
 
 
 

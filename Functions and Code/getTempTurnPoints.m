@@ -169,6 +169,16 @@ switch TempProtocolString
         tempPoints.threshLow = 6;
         tempPoints.threshHigh = 25;
     % ======================================= 
+    case 'giant_ramp_10_30'
+        tempPoints.up = [8871, 38791;...
+                         68707, 98766];
+        tempPoints.down = [38792, 68706;...
+                           98767, 128662];
+        tempPoints.hold = [];
+        tempPoints.nRates = 2;
+        tempPoints.rates = [-0.15, 0.15];
+        tempPoints.threshLow = 10;
+        tempPoints.threshHigh = 35;
     case 'looping_ramps_up'
         tempPoints.up =   [2810 11924;...
                            29826 47748;...
@@ -369,8 +379,10 @@ end
 % increasing|decreasing ROI:
 nUp = size(tempPoints.up,1);
 nDown = size(tempPoints.down,1);
+nHold = size(tempPoints.hold,1);
 tempPoints.nUp = nUp;
 tempPoints.nDown = nDown;
+tempPoints.nHold = nHold;
 UpROI = [];
 for ii = 1:nUp
     roi = tempPoints.up(ii,1):tempPoints.up(ii,2);
@@ -381,9 +393,14 @@ for ii = 1:nDown
     roi = tempPoints.down(ii,1):tempPoints.down(ii,2);
     DownROI = [DownROI,roi];
 end
+HoldROI = [];
+for ii = 1:nHold
+    roi = tempPoints.hold(ii,1):tempPoints.hold(ii,2);
+    HoldROI = [HoldROI,roi];
+end
 tempPoints.UpROI = UpROI;
 tempPoints.DownROI = DownROI;
-
+tempPoints.HoldROI = HoldROI;
 tempPoints.nRates = length(tempPoints.rates);
 
 % just pull all the points where the temp ramp changes rate:
