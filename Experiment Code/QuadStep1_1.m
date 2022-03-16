@@ -33,7 +33,7 @@ switch questdlg('Use Excel sheet to select experiment?')
 %         arenaList = {'A', 'B', 'C', 'D'};
 %         arenaSel = arenaList{listdlg('ListString', arenaList)};
 %         % Select the complete experiments to process
-        list_dirs = dir([baseFolder folder, '\*dataMat.mat']); %only matlab files
+        list_dirs = dir([baseFolder folder, '/*dataMat.mat']); %only matlab files
         list_dirs = {list_dirs(:).name};
         expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
         expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
@@ -43,8 +43,7 @@ switch questdlg('Use Excel sheet to select experiment?')
 end
 
 % Saving and Loading Directories:
-% vidFolder = [baseFolderfolder '\Arena ' arenaSel];
-analysisDir = [baseFolder folder '\analysis\'];
+analysisDir = [baseFolder folder '/analysis/'];
 if ~isfolder(analysisDir); mkdir(analysisDir); end
 % expPDF = [analysisDir folder expName ' summary.pdf'];
 XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
@@ -53,8 +52,8 @@ XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off 
-expData = load([baseFolder folder '\' expName ' dataMat.mat']);
-tempLog = readmatrix([baseFolder folder '\' expName '_RampLog']);
+expData = load([baseFolder folder '/' expName ' dataMat.mat']);
+tempLog = readmatrix([baseFolder folder '/' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
 %load tracking predictions     
@@ -62,16 +61,16 @@ data = struct;
 disp('Loading data files...')
 for vid = 1:nvids
     try
-        filePath = [baseFolder folder '\' expName '_' num2str(vid) '.h5'];
+        filePath = [baseFolder folder '/' expName '_' num2str(vid) '.h5'];
         data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
         data(vid).tracks = h5read(filePath,'/tracks');
     catch
         try 
-            filePath = [baseFolder folder '\' expName '_' num2str(vid) '.avi.predictions.slp.h5'];
+            filePath = [baseFolder folder '/' expName '_' num2str(vid) '.avi.predictions.slp.h5'];
             data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
             data(vid).tracks = h5read(filePath,'/tracks');
         catch
-            filePath = [baseFolder folder '\' expName '_' num2str(vid) '.avi.predictions.analysis.h5'];
+            filePath = [baseFolder folder '/' expName '_' num2str(vid) '.avi.predictions.analysis.h5'];
             data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
             data(vid).tracks = h5read(filePath,'/tracks');
         end
@@ -82,7 +81,7 @@ initial_vars = who; initial_vars{end+1} = 'initial_vars';
 fprintf('\nNext\n')
 
 %% Determine the outlines for each arena
-movieInfo = VideoReader([baseFolder folder '\' expName   '_1.avi']); %read in video
+movieInfo = VideoReader([baseFolder folder '/' expName '_1.avi']); %read in video
 demoImg = rgb2gray(read(movieInfo,1));
 radii = 165; %well surround regions
 % Select the well centers from top right corner and go clockwise:
@@ -176,7 +175,7 @@ for arena = 1:4
     arenaData(arena).nflies = excelfile{XLrow(arena),Excel.numflies};
     nflies(arena) = arenaData(arena).nflies;
 end
-movieInfo = VideoReader([baseFolder folder '\' expName '_1.avi']); %read in video
+movieInfo = VideoReader([baseFolder folder '/' expName '_1.avi']); %read in video
 ii = randi(size(data(1).occupancy_matrix,2),[3,1]); %random selection of frames to count fly number
 demoImg = rgb2gray(read(movieInfo,1));
 if any(isnan(nflies)) 
@@ -419,7 +418,7 @@ n = 2; % how many miscounted frames to look at
 
 % Check flycount offset by arena:
 for arena = 1:4
-    save_loc = [baseFolder folder '\Arena ' arenaIdx{arena} '\Over and Under Tracked Images.pdf'];
+    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/Over and Under Tracked Images.pdf'];
     offset = flyCount(:,arena)-nflies(arena);
     [~,idx] = sort(offset);
     lowIDX = idx(1:n);          % lowest fly count frame index
@@ -431,7 +430,7 @@ for arena = 1:4
         frame = lowIDX(ii);
         vidNum = T.vidNums(frame);
         vidframe = T.vidFrame(frame);
-        movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vidNum) '.avi']); %read in video
+        movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
         img = read(movieInfo,vidframe);
         fig = figure;
             imshow(img); set(fig,'color', 'k')
@@ -463,7 +462,7 @@ for arena = 1:4
         frame = highIDX(ii);
         vidNum = T.vidNums(frame);
         vidframe = T.vidFrame(frame);
-        movieInfo = VideoReader([baseFolder folder '\' expName '_' num2str(vidNum) '.avi']); %read in video
+        movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
         img = read(movieInfo,vidframe);
         fig = figure;
             imshow(img); set(fig,'color', 'k')
@@ -630,7 +629,7 @@ for arena = 1:4
                          expData.parameters.(['Arena' Alphabet(arena)]).genotype}, '_',' ');
     title(titleName,'color', 'w')
     
-    save_loc = [baseFolder folder '\Arena ' arenaIdx{arena} '\time course overview'];
+    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/time course overview'];
     save_figure(fig, save_loc, '-png',true);
 end
 
