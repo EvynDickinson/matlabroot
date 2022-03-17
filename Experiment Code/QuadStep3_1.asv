@@ -1054,10 +1054,11 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
 save_figure(fig, [figDir 'temp protocols time course'], '-png');
 
 %% Comparison across genotypes
+
 genotypes = unique(T.Genotype);
 n = size(genotypes,1);
-CList = {'BlueViolet', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
-LW = 1.5;
+CList = Color('dodgerblue','orangered', n);
+LW = 1;
 sSpan = 360;
 row = 5;
 col = 1;
@@ -1070,7 +1071,7 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
         [time,temp,movement,distance] = deal([]);
         % pull the data for each plotting category
         for trial = 1:ntrials
-            if strcmp(T.Genotype{trial},genotypes{type})
+            if strcmp(T.TempProtocol{trial},genotypes{type})
                 % sort time
                 curr_time = data(trial).occupancy.time;
                 if isempty(time) % first time for this temp protocol
@@ -1093,7 +1094,7 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
             end
         end
         time = time(roi);
-        kolor = Color(CList{type});
+        kolor = CList(type,:);
         % Plot the temperature protocol averages 
         % TEMPERATURE
         subplot(row,col,sb(1).idx); hold on
@@ -1117,12 +1118,11 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     subplot(row,col,sb(3).idx);
     ylabel('Movement (au)')
     xlabel('Time (min)')
-legend(strrep(genotypes,'_',' '),'textcolor', 'w', 'box', 'off')
 
-save_figure(fig, [figDir 'time course comparison'], '-png');
+save_figure(fig, [figDir 'temp protocols time course'], '-png');
 
-tbl = table(T.Genotype,T.TempProtocol,T.foodCat,T.NumFlies,'VariableNames',{'Genotype','Protocol','Food','N flies'});
-disp(tbl)
+
+
 
 
 
