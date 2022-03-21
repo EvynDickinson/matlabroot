@@ -848,8 +848,11 @@ clearvars('-except',vars{:})
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
 
-tempList = [8,12,17,22];
-rateList = [0.16,-0.16];
+% tempList = [8,12,17,22];
+% rateList = [0.16,-0.16];
+tempList = [15,20,25,30];
+rateList = [0.15,-0.15];
+
 n = 10; % number of spatial bins
 tt = 1; 
 buffer = 0.5; % temperature buffer around target temperature
