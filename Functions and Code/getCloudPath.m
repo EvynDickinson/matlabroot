@@ -28,7 +28,9 @@ if nargin == 1
         folder = [path 'Data structures/'];
     else
         dirc = dir(path);
-        dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
+        dirc(:).name
+        dirc = flip(dirc(cellfun(@isfolder,{dirc(:).name})));
+%         dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
         folderNames = ['Today', {dirc(:).name}];
         indx = listdlg('ListString', folderNames, 'SelectionMode', 'Single');
         if isempty(indx)

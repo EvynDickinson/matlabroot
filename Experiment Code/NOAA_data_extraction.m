@@ -480,7 +480,8 @@ save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\Temp Control\Exp 1 temp readout','
 
 
 
-
+%% 
+data = webread('https://www.ncei.noaa.gov/pub/data/uscrn/products/subhourly01/2021/CRNS0101-05-2021-AK_Selawik_28_E.txt');
 
 
 

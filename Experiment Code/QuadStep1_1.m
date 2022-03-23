@@ -23,7 +23,6 @@ switch questdlg('Use Excel sheet to select experiment?')
         % get file info:
         baseFolder = getCloudPath;
         folder = eligible_files{fileIdx,1};
-%         arenaSel = eligible_files{fileIdx,2};
         expName = eligible_files{fileIdx,3};
         clear loc1 loc2 loc eligible_files FileNames rownums fileIdx
     case 'No'

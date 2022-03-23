@@ -15,7 +15,7 @@ if strcmpi('Yes', questdlg('Use excel named structure?','','Yes','No', 'Cancel',
     ntrials = structInfo.numTrials;
     
     % Make a data folder for structure images
-    figDir = [baseFolder 'Data structures\' ExpGroup '\'];
+    figDir = [baseFolder 'Data structures/' ExpGroup '/'];
     if ~exist(figDir, 'dir'); mkdir(figDir); end
     
     % Load data from each trial in the structure
@@ -30,7 +30,7 @@ if strcmpi('Yes', questdlg('Use excel named structure?','','Yes','No', 'Cancel',
         disp(trialName)
         
         % build the path for the trial data
-        dirc = [baseFolder, trialDate, '\Arena ' trialArena '\analysis\' trialExpID trialArena  ' timecourse data.mat'];
+        dirc = [baseFolder, trialDate, '/Arena ' trialArena '/analysis/' trialExpID trialArena  ' timecourse data.mat'];
         
         % load data
         todel = load(dirc);
