@@ -525,10 +525,8 @@ for ii = 1:length(fileNames)
     day = data(:,2);
 
 
-lon = data(1,7);
-lat = data(1,8);
-figure;
-geoscatter(lat, lon)
+
+
 
 
 

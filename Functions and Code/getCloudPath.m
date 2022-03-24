@@ -19,7 +19,7 @@ switch getenv('COMPUTERNAME')
     case 'EVYNPC'
         path = 'G:\My Drive\Jeanne Lab\DATA\';
     case '' %shows up as empty on the mac
-        disp('Evyn''s Macbook');
+%         disp('Evyn''s Macbook');
         path = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/DATA/';
 end 
 
@@ -28,7 +28,6 @@ if nargin == 1
         folder = [path 'Data structures/'];
     else
         dirc = dir(path);
-        dirc(:).name
         dirc = flip(dirc(cellfun(@isfolder,{dirc(:).name})));
 %         dirc = flip(dirc(find(~cellfun(@isdir,{dirc(:).name}))));
         folderNames = ['Today', {dirc(:).name}];
