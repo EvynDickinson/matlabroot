@@ -432,6 +432,9 @@ for arena = 1:4
         movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
         img = read(movieInfo,vidframe);
         fig = figure;
+        if isempty(getenv('COMPUTERNAME'))
+            set(fig, 'pos', [534 10 972 967]);
+        end
             imshow(img); set(fig,'color', 'k')
             hold on
             x = T.X(frame,:);
@@ -464,6 +467,9 @@ for arena = 1:4
         movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
         img = read(movieInfo,vidframe);
         fig = figure;
+        if isempty(getenv('COMPUTERNAME'))
+            set(fig, 'pos', [534 10 972 967]);
+        end
             imshow(img); set(fig,'color', 'k')
             hold on
             x = T.X(frame,:);
@@ -635,14 +641,13 @@ end
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
 disp('Saving data...')
 clearvars('-except',initial_vars{:})
 save([analysisDir expName ' preformed data'])
 disp('Formatted data saved')
 disp('Done')
-%
+
 
 %% 
 % %% Find the fly counts and head tracking points for each frame

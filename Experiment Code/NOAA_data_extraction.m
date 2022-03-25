@@ -76,405 +76,6 @@ fig = formatFig(fig, true,[nrows,ncols], sb);
 
 save_figure(fig, ['G:\My Drive\Jeanne Lab\NOAA data\' title_str ' annual temp rate no lines'],'-png');
 
-%% FIGURE: Show target temp ramp protocols UP ALL TOGETHER
-order = [1 2 3;...
-         1 3 2;...
-         2 1 3;...
-         2 3 1;...
-         3 1 2;...
-         3 2 1]; 
-titleKey = {'S', 'M', 'F'};
-% Ramp durations
-fullTimes = [180,72,36];
-halfTimes = [90, 36, 18];
-cList = {'Cyan','DarkViolet','Orange'};
-% Target Temperatures
-maxTemp = 25;
-minTemp = 7;
-startTemp = 16;
-startTime = 15;
-
-
-fig = figure; set(fig, 'pos', [206 42 1569 943]);% [497 219 1372 288]); hold on
-
-for combo = 1:6
-    subplot(3,2,combo); hold on
-
-    % Protocol steps:
-    %START HOLD:
-    step(1).time = [0,startTime];
-    step(1).temp = [startTemp, startTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(1).time(end);
-    step(2).time = [tEnd,tEnd+halfTimes(order(combo,1))];
-    step(2).temp = [startTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(2).time(end);
-    step(3).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(3).temp = [maxTemp, minTemp];
-    % ----- Order Two Rate --------
-    % INCREASE TO TEMP MAX at order 2 rate
-    tEnd = step(3).time(end);
-    step(4).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(4).temp = [minTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 2 rate
-    tEnd = step(4).time(end);
-    step(5).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(5).temp = [maxTemp, minTemp];
-    % ----- Order Three Rate --------
-    % INCREASE TO TEMP MAX at order 3 rate
-    tEnd = step(5).time(end);
-    step(6).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(6).temp = [minTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 3 rate
-    tEnd = step(6).time(end);
-    step(7).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(7).temp = [maxTemp, minTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(7).time(end);
-    step(8).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(8).temp = [minTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(8).time(end);
-    step(9).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(9).temp = [maxTemp, minTemp];
-
-
-
-    % Graph...
-    % start
-    plot(step(1).time,step(1).temp,'color', 'w')
-    % ramp 1
-    plot(step(2).time,step(2).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(3).time,step(3).temp,'color', Color(cList{order(combo,1)}))
-    % ramp 2
-    plot(step(4).time,step(4).temp,'color', Color(cList{order(combo,2)}))
-    plot(step(5).time,step(5).temp,'color', Color(cList{order(combo,2)}))
-    % ramp 3
-    plot(step(6).time,step(6).temp,'color', Color(cList{order(combo,3)}))
-    plot(step(7).time,step(7).temp,'color', Color(cList{order(combo,3)}))
-    % ramp 4
-    plot(step(8).time,step(8).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(9).time,step(9).temp,'color', Color(cList{order(combo,1)}))
-
-%     % LABELS: 
-%     xlabel('time (mins)')
-%     ylabel('Temp (\circC)')
-% %     title_str = ['Velocity Ramps ' titleKey{order(combo,1)} '-' ...
-%                  titleKey{order(combo,2)} '-' titleKey{order(combo,3)} ' UP'];
-%     title(title_str)
-
-end
-
-for combo = 1:2:6
-    subplot(3,2,combo)
-    ylabel('Temp (\circC)')
-end
-for combo = [5,6]
-    subplot(3,2,combo)
-    xlabel('time (mins)')
-end
-    
-fig = formatFig(fig, true,[3,2]);
-save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\Velocity Ramps UP'],'-png');
-
-% save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\' title_str],'-png');
-
-%% FIGURE: INDIVIDUAL graphs for temp protocols
-order = [1 2 3;...
-         1 3 2;...
-         2 1 3;...
-         2 3 1;...
-         3 1 2;...
-         3 2 1]; 
-titleKey = {'S', 'M', 'F'};
-% Ramp durations
-fullTimes = [180,72,36];
-halfTimes = [90, 36, 18];
-cList = {'Cyan','DarkViolet','Orange'};
-% Target Temperatures
-maxTemp = 25;
-minTemp = 7;
-startTemp = 16;
-startTime = 15;
-
-for combo = 1:6
-fig = figure; set(fig, 'pos', [497 219 1372 288]); hold on
-    % Protocol steps:
-    %START HOLD:
-    step(1).time = [0,startTime];
-    step(1).temp = [startTemp, startTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(1).time(end);
-    step(2).time = [tEnd,tEnd+halfTimes(order(combo,1))];
-    step(2).temp = [startTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(2).time(end);
-    step(3).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(3).temp = [maxTemp, minTemp];
-    % ----- Order Two Rate --------
-    % INCREASE TO TEMP MAX at order 2 rate
-    tEnd = step(3).time(end);
-    step(4).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(4).temp = [minTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 2 rate
-    tEnd = step(4).time(end);
-    step(5).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(5).temp = [maxTemp, minTemp];
-    % ----- Order Three Rate --------
-    % INCREASE TO TEMP MAX at order 3 rate
-    tEnd = step(5).time(end);
-    step(6).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(6).temp = [minTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 3 rate
-    tEnd = step(6).time(end);
-    step(7).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(7).temp = [maxTemp, minTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(7).time(end);
-    step(8).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(8).temp = [minTemp, maxTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(8).time(end);
-    step(9).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(9).temp = [maxTemp, minTemp];
-
-    % Graph...
-    % start
-    plot(step(1).time,step(1).temp,'color', 'w')
-    % ramp 1
-    plot(step(2).time,step(2).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(3).time,step(3).temp,'color', Color(cList{order(combo,1)}))
-    % ramp 2
-    plot(step(4).time,step(4).temp,'color', Color(cList{order(combo,2)}))
-    plot(step(5).time,step(5).temp,'color', Color(cList{order(combo,2)}))
-    % ramp 3
-    plot(step(6).time,step(6).temp,'color', Color(cList{order(combo,3)}))
-    plot(step(7).time,step(7).temp,'color', Color(cList{order(combo,3)}))
-    % ramp 4
-    plot(step(8).time,step(8).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(9).time,step(9).temp,'color', Color(cList{order(combo,1)}))
-
-    % LABELS: 
-    xlabel('time (mins)')
-    ylabel('Temp (\circC)')
-    title_str = ['Velocity Ramps ' Alphabet(combo) ' UP --' titleKey{order(combo,1)} ...
-                 titleKey{order(combo,2)}  titleKey{order(combo,3)}];
-    title(title_str)
-
-    fig = formatFig(fig, true);
-    save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\' title_str],'-png');
-end
-
-%% Target temp ramp protocols DOWN
-
-
-order = [1 2 3;...
-         1 3 2;...
-         2 1 3;...
-         2 3 1;...
-         3 1 2;...
-         3 2 1]; 
-titleKey = {'S', 'M', 'F'};
-% Ramp durations
-fullTimes = [180,72,36];
-halfTimes = [90, 36, 18];
-cList = {'Cyan','DarkViolet','Orange'};
-% Target Temperatures
-maxTemp = 25;
-minTemp = 7;
-startTemp = 16;
-startTime = 15;
-
-
-fig = figure; set(fig, 'pos', [206 42 1569 943]);
-
-for combo = 1:6
-    subplot(3,2,combo); hold on
-
-    % Protocol steps:
-    %START HOLD:
-    step(1).time = [0,startTime];
-    step(1).temp = [startTemp, startTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(1).time(end);
-    step(2).time = [tEnd,tEnd+halfTimes(order(combo,1))];
-    step(2).temp = [startTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(2).time(end);
-    step(3).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(3).temp = [minTemp, maxTemp];
-    % ----- Order Two Rate --------
-    % INCREASE TO TEMP MAX at order 2 rate
-    tEnd = step(3).time(end);
-    step(4).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(4).temp = [maxTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 2 rate
-    tEnd = step(4).time(end);
-    step(5).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(5).temp = [minTemp, maxTemp];
-    % ----- Order Three Rate --------
-    % INCREASE TO TEMP MAX at order 3 rate
-    tEnd = step(5).time(end);
-    step(6).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(6).temp = [maxTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 3 rate
-    tEnd = step(6).time(end);
-    step(7).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(7).temp = [minTemp, maxTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(7).time(end);
-    step(8).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(8).temp = [maxTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(8).time(end);
-    step(9).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(9).temp = [minTemp, maxTemp];
-
-    % Graph...
-    % start
-    plot(step(1).time,step(1).temp,'color', 'w')
-    % ramp 1
-    plot(step(2).time,step(2).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(3).time,step(3).temp,'color', Color(cList{order(combo,1)}))
-    % ramp 2
-    plot(step(4).time,step(4).temp,'color', Color(cList{order(combo,2)}))
-    plot(step(5).time,step(5).temp,'color', Color(cList{order(combo,2)}))
-    % ramp 3
-    plot(step(6).time,step(6).temp,'color', Color(cList{order(combo,3)}))
-    plot(step(7).time,step(7).temp,'color', Color(cList{order(combo,3)}))
-    % ramp 4
-    plot(step(8).time,step(8).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(9).time,step(9).temp,'color', Color(cList{order(combo,1)}))
-end
-
-for combo = 1:2:6
-    subplot(3,2,combo)
-    ylabel('Temp (\circC)')
-end
-for combo = [5,6]
-    subplot(3,2,combo)
-    xlabel('time (mins)')
-end
-    
-fig = formatFig(fig, true,[3,2]);
-save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\Velocity Ramps DOWN'],'-png');
-
-%% INDIVIDUAL RAMPS : Target temp ramp protocols DOWN
-order = [1 2 3;...
-         1 3 2;...
-         2 1 3;...
-         2 3 1;...
-         3 1 2;...
-         3 2 1]; 
-titleKey = {'S', 'M', 'F'};
-% Ramp durations
-fullTimes = [180,72,36];
-halfTimes = [90, 36, 18];
-cList = {'Cyan','DarkViolet','Orange'};
-% Target Temperatures
-maxTemp = 25;
-minTemp = 7;
-startTemp = 16;
-startTime = 15;
-
-for combo = 1:6
-    fig = figure; set(fig, 'pos', [497 219 1372 288]); hold on
-    % Protocol steps:
-    %START HOLD:
-    step(1).time = [0,startTime];
-    step(1).temp = [startTemp, startTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(1).time(end);
-    step(2).time = [tEnd,tEnd+halfTimes(order(combo,1))];
-    step(2).temp = [startTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(2).time(end);
-    step(3).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(3).temp = [minTemp, maxTemp];
-    % ----- Order Two Rate --------
-    % INCREASE TO TEMP MAX at order 2 rate
-    tEnd = step(3).time(end);
-    step(4).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(4).temp = [maxTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 2 rate
-    tEnd = step(4).time(end);
-    step(5).time = [tEnd,tEnd+fullTimes(order(combo,2))];
-    step(5).temp = [minTemp, maxTemp];
-    % ----- Order Three Rate --------
-    % INCREASE TO TEMP MAX at order 3 rate
-    tEnd = step(5).time(end);
-    step(6).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(6).temp = [maxTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 3 rate
-    tEnd = step(6).time(end);
-    step(7).time = [tEnd,tEnd+fullTimes(order(combo,3))];
-    step(7).temp = [minTemp, maxTemp];
-    % ----- Order One Rate --------
-    % INCREASE TO TEMP MAX at order 1 rate
-    tEnd = step(7).time(end);
-    step(8).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(8).temp = [maxTemp, minTemp];
-    % DECREASE TO TEMP MIN at order 1 rate
-    tEnd = step(8).time(end);
-    step(9).time = [tEnd,tEnd+fullTimes(order(combo,1))];
-    step(9).temp = [minTemp, maxTemp];
-
-    % Graph...
-    % start
-    plot(step(1).time,step(1).temp,'color', 'w')
-    % ramp 1
-    plot(step(2).time,step(2).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(3).time,step(3).temp,'color', Color(cList{order(combo,1)}))
-    % ramp 2
-    plot(step(4).time,step(4).temp,'color', Color(cList{order(combo,2)}))
-    plot(step(5).time,step(5).temp,'color', Color(cList{order(combo,2)}))
-    % ramp 3
-    plot(step(6).time,step(6).temp,'color', Color(cList{order(combo,3)}))
-    plot(step(7).time,step(7).temp,'color', Color(cList{order(combo,3)}))
-    % ramp 4
-    plot(step(8).time,step(8).temp,'color', Color(cList{order(combo,1)}))
-    plot(step(9).time,step(9).temp,'color', Color(cList{order(combo,1)}))
-    % LABELS: 
-    xlabel('time (mins)')
-    ylabel('Temp (\circC)')
-    title_str = ['Velocity Ramps ' Alphabet(combo) ' DOWN --' titleKey{order(combo,1)} ...
-                 titleKey{order(combo,2)}  titleKey{order(combo,3)}];
-    title(title_str)
-    fig = formatFig(fig, true);
-    save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\' title_str],'-png');
-end
-
-%% Display the temperature log along with the executed temp ramps
-
-tempLog = readmatrix("G:\My Drive\Jeanne Lab\DATA\02.01.2022\TempRatePlantFood_RampLog(1).csv");
-x = tempLog(:,1); %time (in seconds)
-x = x./(60*60);
-y1 = tempLog(:,3); %set temp
-y2 = tempLog(:,2); %actual temp
-
-figure;
-y = tempLog(:,4); %time (in seconds)
-plot(y)
-hold on
-plot(tempLog(:,2))
-
-fig = figure; set(fig, 'pos', [497 219 1372 288]); hold on
-plot(x,y1, 'Color',Color('red'), 'LineWidth',1, 'LineStyle',':')
-plot(x,y2, 'Color',Color('white'), 'LineWidth',2)
-ylabel('Temp (\circC)')
-xlabel('Time (hr)')
-fig = formatFig(fig, true);
-l = legend({'Target', 'Actual'}, 'textcolor', 'w','box', 'off');
-save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\Temp Control\Exp 1 temp readout','-png');
-
 %% NOAA data column headers
 % #    Name                           Units
 % 1    WBANNO                         XXXXX
@@ -526,7 +127,6 @@ for ii = 1:length(fileNames)
 end
 beep
 
-
 %% Pull data and start building structure
 
 clear
@@ -558,6 +158,11 @@ save([rootdir 'Processed Data/2021 Subhourly Data'],'-v7.3');
 
 %% Plot geographical locations of all the cities in the data set
 
+for ii = 1:nCity
+    longitude(ii) = cityData(ii).T(1,7);
+    latitude(ii) = cityData(ii).T(1,8);
+end
+
 fig = figure;
 geoscatter(latitude, longitude, 36, Color('blue'),'filled','^')
 geobasemap colorterrain
@@ -569,34 +174,259 @@ ax.LatitudeLabel.Color = 'w';
 ax.LongitudeAxis.Color = 'w'; 
 ax.LatitudeAxis.Color = 'w'; 
 
+% ax.LongitudeLimits = [-175.3770 -62.7130];
+% ax.LatitudeLimits = [18.2455 72.6145];
+
 save_figure(fig,[rootdir 'Figures/Sample locations'],'-png');
 
+%% ANALYSIS find the temp rates for each sampling location
 
-%% What is the daily time for each location??
+X = linspace(-1.5,1.5,100);
+[dataCDF, dataPDF] = deal([]);
 
-figure;
-for ii = 1:nCity
+for ii = 1 : nCity
+
+    data = cityData(ii).T; % Select data for a particular city:
+    if size(data,1)<105120
+        dataPDF(:,ii) = nan(1,length(X));
+        dataCDF(:,ii) = nan(1,length(X));
+        [mu(ii),sigma(ii),annualT(ii)] = deal(nan);
+        continue
+    end
+    % Extract data from structure
+    day = data(:,4);
+    time = data(:,5);
+    temp = data(:,9);
+
+    % Remove outliers:
+    loc = temp>100 | temp<-50;
+    temp(loc) = nan;
+    % save avg annual temp
+    annualT(ii) = mean(temp,'omitnan');
+
+    % find the month timepoints
+    dayStart = find(time==5);
+    fiveminrate = (diff(temp))/5;
+    outliers = fiveminrate>30 | fiveminrate<-30;
+    exOut = fiveminrate(outliers);
+    fiveminrate(outliers) = nan;
+    cityData(ii).tempRate = fiveminrate;
+
+    % Fit data
+    mu(ii) = mean(fiveminrate,'omitnan');
+    sigma(ii) = var(fiveminrate,'omitnan');
+    gm = gmdistribution(mu(ii),sigma(ii));
+    dataPDF(:,ii) = pdf(gm,X');
+    dataCDF(:,ii) = cdf(gm,X');
     
-     
-    
+    % Pull long / lat data again
+    longitude = data(:,7);
+    latitude = data(:,8);
+
 end
-    
 
-time = data(:,3);
-temp = data(:,9);
-day = data(:,2);
+%% FIGURE: temp over a year (single plot example)
+minT = -90; % lowest recorded temperature on record
+maxT = 57; %highest recorded temp on record
+
+city = 106; %Old Town ME
+data = cityData(city).T;
+time = data(:,5);
+surf_temp = data(:,13);
+air_temp = data(:,9);
+
+% clean data
+loc = surf_temp<minT | surf_temp>maxT;
+surf_temp(loc) = nan;
+loc = air_temp<minT | air_temp>maxT;
+air_temp(loc) = nan;
+
+fig = figure;
+plot(surf_temp,'linewidth', 2, 'Color',Color('teal'))
+set(gca,'XTick',MonthStart,'XTickLabel',monthNames)
+ylabel('Temperature (\circC)')
+title_str = [city_name{city} ' 2021'];
+title(title_str)
+xlabel('Month')
+axis tight
+formatFig(fig,true);
+set(gca, 'fontsize', 15)
+save_figure(fig,[rootdir 'Figures/Annual temp in ' city_name{city}],'-png');
+
+%% FIGURE: temp rate over a for a year (single plot example)
+
+fig = figure;
+plot(cityData(city).tempRate,'linewidth', 2, 'Color',Color('orangered'))
+set(gca,'XTick',MonthStart,'XTickLabel',monthNames)
+ylabel('\DeltaT (\circC/min)')
+title_str = [city_name{city} ' 2021'];
+title(title_str)
+xlabel('Month')
+axis tight
+
+formatFig(fig,true);
+set(gca, 'fontsize', 15)
+save_figure(fig,[rootdir 'Figures/Annual temprate in ' city_name{city}],'-png');
+
+%% FIGURE: temp rate histogram over a year
+xMin = -0.5;
+xMax = 0.5;
+nbins = 400; 
+
+fig = figure;
+h = histogram(cityData(city).tempRate,nbins);
+xlim([xMin,xMax])
+h.FaceColor = 'w';
+h.EdgeColor = 'w';
+xlabel('\DeltaT (\circC/min)')
+ylabel('Count')
+title_str = [city_name{city} ' 2021'];
+title(title_str)
+
+formatFig(fig,true);
+set(gca, 'fontsize', 15)
+save_figure(fig,[rootdir 'Figures/Annual temprate histogram ' title_str],'-png');
 
 
-lon = data(1,7);
-lat = data(1,8);
-figure;
+% overlay the PDF fuction for this dataset:
+X = linspace(xMin,xMax,100);
+dist = gmdistribution(mu(city),sigma(city));
+Y = pdf(dist,X');
+
+fig = figure;
+    h = histogram(cityData(city).tempRate,nbins);
+    xlim([-0.5,0.5])
+    h.FaceColor = 'w';
+    h.EdgeColor = 'w';
+    xlabel('\DeltaT (\circC/min)')
+    ylabel('Count')
+yyaxis right
+    plot(X,Y,'color', Color('dodgerblue'),'linewidth', 2)
+    ylabel('PDF')
+
+formatFig(fig,true);
+set(gca, 'fontsize', 15)
+yyaxis left
+set(gca, 'YColor', 'w')
+yyaxis right
+set(gca, 'YColor', Color('dodgerblue'))
+
+save_figure(fig,[rootdir 'Figures/Annual temp-rate histogram with PDF ' title_str],'-png');
+
+%% FIGURE: show city sample location on the map
+fig = figure;
+g = geoscatter(cityData(city).T(1,8), cityData(city).T(1,7), 75, Color('blue'),'filled','^');
+geobasemap colorterrain
+set(fig, 'color', 'k')
+ax = gca;
+set(ax, 'fontsize', 13, 'grid', 'off')
+ax.LongitudeLabel.Color = 'w';
+ax.LatitudeLabel.Color = 'w';
+ax.LongitudeAxis.Color = 'w'; 
+ax.LatitudeAxis.Color = 'w'; 
+title(city_name{city},'color', 'w')
+% 
+% ax.LongitudeLimits = [-175.3770 -62.7130];
+% ax.LatitudeLimits = [18.2455 72.6145];
+
+save_figure(fig,[rootdir 'Figures/Sampling location for ' city_name{city}],'-png');
+
+%% FIGURE: show all the PDFs for the different sampling locations
+
+% Plot the distribution functions overlaid
+fig = figure; hold on
+for ii = 1:nCity
+    plot(X, dataPDF(:,ii),'color', Color('grey'),'linewidth',1)
+end
+xlabel('\DeltaT (\circC/min)')
+ylabel('PDF')
+formatFig(fig, true);
+set(gca, 'fontsize', 15)
+
+save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-png');
+
+%% FIGURE: comparison of annual temp and temp rate variability across the US by latitude
+latitude = [];
+longitude = [];
+for ii = 1:nCity
+    latitude(ii) = cityData(ii).T(1,8);
+    longitude(ii) = cityData(ii).T(1,7);
+end
+
+data = [annualT',sigma',latitude'];
+data1 = sortrows(data,3);
+
+% color points by latitude (N-S axis)
+CList = Color('indigo','lavender', nCity);
+
+fig = figure;
+scatter(data1(:,1),data1(:,2),75,CList,'filled')
+xlabel('average annual temperature (\circC)')
+ylabel('temp rate variance')
+formatFig(fig,true);
+set(gca, 'fontsize', 18)
+
+save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance'],'-png');
+
+
+fig = figure;
+scatter(data1(:,3), data1(:,1), 75, CList, 'filled')
+xlabel('Latitude (\circ)')
+ylabel('average annual temperature (\circC)')
+formatFig(fig,true);
+set(gca, 'fontsize', 18)
+
+save_figure(fig,[rootdir 'Figures/Annual temp vs latitude'],'-png');
 
 
 
+%% FIGURE: temp tate outliers and their locations
+loc = find(sigma>0.02);
+lon = longitude(loc);
+lat = latitude(loc);
 
-tic
-data = readmatrix([rootdir 'temp.xlsx'],'Sheet', location);
-toc     
+fig = figure;
+    g = geoscatter(latitude, longitude, 75, Color('blue'),'filled','^');
+    hold on
+    g = geoscatter(lat, lon, 75, Color('red'),'filled','^');
+    geobasemap colorterrain
+    set(fig, 'color', 'k')
+    ax = gca;
+    set(ax, 'fontsize', 13, 'grid', 'off')
+    ax.LongitudeLabel.Color = 'w';
+    ax.LatitudeLabel.Color = 'w';
+    ax.LongitudeAxis.Color = 'w'; 
+    ax.LatitudeAxis.Color = 'w'; 
+    title('Temp rate outlier locations','color', 'w')
+
+save_figure(fig,[rootdir 'Figures/Sampling location for temprate outliers'],'-png');
+
+% scatter plot overlays with the outliers color coded
+fig = figure;
+hold on
+scatter(data1(:,3), data1(:,1), 75, CList, 'filled')
+scatter(latitude(loc), annualT(loc), 75, 'r', 'filled')
+xlabel('Latitude (\circ)')
+ylabel('average annual temperature (\circC)')
+formatFig(fig,true);
+set(gca, 'fontsize', 18)
+
+save_figure(fig,[rootdir 'Figures/Annual temp vs latitude temprate outliers'],'-png');
+
+fig = figure; hold on
+scatter(data1(:,1),data1(:,2),75,CList,'filled')
+scatter(annualT(loc), sigma(loc), 75, 'r', 'filled')
+xlabel('average annual temperature (\circC)')
+ylabel('temp rate variance')
+formatFig(fig,true);
+set(gca, 'fontsize', 18)
+
+save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance temprate outliers'],'-png');
+
+%% How does morning temperature compare to expected light levels? (e.g time vs temp)
+
+% ...
+
 
 
 
