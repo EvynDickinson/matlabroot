@@ -181,6 +181,7 @@ fig = formatFig(fig, true,[3,2]);
 save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\Velocity Ramps UP'],'-png');
 
 % save_figure(fig, ['G:\My Drive\Jeanne Lab\DATA\Temp Control\' title_str],'-png');
+
 %% FIGURE: INDIVIDUAL graphs for temp protocols
 order = [1 2 3;...
          1 3 2;...
@@ -501,39 +502,101 @@ save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\Temp Control\Exp 1 temp readout','
 % 23   WIND_FLAG                      X
 
 
-%% Load data 
+%% Convert data from excel to .mat files
 baseFolder = getCloudPath;  
 rootdir = [baseFolder 'NOAA Data/'];
 fileNames = {'AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'FL', 'GA', 'HI',...
-             'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'ME', 'MI-MT',...
-             'N', 'O', 'P-S', 'T', 'U-V'};
-
-
-
-
+             'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT',...
+             'NC', 'ND', 'NE','NH','NM','NV','NY', 'OR','ON', 'OK', 'OH',...
+             'PA','RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'WA', 'WI', 'WV', 'WY'};
 
 for ii = 1:length(fileNames)
     fullPath = [rootdir '2021 ' fileNames{ii} ' SubHourly NOAA Data.xlsx'];
     sheets = sheetnames(fullPath);
-    
+    disp(ii)
     for sheet = 1:size(sheets,1)
+        % Pull the longitude and latitude of each recording location:
+        location = sheets{sheet};
+        tic
+        data = readmatrix(fullPath,'Sheet', location);
+        toc
+        save([rootdir location '.mat'],'data','location');
+        clear data location
+    end
+end
+beep
+
+
+%% Pull data and start building structure
+
+clear
+baseFolder = getCloudPath;  
+rootdir = [baseFolder 'NOAA Data/'];
+
+% get list of files
+list_dirs = dir([rootdir, '/*.mat']); %only matlab files
+list_dirs = {list_dirs(:).name};
+nCity = length(list_dirs);
+
+% load data
+[longitude, latitude, city_name] = deal([]);
+
+for city = 1:nCity
     
-    % Pull the longitude and latitude of each recording location:
-    data = readmatrix(fullPath,'Sheet', sheets{sheet});
-    time = data(:,3);
-    temp = data(:,9);
-    day = data(:,2);
+    load([rootdir list_dirs{city}]);
+    % log city name
+    city_name{city} = location;
+    
+    % assign data
+    longitude(city) = data(1,7);
+    latitude(city) = data(1,8);
+    cityData(city).T = data;
+    
+    clear location data
+end
+save([rootdir 'Processed Data/2021 Subhourly Data'],'-v7.3');
+
+%% Plot geographical locations of all the cities in the data set
+
+fig = figure;
+geoscatter(latitude, longitude, 36, Color('blue'),'filled','^')
+geobasemap colorterrain
+set(fig, 'color', 'k')
+ax = gca;
+set(ax, 'fontsize', 13, 'grid', 'off')
+ax.LongitudeLabel.Color = 'w';
+ax.LatitudeLabel.Color = 'w';
+ax.LongitudeAxis.Color = 'w'; 
+ax.LatitudeAxis.Color = 'w'; 
+
+save_figure(fig,[rootdir 'Figures/Sample locations'],'-png');
+
+
+%% What is the daily time for each location??
+
+figure;
+for ii = 1:nCity
+    
+     
+    
+end
+    
+
+time = data(:,3);
+temp = data(:,9);
+day = data(:,2);
 
 
 lon = data(1,7);
 lat = data(1,8);
 figure;
-geoscatter(lat, lon)
 
 
 
 
-
+tic
+data = readmatrix([rootdir 'temp.xlsx'],'Sheet', location);
+toc     
 
 
 
