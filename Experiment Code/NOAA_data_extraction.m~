@@ -378,13 +378,10 @@ set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs latitude'],'-png');
 
-
-
 %% FIGURE: temp tate outliers and their locations
 loc = find(sigma>0.02);
 lon = longitude(loc);
 lat = latitude(loc);
-
 
 fig = figure;
     g = geoscatter(latitude, longitude, 75, Color('blue'),'filled','^');
@@ -412,134 +409,113 @@ ylabel('average annual temperature (\circC)')
 formatFig(fig,true);
 set(gca, 'fontsize', 18)
 
-save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance'],'-png');
+save_figure(fig,[rootdir 'Figures/Annual temp vs latitude temprate outliers'],'-png');
 
 fig = figure; hold on
 scatter(data1(:,1),data1(:,2),75,CList,'filled')
-
+scatter(annualT(loc), sigma(loc), 75, 'r', 'filled')
 xlabel('average annual temperature (\circC)')
 ylabel('temp rate variance')
 formatFig(fig,true);
 set(gca, 'fontsize', 18)
 
-save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance'],'-png');
+save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance temprate outliers'],'-png');
 
+%% How does morning temperature compare to expected light levels? (e.g time vs temp)
 
+% find the 'morning' hours -- i.e. show am vs pm
 
-%%
+time = cityData(city).T(:,5); % local solar time
+temp = cityData(city).T(:,9); % air temp
+tempRate = cityData(city).tempRate;
+loc = temp>maxT | temp<minT; % find false temperatures
+temp(loc) = nan; % remove temp anomalies
 
-city_name(sigma>0.03)
+amLoc = find(time<1200); % hours in before noon
+pmLoc = find(time>=1200); % hours after noon
 
+% combine time and temp:
+data = [time(1:end-1),temp(1:end-1),tempRate];
+morningTemp = data(amLoc,:);
+eveningTemp = data(pmLoc,:);
 
-figure;
-scatter(annualT, latitude)
+% pull out each day's time course:
+amStarts = find(time==0);
+pmStarts = find(time==1200);
 
-figure; histogram(fiveminrate)
-
-city_name(annualT<0)
-
-%%
-
-
-% Planned temp rate changes
-slow_rate = [0.1,-0.1];
-mid_rate = [0.25, -0.25];
-high_rate = [0.5, -0.5];
-
-% PLOT FIGS
-nrows = 3;
-ncols = 4;
-sb(1).idx = 1:3;
-sb(2).idx = [5:7,9:11];
-sb(3).idx = [4,8,12];
-
-fig = figure; set(fig, 'pos',[285 382 955 596])
-% Temp rate histogram
-subplot(nrows, ncols, sb(2).idx)
-h = histogram(fiveminrate);
-h.EdgeColor = Color('grey');
-set(gca, 'YScale', 'log')
-ylabel('Count (five minute periods)')
-xlabel('\DeltaT (\circC/min)')
-v_line(slow_rate, 'Cyan','-',2)
-v_line(mid_rate, 'DarkViolet','-',2)
-v_line(high_rate, 'Orange','-',2)
-
-% Temp rate by day
-subplot(nrows, ncols, sb(1).idx)
-plot(fiveminrate,'linewidth', 2, 'Color',Color('grey'))
-set(gca,'XTick',MonthStart,'XTickLabel',monthNames)
-ylabel('\DeltaT (\circC/min)')
-title_str = [sheet ' 2021'];
-title(title_str)
-xlabel('Month')
-axis tight
-% h_line(slow_rate, 'Cyan','-',1)
-% h_line(mid_rate, 'DarkViolet','-',1)
-% h_line(high_rate, 'Orange','-',1)
-
-% Yearly temp histogram
-subplot(nrows, ncols, sb(3).idx)
-yyaxis left
-set(gca, 'YColor','k')
-yyaxis right
-h = histogram(temp,50);
-h.EdgeColor = Color('teal');
-h.FaceColor = Color('teal');
-ylabel('Count (five minute periods)')
-xlabel('Temp (\circC)')
-fig = formatFig(fig, true,[nrows,ncols], sb);
-
-
-
-
-%% What is the daily time for each location??
-
-
-
-for ii = 1:nCity
-    
-     
-    
+if amStarts(1)<pmStarts(1)
+    for ii = 1:364
+        T.time(:,ii) = data(amStarts(ii):pmStarts(ii),1);
+        T.temp(:,ii) = data(amStarts(ii):pmStarts(ii),2);
+        T.tempR(:,ii) = data(amStarts(ii):pmStarts(ii),3);
+    end
 end
+
+% check individual patterns
+for ii = 160:170
     
+x = T.time(:,ii);
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; 
+    subplot(row,col,1)
+        plot(T.tempR(:,ii),'color', 'w','linewidth', 1.5)
+        axis tight
+        hline(0)
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('\DeltaT (\circC/min)')
+    subplot(row,col,2)
+        plot(T.temp(:,ii),'color', 'w','linewidth', 1.5)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('Temperature (\circC)')
+formatFig(fig,true, [row,col]);
+end
 
-time = data(:,3);
-temp = data(:,9);
-day = data(:,2);
-
-
-lon = data(1,7);
-lat = data(1,8);
-figure;
-
-
-
-
-tic
-data = readmatrix([rootdir 'temp.xlsx'],'Sheet', location);
-toc     
-
-
-
-
-
-
-
-
-
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-png');
 
 
+% Overlay multiple days in one plot
+plotList = [160:2:169];
+CList = Color('orange', 'teal',length(plotList));
 
+x = T.time(:,plotList(1));
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; 
+idx = 0;
+for ii = plotList
+    idx = idx+1;
+    subplot(row,col,1)
+    hold on
+        plot(T.tempR(:,ii),'color', CList(idx,:),'linewidth', 1.5)
+    subplot(row,col,2)
+    hold on
+        plot(T.temp(:,ii),'color', CList(idx,:),'linewidth', 1.5)
+    lStr{idx} = num2str(ii);
+end
+% formatting:
+ subplot(row,col,1)
+        axis tight
+        hline(0)
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('\DeltaT (\circC/min)')
+    subplot(row,col,2)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('Temperature (\circC)')
+formatFig(fig,true, [row,col]);
+legend(lStr,'textcolor', 'w','box', 'off')
 
-
-
-
-
-
-
-
-
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp drops'],'-png');
 
 
 

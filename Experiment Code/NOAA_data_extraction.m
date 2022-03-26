@@ -378,8 +378,6 @@ set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs latitude'],'-png');
 
-
-
 %% FIGURE: temp tate outliers and their locations
 loc = find(sigma>0.02);
 lon = longitude(loc);
@@ -425,29 +423,103 @@ save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance temprate out
 
 %% How does morning temperature compare to expected light levels? (e.g time vs temp)
 
-% ...
+% find the 'morning' hours -- i.e. show am vs pm
+
+time = cityData(city).T(:,5); % local solar time
+temp = cityData(city).T(:,9); % air temp
+tempRate = cityData(city).tempRate;
+loc = temp>maxT | temp<minT; % find false temperatures
+temp(loc) = nan; % remove temp anomalies
+
+amLoc = find(time<1200); % hours in before noon
+pmLoc = find(time>=1200); % hours after noon
+
+% combine time and temp:
+data = [time(1:end-1),temp(1:end-1),tempRate];
+morningTemp = data(amLoc,:);
+eveningTemp = data(pmLoc,:);
+
+% pull out each day's time course:
+amStarts = find(time==0);
+pmStarts = find(time==1200);
+
+if amStarts(1)<pmStarts(1)
+    for ii = 1:364
+        T.time(:,ii) = data(amStarts(ii):pmStarts(ii),1);
+        T.temp(:,ii) = data(amStarts(ii):pmStarts(ii),2);
+        T.tempR(:,ii) = data(amStarts(ii):pmStarts(ii),3);
+    end
+end
+
+% check individual patterns
+for ii = 160:170
+    
+x = T.time(:,ii);
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; 
+    subplot(row,col,1)
+        plot(T.tempR(:,ii),'color', 'w','linewidth', 1.5)
+        axis tight
+        hline(0)
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('\DeltaT (\circC/min)')
+    subplot(row,col,2)
+        plot(T.temp(:,ii),'color', 'w','linewidth', 1.5)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('Temperature (\circC)')
+formatFig(fig,true, [row,col]);
+end
+
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-png');
 
 
+% Overlay multiple days in one plot
 
+% plotList = [160 161 166 167 170];
+% CList = Color('orange', 'teal',length(plotList));
 
+plotList = [162 163 164 165 168 169];
+CList = Color('pink', 'blue',length(plotList));
 
+x = T.time(:,plotList(1));
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; 
+idx = 0;
+for ii = plotList
+    idx = idx+1;
+    subplot(row,col,1)
+    hold on
+        plot(T.tempR(:,ii),'color', CList(idx,:),'linewidth', 1.5)
+    subplot(row,col,2)
+    hold on
+        plot(T.temp(:,ii),'color', CList(idx,:),'linewidth', 1.5)
+    lStr{idx} = num2str(ii);
+end
+% formatting:
+ subplot(row,col,1)
+        axis tight
+        hline(0)
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('\DeltaT (\circC/min)')
+    subplot(row,col,2)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('Temperature (\circC)')
+formatFig(fig,true, [row,col]);
+legend(lStr,'textcolor', 'w','box', 'off')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp rise'],'-png');
 
 
 
