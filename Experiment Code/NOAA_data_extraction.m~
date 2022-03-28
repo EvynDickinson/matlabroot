@@ -422,22 +422,21 @@ set(gca, 'fontsize', 18)
 save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance temprate outliers'],'-png');
 
 %% How does morning temperature compare to expected light levels? (e.g time vs temp)
-
+T = [];
 % find the 'morning' hours -- i.e. show am vs pm
-
 time = cityData(city).T(:,5); % local solar time
 temp = cityData(city).T(:,9); % air temp
 tempRate = cityData(city).tempRate;
 loc = temp>maxT | temp<minT; % find false temperatures
 temp(loc) = nan; % remove temp anomalies
 
-amLoc = find(time<1200); % hours in before noon
-pmLoc = find(time>=1200); % hours after noon
+amLoc = time<1200; % hours in before noon
+pmLoc = time>=1200; % hours after noon
 
 % combine time and temp:
 data = [time(1:end-1),temp(1:end-1),tempRate];
 morningTemp = data(amLoc,:);
-eveningTemp = data(pmLoc,:);
+% eveningTemp = data(pmLoc,:);
 
 % pull out each day's time course:
 amStarts = find(time==0);
@@ -480,8 +479,12 @@ save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' 
 
 
 % Overlay multiple days in one plot
-plotList = [160:2:169];
-CList = Color('orange', 'teal',length(plotList));
+
+% plotList = [160 161 166 167 170];
+% CList = Color('orange', 'teal',length(plotList));
+
+plotList = [162 163 164 165 168 169];
+CList = Color('pink', 'blue',length(plotList));
 
 x = T.time(:,plotList(1));
 x = find(rem(x,100)==0); % pull hour start times
@@ -515,7 +518,303 @@ end
 formatFig(fig,true, [row,col]);
 legend(lStr,'textcolor', 'w','box', 'off')
 
-save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp drops'],'-png');
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp rise'],'-png');
+
+%% FIGURE:  overlay the 'up' and 'down' morning temp behaviors
+
+% find the 'morning' hours -- i.e. show am vs pm
+data = [];
+time = cityData(city).T(:,5); % local solar time
+temp = cityData(city).T(:,9); % air temp
+tempRate = cityData(city).tempRate;
+loc = temp>maxT | temp<minT; % find false temperatures
+temp(loc) = nan; % remove temp anomalies
+
+amLoc = find(time<1200); % hours in before noon
+pmLoc = find(time>=1200); % hours after noon
+
+% combine time and temp:
+data = [time(1:end-1),temp(1:end-1),tempRate];
+morningTemp = data(amLoc,:);
+% eveningTemp = data(pmLoc,:);
+
+% pull out each day's time course:
+amStarts = find(time==0);
+pmStarts = find(time==1200);
+
+if amStarts(1)<pmStarts(1)
+    for ii = 1:364
+        T.time(:,ii) = data(amStarts(ii):pmStarts(ii),1);
+        T.temp(:,ii) = data(amStarts(ii):pmStarts(ii),2);
+        T.tempR(:,ii) = data(amStarts(ii):pmStarts(ii),3);
+        T.solar(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),11);
+        T.wind(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),22);
+        T.surfT(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),13);
+        T.rain(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),10);
+        T.precip(:,ii) = sum(cityData(city).T(amStarts(ii):amStarts(ii+1),10));
+    end
+end
+
+% Overlay multiple days in one plot
+x = T.time(:,plotList(1));
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; 
+
+for type = 1:2
+    switch type
+        case 1
+            plotList = [160 161 166 167 170];
+            kolor = Color('orange');
+        case 2
+            plotList = [162 163 164 165 168 169];
+            kolor = Color('dodgerblue');
+    end
+    idx = 0;
+    for ii = plotList
+        idx = idx+1;
+        subplot(row,col,1)
+        hold on
+            plot(T.tempR(:,ii),'color',kolor,'linewidth', 1.5)
+        subplot(row,col,2)
+        hold on
+            plot(T.temp(:,ii),'color', kolor,'linewidth', 1.5)
+        lStr{idx} = num2str(ii);
+    end
+end
+% formatting:
+ subplot(row,col,1)
+        axis tight
+        hline(0)
+        ax = gca;
+        set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('\DeltaT (\circC/min)')
+    subplot(row,col,2)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('Temperature (\circC)')
+formatFig(fig,true, [row,col]);
+
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp overlays'],'-png');
+
+% What other data is diff / the same about these days' groupings??
+% Overlay multiple days in one plot
+x = T.time(:,plotList(1));
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 3;
+fig = figure; 
+for type = 1:2
+    switch type
+        case 1
+            plotList = [160 161 166 167 170];
+            kolor = Color('orange');
+        case 2
+            plotList = [162 163 164 165 168 169];
+            kolor = Color('dodgerblue');
+    end
+    for ii = plotList
+        % 1 temp rate
+        subplot(row,col,1)
+        hold on
+            plot(T.tempR(:,ii),'color',kolor,'linewidth', 1.5)
+            ylabel('\DeltaT (\circC/min)')
+        % 4 air temp
+        subplot(row,col,4)
+        hold on
+            plot(T.temp(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Temperature (\circC)')
+        % 3 wind speed (22)
+        subplot(row,col,3)
+        hold on
+            plot(T.wind(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('\Wind speed (m/s)')
+        % 2 precipitation (10)
+        subplot(row,col,2)
+        hold on
+        scatter((rand(1)*0.3)+type,T.precip(ii),50,kolor,'filled')
+%             plot(T.rain(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Precipitation (mm)')
+        % 6 SOLAR_RADIATION
+        subplot(row,col,6)
+        hold on
+            plot(T.solar(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Solar radiation (W/m^2)')
+        % 5 SURFACE_TEMPERATURE
+        subplot(row,col,5)
+        hold on
+            plot(T.surfT(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Surface temp (\circC)')
+    end
+end
+% formatting:
+for ii = 1:6
+ subplot(row,col,ii)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+end
+subplot(row,col,2)
+xlim([0.5,2.5])
+xlabel('')
+set(gca,'XTickLabel',[])
+formatFig(fig,true, [row,col]);
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multifactor overlays'],'-png');
+
+
+%% TRIAL AND ERROR: try looking at temp patterns by precipitation
+
+% find the 'morning' hours -- i.e. show am vs pm
+data = [];
+time = cityData(city).T(:,5); % local solar time
+temp = cityData(city).T(:,9); % air temp
+tempRate = cityData(city).tempRate;
+loc = temp>maxT | temp<minT; % find false temperatures
+temp(loc) = nan; % remove temp anomalies
+
+amLoc = find(time<1200); % hours in before noon
+pmLoc = find(time>=1200); % hours after noon
+
+% combine time and temp:
+data = [time(1:end-1),temp(1:end-1),tempRate];
+morningTemp = data(amLoc,:);
+% eveningTemp = data(pmLoc,:);
+
+% pull out each day's time course:
+amStarts = find(time==0);
+pmStarts = find(time==1200);
+
+if amStarts(1)<pmStarts(1)
+    for ii = 1:364
+        T.time(:,ii) = data(amStarts(ii):pmStarts(ii),1);
+        T.temp(:,ii) = data(amStarts(ii):pmStarts(ii),2);
+        T.tempR(:,ii) = data(amStarts(ii):pmStarts(ii),3);
+        T.solar(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),11);
+        T.wind(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),22);
+        T.surfT(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),13);
+        T.rain(:,ii) = cityData(city).T(amStarts(ii):pmStarts(ii),10);
+        T.precip(:,ii) = sum(cityData(city).T(amStarts(ii):amStarts(ii+1),10));
+    end
+end
+
+
+
+
+
+% Overlay multiple days in one plot
+x = T.time(:,plotList(1));
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; 
+
+
+for ii = 125:190
+    if T.precip(ii)>1
+        type = 2;
+    else type = 1;
+    end
+    switch type
+        case 1
+            plotList = [160 161 166 167 170];
+            kolor = Color('orange');
+        case 2
+            plotList = [162 163 164 165 168 169];
+            kolor = Color('dodgerblue');
+    end
+    idx = 0;
+        idx = idx+1;
+        subplot(row,col,1)
+        hold on
+            plot(T.tempR(:,ii),'color',kolor,'linewidth', 1.5)
+        subplot(row,col,2)
+        hold on
+            plot(T.temp(:,ii),'color', kolor,'linewidth', 1.5)
+        lStr{idx} = num2str(ii);
+end
+% formatting:
+ subplot(row,col,1)
+        axis tight
+        hline(0)
+        ax = gca;
+        set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('\DeltaT (\circC/min)')
+    subplot(row,col,2)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+        ylabel('Temperature (\circC)')
+formatFig(fig,true, [row,col]);
+
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp overlays'],'-png');
+
+% What other data is diff / the same about these days' groupings??
+% Overlay multiple days in one plot
+x = T.time(:,plotList(1));
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 3;
+fig = figure; 
+for type = 1:2
+    switch type
+        case 1
+            plotList = [160 161 166 167 170];
+            kolor = Color('orange');
+        case 2
+            plotList = [162 163 164 165 168 169];
+            kolor = Color('dodgerblue');
+    end
+    for ii = plotList
+        % 1 temp rate
+        subplot(row,col,1)
+        hold on
+            plot(T.tempR(:,ii),'color',kolor,'linewidth', 1.5)
+            ylabel('\DeltaT (\circC/min)')
+        % 4 air temp
+        subplot(row,col,4)
+        hold on
+            plot(T.temp(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Temperature (\circC)')
+        % 3 wind speed (22)
+        subplot(row,col,3)
+        hold on
+            plot(T.wind(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('\Wind speed (m/s)')
+        % 2 precipitation (10)
+        subplot(row,col,2)
+        hold on
+        scatter((rand(1)*0.3)+type,T.precip(ii),50,kolor,'filled')
+%             plot(T.rain(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Precipitation (mm)')
+        % 6 SOLAR_RADIATION
+        subplot(row,col,6)
+        hold on
+            plot(T.solar(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Solar radiation (W/m^2)')
+        % 5 SURFACE_TEMPERATURE
+        subplot(row,col,5)
+        hold on
+            plot(T.surfT(:,ii),'color', kolor,'linewidth', 1.5)
+            ylabel('Surface temp (\circC)')
+    end
+end
+% formatting:
+for ii = 1:6
+ subplot(row,col,ii)
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
+        xlabel('Time (hr)')
+end
+subplot(row,col,2)
+xlim([0.5,2.5])
+xlabel('')
+set(gca,'XTickLabel',[])
+formatFig(fig,true, [row,col]);
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multifactor overlays'],'-png');
 
 
 
