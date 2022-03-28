@@ -254,7 +254,7 @@ for arena = 1:nArenas
     dt = diff(T.time(:)); 
     plotData(:,2) = dT./dt; 
     % figure; plot(T.time(1:end-1),plotData(:,2)) %to look at the calculated temp rate
-
+    % vline(T.time(tPoints.transitions))
     % distance from food
     for well = 1:4
         [kolor,num] = pullFoodColor(arenaData(arena).wellLabels{well});
@@ -270,12 +270,21 @@ for arena = 1:nArenas
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
     keepLoc = false(1,size(plotData,1));
-    for ii = 1:length(tPoints.transitions)-1
-        roi = tPoints.transitions(ii):tPoints.transitions(ii+1);
+    % up ramps:
+    for ii = 1:tPoints.nUp
+        roi = tPoints.up(ii,1):tPoints.up(ii,2);
         distD = median(plotData(roi,2));
         plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
         keepLoc(roi) = true;
     end
+    % up ramps:
+    for ii = 1:tPoints.nDown
+        roi = tPoints.down(ii,1):tPoints.down(ii,2);
+        distD = median(plotData(roi,2));
+        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+        keepLoc(roi) = true;
+    end   
+    
     plotData(~keepLoc,:) = nan; % exclude data outside prescribed ROI regions
 %     figure; 
 %     plot(T.time(1:end-1),plotData(:,2))

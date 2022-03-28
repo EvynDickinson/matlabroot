@@ -4,7 +4,7 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 
 % Use this to find temp points for new temp protocols:
 % figure; plot(smooth(data(1).occupancy.temp),'color', 'k')
-% figure; plot(smooth(T.temperature,360),'color', 'k')
+% figure; plot(smooth(T.temperature,2),'color', 'k')
 % 
 % temp = smooth(T.temperature,1);
 % sel = (max(temp)-min(temp))/5;
@@ -78,6 +78,19 @@ switch TempProtocolString
                            140400 148300];   
         tempPoints.nRates = 3; % -0.25,0, 0.25\
         tempPoints.rates = [-0.25,0,0.25];
+    case 'Expanding Ramps Up'
+        tempPoints.hold = [];
+        tempPoints.up =   [2174 7445;...
+                           16281 29840;...
+                           49170 71850;...
+                           98991 134500];
+        tempPoints.down = [7446 16280;...
+                           28941 47790;...
+                           71851 98990];
+        tempPoints.nRates = 2;
+        tempPoints.rates = [-0.16, 0.16]; 
+        tempPoints.threshLow = 6;
+        tempPoints.threshHigh = 34;
     % =======================================  
     case 'Velocity Ramp A Up'
         tempPoints.hold = [];
