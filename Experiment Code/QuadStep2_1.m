@@ -22,7 +22,7 @@ fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);
 List.date = eligible_files(fileIdx,1);
 List.expID = eligible_files(fileIdx,3); 
 
-%get base folder pathway 
+%get base folder pathway
 finishedFiles = [];
 baseFolder = getCloudPath;
 for ii = 1:length(fileIdx)

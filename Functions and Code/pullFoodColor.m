@@ -96,6 +96,9 @@ catch
     elseif ismember('Molasses', foodString)
         kolor = Color('purple');
         num = 2;
+    else 
+        kolor = Color('orangered');
+        num = 2;
     end
 end
 

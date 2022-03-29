@@ -701,9 +701,6 @@ if amStarts(1)<pmStarts(1)
 end
 
 
-
-
-
 % Overlay multiple days in one plot
 x = T.time(:,plotList(1));
 x = find(rem(x,100)==0); % pull hour start times
@@ -815,6 +812,40 @@ xlabel('')
 set(gca,'XTickLabel',[])
 formatFig(fig,true, [row,col]);
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multifactor overlays'],'-png');
+
+%% How much into the future could the flies predict from knowing current temp and rate of temp change?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
