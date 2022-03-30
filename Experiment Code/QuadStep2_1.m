@@ -6,7 +6,7 @@ clear; close all; clc
 autoSave = true;
 essentialfigs = true; 
 excelWrite = true;
-
+ 
 %load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 loc = cellfun(@isnan,excelfile(2:end,Excel.numflies));
