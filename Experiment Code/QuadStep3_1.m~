@@ -1081,6 +1081,19 @@ disp(tbl)
 %% Compare MOVEMENT plots across genotypes...
 clearvars('-except',vars{:})
 
+inputVar =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
+
+switch inputVar
+    case 'distance'
+        ylab = 'Distance from well (mm)';
+%         L_loc = 'southwest';
+    case 'movement'
+        ylab = 'Movement (au)';
+%         L_loc = 'northwest';
+    case 'Cancel'
+        return
+end
+
 ID_mat = nan(ntrials,3);
 
 % what are the temp protocols: 
@@ -1196,6 +1209,8 @@ fig = figure; set(fig, 'pos', [210 121 977 660])
     
 save_figure(fig, [figDir 'movement tuning overlay'], '-png');
 
+% TODO: get measure of movement hysteresis and recovery from cooling in
+% flies
 
 %% DISTANCE TO FOOD across genotypes
 clearvars('-except',vars{:})

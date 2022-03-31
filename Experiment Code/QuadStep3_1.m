@@ -1081,6 +1081,19 @@ disp(tbl)
 %% Compare MOVEMENT plots across genotypes...
 clearvars('-except',vars{:})
 
+inputVar =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
+
+switch inputVar
+    case 'distance'
+        ylab = 'Distance from well (mm)';
+%         L_loc = 'southwest';
+    case 'movement'
+        ylab = 'Movement (au)';
+%         L_loc = 'northwest';
+    case 'Cancel'
+        return
+end
+
 ID_mat = nan(ntrials,3);
 
 % what are the temp protocols: 
@@ -1095,6 +1108,11 @@ genoList = unique(T.Genotype);
 ngenoList = size(genoList,1);
 for ii = 1:ngenoList
     ID_mat(strcmp(T.Genotype,genoList(ii)),2) = ii;
+end
+
+% Genotype Counts
+for ii = 1:ngenoList
+    disp([genoList{ii} ': n = ' num2str(sum(strcmp(genoList(ii),T.Genotype)))])
 end
 
 % what are the foods/well options:
@@ -1145,7 +1163,13 @@ for trial = 1:ntrials
     % collapse all temp rates into one:
     for ii = 1:G(trial).TR.nRates
         plotData(id).r = [plotData(id).r, G(trial).TR.rates(ii)];
-        temp = G(trial).TR.movement.avg(ii,:);
+        % Account for appropriate data type
+        switch inputVar
+            case 'distance'
+                temp = G(trial).TR.heatmap(ii,:);
+            case 'movement'
+                temp = G(trial).TR.movement.avg(ii,:);
+        end
         if G(trial).TR.rates(ii)<0 % Cooling data
             plotData(id).c = [plotData(id).c; temp];
         elseif G(trial).TR.rates(ii)>0 % Heating data
@@ -1186,7 +1210,7 @@ fig = figure; set(fig, 'pos', [210 121 977 660])
     end
     %labels and formatting
     xlabel('Temperature (\circC)')
-    ylabel('Movement (mm)')
+    ylabel(ylab)
     formatFig(fig, true);
     set(gca,'fontsize', 18)
     xlim([floor(temp(1)-1),temp(end)+ceil(range(temp)*0.33)])
@@ -1194,108 +1218,10 @@ fig = figure; set(fig, 'pos', [210 121 977 660])
     lStr = strrep(lStr,'_',' ');
     legend(lStr,'textcolor', 'w', 'box', 'off','fontsize', 8)
     
-save_figure(fig, [figDir 'movement tuning overlay'], '-png');
+save_figure(fig, [figDir inputVar ' tuning overlay'], '-png');
 
-% TODO: get measure of movement hysteresis and recovery from cooling in
-% flies
 
-%% DISTANCE TO FOOD across genotypes
-clearvars('-except',vars{:})
 
-ID_mat = nan(ntrials,3);
-
-% what are the temp protocols: 
-tempList = unique(T.TempProtocol);
-nTempLists = size(tempList,1);
-for ii = 1:nTempLists
-    ID_mat(strcmp(T.TempProtocol,tempList(ii)),1) = ii;
-end
-
-% what are the genotypes:
-genoList = unique(T.Genotype);
-ngenoList = size(genoList,1);
-for ii = 1:ngenoList
-    ID_mat(strcmp(T.Genotype,genoList(ii)),2) = ii;
-end
-
-% what are the foods/well options:
-foodList = unique(T.foodCat);
-nfoodList = size(foodList,1);
-for ii = 1:nfoodList
-    ID_mat(strcmp(T.foodCat,foodList(ii)),3) = ii;
-end
-
-% Find unique instances across all trials:
-ID_List = string(ID_mat(:,1));
-for ii = 2:3
-    ID_List = [ID_List+string(ID_mat(:,ii))];
-end
-IDs = unique(ID_List);
-nIDs = size(IDs,1);
-
-% Make an empty structure in which to group the data
-plotData = struct;
-for ii = 1:nIDs
-    plotData(ii).h = []; %heating
-    plotData(ii).c = []; %cooling
-    plotData(ii).r = []; %temp rate list
-end
-
-% Compare across all conditions (overlays all temp rates...)
-CList = {'BlueViolet', 'DeepPink','Orange','Lime','DodgerBlue','Teal','Red'};
-% group together trials with the same identity
-for trial = 1:ntrials
-    id = find(strcmp(ID_List(trial),IDs));
-    kolor = Color(CList{id});
-    plotData(id).color = kolor;
-    
-    % collapse all temp rates into one:
-    for ii = 1:G(trial).TR.nRates
-        plotData(id).r = [plotData(id).r, G(trial).TR.rates(ii)];
-        temp = G(trial).TR.heatmap(ii,:);
-        if G(trial).TR.rates(ii)<0 % Cooling data
-            plotData(id).c = [plotData(id).c; temp];
-        elseif G(trial).TR.rates(ii)>0 % Heating data
-            plotData(id).h = [plotData(id).h; temp];
-        end
-    end
-end
-    
-% Average across trials and 'uncode' the parameter names
-for id = 1:nIDs
-    plotData(id).c_avg = mean(plotData(id).c,1,'omitnan');
-    plotData(id).h_avg = mean(plotData(id).h,1,'omitnan');
-    % decode parameter names
-    a = char(IDs(id));
-    plotData(id).name = [tempList{str2double(a(1))} ' ' genoList{str2double(a(2))} ' ' foodList{str2double(a(3))}];
-end
-    
-% FIGURE: Plot the temp-rate food proximity tuning curves
-temp = G(1).TR.temps; %all trials should have same temp ids
-LW = 1.5;
-
-fig = figure; set(fig, 'pos', [210 121 977 660])
-    hold on
-    ii = 1;
-    for id = 1:nIDs
-        plot(temp, plotData(id).c_avg,'color', plotData(id).color,'linewidth',LW,'linestyle', '--')
-        plot(temp, plotData(id).h_avg,'color', plotData(id).color,'linewidth',LW,'linestyle', '-')
-        lStr{ii} = [plotData(id).name ' cooling'];
-        lStr{ii+1} = [plotData(id).name ' heating'];
-        ii = ii+2;
-    end
-    %labels and formatting
-    xlabel('Temperature (\circC)')
-    ylabel('Distance to food (mm)')
-    formatFig(fig, true);
-    set(gca,'fontsize', 18)
-    xlim([floor(temp(1)-1),temp(end)+ceil(range(temp)*0.33)])
-    %legend
-    lStr = strrep(lStr,'_',' ');
-    legend(lStr,'textcolor', 'w', 'box', 'off','fontsize', 12)
-    
-save_figure(fig, [figDir 'tuning overlay'], '-png');
-    
 
 
 

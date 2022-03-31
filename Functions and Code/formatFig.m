@@ -15,10 +15,10 @@ function figHandle = formatFig(figHandle, BandWoption, sbplots, subplotInd)
 % University of Washington, 2020
 
 % default parameters:
-txtSize = 15; % text size
+txtSize = 18; % text size
 axisLW = 2; % axis line width
 txtFont = 'Arial'; % all fonts
-tickMarkSize = 13;    
+tickMarkSize = 15;    
 tickDir = 'in'; 
 
 % SET PLOT BACKGROUND COLOR
@@ -85,109 +85,6 @@ else    % single plot
     
     
 end
-% 
-% h1 = findall(gcf,'Type','text')
-% 
-% textHandles = findall(figHandle,'-property','FontSize');
-% set(textHandles,'FontSize', 10, 'fontname', txtFont)
 
 
-clear ax
-
-
-% 
-% for n = 1:nplots
-%     ax = subplot(nrow, ncol,n);
-%     % separate figure axes:
-%     xRange = ax.XLim;
-%     xMin(n) = xRange(1);
-%     xOffset = range(xRange)*0.03; % 3-percent range offset
-%     ax.XLim(1) = xMin(n)-xOffset;
-%     
-%     yRange = ax.YLim;
-%     yMin(n) = yRange(1);
-%     yOffset = range(yRange)*0.05; % 3-percent range offset
-%     ax.YLim(1) = yMin(n)-yOffset;
-%     drawnow()
-%      
-% %     % set the X axis vertex start to its the orignial point
-% %     origin = get(ax.XAxis.Axle,'VertexData');
-% %     origin(1,1) = xMin(n);
-% %     set(ax.XAxis.Axle,'VertexData',origin);
-% % 
-% %     % set the Y axis vertex start to its the orignial point
-% %     origin = get(ax.YAxis.Axle,'VertexData');
-% %     origin(2,1) = yMin(n);
-% %     set(ax.YAxis.Axle,'VertexData',origin);
-% 
-% end
-
-
-% % redraw the plot line
-% for n = 1:nplots
-%    subplot(nrow,ncol,n);
-%    separateAxes
-% end
-% 
-
-
-% 
-% % redraw the plot line
-% for n = 1:nplots
-%     ax = subplot(nrow,ncol,n);
-% %     separateAxes;  
-% 
-%     % set the X axis vertex start to its the orignial point
-%     origin = get(ax.XAxis.Axle,'VertexData');
-%     origin(1,1) = ax.XTick(1);
-%     set(ax.XAxis.Axle,'VertexData',origin);
-%     
-%     % set the Y axis vertex start to its the orignial point
-%     origin = get(ax.YAxis.Axle,'VertexData');
-%     origin(2,1) = ax.YTick(1);
-%     set(ax.YAxis.Axle,'VertexData',origin);
-%     
-% end
-% 
-
-
-
-
-
-
-% % adjust colors to blk&white
-% if nargin>=2
-%   if BandWoption==true
-%     set(figHandle, 'color', 'k') 
-%     set(ax, 'color', 'k', 'YColor', 'w', 'XColor', 'w')
-%     labelColor = 'w';
-%   end
-% end
-% 
-% % set the tick labels, axes labels and title font and size
-% textHandles = findall(figHandle,'-property','FontSize');
-% set(textHandles,'FontSize', 10, 'fontname', txtFont)
-% 
-% % set the label sizes and color
-% labelHandles = findall(ax, 'type', 'text', 'handlevisibility', 'off');
-% set(labelHandles,'FontSize', 12, 'color', labelColor)
-% 
-% 
-% % separate figure axes:
-% xMin = ax.XLim(1);
-% yMin = ax.YLim(1);
-% ax.XLim(1) = xMin - range(ax.XTick(1:2))/4; % offset for X axis
-% ax.YLim(1) = yMin - range(ax.YTick(1:2))/3; % offset for Y axis
-% drawnow()
-% % set the X axis vertex start to its the orignial point
-% origin = get(ax.XAxis.Axle,'VertexData');
-% origin(1,1) = xMin;
-% set(ax.XAxis.Axle,'VertexData',origin);
-% % set the Y axis vertex start to its the orignial point
-% origin = get(ax.YAxis.Axle,'VertexData');
-% origin(2,1) = yMin;
-% set(ax.YAxis.Axle,'VertexData',origin);
-
-
-end
 
