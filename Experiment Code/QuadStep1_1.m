@@ -584,7 +584,7 @@ initial_vars{end+1} = 'pix2mm';
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% FIGURE: distance to food and well occupancy acros the experiment
+%% FIGURE: distance to food and well occupancy across the experiment
 sSpan = 360;
 LW = 1;
 nrows = 6;

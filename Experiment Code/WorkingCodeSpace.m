@@ -1200,9 +1200,40 @@ sb(2).idx = 3:4;
 kolor = Color('slateblue');
 
 
+%% Movement quantification
 
+% MOVEMENT: 
+for trial = 1:ntrials
+    temp = data(trial).data;
+   
+    
+    % get movement size spacing
+    xmin = temp.centre(1)-temp.r;
+    xmax = temp.centre(1)+temp.r;
+    ymin = temp.centre(2)-temp.r;
+    ymax = temp.centre(2)+temp.r;
+    
+    
+    xedge = linspace(xmin,xmax,nbins+1);
+    yedge = linspace(ymin,ymax,nbins+1);
+    
+    nbins = 100;
+    N = []; 
+    for frame = 1:temp.T.frame(end)
+        X = temp.x_loc(frame,:); X(isnan(X)) = [];
+        Y = temp.y_loc(frame,:); Y(isnan(Y)) = [];
+        N(:,:,frame) = histcounts2(X,Y,xedge,yedge);
+    end
+    binDiff = diff(N,1,3);
+    binDiff(binDiff<0) = 0;
+    occupancy.movement = squeeze(sum(sum(binDiff,1),2));
 
-
+    sSpan = 180;
+    figure;
+    hold on
+    plot(smooth(occupancy.movement,sSpan),'color', 'r')
+    plot(smooth(temp.occupancy.movement,sSpan),'color', 'k')
+    
 
 
 
