@@ -212,30 +212,57 @@ for arena = 1:nArenas
     occupancy.IFD_err = LD_err;
      
     % MOVEMENT: 
-    xmin = arenaData(arena).centre(1)-r; % arena spacing divide by pixel size
-    xmax = arenaData(arena).centre(1)+r;
-    ymin = arenaData(arena).centre(2)-r;
-    ymax = arenaData(arena).centre(2)+r;
+    xmin = ar.centre(1)-r; % arena spacing divide by pixel size
+    xmax = data.centre(1)+r;
+    ymin = data.centre(2)-r;
+    ymax = data.centre(2)+r;
     nbins = 100;
     xedge = linspace(xmin,xmax,nbins+1);
     yedge = linspace(ymin,ymax,nbins+1);
     N = []; 
-    for frame = 1:T.frame(end)
-        X = arenaData(arena).x_loc(frame,:); X(isnan(X)) = [];
-        Y = arenaData(arena).y_loc(frame,:); Y(isnan(Y)) = [];
+    for frame = 1:data.T.frame(end)
+        X = data.x_loc(frame,:); X(isnan(X)) = [];
+        Y = data.y_loc(frame,:); Y(isnan(Y)) = [];
         N(:,:,frame) = histcounts2(X,Y,xedge,yedge);
     end
     binDiff = diff(N,1,3);
     binDiff(binDiff<0) = 0;
     movement = squeeze(sum(sum(binDiff,1),2));
-    binSizeinMM = ((2*r)/nbins)/pix2mm;
+    binSizeinMM = ((2*data.r)/nbins)/pix2mm;
     movement = movement./binSizeinMM;
-    movement = movement*3; % convert to per second WITH 3fps videos
-    avg_movement = movement./T.flyCount(1:end-1,arena);% normalize for the number of flies actually tracked on the page:
+    movement = movement*3; % convert to per second WTIH 3fps videos
+    % normalize for the number of flies actually tracked on the page:
+    avg_movement = movement./data.T.flyCount(1:end-1);
+    
+    % plot change in movement 
+    sSpan = 180;
+    fig = figure;
+    hold on
+    plot(smooth(avg_movement,sSpan),'color', 'r')
+    plot(smooth(data.occupancy.movement,sSpan),'color', 'k')
+    legend({'new', 'old'})
+    save_figure(fig,[baseFolder List.date{ii} '/Arena ' List.arena{ii} '/Movement Update'],'-png',true);
+    
     % update data structures
-    occupancy.movement = avg_movement;
-    occupancy.baseMovement = movement;    
-
+    data.occupancy.movement = avg_movement;
+    data.occupancy.baseMovement = movement;
+    data.T.movement(1:end-1) = avg_movement;
+    
+    
+    
+    
+    
+    nbins = 100;
+    N = [];
+    for frame = 1:T.frame(end)
+        X = arenaData(arena).x_loc(frame,:); X(isnan(X)) = [];
+        Y = arenaData(arena).y_loc(frame,:); Y(isnan(Y)) = [];
+        N(:,:,frame) = histcounts2(X,Y,nbins);
+    end
+    binDiff = diff(N,1,3);
+    binDiff(binDiff<0) = 0;
+    occupancy.movement = squeeze(sum(sum(binDiff,1),2));
+    
     % save data into occupancy structure:
     occupancy.dist2wells = arenaData(arena).dist2well;
     arenaData(arena).occupancy = occupancy;

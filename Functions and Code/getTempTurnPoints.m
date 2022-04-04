@@ -91,6 +91,19 @@ switch TempProtocolString
         tempPoints.rates = [-0.16, 0.16]; 
         tempPoints.threshLow = 6;
         tempPoints.threshHigh = 34;
+    case 'slow_looping_ramps_up_12_22'
+        tempPoints.hold = [];
+        tempPoints.up =   [13680 31560;...
+                           49611 67720;...
+                           85501 103600;...
+                           121401 139400];
+        tempPoints.down = [31561 49610;...
+                           67721 85500;...
+                           103601 121400];
+        tempPoints.nRates = 2;
+        tempPoints.rates = [-0.1, 0.1]; 
+        tempPoints.threshLow = 12;
+        tempPoints.threshHigh = 22;
     % =======================================  
     case 'Velocity Ramp A Up'
         tempPoints.hold = [];

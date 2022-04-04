@@ -28,9 +28,6 @@ switch questdlg('Use Excel sheet to select experiment?')
     case 'No'
         %get base folder pathway
         [baseFolder, folder] = getCloudPath(2);    
-%         %select arena to work with:
-%         arenaList = {'A', 'B', 'C', 'D'};
-%         arenaSel = arenaList{listdlg('ListString', arenaList)};
 %         % Select the complete experiments to process
         list_dirs = dir([baseFolder folder, '/*dataMat.mat']); %only matlab files
         list_dirs = {list_dirs(:).name};
