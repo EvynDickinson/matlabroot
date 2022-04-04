@@ -1224,11 +1224,8 @@ List.arena = eligible_files(fileIdx,2);
 
 %get base folder pathway
 baseFolder = getCloudPath;
-
-initial_vars = who; initial_vars{end+1} = 'initial_vars'; initial_vars{end+1} = 'ii';
-
 for ii = 1:length(fileIdx)
-    inputPath = [baseFolder List.date{ii} '/Arena ' List.arena{ii} '/' List.expID{ii} List.arena{ii} ' timecourse data.mat'];
+    inputPath = [baseFolder List.date{ii} List.arena '/Analysis/' List.expID{ii} ' timecourse data.mat'];
     
     % load data:
     tic
@@ -1265,7 +1262,7 @@ for ii = 1:length(fileIdx)
     plot(smooth(avg_movement,sSpan),'color', 'r')
     plot(smooth(data.occupancy.movement,sSpan),'color', 'k')
     legend({'new', 'old'})
-    save_figure(fig,[baseFolder List.date{ii} '/Arena ' List.arena{ii} '/Movement Update'],'-png',true);
+    save_figure(fig,[baseFolder List.date{ii} '/Analysis/Movement Update'],'-png',true);
     
     % update data structures
     data.occupancy.movement = avg_movement;
@@ -1275,9 +1272,7 @@ for ii = 1:length(fileIdx)
     save(inputPath,'data','expData', 'expName', 'tempLog');
     
     toc
-    disp(['Finished ' FileNames(fileIdx(ii))])  
-    disp([num2str(ii) '/' num2str(length(fileIdx))])
-    clearvars('-except',initial_vars{:})
+    disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
 
@@ -1290,7 +1285,7 @@ end
 
     
     
-
+end
     
     
     
