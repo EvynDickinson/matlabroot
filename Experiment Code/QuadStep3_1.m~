@@ -85,7 +85,6 @@ end
 %Pull and reorganize data within the structure:
 
 % pix2mm = 12.8; %conversion from pixels to mm for these videos
-    
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'pix2mm'};
 clearvars('-except',initial_vars{:})
@@ -95,7 +94,9 @@ end
 fprintf('Data loaded\n')
 
 %% ANALYSIS: General data organization (forward and backwards compatability
-
+if ~exist('pix2mm','var')
+    pix2mm = 12.8;
+end
 % fill out the data structure
 for trial = 1:ntrials
     if isempty(data(trial).occupancy)
@@ -840,11 +841,13 @@ buff = 0.3;
 for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
   % FIGURE FOR EACH TEMPERATURE RATE    
   rateList = find(abs(tRates)==abs_rates(rr));
-  row = 1; col = 2; 
+  row = 1; col = 3; 
+  sb(1).idx = 1:2;
+  sb(2).idx = 3;
   fig = figure; 
-  set(fig, 'pos', [57 55 1191 642]);
+  set(fig, 'pos', [57 55 1120 642]);
   % line graph:
-  subplot(row,col,1)
+  subplot(row,col,sb(1).idx)
   hold on; 
     idx = 1; str = [];
     for ii = 1:n_food % cycle through each food group
@@ -873,7 +876,7 @@ for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
     legend(str,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 10)
     
     %  Hysteresis index numbers
-    subplot(row,col,2)
+    subplot(row,col,sb(2).idx)
     hold on; 
     for ii = 1:n_food
         kolor = pullFoodColor(foodCat{ii});
@@ -892,10 +895,14 @@ for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
     end
     % labels, legends, etc
     ax = gca;
-    set(ax,'XTick',1:n_food,'XTickLabels',foodCat)
+    set(ax,'XTick',1:n_food,'XTickLabels',foodCat,'XTickLabelRotation',20)
     ylabel('distance hysteresis (mm)')
-    formatFig(fig, true,[row,col]);
+    formatFig(fig, true,[row,col],sb);
     
+    subplot(row,col,sb(1).idx)
+    set(gca, 'fontsize', 18)
+    subplot(row,col,sb(2).idx)
+    set(gca, 'fontsize', 18)
 %Save figure
 % save_figure(fig, ['temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
 save_figure(fig, [figDir 'temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');

@@ -75,7 +75,14 @@ else %select data structure from folder names out of GroupDataGUI:
         temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
         for ii = 1:length(var2load)
             try data(trial).(var2load{ii}) = temp.(var2load{ii});
-            catch; data(trial).(var2load{ii}) = [];
+            catch
+                if strcmp(var2load{ii},'dist2wells')
+                    try data(trial).(var2load{ii}) = temp.dist2well;
+                    catch; data(trial).(var2load{ii}) = [];
+                    end
+                else
+                    data(trial).(var2load{ii}) = [];
+                end
             end
         end
         disp([expID{trial} arenas{trial}])
@@ -85,7 +92,6 @@ end
 %Pull and reorganize data within the structure:
 
 % pix2mm = 12.8; %conversion from pixels to mm for these videos
-    
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'pix2mm'};
 clearvars('-except',initial_vars{:})
@@ -95,7 +101,9 @@ end
 fprintf('Data loaded\n')
 
 %% ANALYSIS: General data organization (forward and backwards compatability
-
+if ~exist('pix2mm','var')
+    pix2mm = 12.8;
+end
 % fill out the data structure
 for trial = 1:ntrials
     if isempty(data(trial).occupancy)
