@@ -83,7 +83,7 @@ end
 %% FIGURE: overlay distance lines for all trials in the structure color coded by heating and cooling
 % plot all trials individually
 sSpan = 1; %3-degree smoothing
-LW = 2;
+
 fig = figure;
     hold on
     % Cooling
@@ -91,7 +91,7 @@ fig = figure;
         x = G(1).TR.temps; %all trials should have same temp ids
         y = plotData(id).c;
         for ii = 1:size(y,1)
-            plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue'),'linewidth',LW) %plotData(id).color) %
+            plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue')) %plotData(id).color) %
         end
     end
     % Heating
@@ -99,14 +99,14 @@ fig = figure;
         x = G(1).TR.temps; %all trials should have same temp ids
         y = plotData(id).h;
         for ii = 1:size(y,1)
-            plot(x,smooth(y(ii,:),sSpan),'color', 'r','linewidth', LW) %plotData(id).color) %
+            plot(x,smooth(y(ii,:),sSpan),'color', 'r') %plotData(id).color) %
         end
     end
 % xlim([7,22])
 xlabel('Temperature (\circC)')
 ylabel('Distance (mm)')
 formatFig(fig, true);
-% h_line(5,'w',1)
+h_line(5,'w',1)
 % v_line([14,22],'gold',1)
 set(gca, 'fontsize', 18)
 
@@ -243,4 +243,8 @@ subplot(row,col,2); hold on
 save_figure(fig, [figDir 'distance hysteresis loop recovery ' num2str(trial)], '-png');
 
 
+%% FIGURE: hysteresis index for Velocity Ramps A-E
+
+
+fig = figure;
 

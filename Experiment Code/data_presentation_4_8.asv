@@ -81,3 +81,43 @@ save_figure(fig,[baseFolder(1:end-5) '/Presentations/Data Presentation 04.08.202
 
 
 
+%% FIGURE: hysteresis index for Velocity Ramps A-E
+
+
+
+[r1,r2,r3] = deal([]);
+for trial = 1:ntrials
+    
+    r1(trial) = sum(G(trial).heatmap(1,:)-G(trial).heatmap(7,:),'omitnan');
+    r2(trial) = sum(G(trial).heatmap(2,:)-G(trial).heatmap(6,:),'omitnan');
+    r3(trial) = sum(G(trial).heatmap(3,:)-G(trial).heatmap(5,:),'omitnan');
+end
+
+buff = 0.3;
+SZ = 75;
+LW = 1.5;
+fig = figure; hold on
+    %rate 0.5
+    x = shuffle_data(linspace(1-buff,1+buff,ntrials));
+    scatter(x,r1,SZ,Color('orange'),'filled')
+    plot([1-buff,1+buff],[mean(r1),mean(r1)],'color', Color('orange'),'linewidth', LW)
+    %rate 0.25
+    x = shuffle_data(linspace(2-buff,2+buff,ntrials));
+    scatter(x,r2,SZ,Color('darkviolet'),'filled')
+    plot([2-buff,2+buff],[mean(r2),mean(r2)],'color', Color('darkviolet'),'linewidth', LW)
+    %rate 0.1
+    x = shuffle_data(linspace(3-buff,3+buff,ntrials));
+    scatter(x,r3,SZ,Color('turquoise'),'filled')
+    plot([3-buff,3+buff],[mean(r3),mean(r3)],'color', Color('turquoise'),'linewidth', LW)
+    %labels and formatting
+    h_line(0,'w', ':', 2)
+    xlabel('temp rate (\circC/min)')
+    ax = gca;
+    ax.XTicks = 1:3;
+    ax.XTickLabels = 
+
+
+
+
+
+

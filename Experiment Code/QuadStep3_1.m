@@ -76,12 +76,15 @@ else %select data structure from folder names out of GroupDataGUI:
         for ii = 1:length(var2load)
             try data(trial).(var2load{ii}) = temp.(var2load{ii});
             catch
-                if strcmp(var2load{ii},'dist2wells')
-                    try data(trial).(var2load{ii}) = temp.dist2well;
-                    catch; data(trial).(var2load{ii}) = [];
+                try data(trial).(var2load{ii}) = temp.data.(var2load{ii});
+                catch
+                    if strcmp(var2load{ii},'dist2wells')
+                        try data(trial).(var2load{ii}) = temp.data.dist2well;
+                        catch; data(trial).(var2load{ii}) = [];
+                        end
+                    else
+                        data(trial).(var2load{ii}) = [];
                     end
-                else
-                    data(trial).(var2load{ii}) = [];
                 end
             end
         end
@@ -120,7 +123,7 @@ for trial = 1:ntrials
             data(trial).dist2wells = data(trial).data.occupancy.dist2wells;
         catch
             for well = 1:4
-                data(trial).dist2wells = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm;
+                data(trial).dist2wells(:,well) = data(trial).occupancy.dist2wells(well).N(:,1)./pix2mm;
             end
         end
     elseif isfield(data(trial).dist2wells, 'N')
@@ -285,6 +288,7 @@ for ii = 1:nfoods+1
 end
 %Labels:
 % xlim([7,20])
+ylim([10,35])
 xlabel('temperature (\circC)')
 ylabel(ylab)
 title(strrep(ExpGroup,'_',' '))
@@ -1012,8 +1016,8 @@ clearvars('-except',vars{:})
 
 tempRegimes = unique(T.TempProtocol);
 n = size(tempRegimes,1);
-CList = Color('black','magenta', n);
-% CList = Color('cyan','magenta', n);
+% CList = Color('black','green', n);
+CList = Color('cyan','purple', n);
 LW = 1;
 sSpan = 180;
 row = 5;
@@ -1033,8 +1037,9 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
                 if isempty(time) % first time for this temp protocol
                     time = curr_time(1:end-1);
                     roi = 1:length(time);
-                    temp = data(trial).occupancy.temp(roi);
-                    distance = data(trial).occupancy.dist2wells(roi,T.foodLoc(trial));
+                    temp(:,1) = data(trial).occupancy.temp(roi);
+%                     distance = data(trial).occupancy.dist2wells(roi,T.foodLoc(trial));
+                    distance = data(trial).dist2wells(roi,T.foodLoc(trial));
                     movement = data(trial).occupancy.movement(roi);
                 else
                     if length(curr_time)<length(time) % shorter data 
@@ -1042,8 +1047,12 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
                     end
                     roi = 1:length(time)-1;
                     % other parameters
-                    temp = [temp(roi,:),data(trial).occupancy.temp(roi)];
-                    distance = [distance(roi,:),data(trial).occupancy.dist2wells(roi,T.foodLoc(trial))];
+                    try temp = [temp(roi,:),data(trial).occupancy.temp(roi)];
+                    catch
+                        temp = [temp(roi,:),data(trial).occupancy.temp(roi)'];
+                    end
+%                     distance = [distance(roi,:),data(trial).occupancy.dist2wells(roi,T.foodLoc(trial))];
+                    distance = [distance(roi,:),data(trial).dist2wells(roi,T.foodLoc(trial))];
                     movement = [movement(roi,:),data(trial).occupancy.movement(roi)];
                 end
                 
@@ -1067,7 +1076,7 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     subplot(row,col,sb(1).idx);
     ylabel('\circC')
     set(gca,'XColor', 'k')
-    title(ExpGroup,'color', 'w')
+%     title(ExpGroup,'color', 'w')
     subplot(row,col,sb(2).idx);
     ylabel('Distance to food (mm)')
     set(gca,'XColor', 'k')
@@ -1075,7 +1084,7 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     ylabel('Movement (~mm/s)')
     xlabel('Time (min)')
 
-save_figure(fig, [figDir 'temp protocols time course one only'], '-png');
+save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
 
 %% FIGURE: time course comparison across genotypes
 clearvars('-except',vars{:})

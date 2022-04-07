@@ -63,6 +63,8 @@ switch TempProtocolString
                            140400 148300];
        tempPoints.nRates = 3; % -0.25,0, 0.25
        tempPoints.rates = [-0.25,0,0.25];
+       tempPoints.threshLow = 5;
+       tempPoints.threshHigh = 30;
     case 'double_linear_heating_ramp'
         tempPoints.up =   [5549,23510;...
                            52221,70330;...
