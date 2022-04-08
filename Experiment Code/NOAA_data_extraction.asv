@@ -534,27 +534,31 @@ end
 
 
 % Radiation vs temperature slowly add new lines
-ii_range = 190:199;
-
 n = length(T.radi(:,ii));
 colorList = [Color('Blue','White',144); Color('White','Red',144)];
-for kk = 1:length(ii_range)
-    fig = figure; set(fig, 'pos', [-1072 430 1033 712]); hold on
-    for ii = ii_range(1):ii_range(kk)
-%         scatter(T.radi(:,ii),T.temp(:,ii),50,'filled')
-        xx = [T.radi(:,ii);T.radi(1:10,ii+1)];
-        yy = [T.temp(:,ii);T.temp(1:10,ii+1)];
-        plot(xx,yy,'linewidth',0.5,'marker','o')
-    end
+fig = figure; set(fig, 'pos', [-1072 430 1033 712]); hold on
+    ii = 15;
+    scatter(T.radi(:,ii),T.temp(:,ii),50, colorList,'filled')
+    xx = [T.radi(:,ii);T.radi(1:10,ii+1)];
+    yy = [T.temp(:,ii);T.temp(1:10,ii+1)];
+    plot(xx,yy,'color', 'w')
     axis tight
     xlabel('Solar radiation (W/m^2)')
     ylabel('Temperature (\circC)')
     formatFig(fig, true);
-    xlim([0 902])
-    ylim([9.9, 26.5])
-    save_figure(fig,[rootdir 'Figures/time series/radiation v temperature day ' num2str(kk)],'-png',true);
-end
+    xlim([0 532])
+    ylim([-15.4000, 5.0000])
+    save_figure(fig,[rootdir 'Figures/time series/radiation v temperature day ' num2str(ii)],'-png');
+
         
+    for ii = ii+1:ii+9
+        scatter(T.radi(:,ii),T.temp(:,ii),50, colorList,'filled')
+        xx = [T.radi(:,ii);T.radi(1:10,ii+1)];
+        yy = [T.temp(:,ii);T.temp(1:10,ii+1)];
+        plot(xx,yy,'color', 'w')
+    end
+    save_figure(fig,[rootdir 'Figures/time series/radiation v temperature day ' num2str(ii)],'-png');
+
     
 
     

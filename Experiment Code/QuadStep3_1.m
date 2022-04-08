@@ -672,8 +672,8 @@ for ii = 1:nRates
         idx = idx+2;
     end
 end
-legend(str,'textcolor', 'w', 'location', L_loc, 'box', 'off')
-set(gca,'fontsize', 20)
+legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
+set(gca,'fontsize', 18)
 %Save figure
 save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 
