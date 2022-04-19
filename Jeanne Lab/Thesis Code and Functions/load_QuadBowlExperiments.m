@@ -15,6 +15,8 @@ function [excelfile, Excel, xlFile] = load_QuadBowlExperiments
 switch getenv('COMPUTERNAME')
     case 'DENALI'
         baseFolder = 'G:\My Drive\Jeanne Lab\';
+    case 'ACADIA'
+        baseFolder = 'G:\My Drive\Jeanne Lab\';
     case 'TOGIAK'
         baseFolder = 'G:\My Drive\Jeanne Lab\';
     case 'EVYNPC'

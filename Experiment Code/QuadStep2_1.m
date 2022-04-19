@@ -47,7 +47,7 @@ for ii = 1:length(fileIdx)
 disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
-
+disp('Done with full set')
 
 
    

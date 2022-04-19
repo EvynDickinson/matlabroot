@@ -14,6 +14,9 @@ function fig = getfig(name, ~)
      case ''
         basePos = [50, 50, 1450, 900];
         outPos = [-1044 261 997 724];
+    case 'ACADIA'
+        basePos = [1932 686 1061 644];
+        outPos = [30 59 1488 923];
 end
     
 

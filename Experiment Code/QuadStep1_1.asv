@@ -69,12 +69,32 @@ for vid = 1:nvids
             continue
        end
    end
-   if ~dataIn
-        warndlg('Warning: file not found')
-        disp(vidBase)
-        return
-   end
-end; clear filePath fp_endings suf vidBase
+   if dataIn
+
+
+   fp1 = [vidBase '.h5'];
+   fp2 = [vidBase '.avi.predictions.slp.h5'];
+   fp3 = [vidBase '.avi.predictions.analysis.h5'];
+   
+
+    try
+        filePath = [baseFolder folder '/' expName '_' num2str(vid) '.h5'];
+        
+
+        data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+        data(vid).tracks = h5read(filePath,'/tracks');
+    catch
+        try 
+            filePath = [baseFolder folder '/' expName '_' num2str(vid) '.avi.predictions.slp.h5'];
+            data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+            data(vid).tracks = h5read(filePath,'/tracks');
+        catch
+            filePath = [baseFolder folder '/' expName '_' num2str(vid) '.avi.predictions.analysis.h5'];
+            data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+            data(vid).tracks = h5read(filePath,'/tracks');
+        end
+    end
+end; clear filePath
 
 initial_vars = who; initial_vars{end+1} = 'initial_vars';
 fprintf('\nNext\n')

@@ -63,7 +63,8 @@ switch TempProtocolString
                            140400 148300];
        tempPoints.nRates = 3; % -0.25,0, 0.25
        tempPoints.rates = [-0.25,0,0.25];
-       
+       tempPoints.threshLow = 5;
+       tempPoints.threshHigh = 30;
     case 'double_linear_heating_ramp'
         tempPoints.up =   [5549,23510;...
                            52221,70330;...
@@ -101,6 +102,17 @@ switch TempProtocolString
         tempPoints.down = [31561 49610;...
                            67721 85500;...
                            103601 121400];
+        tempPoints.nRates = 2;
+        tempPoints.rates = [-0.1, 0.1]; 
+        tempPoints.threshLow = 12;
+        tempPoints.threshHigh = 22;
+
+    case 'looping_ramps_13_25'
+        tempPoints.hold = [];
+        tempPoints.up =   [];
+        tempPoints.down = [3155 20058;...
+                           37328 54608;...
+                           72033 892];
         tempPoints.nRates = 2;
         tempPoints.rates = [-0.1, 0.1]; 
         tempPoints.threshLow = 12;
