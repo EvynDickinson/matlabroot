@@ -99,7 +99,7 @@ initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'pix2mm'};
 clearvars('-except',initial_vars{:})
 if questdlg('Save loaded data?')
-    save([figDir ExpGroup ' raw'])
+    save([figDir ExpGroup ' raw'],'-v7.3')
 end
 fprintf('Data loaded\n')
 

@@ -70,8 +70,9 @@ for vid = 1:nvids
        end
    end
    if ~dataIn
-        warndlg('Warning: file not found')
         disp(vidBase)
+        h = warndlg('Warning: file not found');
+        uiwait(h)
         return
    end
 end; clear filePath fp_endings suf vidBase
