@@ -44,13 +44,14 @@ switch UserChoice
         threshHigh = str2double(answer{2});
         
     case 'auto'
-        [threshHigh, threshLow] = deal([]);
-
         for ii = 1:length(tempProtocols)
             tempPoints = getTempTurnPoints(tempProtocols{ii});
-            threshHigh = max([threshHigh, tempPoints.threshHigh]);
-            threshLow = min([threshLow, tempPoints.threshLow]);
-        end
+            threshHigh = max([te]);
+            
+        tempPoints.threshLow = 14;
+        tempPoints.threshHigh = 22;
+
+
     case ''
         return
 end
