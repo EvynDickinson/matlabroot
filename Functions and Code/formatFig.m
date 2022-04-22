@@ -15,10 +15,10 @@ function figHandle = formatFig(figHandle, BandWoption, sbplots, subplotInd)
 % University of Washington, 2020
 
 % default parameters:
-txtSize = 18; % text size
+txtSize = 16; % text size
 axisLW = 2; % axis line width
 txtFont = 'Arial'; % all fonts
-tickMarkSize = 15;    
+tickMarkSize = 14;    
 tickDir = 'in'; 
 
 % SET PLOT BACKGROUND COLOR
