@@ -260,7 +260,7 @@ testD(:,1) = [];
 % -------------------------------- lamda optimization  ----------------------------------
 % Test a set of lamda values to find the best model version
 lambda_val = [];
-nLambda = 1000;
+nLambda = 500;
 lambda_val(:,1) = logspace(-4,2,nLambda);
 
 tic
@@ -284,6 +284,9 @@ for ii = 1:nLambda
     lassoData.train_MSE(ii) = mdl(ii).train_MSE;
     lassoData.test_MSE(ii) = mdl(ii).test_MSE;
     lassoData.B(:,ii) = mdl(ii).B;
+    if rem(ii,25)==0
+        disp(ii)
+    end
 end
 toc
 
@@ -341,6 +344,267 @@ fig = figure; hold on
 save_figure(fig, [figPath mdlName ' preditions'], '-png');
 
 
-%% SAVE
+%% Model 5
+% L2 regularization GLM
+clearvars('-except',initial_vars{:})
 
-save([directoryPath '\model data.mat'],'models')
+mdlName = 'L2 regularization';
+
+% pull structures off GPU
+X = gather(trainX);
+Y = gather(trainY); 
+tX = gather(testX);
+tY = gather(testY);
+
+% -------------------------------- lamda optimization  ----------------------------------
+% Test a set of lamda values to find the best model version
+lambda_val = [];
+nLambda = 500;
+% lambda_val(:,1) = logspace(-2,12,nLambda);
+lambda_val(:,1) = logspace(6,10,nLambda);
+
+
+tic
+% test various values of lamda on the training data to see the best model fits
+[mdl,ridgeData] = deal([]);
+for ii = 1:nLambda
+    % pick a lambda value
+    mdl(ii).lambda = lambda_val(ii); % goes up by an order of magnitude each time
+    
+    % fit linear regression model with LASSO regularization
+    mdl(ii).B = ridge(Y,X,mdl(ii).lambda);
+
+    % find Y-train-hat and MSE 
+    data = mdl(ii).B.*X';
+    mdl(ii).train_y_hat = sum(data,1);
+    mdl(ii).train_MSE = (1/length(Y))*sum((Y-mdl(ii).train_y_hat').^2);
+
+    % fit the test data for each lambda model
+    data = mdl(ii).B.*tX';
+    mdl(ii).y_hat = sum(data,1);
+    mdl(ii).MSE = (1/length(tY))*sum((tY-mdl(ii).y_hat').^2);
+
+    % plot data
+    ridgeData.lambda(ii) = mdl(ii).lambda;
+    ridgeData.train_MSE(ii) = mdl(ii).train_MSE;
+    ridgeData.test_MSE(ii) = mdl(ii).MSE;
+    ridgeData.B(:,ii) = mdl(ii).B;
+
+    if rem(ii,25)==0
+        disp(ii)
+    end
+end
+toc
+
+% 'best' model fit: (aka best mix of bias and variance)
+[~,loc] = min(ridgeData.test_MSE);
+lamda = lambda_val(loc);
+
+% FIGURE: lambda values and prediction MSE 
+LW = 1.5;
+CList = Color('midnightblue','powderblue',20);
+fig = figure; 
+hold on
+    plot(ridgeData.lambda,ridgeData.train_MSE,'color', Color('teal'),'LineWidth',LW)
+    plot(ridgeData.lambda,ridgeData.test_MSE,'color', Color('orange'),'LineWidth',LW)
+    set(gca,'XScale','log')
+    set(gca,'YScale', 'log')
+    v_line(lamda,'darkgrey',':',2)
+    % labels and formatting
+    title(mdlName)
+    xlabel('\lambda')
+    ylabel('MSE')
+    set(gca,'fontsize', 15)
+    legend({'Train Data', 'Test Data'},'FontSize',13,'Color','k','Box','off','Location','southwest')
+formatFig(fig);
+
+save_figure(fig, [figPath mdlName ' lamda parameters'], '-png');
+% ---------------------------------------------------------------------------------------
+
+% Get full model with optimized lambda:
+y_hat = mdl(loc).y_hat';
+mse = gather(mdl(loc).MSE);
+
+% store data for later comparison
+models(5).name = mdlName;
+models(5).mdl = mdl(loc);
+models(5).y_hat = y_hat;
+models(5).mse = mse;
+
+% Plot example of model predictions:
+fig = figure; hold on
+    % test data
+    [warming, cooling, tempList] = heatingvscooling(testX,testY);
+    plot(tempList,warming,'color', Color('red'),'linewidth', 2)
+    plot(tempList,cooling,'color', Color('dodgerblue'),'linewidth', 2)
+    % prediction data
+    [warming, cooling, tempList] = heatingvscooling(testX,y_hat);
+    plot(tempList,warming,'color', Color('darkred'),'linewidth', 2)
+    plot(tempList,cooling,'color', Color('blue'),'linewidth', 2)
+
+    xlabel('temperature (\circC)')
+    ylabel('distance from food (mm)')
+    title(mdlName)
+    formatFig(fig);
+    legend({'test warming', 'test cooling','model warming', 'model cooling'},'box', 'off')
+
+save_figure(fig, [figPath mdlName ' preditions'], '-png');
+
+
+%% Model 6 
+% L2 regularization with interactions GLM
+clearvars('-except',initial_vars{:})
+
+mdlName = 'L2 with interactions';
+
+% pull structures off GPU
+X = gather(trainX);
+Y = gather(trainY); 
+tX = gather(testX);
+tY = gather(testY);
+
+% build in interactions terms
+D = x2fx(X,'interaction');
+D(:,1) = []; % No constant term
+testD = x2fx(tX,'interaction');
+testD(:,1) = []; 
+
+
+% -------------------------------- lamda optimization  ----------------------------------
+% Test a set of lamda values to find the best model version
+lambda_val = [];
+nLambda = 500;
+lambda_val(:,1) = logspace(5,11,nLambda);
+
+tic
+% test various values of lamda on the training data to see the best model fits
+[mdl,ridgeData] = deal([]);
+for ii = 1:nLambda
+    % pick a lambda value
+    mdl(ii).lambda = lambda_val(ii); % goes up by an order of magnitude each time
+    
+    % fit linear regression model with RIDGE regularization
+    mdl(ii).B = ridge(Y,D,mdl(ii).lambda);
+
+    % find Y-train-hat and MSE 
+    data = mdl(ii).B.*D';
+    mdl(ii).train_y_hat = sum(data,1);
+    mdl(ii).train_MSE = (1/length(Y))*sum((Y-mdl(ii).train_y_hat').^2);
+
+    % fit the test data for each lambda model
+    data = mdl(ii).B.*testD';
+    mdl(ii).y_hat = sum(data,1);
+    mdl(ii).MSE = (1/length(tY))*sum((tY-mdl(ii).y_hat').^2);
+
+    % plot data
+    ridgeData.lambda(ii) = mdl(ii).lambda;
+    ridgeData.train_MSE(ii) = mdl(ii).train_MSE;
+    ridgeData.test_MSE(ii) = mdl(ii).MSE;
+    ridgeData.B(:,ii) = mdl(ii).B;
+    if rem(ii,25)==0
+        disp(ii)
+    end
+end
+toc
+
+
+
+% 'best' model fit: (aka best mix of bias and variance)
+[~,loc] = min(ridgeData.test_MSE);
+lamda = lambda_val(loc);
+
+% FIGURE: lambda values and prediction MSE 
+LW = 1.5;
+CList = Color('midnightblue','powderblue',20);
+fig = figure; 
+hold on
+    plot(ridgeData.lambda,ridgeData.train_MSE,'color', Color('teal'),'LineWidth',LW)
+    plot(ridgeData.lambda,ridgeData.test_MSE,'color', Color('orange'),'LineWidth',LW)
+    set(gca,'XScale','log','YScale','log')
+    
+    v_line(lamda,'darkgrey',':',2)
+    % labels and formatting
+    title(mdlName)
+    xlabel('\lambda')
+    ylabel('MSE')
+    set(gca,'fontsize', 15)
+    legend({'Train Data', 'Test Data'},'FontSize',13,'Color','k','Box','off','Location','southwest')
+formatFig(fig);
+
+save_figure(fig, [figPath mdlName ' lamda parameters'], '-png');
+% ---------------------------------------------------------------------------------------
+
+% Get full model with optimized lambda:
+y_hat = mdl(loc).y_hat';
+mse = gather(mdl(loc).MSE);
+
+% store data for later comparison
+models(6).name = mdlName;
+models(6).mdl = mdl(loc);
+models(6).y_hat = y_hat;
+models(6).mse = mse;
+
+% Plot example of model predictions:
+fig = figure; hold on
+    % test data
+    [warming, cooling, tempList] = heatingvscooling(testX,testY);
+    plot(tempList,warming,'color', Color('red'),'linewidth', 2)
+    plot(tempList,cooling,'color', Color('dodgerblue'),'linewidth', 2)
+    % prediction data
+    [warming, cooling, tempList] = heatingvscooling(testX,y_hat);
+    plot(tempList,warming,'color', Color('darkred'),'linewidth', 2)
+    plot(tempList,cooling,'color', Color('blue'),'linewidth', 2)
+
+    xlabel('temperature (\circC)')
+    ylabel('distance from food (mm)')
+    title(mdlName)
+    formatFig(fig);
+    legend({'test warming', 'test cooling','model warming', 'model cooling'},'box', 'off')
+
+save_figure(fig, [figPath mdlName ' preditions'], '-png');
+
+%% Coefficent comparisons
+
+% ---- Pull the coefficients for each model ----
+B = struct;
+% simple GLM
+B(1).coeff = gather(models(1).mdl.Coefficients.Estimate);
+B(1).predictors = ['intercept',predictors(1:end-1)];
+% simple GLM with interactions
+B(2).coeff = gather(models(2).mdl.Coefficients.Estimate);
+B(2).predictors = models(2).mdl.CoefficientNames;  
+% L1 GLM
+B(3).coeff = models(3).mdl.B;
+B(3).predictors = [predictors(1:end-1)];
+% L1 GLM with interactions
+B(4).coeff = models(4).mdl.B;
+B(4).predictors = B(2).predictors(2:end); % doesn't include an intercept
+% L2 GLM
+B(5).coeff = models(5).mdl.B;
+B(5).predictors = [predictors(1:end-1)];
+% L2 GLM with interactions
+B(6).coeff = models(6).mdl.B;
+B(6).predictors = B(2).predictors(2:end); % doesn't include an intercept
+
+% FIGURE: plot the data
+fig
+
+
+
+
+
+
+
+
+
+
+%% SAVE working data
+
+save('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\model data.mat','models')
+save('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\working data.mat','-v7.3');
+
+
+% LOAD working data:
+load('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\working data.mat','-v7.3');
+
+
