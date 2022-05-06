@@ -564,13 +564,14 @@ fig = figure; hold on
 save_figure(fig, [figPath mdlName ' preditions'], '-png');
 
 %% Coefficent comparisons
+nModel = 6;   % number of models included  
+nParams = 67; % largest number of model features
 
 % ---- Pull the coefficients for each model ----
 B = struct;
 % simple GLM
 B(1).coeff = gather(models(1).mdl.Coefficients.Estimate);
 B(1).predictors = ['intercept',predictors(1:end-1)];
-B(1).color = 
 % simple GLM with interactions
 B(2).coeff = gather(models(2).mdl.Coefficients.Estimate);
 B(2).predictors = models(2).mdl.CoefficientNames;  
@@ -587,18 +588,124 @@ B(5).predictors = ['intercept',predictors(1:end-1)];
 B(6).coeff = [nan; models(6).mdl.B];
 B(6).predictors = B(2).predictors; % doesn't include an intercept
 
-% FIGURE: plot the data
+mdlWeight = nan(nParams,nModel);
+for ii = 1:nModel
+    mdlWeight(1:length(B(ii).coeff),ii) = B(ii).coeff;
+end
 
-fig = figure; hold on
-bar
+% Model Color Assignment
+CList = {'Indigo','DarkViolet','Orange','Gold','Blue','DodgerBlue'};
+for ii = 1:nModel
+    B(ii).color = Color(CList{ii});
+end
+
+
+% FIGURES: plot the coefficients for each model
+for ii = 3:nModel
+    fig = figure; set(fig,'pos', [1950 764 989 498])
+        hold on
+        plotY = mdlWeight(:,ii);
+        loc = isnan(plotY);
+        plotY(loc) = [];
+        plotX = 1:nParams;
+        plotX(loc) = [];
+        
+        h = bar(plotX,plotY);
+        set(h,'BarWidth',0.8,'FaceColor',B(ii).color, 'EdgeColor','k','FaceAlpha',1)
+        set(gca,'YScale','log')
+        xlabel('Feature')
+        ylabel('Coefficient (feature weight)')
+        title(models(ii).name)
+        formatFig(fig);
+    
+    save_figure(fig, [figPath models(ii).name ' coefficient weights'], '-png');
+end
+
+% FIGURE: plot the coefficients compared across models
+fig = figure; set(fig, 'pos',[1960 827 940 438])
+    hold on
+    for ii = 1:nModel
+        scatter(1:nParams,mdlWeight(:,ii),50,B(ii).color,'filled')
+    end
+    set(gca, 'YScale', 'log')
+    xlabel('Feature')
+    ylabel('Coefficient (feature weight)')
+    formatFig(fig);
+save_figure(fig, [figPath 'All models coefficient weights'], '-png');
+
+% 
+% % FIGURE: plot the first twelve feature coefficients across models
+% fig = figure; set(fig, 'pos',[1960 827 940 438])
+% subplot(2,1,1)
+% % first 12 features
+% hold on
+% for ii = 1:nModel
+%     scatter(1:12,mdlWeight(1:12,ii),50,B(ii).color,'filled')
+% end
+% % set(gca, 'YScale', 'log')
+% % ylim([-10^2,10^2])
+% xlabel('Feature')
+% ylabel('Coefficient (feature weight)')
+% 
+% subplot(2,1,2)
+% % first 12 features
+% hold on
+% for ii = 1:nModel
+%     scatter(1:12,mdlWeight(1:12,ii),50,B(ii).color,'filled')
+% end
+% set(gca, 'YScale', 'log')
+% xlabel('Feature')
+% ylabel('Coefficient (feature weight)')
 
 
 
 
+% 
+% % FIGURE: plot the first twelve feature coefficients across models
+% buff = linspace(-0.3,0.3,nModel);
+% 
+% fig = figure; set(fig, 'pos',[1960 827 940 438])
+% % first 12 features
+% hold on
+% for ii = 1:nModel
+% %     xplot = [buff(ii)+(1:12)',buff(ii)+(1:12)'];
+% %     yplot = [zeros([1,12])',mdlWeight(1:12,ii)];
+%     for jj = 1:12
+%         plot([buff(ii)+jj,buff(ii)+jj],[0,mdlWeight(jj,ii)],'linewidth',0.5,'Color',B(ii).color)
+%     end
+%     scatter(buff(ii)+(1:12),mdlWeight(1:12,ii),50,B(ii).color,'filled')
+% end
+% % set(gca, 'YScale', 'log')
+% ylim([-50,80])
+% xlabel('Feature')
+% ylabel('Coefficient (feature weight)')
+% 
+% x_loc = (1:nModel)
+
+%% Comparision of model MSE
+
+for ii = 1:nModel
+    mdlNames{ii} = models(ii).name;
+end
 
 
+% FIGURE: plot the first twelve feature coefficients across models
+buff = linspace(-0.3,0.3,nModel);
 
+fig = figure; set(fig, 'pos',[1960 664 473 601])
+    hold on
+    for ii = 1:nModel
+        plot([ii,ii],[0,models(ii).mse],'linewidth',1.5,'Color',B(ii).color)
+        scatter(ii,models(ii).mse,75,B(ii).color,'filled')
+    end
+    xlim([0,nModel+1])
+    ax = gca;
+    ax.XTick = 1:nModel;
+    ax.XTickLabel = mdlNames;
+    ylabel('MSE')
+    formatFig(fig);
 
+save_figure(fig, [figPath 'All models MSE'], '-png');
 
 
 
