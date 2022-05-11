@@ -56,6 +56,10 @@ initial_vars{end+1} = 'models';
 %% FIGURE: summary example of the data
 
 fig = figure; hold on
+    % All data
+    [warming, cooling, tempList] = heatingvscooling(regressionData(:,1:11),regressionData(:,12));
+    plot(tempList,warming,'color', Color('black'),'linewidth', 2)
+    plot(tempList,cooling,'color', Color('darkgrey'),'linewidth', 2)
     % test data
     [warming, cooling, tempList] = heatingvscooling(testX,testY);
     plot(tempList,warming,'color', Color('red'),'linewidth', 2)
@@ -69,7 +73,7 @@ fig = figure; hold on
     ylabel('distance from food (mm)')
     title('raw data')
     formatFig(fig);
-    legend({'test warming', 'test cooling','train warming', 'train cooling'},'box', 'off')
+    legend({'all data warming', 'all data cooling','test warming', 'test cooling','train warming', 'train cooling'},'box', 'off')
 
 save_figure(fig, [figPath 'Raw data test train division'], '-png');
 
@@ -465,15 +469,13 @@ tY = gather(testY);
 
 % build in interactions terms
 D = x2fx(X,'interaction');
-D(:,1) = []; % No constant term
 testD = x2fx(tX,'interaction');
-testD(:,1) = []; 
 
 
 % -------------------------------- lamda optimization  ----------------------------------
 % Test a set of lamda values to find the best model version
 lambda_val = [];
-nLambda = 500;
+nLambda = 250;
 lambda_val(:,1) = logspace(5,11,nLambda);
 
 tic
@@ -506,8 +508,6 @@ for ii = 1:nLambda
     end
 end
 toc
-
-
 
 % 'best' model fit: (aka best mix of bias and variance)
 [~,loc] = min(ridgeData.test_MSE);
@@ -585,7 +585,7 @@ B(4).predictors = B(2).predictors;
 B(5).coeff = [nan; models(5).mdl.B];
 B(5).predictors = ['intercept',predictors(1:end-1)];
 % L2 GLM with interactions
-B(6).coeff = [nan; models(6).mdl.B];
+B(6).coeff = models(6).mdl.B;
 B(6).predictors = B(2).predictors; % doesn't include an intercept
 
 mdlWeight = nan(nParams,nModel);
@@ -597,11 +597,16 @@ end
 CList = {'Indigo','DarkViolet','Orange','Gold','Blue','DodgerBlue'};
 for ii = 1:nModel
     B(ii).color = Color(CList{ii});
+    mdlNames{ii} = models(ii).name;
+    mse(ii,1) = gather(models(ii).mse);
 end
 
+tbl = table(mdlNames',mse,'VariableNames', {'Model','MSE'});
+fprintf('\n\n Model MSEs\n\n')
+disp(tbl)
 
 % FIGURES: plot the coefficients for each model
-for ii = 3:nModel
+for ii = 1:nModel
     fig = figure; set(fig,'pos', [1950 764 989 498])
         hold on
         plotY = mdlWeight(:,ii);
@@ -612,82 +617,72 @@ for ii = 3:nModel
         
         h = bar(plotX,plotY);
         set(h,'BarWidth',0.8,'FaceColor',B(ii).color, 'EdgeColor','k','FaceAlpha',1)
-        set(gca,'YScale','log')
+%         set(gca,'YScale','log')
         xlabel('Feature')
         ylabel('Coefficient (feature weight)')
         title(models(ii).name)
         formatFig(fig);
     
-    save_figure(fig, [figPath models(ii).name ' coefficient weights'], '-png');
+    save_figure(fig, [figPath models(ii).name ' coefficient weights not log'], '-png');
 end
+
+%% Plot all the coefficients across the models together
+
 
 % FIGURE: plot the coefficients compared across models
-fig = figure; set(fig, 'pos',[1960 827 940 438])
-    hold on
-    for ii = 1:nModel
+fig = figure; set(fig, 'pos',[-1003 377 940 915])
+subplot(2,1,1)
+hold on; roi = 1:2;
+    for ii = roi
         scatter(1:nParams,mdlWeight(:,ii),50,B(ii).color,'filled')
     end
-    set(gca, 'YScale', 'log')
     xlabel('Feature')
     ylabel('Coefficient (feature weight)')
-    formatFig(fig);
+    legend(mdlNames(roi),'box','off')
+    
+subplot(2,1,2); roi = 3:nModel;
+    hold on
+    for ii = roi
+        scatter(1:nParams,mdlWeight(:,ii),50,B(ii).color,'filled')
+    end
+    xlabel('Feature')
+    ylabel('Coefficient (feature weight)')
+    legend(mdlNames(roi),'box','off')
+    
+formatFig(fig, false, [2,1]);
 save_figure(fig, [figPath 'All models coefficient weights'], '-png');
 
-% 
-% % FIGURE: plot the first twelve feature coefficients across models
-% fig = figure; set(fig, 'pos',[1960 827 940 438])
-% subplot(2,1,1)
-% % first 12 features
-% hold on
-% for ii = 1:nModel
-%     scatter(1:12,mdlWeight(1:12,ii),50,B(ii).color,'filled')
-% end
-% % set(gca, 'YScale', 'log')
-% % ylim([-10^2,10^2])
-% xlabel('Feature')
-% ylabel('Coefficient (feature weight)')
-% 
-% subplot(2,1,2)
-% % first 12 features
-% hold on
-% for ii = 1:nModel
-%     scatter(1:12,mdlWeight(1:12,ii),50,B(ii).color,'filled')
-% end
-% set(gca, 'YScale', 'log')
-% xlabel('Feature')
-% ylabel('Coefficient (feature weight)')
 
+% Make tables showing the largest features and what they represent for each model
 
-
-
-% 
-% % FIGURE: plot the first twelve feature coefficients across models
-% buff = linspace(-0.3,0.3,nModel);
-% 
-% fig = figure; set(fig, 'pos',[1960 827 940 438])
-% % first 12 features
-% hold on
-% for ii = 1:nModel
-% %     xplot = [buff(ii)+(1:12)',buff(ii)+(1:12)'];
-% %     yplot = [zeros([1,12])',mdlWeight(1:12,ii)];
-%     for jj = 1:12
-%         plot([buff(ii)+jj,buff(ii)+jj],[0,mdlWeight(jj,ii)],'linewidth',0.5,'Color',B(ii).color)
-%     end
-%     scatter(buff(ii)+(1:12),mdlWeight(1:12,ii),50,B(ii).color,'filled')
-% end
-% % set(gca, 'YScale', 'log')
-% ylim([-50,80])
-% xlabel('Feature')
-% ylabel('Coefficient (feature weight)')
-% 
-% x_loc = (1:nModel)
-
-%% Comparision of model MSE
-
-for ii = 1:nModel
-    mdlNames{ii} = models(ii).name;
+for ii = 1:2
+    % organize the coefficients to find the largest 
+    sortedFeatures = [abs(mdlWeight(:,ii)),mdlWeight(:,ii),(1:nParams)'];
+    sortedFeatures(isnan(sortedFeatures(:,1)),:) = [];
+    % add p-values into the structure
+    sortedFeatures(:,4) = gather(models(ii).mdl.Coefficients.pValue);
+    Features = sortrows(sortedFeatures,'descend');
+    % pull the names of the largest cofficients
+    tbl = table(B(2).predictors(Features(:,3))', Features(:,2), Features(:,4),'VariableNames', {'Feature', 'Coefficient','P-Value'});
+    fprintf(['\n\nModel: ' mdlNames{ii} '\n\n'])
+    disp(tbl)
 end
 
+
+for ii = 3:6
+    % organize the coefficients to find the largest 
+    sortedFeatures = [abs(mdlWeight(:,ii)),mdlWeight(:,ii),(1:nParams)'];
+    sortedFeatures(isnan(sortedFeatures(:,1)),:) = [];
+    Features = sortrows(sortedFeatures,'descend');
+    % pull the names of the largest cofficients
+    tbl = table(B(2).predictors(Features(:,3))', Features(:,2), 'VariableNames', {'Feature', 'Coefficient'});
+    fprintf(['\n\nModel: ' mdlNames{ii} '\n\n'])
+    disp(tbl)
+end
+    
+    
+    
+%% Comparision of model MSE
 
 % FIGURE: plot the first twelve feature coefficients across models
 buff = linspace(-0.3,0.3,nModel);
@@ -702,6 +697,7 @@ fig = figure; set(fig, 'pos',[1960 664 473 601])
     ax = gca;
     ax.XTick = 1:nModel;
     ax.XTickLabel = mdlNames;
+    ax.XTickLabelRotation = 30;
     ylabel('MSE')
     formatFig(fig);
 
@@ -711,11 +707,11 @@ save_figure(fig, [figPath 'All models MSE'], '-png');
 
 %% SAVE working data
 
-save('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\model data.mat','models','B');
+save('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\model data.mat','models');
 save('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\working data.mat','-v7.3');
 
 
 % LOAD working data:
-load('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\working data.mat','-v7.3');
+load('G:\My Drive\INP 599 Stats and Data Analysis\INP599_ESD39_finalproject\working data.mat');
 
 
