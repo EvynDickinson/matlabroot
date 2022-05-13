@@ -165,18 +165,34 @@ fig = figure; set(fig, 'position', [107 595 1150 235]); hold on
 for trial = 1:ntrials
     X = data(trial).occupancy.time;
     Y = data(trial).occupancy.temp;
-    plot(X, Y, 'linewidth', 1)
+    plot(X, Y, 'linewidth', 1) 
 end
 xlabel('Time (min)')
 ylabel('Temp (\circ)')
 title({'temperature alignment across experiments';...
       ['N = ' num2str(ntrials)]})
-formatFig(fig, true);
+formatFig(fig, false);
 
 save_figure(fig, [figDir 'temperature alignment'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
+
+% % POSTER CODE:
+% CList = {'DodgerBlue', 'Magenta'};
+% ii = 0;
+% fig = figure; set(fig, 'position', [107 595 1150 235]); hold on
+% for trial = [1,ntrials]
+%     ii = ii+1;
+%     X = data(trial).occupancy.time;
+%     Y = data(trial).occupancy.temp;
+%     plot(X, Y, 'linewidth', 2, 'color', Color(CList{ii}))
+% end
+% xlabel('Time (min)')
+% ylabel('Temp (\circ)')
+% formatFig(fig, false);
+% save_figure(fig, [figDir 'temperature alignment'], '-pdf');
+% 
 
 %% FIGURE: Distance to food vs temperature -- ALL trial lines
 sSpan = 360;
@@ -300,6 +316,41 @@ legend(str,'textcolor', 'w', 'location', L_loc, 'box', 'off','fontsize',12)
 
 save_figure(fig, [figDir 'Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
+
+% % POSTER CODE:
+% % FIGURE: plot the avg. temp vs. distance data
+% CList = Color('SteelBlue', 'magenta', nfoods);
+% CList(nfoods+1,:) = Color('black');
+% 
+% fig = figure; set(fig,'pos', [67 82 675 692]);
+% hold on
+% for ii = 1:nfoods+1
+%     kolor = CList(ii,:);
+%     x = t_roi;
+%     y = food(ii).avg;
+% %     y_err = food(ii).err;
+% %     fill_data = error_fill(x,y, y_err);
+% %     h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+% %     set(h, 'facealpha', 0.35)
+%     plot(x, y, 'Color', kolor, 'LineWidth', 2)
+% %     plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
+% %     plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
+% end
+% %Labels:
+% % xlim([7,20])
+% ylim([10,35])
+% xlabel('temperature (\circC)')
+% ylabel(ylab)
+% title('')
+% formatFig(fig,false);
+% ax = gca;
+% set(ax, 'FontSize', 18)
+% str = strrep([foodNames; 'Empty'],'_',' ');
+% str = {'Glucose','Molasses','Plant','Empty'};
+% legend(str,'textcolor', 'k', 'location', L_loc, 'box', 'off','fontsize',12)
+% save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
+
+
 
 %% FIGURE: Average movement | cluserting | eccentricity vs temp across trials:
 
