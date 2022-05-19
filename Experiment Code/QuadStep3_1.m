@@ -192,7 +192,6 @@ fprintf('Next\n')
 % ylabel('Temp (\circ)')
 % formatFig(fig, false);
 % save_figure(fig, [figDir 'temperature alignment'], '-pdf');
-% 
 
 %% FIGURE: Distance to food vs temperature -- ALL trial lines
 sSpan = 360;
@@ -322,25 +321,25 @@ clearvars('-except',initial_vars{:})
 % CList = Color('SteelBlue', 'magenta', nfoods);
 % CList(nfoods+1,:) = Color('black');
 % 
-% fig = figure; set(fig,'pos', [67 82 675 692]);
+% fig = figure; set(fig,'pos', [-789 398 480 717]);
 % hold on
 % for ii = 1:nfoods+1
 %     kolor = CList(ii,:);
-%     x = t_roi;
-%     y = food(ii).avg;
-% %     y_err = food(ii).err;
+%     x = t_roi(1:end-1);
+%     y = food(ii).avg(1:end-1);
+%     y_err = food(ii).err(1:end-1);
 % %     fill_data = error_fill(x,y, y_err);
-% %     h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+% %     h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
 % %     set(h, 'facealpha', 0.35)
 %     plot(x, y, 'Color', kolor, 'LineWidth', 2)
-% %     plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
-% %     plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
+%     plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25,'HandleVisibility','off')
+%     plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25,'HandleVisibility','off')
 % end
 % %Labels:
 % % xlim([7,20])
 % ylim([10,35])
 % xlabel('temperature (\circC)')
-% ylabel(ylab)
+% ylabel('distance from well (mm)')
 % title('')
 % formatFig(fig,false);
 % ax = gca;
@@ -348,9 +347,8 @@ clearvars('-except',initial_vars{:})
 % str = strrep([foodNames; 'Empty'],'_',' ');
 % str = {'Glucose','Molasses','Plant','Empty'};
 % legend(str,'textcolor', 'k', 'location', L_loc, 'box', 'off','fontsize',12)
-% save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
-
-
+% save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-pdf');
+% clearvars('-except',initial_vars{:})
 
 %% FIGURE: Average movement | cluserting | eccentricity vs temp across trials:
 
@@ -433,6 +431,33 @@ set(ax, 'FontSize', 18)
 
 save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
+
+% 
+% % POSTER CODE:   
+% % FIGURE: plot the avg. temp vs. distance data
+% kolor = Color('black');
+% 
+% fig = figure; set(fig,'pos', [67 82 675 692]);
+% hold on
+% x = t_roi;
+% y = food.avg./pix2mm;
+% y_err = food.err./pix2mm;
+% 
+% plot(x, y, 'Color', kolor, 'LineWidth', 2)
+% plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
+% plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
+% 
+% %Labels:
+% % xlim([7,20])
+% xlabel('temperature (\circC)')
+% ylabel(ylab)
+% % ylabel(ylab)
+% formatFig(fig);
+% ax = gca;
+% set(ax, 'FontSize', 18)
+% 
+% save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace)], '-pdf');
+% clearvars('-except',initial_vars{:})
 
 %% FIGURE: group movement histogram
 
@@ -599,7 +624,7 @@ clearvars('-except',vars{:})
 end
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
-
+clearvars('-except',vars{:}) 
 dataType =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
 
 switch dataType
@@ -681,6 +706,41 @@ fig = figure; set(fig, 'pos', [560 127 983 417]);
 
 save_figure(fig, [figDir 'Temp_rate ' dataType ' heatmap'], '-png');
 
+% % POSTER CODE
+% % ========= HeatMap of dT/dt vs T =============
+% fig = figure; set(fig, 'pos', [560 127 983 417]);
+%     hold on
+%     imAlpha=ones(size(heatMapData));
+%     imAlpha(isnan(heatMapData))=0;
+%     imagesc(heatMapData,'AlphaData',imAlpha);
+%     set(gca,'color',[1 1 1]);
+%     axis tight
+%    
+%     % Axes formatting
+%     ax = gca;
+%     fig = formatFig(fig);
+%     XtickNum = ax.XTick;
+%     ax.XTickLabel = t_roi(XtickNum);
+%     YtickNum = ax.YTick;
+%     try ax.YTickLabel = tRates(YtickNum);
+%         
+%     catch
+%         ax.YTick = 1:length(tRates);
+%         ax.YTickLabel = tRates;
+%     end
+%     ylabel('\DeltaT/t (\circC/min)')
+%     xlabel('temperature (\circC)')
+%     % Colorbar formatting
+%     cbh = colorbar(); 
+%     cbh.Label.String = ylab;
+%     cbh.Color = Color('black');
+%     % flip colormap around to make yellow closer to food
+%     if strcmp(dataType,'distance')
+%         cmap = colormap;
+%         set(gca, 'colormap', flip(cmap))
+%     end
+% save_figure(fig, [figDir 'Temp_rate ' dataType ' heatmap'], '-pdf');
+% 
 % ========== Line plots of each rate comparison ==============
 LS = {'--','-.','-'}; %cooling|stationary|heating
 
@@ -727,8 +787,52 @@ legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
 set(gca,'fontsize', 18)
 %Save figure
 save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
+% 
 
 
+% ---- POSTER CODE -----
+LS = {'--','-.','-'}; %cooling|stationary|heating
+fig = figure; set(fig, 'pos',[-768 538 341 645])
+hold on
+for rr = 1:nRates
+    if tRates(rr)>0
+        lstyle = LS{3};
+        kolor = Color('darkred');
+    elseif tRates(rr)<0
+        lstyle = LS{1};
+        kolor = Color('navy');
+    elseif tRates(rr)==0
+        continue
+        lstyle = LS{2};
+        kolor = Color('white');
+    end
+%     kolor = pullFoodColor(tRates(rr));
+    x = t_roi;
+    y = plotData.avg(rr,:);
+    y_err = plotData.err(rr,:);
+%     plot(x,y,'color', kolor, 'linewidth', 2.5)%Color(cList{rr})
+    plot(x,y,'color', Color('darkgreen'), 'linewidth', 2.5,'linestyle', lstyle)
+    if nRates<4
+%         plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%         plot(x,y-y_err,'color', kolor, 'linewidth', 0.5,'linestyle', lstyle)
+        
+        plot(x,y+y_err,'color', Color('darkgreen'), 'linewidth', 0.5, 'linestyle', lstyle)
+        plot(x,y-y_err,'color', Color('darkgreen'), 'linewidth', 0.5,'linestyle', lstyle)
+    end
+end
+% title(ExpGroup)
+ylabel('movement (~mm/s)')
+% ylabel('distance from food (mm)')
+xlabel('temperature (\circC)')
+formatFig(fig, false);
+axis tight
+xlim([threshLow-2, threshHigh+2])
+set(gca,'fontsize', 15)
+ylim([10,28])
+%Save figure
+save_figure(fig, [figDir 'temp_rate ' dataType ' Berlin vs Cantons all rates demo'], '-pdf');
+
+save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Neuroscience retreat poster 5.25.2022\Berlin vs Cantons movement all rates demo', '-pdf');
 
 % ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
 % TODO: adjust this to account for actual data...
@@ -978,8 +1082,11 @@ clearvars('-except',vars{:})
 
 % tempList = [8,12,17,22];
 % rateList = [0.16,-0.16];
-tempList = [15,20,25,30];
-rateList = [0.15,-0.15];
+% tempList = [15,20,25,30];
+% rateList = [0.15,-0.15];
+
+% tempList = [8,12,17,22];
+% rateList = [0.16,-0.16];
 
 n = 10; % number of spatial bins
 tt = 1; 
@@ -1060,6 +1167,119 @@ for rr = 1:length(rateList)
 end
 
 save_figure(fig, [figDir 'Four temp hysteresis position heatmaps'], '-png');
+clearvars('-except',vars{:})
+
+%% FIGURE: Heat map of location within the arena at key points during the temp ramp for WHITE BACKGROUND
+% save images as individual figures, not a group figure
+% use the temperatures : 8:2:22 for key points to check location of flies
+clearvars('-except',vars{:})
+
+% tempList = [8,12,17,22];
+% rateList = [0.16,-0.16];
+% tempList = [15,20,25,30];
+% rateList = [0.15,-0.15];
+
+tempList = [8,12,17,22];
+rateList = [0.16,-0.16];
+
+n = 10; % number of spatial bins
+tt = 1; 
+buffer = 0.5; % temperature buffer around target temperature
+idx = 1;
+
+
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList) 
+    frameCount = 0;  
+    temp = tempList(tt); % temp in C
+    rate = find(rateList(rr)==G(trial).TR.rates);
+    HM = zeros(n);
+    for trial = 1:ntrials
+        % frame location selection
+        tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
+        rLoc = G(trial).TR.rateIdx==rate;
+        frames = tLoc & rLoc;
+        frameCount = frameCount + sum(frames); % to normalize to the number of flies, not frames
+
+        % pull the position data for these frames and concatenate into a large
+        % structure for this temp rate and temp location
+        x = data(trial).data.x_loc(frames,:);
+        y = data(trial).data.y_loc(frames,:);
+        X = reshape(x,numel(x),1);
+        Y = reshape(y,numel(y),1);
+        pos = [X,Y];
+
+        % get the 'square' units for partitioning space
+        C = data(trial).data.centre;
+        r = data(trial).data.r;
+        x_edge = linspace(C(1)-r,C(1)+r,n);
+        y_edge = linspace(C(2)-r,C(2)+r,n);
+
+        % find x and y that are within each 'box'
+        xInd = discretize(pos(:,1),x_edge);
+        yInd = discretize(pos(:,2),y_edge);
+
+        % find the number of flies within each spatial bin:
+        for row = 1:n
+            for col = 1:n
+                nflies(row,col) = sum(yInd==row & xInd==col);
+            end
+        end
+
+        % Rotate the matrix if needed to align to a well position of '2'
+        k = T.foodLoc(trial)-2;
+        B = rot90(nflies,k);
+
+%         fig = figure; imagesc(B);
+%         uiwait(fig)
+
+        % Save matrix to the structure:
+        HM = HM + B;
+    end
+    plotData(rr,tt).HM = HM./frameCount;
+    cmaps(idx,1) = min(min(HM));
+    cmaps(idx,2) = max(max(HM));
+    idx = idx + 1;
+  end
+end
+
+
+% Find the max and min 'avg' number of flies...
+ii = 0;
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList)
+      ii = ii + 1;
+      flyMax(ii) = max(max((plotData(rr,tt).HM)));
+  end
+end
+
+
+
+% figures   
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList)
+      
+    fig = figure; set(fig, 'color', 'w', 'position', [-931 697 534 421])  
+
+        imagesc(plotData(rr,tt).HM)
+        
+        axis square
+        ax = gca;
+        set(ax, 'xscale', 'log', 'yscale', 'log')
+        axis tight
+        set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);      
+        c = colorbar;
+        c.Label.String = 'Number of flies';
+        c.Label.FontSize = 15;
+        c.FontSize = 13;
+        c.Label.Color = 'k';
+        c.Color = 'k';
+        title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'k')
+        caxis([0 max(flyMax)]) 
+        save_figure(fig, [figDir 'Place Diagrams/Position heatmaps rate ' num2str(rr) ' temp ' num2str(tempList(tt))], '-pdf');
+  end
+end
+
 clearvars('-except',vars{:})
 
 %% FIGURE: Plot the time course for all trials with the same temperature protocol
@@ -1143,6 +1363,7 @@ clearvars('-except',vars{:})
 genotypes = unique(T.Genotype);
 n = size(genotypes,1);
 CList = {'BlueViolet', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
+
 LW = 1.5;
 sSpan = 360;
 row = 5;
@@ -1209,6 +1430,74 @@ save_figure(fig, [figDir 'time course comparison'], '-png');
 
 tbl = table(T.Genotype,T.TempProtocol,T.foodCat,T.NumFlies,'VariableNames',{'Genotype','Protocol','Food','N flies'});
 disp(tbl)
+
+% POSTER CODE
+CList = {'Orange', 'mediumvioletred', 'darkgreen', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
+
+fig = figure; set(fig, 'pos',[-1020 575 721 614]); 
+    for type = 2:n
+        [time,temp,movement,distance] = deal([]);
+        % pull the data for each plotting category
+        for trial = 1:ntrials
+            if strcmp(T.Genotype{trial},genotypes{type})
+                % sort time
+                curr_time = data(trial).occupancy.time;
+                if isempty(time) % first time for this temp protocol
+                    time = curr_time(1:end-1);
+                    roi = 1:length(time);
+                    temp = data(trial).occupancy.temp(roi);
+                    distance = data(trial).occupancy.dist2wells(roi,T.foodLoc(trial));
+                    movement = data(trial).occupancy.movement(roi);
+                else
+                    if length(curr_time)<length(time) % shorter data 
+                        time = curr_time;
+                    end
+                    roi = 1:length(time)-1;
+                    % other parameters
+                    temp = [temp(roi,:),data(trial).occupancy.temp(roi)];
+                    distance = [distance(roi,:),data(trial).occupancy.dist2wells(roi,T.foodLoc(trial))];
+                    movement = [movement(roi,:),data(trial).occupancy.movement(roi)];
+                end
+                
+            end
+        end
+        time = time(roi);
+        kolor = Color(CList{type});
+        % Plot the temperature protocol averages 
+        % TEMPERATURE
+        subplot(row,col,sb(1).idx); hold on
+        plot(time,smooth(mean(temp,2),sSpan),'color','k','linewidth',LW)
+        % DISTANCE
+        subplot(row,col,sb(2).idx); hold on
+        plot(time,smooth(mean(distance,2),sSpan),'color',kolor,'linewidth',LW)
+        % MOVEMENT
+        subplot(row,col,sb(3).idx); hold on
+        plot(time,smooth(mean(movement,2),sSpan),'color',kolor,'linewidth',LW)
+    end
+    % labels and formatting
+    formatFig(fig,false, [row,col],sb);
+    subplot(row,col,sb(1).idx);
+    ylabel('\circC')
+    set(gca,'XColor', 'k')
+    title(ExpGroup,'color', 'w')
+    subplot(row,col,sb(2).idx);
+    ylabel('Distance to food (mm)')
+    set(gca,'XColor', 'k')
+    subplot(row,col,sb(3).idx);
+    ylabel('Movement (au)')
+    xlabel('Time (min)')
+legend(strrep(genotypes,'_',' '),'textcolor', 'w', 'box', 'off')
+
+save_figure(fig, [figDir 'time course comparison'], '-pdf');
+
+% 
+
+
+
+
+
+
+
 
 %% Compare MOVEMENT plots across genotypes...
 clearvars('-except',vars{:})

@@ -206,6 +206,15 @@ end
 
 %% Plot geographical locations of all the cities in the data set
 
+blackbackground = false;
+if blackbackground
+    fColor = 'k';
+    bColor = 'w';
+else
+    fColor = 'w';
+    bColor = 'k';
+end
+
 % make new data matrix with relavant information
 data = [annualT',sigma',latitude',longitude',dataPDF'];
 data1 = sortrows(data,3);
@@ -215,25 +224,30 @@ loc = isnan(data1(:,1));
 data1(loc,:) = [];
 
 % color points by latitude (N-S axis)
-CList = Color('indigo','lavender', nCity);
+% CList = Color('indigo','lavender', nCity);
+% CList(loc,:) = [];
+CList = Color('plum','indigo', nCity);
 CList(loc,:) = [];
+
 
 % Plot locations
 fig = figure;
 geoscatter(data1(:,3), data1(:,4), 36, CList,'filled','^')
 geobasemap colorterrain
-set(fig, 'color', 'k')
+set(fig, 'color', fColor); 
+
 ax = gca;
-set(ax, 'fontsize', 13, 'grid', 'off')
-ax.LongitudeLabel.Color = 'w';
-ax.LatitudeLabel.Color = 'w';
-ax.LongitudeAxis.Color = 'w'; 
-ax.LatitudeAxis.Color = 'w'; 
+set(ax, 'fontsize', 15, 'grid', 'off')
+
+ax.LongitudeLabel.Color = bColor;
+ax.LatitudeLabel.Color = bColor;
+ax.LongitudeAxis.Color = bColor;
+ax.LatitudeAxis.Color = bColor;
 
 % ax.LongitudeLimits = [-175.3770 -62.7130];
 % ax.LatitudeLimits = [18.2455 72.6145];
 
-save_figure(fig,[rootdir 'Figures/Sample locations'],'-png');
+save_figure(fig,[rootdir 'Figures/Sample locations'],'-pdf');
 
 %% FIGURE: temp rate PDFs for all NOAA stations
 
@@ -245,15 +259,19 @@ fig = figure; hold on
     end
     xlabel('\DeltaT (\circC/min)')
     ylabel('PDF')
-    formatFig(fig, true);
-    set(gca, 'fontsize', 12)
+    formatFig(fig, false);
+    set(gca, 'fontsize', 18)
 %     v_line([-0.5,0.5],'orange',':',1)
 %     v_line([-0.25,0.25],'darkviolet',':',1)
 %     v_line([-0.1,0.1],'turquoise',':',1)
 
-save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-png'); % rate lines
+save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-pdf'); % rate lines
 
 %% FIGURE: temp over a year (single plot example)
+DaysPerMonth = [1 31 28 31 30 31 30 31 31 30 31 30];
+MonthStart = dayStart(cumsum(DaysPerMonth));
+monthNames = {'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'};
+
 minT = -90; % lowest recorded temperature on record
 maxT = 57; %highest recorded temp on record
 
@@ -341,9 +359,31 @@ set(gca, 'YColor', Color('dodgerblue'))
 
 save_figure(fig,[rootdir 'Figures/Annual temp-rate histogram with PDF ' title_str],'-png');
 
-%% FIGURE: show city sample location on the map (single plot example)
+% POSTER CODE
 fig = figure;
-g = geoscatter(cityData(city).T(1,8), cityData(city).T(1,7), 75, Color('blue'),'filled','^');
+    h = histogram(cityData(city).tempRate,nbins);
+    xlim([-0.25,0.25])
+    h.FaceColor = 'k';
+    h.EdgeColor = 'k';
+    xlabel('\DeltaT (\circC/min)')
+    ylabel('Count')
+yyaxis right
+    plot(X,Y,'color', Color('dodgerblue'),'linewidth', 2)
+    ylabel('PDF')
+
+formatFig(fig,false);
+set(gca, 'fontsize', 18)
+yyaxis left
+set(gca, 'YColor', 'k')
+yyaxis right
+set(gca, 'YColor', Color('dodgerblue'))
+
+save_figure(fig,[rootdir 'Figures/Annual temp-rate histogram with PDF white background ' title_str],'-png');
+
+
+%% FIGURE: show city sample location on the map (single plot example)
+fig = figure; 
+geoscatter(cityData(city).T(1,8), cityData(city).T(1,7), 75, Color('blue'),'filled','^');
 geobasemap colorterrain
 set(fig, 'color', 'k')
 ax = gca;
@@ -373,17 +413,23 @@ data = [annualT',sigma',latitude'];
 data1 = sortrows(data,3);
 
 % color points by latitude (N-S axis)
-CList = Color('indigo','lavender', nCity);
+% CList = Color('indigo','lavender', nCity);
+CList = Color('plum','indigo', nCity);
 
 fig = figure;
 scatter(data1(:,1),data1(:,2),75,CList,'filled')
+ylim([0,0.02])
 xlabel('average annual temperature (\circC)')
 ylabel('temp rate variance')
-formatFig(fig,true);
+formatFig(fig,false);
 set(gca, 'fontsize', 18)
 
-save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance'],'-png');
+save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance white background.pdf'],'-pdf');
 
+
+% Linear regression:
+
+mdl = fitlm(data1(:,1),data1(:,2));
 
 fig = figure;
 scatter(data1(:,3), data1(:,1), 75, CList, 'filled')
@@ -394,7 +440,7 @@ set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs latitude'],'-png');
 
-%% FIGURE: temp tate outliers and their locations
+%% FIGURE: temp rate outliers and their locations
 loc = find(sigma>0.02);
 lon = longitude(loc);
 lat = latitude(loc);
@@ -471,8 +517,9 @@ end
 % check individual patterns
 
 % plotList = [160 161 166 167 170];
-ii = 167;
+% ii = 172;
     
+ii = ii+1;
 x = T.time(:,ii);
 x = find(rem(x,100)==0); % pull hour start times
 row = 2; col = 1;
@@ -501,6 +548,7 @@ yyaxis right
 ax = gca;
 set(ax, 'YColor',Color('gold'))
 ylabel('Solar radiation (W/m^2)')
+
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-png');
 
@@ -918,22 +966,139 @@ save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multif
 
 
 
+%% Light levels vs temperature for a full day
+city = 5;
+T = [];
+% find the 'morning' hours -- i.e. show am vs pm
+time = cityData(city).T(:,5); % local solar time
+temp = cityData(city).T(:,9); % air temp
+tempRate = cityData(city).tempRate;
+radiation = cityData(city).T(:,11);
+loc = temp>maxT | temp<minT; % find false temperatures
+temp(loc) = nan; % remove temp anomalies
+
+amLoc = time<1200; % hours in before noon
+pmLoc = time>=1200; % hours after noon
+
+% combine time and temp:
+data = [time(1:end-1),temp(1:end-1),tempRate,radiation(1:end-1)];
+morningTemp = data(amLoc,:);
+% eveningTemp = data(pmLoc,:);
+
+% pull out each day's time course:
+amStarts = find(time==0);
+% pmStarts = find(time==1200);
+
+for ii = 1:364
+    T.time(:,ii) = data(amStarts(ii):amStarts(ii+1),1);
+    T.temp(:,ii) = data(amStarts(ii):amStarts(ii+1),2);
+    T.tempR(:,ii) = data(amStarts(ii):amStarts(ii+1),3);
+    T.radi(:,ii) = data(amStarts(ii):amStarts(ii+1),4);
+    % change in solar radiation calculation
+    changeT = (diff(T.time(:,ii)));
+    changeT(changeT==45) = 5; %replace end of hour time gaps (ie 55->0 loop)
+    changeT(end) = 5; % set last time gap to same rate
+    if any(changeT>5 | changeT<5)
+        warn('missing time data points')
+        break
+    end
+    T.radiR(:,ii) = (diff(T.radi(:,ii)))./changeT;
+end
+
+% check individual patterns below
+
+%% 
+% plotList = [169 177 190 195 202];
+ii = 202;
+gap = 3;
+
+x = T.time(:,ii);
+x = find(rem(x,100)==0); % pull hour start times
+row = 2; col = 1;
+fig = figure; set(fig, 'pos', [-767 427 469 733])
+% Rate of change
+    subplot(row,col,1); hold on
+        yyaxis left
+        plot(T.tempR(:,ii),'color', Color('dodgerblue'),'linewidth', 1.5)
+        ylabel('\DeltaT/t (\circC/min)')
+        yyaxis right
+        plot(T.radiR(:,ii),'color', Color('orange'),'linewidth', 1.5)
+        ylabel('\Delta in radiation/minute')
+        
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x(1:gap:end),'XTickLabels',T.time(x(1:gap:end),ii)/100)
+        xlabel('Time (hr)')
+        
+% Absolute values
+    subplot(row,col,2); hold on
+        plot(T.temp(:,ii),'color', Color('dodgerblue'),'linewidth', 1.5)
+        ylabel('Temperature (\circC)')
+        yyaxis right
+        plot(T.radi(:,ii),'color', Color('orange'),'linewidth', 1)
+        ylabel('Solar radiation (W/m^2)')
+        axis tight
+        ax = gca;
+        set(ax, 'XTick',x(1:gap:end),'XTickLabels',T.time(x(1:gap:end),ii)/100)
+        xlabel('Time (hr)')
+% FORMATTING
+formatFig(fig,false, [row,col]);
+subplot(row,col,1);
+yyaxis left
+set(gca, 'YColor',Color('dodgerblue'))
+yyaxis right
+set(gca, 'YColor',Color('orange'))
+subplot(row,col,2);
+yyaxis left
+set(gca, 'YColor',Color('dodgerblue'))
+yyaxis right
+set(gca, 'YColor',Color('orange'))
+
+
+save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-pdf');
+
+
+%% FIGURE: 
+% plot the temp vs solar radiation over time -- averaged across each month
+
+monthLength = [31,28,31,30,31,30,31,31,30,31,30,29]; % shortened december by one day
+
+startnum = 1;
+
+fig = figure; set(fig,'pos',[-807 411 434 633])
+hold on
+for ii = 1:12
+
+    roi = startnum : (startnum + monthLength(ii));
+    startnum = startnum + monthLength(ii);
+
+    xx = T.radi(:,roi);
+    yy = T.temp(:,roi);
+%     yy(yy<0) = nan; % screen outliers (clear errors)
+%     xx(xx<0) = nan; % screen outliers (clear errors)
+    % for ii = 1:length(roi)
+    %     plot(xx(:,ii),yy(:,ii),'color',Color('grey'),'linewidth',0 5)
+    % end
+    plot(mean(xx,2),mean(yy,2),'linewidth',1.5)
+
+end
+
+% Formatting
+xlabel('solar radiation (W/m^2)')
+ylabel('temperature (\circC)')
+formatFig(fig,false);
+legend(monthNames,'box','off')
+
+save_figure(fig,[rootdir 'Figures/solar vs temp month average for ' city_name{city}],'-pdf');
+
+
+
+%% Annual temperature range
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+fig = figure;
 
 
 

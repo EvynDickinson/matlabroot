@@ -83,7 +83,7 @@ end
 %% FIGURE: overlay distance lines for all trials in the structure color coded by heating and cooling
 % plot all trials individually
 sSpan = 1; %3-degree smoothing
-
+LW = 2;
 fig = figure;
     hold on
     % Cooling
@@ -91,7 +91,7 @@ fig = figure;
         x = G(1).TR.temps; %all trials should have same temp ids
         y = plotData(id).c;
         for ii = 1:size(y,1)
-            plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue')) %plotData(id).color) %
+            plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue'),'linewidth',LW) %plotData(id).color) %
         end
     end
     % Heating
@@ -99,18 +99,59 @@ fig = figure;
         x = G(1).TR.temps; %all trials should have same temp ids
         y = plotData(id).h;
         for ii = 1:size(y,1)
-            plot(x,smooth(y(ii,:),sSpan),'color', 'r') %plotData(id).color) %
+            plot(x,smooth(y(ii,:),sSpan),'color', 'r','linewidth', LW) %plotData(id).color) %
         end
     end
 % xlim([7,22])
 xlabel('Temperature (\circC)')
 ylabel('Distance (mm)')
 formatFig(fig, true);
-h_line(5,'w',1)
+% h_line(5,'w',1)
 % v_line([14,22],'gold',1)
 set(gca, 'fontsize', 18)
 
 save_figure(fig, [figDir 'distance hysteresis loops all trials'], '-png');
+
+% % POSTER CODE FIGURE: overlay distance lines for all trials in the structure color coded by heating and cooling
+% % plot all trials individually
+% [groupH, groupC] = deal([]);
+% sSpan = 1; % 3-degree smoothing
+% LW = 0.5;
+% fig = figure; set(fig, 'pos',[-768 538 341 645])
+%     hold on
+%     % Cooling
+%     for id = 1:nIDs
+%         x = G(1).TR.temps; %all trials should have same temp ids
+%         y = plotData(id).c;
+%         groupC = [groupC; y];
+%         for ii = 1:size(y,1)
+%             plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue'),'linewidth',LW) %plotData(id).color) %
+%         end
+%     end
+%     % Heating
+%     for id = 1:nIDs
+%         x = G(1).TR.temps; %all trials should have same temp ids
+%         y = plotData(id).h;
+%         groupH = [groupH; y];
+%         for ii = 1:size(y,1)
+%             plot(x,smooth(y(ii,:),sSpan),'color', 'r','linewidth', LW) %plotData(id).color) %
+%         end
+%     end
+%     % Plot average lines
+%     plot(x,mean(groupC),'color', Color('navy'),'linewidth', 2.5) %plotData(id).color) %
+%     plot(x,mean(groupH),'color', Color('darkred'),'linewidth', 2.5) %plotData(id).color) %
+%     
+%     v_line(12,'black','--',1)
+%     
+% % xlim([7,22])
+% xlabel('temperature (\circC)')
+% ylabel('distance from food (mm)')
+% formatFig(fig);
+% % h_line(5,'w',1)
+% % v_line([14,22],'gold',1)
+% set(gca, 'fontsize', 15)
+% 
+% save_figure(fig, [figDir 'distance hysteresis loops all trials'], '-pdf');
 
 
 %% Characterize food distance hysteresis:
@@ -176,6 +217,8 @@ subplot(row,col,2); hold on
     set(gca,'XTick',1:ngenoList,'XTickLabel',strrep(genoList,'_',' '),'XTickLabelRotation',15)
     h_line(0,'white',':',1)
 formatFig(fig,true,[row,col]);
+
+formatFig(fig,false,[row,col]);
 
 save_figure(fig, [figDir 'distance hysteresis scatter'], '-png');
 
@@ -243,8 +286,4 @@ subplot(row,col,2); hold on
 save_figure(fig, [figDir 'distance hysteresis loop recovery ' num2str(trial)], '-png');
 
 
-%% FIGURE: hysteresis index for Velocity Ramps A-E
-
-
-fig = figure;
 

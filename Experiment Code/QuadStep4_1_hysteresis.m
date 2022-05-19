@@ -112,9 +112,50 @@ set(gca, 'fontsize', 18)
 
 save_figure(fig, [figDir 'distance hysteresis loops all trials'], '-png');
 
+% % POSTER CODE FIGURE: overlay distance lines for all trials in the structure color coded by heating and cooling
+% % plot all trials individually
+% [groupH, groupC] = deal([]);
+% sSpan = 1; % 3-degree smoothing
+% LW = 0.5;
+% fig = figure; set(fig, 'pos',[-768 538 341 645])
+%     hold on
+%     % Cooling
+%     for id = 1:nIDs
+%         x = G(1).TR.temps; %all trials should have same temp ids
+%         y = plotData(id).c;
+%         groupC = [groupC; y];
+%         for ii = 1:size(y,1)
+%             plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue'),'linewidth',LW) %plotData(id).color) %
+%         end
+%     end
+%     % Heating
+%     for id = 1:nIDs
+%         x = G(1).TR.temps; %all trials should have same temp ids
+%         y = plotData(id).h;
+%         groupH = [groupH; y];
+%         for ii = 1:size(y,1)
+%             plot(x,smooth(y(ii,:),sSpan),'color', 'r','linewidth', LW) %plotData(id).color) %
+%         end
+%     end
+%     % Plot average lines
+%     plot(x,mean(groupC),'color', Color('navy'),'linewidth', 2.5) %plotData(id).color) %
+%     plot(x,mean(groupH),'color', Color('darkred'),'linewidth', 2.5) %plotData(id).color) %
+%     
+%     v_line(12,'black','--',1)
+%     
+% % xlim([7,22])
+% xlabel('temperature (\circC)')
+% ylabel('distance from food (mm)')
+% formatFig(fig);
+% % h_line(5,'w',1)
+% % v_line([14,22],'gold',1)
+% set(gca, 'fontsize', 15)
+% 
+% save_figure(fig, [figDir 'distance hysteresis loops all trials'], '-pdf');
+
 
 %% Characterize food distance hysteresis:
-clearvars('-except',vars{:})
+% clearvars('-except',vars{:})
 
 for trial = 1:ntrials
     
@@ -160,7 +201,7 @@ subplot(row,col,1); hold on
         temp = G(trial).mov_diff;
         plot(temp(:,1),temp(:,2),'color', G(trial).color,'linewidth', LW) 
     end
-    xlabel('Temperature (\circC)')
+    xlabel('temperature (\circC)')
     ylabel('cool-warm distance hystersis (mm)')
     h_line(0,'white',':',1)
 % hysteresis scatter plot
@@ -171,13 +212,42 @@ subplot(row,col,2); hold on
         scatter(x,hdata(ii).s,SZ,kolor,'filled')
         plot([ii-(buff*1.25),ii+(buff*1.25)],[mean(hdata(ii).s),mean(hdata(ii).s)],'color',kolor,'linewidth',LW)
     end
-    ylabel('Total distance difference (mm)')
+    ylabel('total distance difference (mm)')
     xlabel('Genotype')
     set(gca,'XTick',1:ngenoList,'XTickLabel',strrep(genoList,'_',' '),'XTickLabelRotation',15)
     h_line(0,'white',':',1)
 formatFig(fig,true,[row,col]);
-
 save_figure(fig, [figDir 'distance hysteresis scatter'], '-png');
+
+
+% % % POSTER CODE
+% fig = figure; set(fig,'pos',[-980 374 314 861])
+% % hystereis by time
+% subplot(2,1,1); hold on
+%     for trial = 1:ntrials
+%         temp = G(trial).mov_diff;
+%         plot(temp(:,1),temp(:,2),'color', G(trial).color,'linewidth', LW) 
+%     end
+%     xlabel('temperature (\circC)')
+%     ylabel('cool-warm distance hystersis (mm)')
+%     h_line(0,'black',':',1)
+%     axis tight
+% % hysteresis scatter plot
+% subplot(2,1,2); hold on 
+%     for ii = 1:ngenoList
+%         kolor = pullGenotypeColor(genoList{ii});
+%         x = shuffle_data(linspace(ii-buff,ii+buff,length(hdata(ii).s)));
+%         scatter(x,hdata(ii).s,SZ,kolor,'filled')
+%         plot([ii-(buff*1.25),ii+(buff*1.25)],[mean(hdata(ii).s),mean(hdata(ii).s)],'color',kolor,'linewidth',LW)
+%     end
+%     ylabel('total distance difference (mm)')
+%     xlabel('Genotype')
+%     set(gca,'XTick',1:ngenoList,'XTickLabel',strrep(genoList,'_',' '),'XTickLabelRotation',15)
+%     h_line(0,'black',':',1)
+% formatFig(fig,false,[2,1]);
+% save_figure(fig, [figDir 'distance hysteresis scatter'], '-pdf');
+
+
 
 
 %% FIGURE -- single trial hysteresis outlines
