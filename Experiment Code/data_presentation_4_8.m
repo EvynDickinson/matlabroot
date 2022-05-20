@@ -181,7 +181,7 @@ save_figure(fig, [figDir 'distance vs temp by rate summary'], '-pdf');
 %% Velocity ramps A-E temperature hysteresis plots by HEAT/COOL
 [HM_cool,HM_warm] = deal([]);
 % Group across the trials by temp and temp rate
-for trial = 1:ntrials
+for trial = 12:ntrials
     HM_cool = [HM_cool; G(trial).heatmap(1:3,:)];
     HM_warm = [HM_warm; G(trial).heatmap(5:7,:)];
 end
@@ -210,6 +210,7 @@ xlabel('temperature (\circC)')
 ylabel('distance from food (mm)')
 formatFig(fig);
 set(gca, 'fontsize', 15)
+ylim([10,30])
 save_figure(fig, [figDir 'distance vs temp by temp direction'], '-pdf');
 
 
