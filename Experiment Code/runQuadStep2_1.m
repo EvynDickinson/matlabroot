@@ -279,7 +279,12 @@ for arena = 1:nArenas
             break
         end
     end
+    % Account for no-food trials
+    if ~exist('foodwell','dir')
+        foodwell = 0; % this indicates that none of the wells contained food...
+    end
 
+          
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
     keepLoc = false(1,size(plotData,1));
@@ -348,7 +353,7 @@ for arena = 1:nArenas
     TR.nTemps = nTemps;
     TR.tempIdx = tempIdx;
     TR.temps = t_roi;
-
+    % TODO : adjust this to account for no food trials....
     % turn coordinates of heatmap into a vector to fill in 2D
     [HM,FC,FD,dist_mat,FC_mat] = deal([]);
     for col = 1:nTemps
