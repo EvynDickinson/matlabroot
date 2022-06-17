@@ -282,7 +282,6 @@ for arena = 1:nArenas
     % Account for no-food trials
     if ~exist('foodwell','dir')
         foodwell = 0; % this indicates that none of the wells contained food...
-        arenaData(arena).foodwell = foodwell;
     end
     
 
@@ -355,6 +354,10 @@ for arena = 1:nArenas
     TR.nTemps = nTemps;
     TR.tempIdx = tempIdx;
     TR.temps = t_roi;
+    % TODO : adjust this to account for no food trials....
+%     if foodwell==0 % no food in this trial...
+%         continue
+%     end
     % turn coordinates of heatmap into a vector to fill in 2D
     [HM,FC,FD,dist_mat,FC_mat] = deal([]);
     for col = 1:nTemps
@@ -379,17 +382,11 @@ for arena = 1:nArenas
                 FD(row,col).err = std(dist,0,'omitnan');
                 dist_mat.avg(row,col) = FD(row,col).mean;
                 dist_mat.err(row,col) = FD(row,col).err;
-            else % For no food trials -- make a heat map for each well as if it were the food well
+            else
                 for indx = 1:4 
                     y = arenaData(arena).dist2well(:,indx);
                     y(loc) = nan;
-                    HM(row,col,indx) = mean(y,'omitnan'); %heat map
-                    FD(row,col).data = y;
-                    FD(row,col).mean = mean(y,'omitnan');
-                    FD(row,col).err = std(y,0,'omitnan');
-                    dist_mat(indx).avg(row,col) = FD(row,col).mean;
-                    dist_mat(indx).err(row,col) = FD(row,col).err;
-                end
+                    
             end
         end
     end
@@ -397,16 +394,7 @@ for arena = 1:nArenas
     TR.dist_mat = dist_mat;
     TR.FC_mat = FC_mat;
     TR.nRates = length(TR.rates);
-    TR.foodwell = foodwell;
     arenaData(arena).TR = TR;
-    
-    % TODO : adjust this to account for no food trials in the figures if desired....
-    if foodwell==0 % no food in this trial...
-        clearvars('-except',initial_vars{:}) 
-        continue
-    end
-
-    % ------------- FIGURES -------------
 
     % FIGURE: show the temp rate break down 
     if arena == 1
@@ -574,11 +562,9 @@ for arena = 1:nArenas
     AD = addvars(AD,[arenaData(arena).occupancy.movement;nan],'NewVariableNames','movement');
     AD = addvars(AD,[arenaData(arena).occupancy.IFD',arenaData(arena).occupancy.IFD_err'],...
         'NewVariableNames','IFD');
-    AD = addvars(AD,arenaData(arena).occupancy.dist2wells,'NewVariableNames','dist2wells');  
-    if arenaData(arena).foodwell>0
-        AD = addvars(AD,arenaData(arena).occupancy.dist2wells(:,arenaData(arena).foodwell),...
-            'NewVariableNames','dist2food');
-    end
+    AD = addvars(AD,arenaData(arena).occupancy.dist2wells,'NewVariableNames','dist2wells');    
+    AD = addvars(AD,arenaData(arena).occupancy.dist2wells(:,arenaData(arena).foodwell),...
+        'NewVariableNames','dist2food');
     AD = addvars(AD,[arenaData(arena).TR.rateIdx; nan],'NewVariableNames','temprateIdx');
     temp = arenaData(arena).TR.data;
     AD = addvars(AD,[temp(:,4); nan],'NewVariableNames','temprate');
@@ -594,9 +580,6 @@ disp('next')
 %% FIGURE: Temperature dependence of distance to food
 LS = {'--','-.','-'}; %cooling|stationary|heating
 for arena = 1:nArenas
-    if arenaData(arena).foodwell==0
-        continue
-    end
     title_str = [folder ' ' expName ' ' arenaData(arena).genotype];
     fig_file = [arenaData(arena).figDir 'fly count hysteresis'];
     LW = 1.5;
