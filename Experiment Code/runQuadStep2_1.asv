@@ -282,27 +282,59 @@ for arena = 1:nArenas
     % Account for no-food trials
     if ~exist('foodwell','dir')
         foodwell = 0; % this indicates that none of the wells contained food...
+        arenaData(arena).foodwell = foodwell;
     end
     
-
-
     % find the mean temp rate during each ramp period:
+    lastdatapoint = size(plotData,1);
     tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
-    keepLoc = false(1,size(plotData,1));
-    % up ramps:
+    keepLoc = false(1,lastdatapoint);
+    % HEATING ramps:
     for ii = 1:tPoints.nUp
         roi = tPoints.up(ii,1):tPoints.up(ii,2);
-        distD = median(plotData(roi,2));
-        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
-        keepLoc(roi) = true;
+        % the first data points is not present: skip
+        if tPoints.up(ii,1)>lastdatapoint
+            disp('Error: Up ramp ROI out of bounds')
+            continue
+        % the second data point is missing: keep data up to the appropriate
+        % location
+        elseif tPoints.up(ii,2)>lastdatapoint
+            % check that the data point is within this region...
+            if any(lastdatapoint==roi)
+                roi(roi>lastdatapoint) = [];
+            else 
+                disp('Error: Up ramp ROI out of bounds')
+                continue
+            end
+        % all the required data is present
+        else
+            distD = median(plotData(roi,2));
+            plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+            keepLoc(roi) = true;
+        end
     end
-    % up ramps:
+    % COOLING ramps:
     for ii = 1:tPoints.nDown
         roi = tPoints.down(ii,1):tPoints.down(ii,2);
-        distD = median(plotData(roi,2));
-        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
-        keepLoc(roi) = true;
-    end   
+        % the first data points is not present: skip
+        if tPoints.down(ii,1)>lastdatapoint
+            disp('Error: Dpwn ramp ROI out of bounds')
+            continue
+        elseif tPoints.down(ii,2)>lastdatapoint
+        % check that the data point is within this region...
+            if any(lastdatapoint==roi)
+                roi(roi>lastdatapoint) = [];
+            else 
+                disp('Error: Down ramp ROI out of bounds')
+                continue
+            end
+        % all the required data is present
+        else
+            distD = median(plotData(roi,2));
+            plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+            keepLoc(roi) = true;
+        end
+    end
     
     plotData(~keepLoc,:) = nan; % exclude data outside prescribed ROI regions
 %     figure; 
@@ -329,6 +361,10 @@ for arena = 1:nArenas
         idx = find(T_rates(ii) > edges(:,1) & T_rates(ii) < edges(:,2));
         if isempty(idx)
             warndlg('Temp rate not within expected range')
+            fig = figure; hold on
+            plot(arenaData(arena).occupancy.temp)
+            yyaxis right
+            plot(rateData)
             return
         end
         % set the rate value to the uniform cross-group value:
@@ -354,10 +390,6 @@ for arena = 1:nArenas
     TR.nTemps = nTemps;
     TR.tempIdx = tempIdx;
     TR.temps = t_roi;
-    % TODO : adjust this to account for no food trials....
-%     if foodwell==0 % no food in this trial...
-%         continue
-%     end
     % turn coordinates of heatmap into a vector to fill in 2D
     [HM,FC,FD,dist_mat,FC_mat] = deal([]);
     for col = 1:nTemps
@@ -382,11 +414,17 @@ for arena = 1:nArenas
                 FD(row,col).err = std(dist,0,'omitnan');
                 dist_mat.avg(row,col) = FD(row,col).mean;
                 dist_mat.err(row,col) = FD(row,col).err;
-            else
+            else % For no food trials -- make a heat map for each well as if it were the food well
                 for indx = 1:4 
                     y = arenaData(arena).dist2well(:,indx);
                     y(loc) = nan;
-                    
+                    HM(row,col,indx) = mean(y,'omitnan'); %heat map
+                    FD(row,col).data = y;
+                    FD(row,col).mean = mean(y,'omitnan');
+                    FD(row,col).err = std(y,0,'omitnan');
+                    dist_mat(indx).avg(row,col) = FD(row,col).mean;
+                    dist_mat(indx).err(row,col) = FD(row,col).err;
+                end
             end
         end
     end
@@ -394,7 +432,17 @@ for arena = 1:nArenas
     TR.dist_mat = dist_mat;
     TR.FC_mat = FC_mat;
     TR.nRates = length(TR.rates);
+    TR.foodwell = foodwell;
     arenaData(arena).TR = TR;
+    
+    % TODO : adjust this to account for no food trials in the figures if desired....
+    if foodwell==0 % no food in this trial...
+        clearvars('-except',initial_vars{:}) 
+        disp('Do')
+        continue
+    end
+
+    % ------------- FIGURES -------------
 
     % FIGURE: show the temp rate break down 
     if arena == 1
@@ -562,9 +610,11 @@ for arena = 1:nArenas
     AD = addvars(AD,[arenaData(arena).occupancy.movement;nan],'NewVariableNames','movement');
     AD = addvars(AD,[arenaData(arena).occupancy.IFD',arenaData(arena).occupancy.IFD_err'],...
         'NewVariableNames','IFD');
-    AD = addvars(AD,arenaData(arena).occupancy.dist2wells,'NewVariableNames','dist2wells');    
-    AD = addvars(AD,arenaData(arena).occupancy.dist2wells(:,arenaData(arena).foodwell),...
-        'NewVariableNames','dist2food');
+    AD = addvars(AD,arenaData(arena).occupancy.dist2wells,'NewVariableNames','dist2wells');  
+    if arenaData(arena).foodwell>0
+        AD = addvars(AD,arenaData(arena).occupancy.dist2wells(:,arenaData(arena).foodwell),...
+            'NewVariableNames','dist2food');
+    end
     AD = addvars(AD,[arenaData(arena).TR.rateIdx; nan],'NewVariableNames','temprateIdx');
     temp = arenaData(arena).TR.data;
     AD = addvars(AD,[temp(:,4); nan],'NewVariableNames','temprate');
@@ -580,6 +630,9 @@ disp('next')
 %% FIGURE: Temperature dependence of distance to food
 LS = {'--','-.','-'}; %cooling|stationary|heating
 for arena = 1:nArenas
+    if arenaData(arena).foodwell==0
+        continue
+    end
     title_str = [folder ' ' expName ' ' arenaData(arena).genotype];
     fig_file = [arenaData(arena).figDir 'fly count hysteresis'];
     LW = 1.5;

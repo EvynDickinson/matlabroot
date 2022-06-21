@@ -285,25 +285,56 @@ for arena = 1:nArenas
         arenaData(arena).foodwell = foodwell;
     end
     
-
-
     % find the mean temp rate during each ramp period:
+    lastdatapoint = size(plotData,1);
     tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
-    keepLoc = false(1,size(plotData,1));
-    % up ramps:
+    keepLoc = false(1,lastdatapoint);
+    % HEATING ramps:
     for ii = 1:tPoints.nUp
         roi = tPoints.up(ii,1):tPoints.up(ii,2);
-        distD = median(plotData(roi,2));
-        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
-        keepLoc(roi) = true;
+        % the first data points is not present: skip
+        if tPoints.up(ii,1)>lastdatapoint
+            disp('Error: Up ramp ROI out of bounds')
+            continue
+        % the second data point is missing: keep data up to the appropriate
+        % location
+        elseif tPoints.up(ii,2)>lastdatapoint
+            % check that the data point is within this region...
+            if any(lastdatapoint==roi)
+                roi(roi>lastdatapoint) = [];
+            else 
+                disp('Error: Up ramp ROI out of bounds')
+                continue
+            end
+        % all the required data is present
+        else
+            distD = median(plotData(roi,2));
+            plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+            keepLoc(roi) = true;
+        end
     end
-    % up ramps:
+    % COOLING ramps:
     for ii = 1:tPoints.nDown
         roi = tPoints.down(ii,1):tPoints.down(ii,2);
-        distD = median(plotData(roi,2));
-        plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
-        keepLoc(roi) = true;
-    end   
+        % the first data points is not present: skip
+        if tPoints.down(ii,1)>lastdatapoint
+            disp('Error: Dpwn ramp ROI out of bounds')
+            continue
+        elseif tPoints.down(ii,2)>lastdatapoint
+        % check that the data point is within this region...
+            if any(lastdatapoint==roi)
+                roi(roi>lastdatapoint) = [];
+            else 
+                disp('Error: Down ramp ROI out of bounds')
+                continue
+            end
+        % all the required data is present
+        else
+            distD = median(plotData(roi,2));
+            plotData(roi,4) = round(distD*ones(range(roi)+1,1),2);
+            keepLoc(roi) = true;
+        end
+    end
     
     plotData(~keepLoc,:) = nan; % exclude data outside prescribed ROI regions
 %     figure; 
@@ -330,6 +361,10 @@ for arena = 1:nArenas
         idx = find(T_rates(ii) > edges(:,1) & T_rates(ii) < edges(:,2));
         if isempty(idx)
             warndlg('Temp rate not within expected range')
+            fig = figure; hold on
+            plot(arenaData(arena).occupancy.temp)
+            yyaxis right
+            plot(rateData)
             return
         end
         % set the rate value to the uniform cross-group value:
@@ -403,6 +438,7 @@ for arena = 1:nArenas
     % TODO : adjust this to account for no food trials in the figures if desired....
     if foodwell==0 % no food in this trial...
         clearvars('-except',initial_vars{:}) 
+        disp('No food trial')
         continue
     end
 
