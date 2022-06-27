@@ -1007,7 +1007,7 @@ disp('Done')
 % %    X = reshape(data(vid).x_loc,numel(data(vid).x_loc),1); 
 % %    Y = reshape(data(vid).y_loc,numel(data(vid).y_loc),1); 
 % %    X(isnan(X)) = [];
-% %    Y(isnan(Y)) = []; 4
+% %    Y(isnan(Y)) = []; 
 % %    AllPoints = [AllPoints; X , Y];
 % % end
 % % fig = getfig; set(fig, 'color', 'k');
