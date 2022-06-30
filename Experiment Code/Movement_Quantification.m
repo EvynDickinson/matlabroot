@@ -89,108 +89,192 @@ save_figure(fig, [analysisDir 'individual fly track ' num2str(flynums)], '-png')
 clearvars('-except',initial_vars{:})
 close all
 
-vid = 1;
+
 trackROI = struct;
 
-% pull and select data
-ntracks = size(data(vid).tracks,4);
-flynums = 1:ntracks;
-% CList = {'yellow', 'pink', 'purple', 'teal', 'navy', 'green'};
+for vid = 1:nvids
 
-% SEGMENT TRACKS INTO BETWEEN NAN SECTIONS
-
-
-% pull image
-movieInfo = VideoReader([figDir,'\',expName,'_',num2str(vid),'.avi']); 
-img = read(movieInfo,1);
-nframes = movieInfo.NumFrames;
-
-% set an empty structure for tracks to load into:
-for arena = 1:4
-    trackROI(vid,arena).tracks = [];
-end
-
-for fly = flynums    
-    plotData = squeeze(data(vid).tracks(:,1,:,fly));    
-    % APPLY 4 CONDITIONS FOR POINT BEING CONTINOUS WITH PREVIOUS FRAME
-    % 0) tracked point
-    nanLoc = isnan(plotData(:,1));
-    % 1) arena identity?
-    X = data(vid).tracks(:,1,1,fly);
-    Y = data(vid).tracks(:,1,2,fly);
-    % Find points within arena:
-    arenaLoc = false(nframes,4);
+    
+    % pull and select data
+    ntracks = size(data(vid).tracks,4);
+    flynums = 1:ntracks;
+    % CList = {'yellow', 'pink', 'purple', 'teal', 'navy', 'green'};
+    
+    % SEGMENT TRACKS INTO BETWEEN NAN SECTIONS
+    % pull image
+    movieInfo = VideoReader([figDir,'\',expName,'_',num2str(vid),'.avi']); 
+    img = read(movieInfo,1);
+    nframes = movieInfo.NumFrames;
+    
+    % set an empty structure for tracks to load into:
     for arena = 1:4
-        arenaLoc(:,arena) = sqrt((X-arenaData(arena).centre(1)).^2 + (Y-arenaData(arena).centre(2)).^2)<=r; 
+        trackROI(vid,arena).tracks = [];
     end
-    % 2) previous frame is a tracked point
-    lastPoint = [true; ~nanLoc(1:end-1)];
-    % 3) previous frame in the same arena...
-    lastArena = false(nframes,4);
+    
+    for fly = flynums    
+        plotData = squeeze(data(vid).tracks(:,1,:,fly));    
+        % APPLY 4 CONDITIONS FOR POINT BEING CONTINOUS WITH PREVIOUS FRAME
+        % 0) tracked point
+        nanLoc = isnan(plotData(:,1));
+        % 1) arena identity?
+        X = data(vid).tracks(:,1,1,fly);
+        Y = data(vid).tracks(:,1,2,fly);
+        % Find points within arena:
+        arenaLoc = false(nframes,4);
+        for arena = 1:4
+            arenaLoc(:,arena) = sqrt((X-arenaData(arena).centre(1)).^2 + (Y-arenaData(arena).centre(2)).^2)<=r; 
+        end
+        % 2) previous frame is a tracked point
+        lastPoint = [true; ~nanLoc(1:end-1)];
+        % 3) previous frame in the same arena...
+        lastArena = false(nframes,4);
+        for arena = 1:4
+            lastArena(:,arena) = [true; arenaLoc(1:end-1,arena)];
+        end
+        
+        % Are all the conditions met?
+        validLoc = false(nframes,4);
+        for arena = 1:4 
+            validLoc(:,arena) = ~nanLoc & arenaLoc(:,arena) & lastPoint & lastArena(:,arena);
+            % if first frame is good but second is bad, then skip the first
+            if validLoc(1,arena)==true && validLoc(2,arena)==false
+                validLoc(1,arena) = false;
+            end
+
+            % SEGMENT THE TRACKS INTO UNIQUE STRETCHES
+            trackROI(vid,arena).start = find(diff(validLoc(:,arena))==1);
+            trackROI(vid,arena).stop = find(diff(validLoc(:,arena))==-1);
+            % add points for first and last frame if they are valid tracking
+            if validLoc(1,arena)
+                trackROI(vid,arena).start = [1;trackROI(vid,arena).start];
+            end
+            if validLoc(end,arena)
+               trackROI(vid,arena).stop = [trackROI(vid,arena).stop;nframes];
+            end 
+            % make sure the number of starts and stops aligns 
+            if ~(length(trackROI(vid,arena).start)==length(trackROI(vid,arena).stop))
+                warndlg('mismatched start and stop of a tracked segment')
+                return
+            end
+            % make sure that the start comes before each stop...
+            if ~all(trackROI(vid,arena).start<trackROI(vid,arena).stop)
+                warndlg('mismatched start and stop of a tracked segment')
+                return
+            end
+    
+            % sort into segments
+            for tt = 1:length(trackROI(vid,arena).start)
+                MT = nan(nframes,2);
+                roi = trackROI(vid,arena).start(tt):trackROI(vid,arena).stop(tt);
+                MT(roi,:) = [X(roi),Y(roi)];
+                trackROI(vid,arena).tracks(:,:,end+1) = MT;
+            end
+        end
+    end
+    
+    % % Remove the column of zeros 
+    % for arena = 1:4
+    %     X = squeeze(trackROI(vid,arena).tracks(:,1,:));
+    %     loc = sum(X,1,'omitnan')==0;
+    %     trackROI(vid,arena).tracks(:,1,:)
+    % end
+    
+    % Visual confirmation that this roughly maps onto the number of flies that
+    % are 'counted' 
+    % fig = figure;
+    % hold on
     for arena = 1:4
-        lastArena(:,arena) = [true; arenaLoc(1:end-1,arena)];
+        ntrackedlines = sum(~isnan(squeeze(trackROI(vid,arena).tracks(:,1,:))),2);
+    %     plot(ntrackedlines,'color', arenaData(arena).color)
+        trackROI(vid,arena).ntrackedlines = ntrackedlines;
     end
+        
     
-    % Are all the conditions met?
-    validLoc = false(nframes,4);
-    for arena = 1:4 
-        validLoc(:,arena) = ~nanLoc & arenaLoc(:,arena) & lastPoint & lastArena(:,arena);
-
-        % SEGMENT THE TRACKS INTO UNIQUE STRETCHES
-        trackROI(vid,arena).start = find(diff(validLoc(:,arena))==1);
-        trackROI(vid,arena).stop = find(diff(validLoc(:,arena))==-1);
-        % add points for first and last frame if they are valid tracking
-        if validLoc(1,arena)
-            trackROI(vid,arena).start = [1;trackROI(vid,arena).start];
-        end
-        if validLoc(end,arena)
-           trackROI(vid,arena).stop = [trackROI(vid,arena).stop;nframes];
-        end 
-        % make sure the number of starts and stops aligns 
-        if ~(length(trackROI(vid,arena).start)==length(trackROI(vid,arena).stop))
-            warndlg('mismatched start and stop of a tracked segment')
-            break
-        end
-        % make sure that the start comes before each stop...
-        if ~all(trackROI(vid,arena).start<trackROI(vid,arena).stop)
-            warndlg('mismatched start and stop of a tracked segment')
-            break
-        end
-
-        % sort into segments
-        for tt = 1:length(trackROI(vid,arena).start)
-            MT = nan(nframes,2);
-            roi = trackROI(vid,arena).start:trackROI(vid,arena).stop;
-            MT(roi,:) = [X(roi),Y(roi)];
-            trackROI(vid,arena).tracks(:,:,end+1) = MT;
-        end
+    
+    % Calculate the fly speed based on this?
+    % Make a speed array
+    for arena = 1:4
+        X = squeeze(trackROI(vid,arena).tracks(:,1,:));
+        loc = sum(X,1,'omitnan')==0;
+        X(:,loc) = []; %remove a column of all zeros
+        baseSpeed = diff(X,1,1)./pix2mm;
+    
+        % extract the avg and err of speed for a given frame
+        speedAvg = mean(baseSpeed,2,'omitnan');
+        speedErr = std(baseSpeed,0,2,'omitnan');
+    
+        trackROI(vid,arena).speedAvg = [speedAvg; nan]; % nan for the final frame whose speed we can't calculate
+        trackROI(vid,arena).speedErr = [speedErr; nan];
     end
 
 end
 
+initial_vars{end+1} = 'trackROI';
+clearvars('-except',initial_vars{:})
+close all
 
-% Visual confirmation that this roughly maps onto the number of flies that
-% are 'counted' 
 
-% CList = {'yellow', 'pink', 'purple', 'teal', 'navy', 'green'};
 
-fig = figure;
-hold on
+%%
+
+% fig = figure;
+%     plot(speedAvg,'color', arenaData(arena).color,'linewidth', 2)
+
+arena = 4;
+xMax = max(max(trackROI(vid,arena).tracks(:,1,:))) + 50;
+xMin = min(min(trackROI(vid,arena).tracks(:,1,:))) - 50;
+yMax = max(max(trackROI(vid,arena).tracks(:,2,:))) + 50;
+yMin = min(min(trackROI(vid,arena).tracks(:,2,:))) - 50;
+
+fig = figure; 
+for tt = 1:1797
+   
+    X = squeeze(trackROI(vid,arena).tracks(tt,1,:));
+    Y = squeeze(trackROI(vid,arena).tracks(tt,2,:));
+    scatter(X,Y, 20,'black', 'filled')
+    xlim([xMin,xMax])
+    ylim([yMin,yMax])
+    pause(0.01)
+end
+close(fig)
+
+fig = figure; hold on
+tt = 345;
 for arena = 1:4
-    ntrackedlines = sum(~isnan(squeeze(trackROI(vid,arena).tracks(:,1,:))),2);
-    plot(ntrackedlines,'color', arenaData(arena).color)
+    X = squeeze(trackROI(vid,arena).tracks(tt,1,:));
+    Y = squeeze(trackROI(vid,arena).tracks(tt,2,:));
+    scatter(X,Y,30,arenaData(arena).color, 'filled')
+    disp(sum(~isnan(X)))
 end
-    
-
-    
-
-
+formatFig(fig,true);
+axis square
+save_figure(fig, [analysisDir 'track fly positions frame ' num2str(tt)], '-png');
 
 
 
+X = squeeze(trackROI(vid,2).tracks(:,1,:));
+
+sum_X = sum(X,1,'omitnan');
+
+% how many identical tracks are there??
+
+ident_X = diff(X,1,2); % if a column is all zeros, that means the track to the right is identical
+sum_ident_X = sum(ident_X,1,'omitnan'); % if the column total is zero, the track can be deleted as a duplicate
+
+sum(sum_ident_X==0)
 
 
 
+
+
+figure;
+plot(squeeze(max(trackROI(vid,arena).tracks(:,2,:))))
+
+
+save_figure(fig, [analysisDir 'corrected fly track numbers'], '-png');
+
+
+save_figure(fig, [analysisDir 'track fly positions frame 345'], '-png');
 
 
 % 
