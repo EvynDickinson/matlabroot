@@ -528,30 +528,40 @@ for arena = 1:4
 end
 
 sSpan = 1;
-fig = figure;
 row = 5;
 col = 1;
 sb(1).idx = 1;
 sb(2).idx = 2:5;
 
-plotdata = [smooth(occupancy.speed(arena).restNum,sSpan,'moving'),...
-            smooth(occupancy.speed(arena).walkNum,sSpan,'moving')];
-y = area(plotdata);
-y(1).EdgeColor = 'none';
-y(1).FaceColor = Color('royalblue'); % resting
-y(2).EdgeColor = 'none';
-y(2).FaceColor = Color('gold'); % walking
+for arena = 1:4
 
-axis tight
-xlabel('time (frames)')
-ylabel('flies (#)')
-formatFig(fig, true);
+    fig = figure; set(fig, 'pos', [2035 443 908 600])
+        subplot(row, col, sb(1).idx)
+            plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', 2)
+            ylabel('\circC')
+            xlabel('time')
+            set(gca,'TickDir','out')
+            axis tight
+        subplot(row, col, sb(2).idx)
+            plotdata = [smooth(occupancy.speed(arena).restNum,sSpan,'moving'),...
+                        smooth(occupancy.speed(arena).walkNum,sSpan,'moving')];
+            y = area(plotdata);
+            y(1).EdgeColor = 'none';
+            y(1).FaceColor = Color('purple'); % resting
+            y(2).EdgeColor = 'none';
+            y(2).FaceColor = Color('orange'); % walking
+        %labels
+        axis tight
+        ylabel('flies (#)')
+        formatFig(fig, true,[row,col],sb);
+        subplot(row, col, sb(2).idx)
+        set(gca,'XColor','k','TickDir','out')
+    
+    save_figure(fig, [analysisDir 'walking vs resting ' Alphabet(arena)], '-png');
 
+end
 
-
-
-
-
+clearvars('-except',initial_vars{:})
 
 
 %%

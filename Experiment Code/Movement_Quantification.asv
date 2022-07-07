@@ -528,9 +528,18 @@ for arena = 1:4
 end
 
 sSpan = 1;
-fig ;
+row = 5;
+col = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:5;
 
+fig = figure;
+subplot(row, col, sb(1).idx)
+plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', 2)
+xlabel()
+axis tight
 
+subplot(row, col, sb(2).idx)
 plotdata = [smooth(occupancy.speed(arena).restNum,sSpan,'moving'),...
             smooth(occupancy.speed(arena).walkNum,sSpan,'moving')];
 y = area(plotdata);
@@ -541,7 +550,7 @@ y(2).FaceColor = Color('gold'); % walking
 
 axis tight
 xlabel('time (frames)')
-ylabel('speed mm/s)')
+ylabel('flies (#)')
 formatFig(fig, true);
 
 
