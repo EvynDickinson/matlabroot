@@ -472,7 +472,6 @@ col = 1;
 sb(1).idx = 1;
 sb(2).idx = 2:5;
 
-
 for arena = 1:4
 
     fig = figure; set(fig, 'pos', [1941 145 998 601])
@@ -516,9 +515,82 @@ end
 
 clearvars('-except',initial_vars{:})
 
+%% Determine the percentage of flies that are walking: (percent of those tracked)
+
+% define walking as flies moving faster than 1.5mm/s
+walkLim = 1.5;
+
+for arena = 1:4
+    loc = occupancy.speed(arena).raw>=walkLim;
+    occupancy.speed(arena).walkNum = sum(loc,2);
+    loc = occupancy.speed(arena).raw<walkLim;
+    occupancy.speed(arena).restNum = sum(loc,2);
+end
+
+sSpan = 1;
+fig = figure;
+row = 5;
+col = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:5;
+
+plotdata = [smooth(occupancy.speed(arena).restNum,sSpan,'moving'),...
+            smooth(occupancy.speed(arena).walkNum,sSpan,'moving')];
+y = area(plotdata);
+y(1).EdgeColor = 'none';
+y(1).FaceColor = Color('royalblue'); % resting
+y(2).EdgeColor = 'none';
+y(2).FaceColor = Color('gold'); % walking
+
+axis tight
+xlabel('time (frames)')
+ylabel('flies (#)')
+formatFig(fig, true);
+
+
+
+
+
+
 
 
 %%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Scratch pad area
 
 for arena = 1:4
     plot(1:nvids,meanLength(:,arena),'color','w','linewidth', 2.5)
@@ -533,59 +605,6 @@ save_figure(fig, [analysisDir 'track length across videos'], '-png');
 
 clearvars('-except',initial_vars{:})
 
-%% Combine speeds and tracks into single structure across length of videos
-
-    ylim([1000,2000])
-    xlim([0,1000])
-
-
-for arena = 1:4
-    subplot(2,2,arena)
-    hold on
-end
-
-
-
-
-
-
-% find max number of tracks for a video
-for vid = 1:nvids
-    nMax = max([nMax, trackROI(vid,arena).ntrackedLines]);
-    
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%%
 
 % fig = figure;
 %     plot(speedAvg,'color', arenaData(arena).color,'linewidth', 2)
@@ -751,7 +770,7 @@ fprintf('\n Video Saved! \n')
 
 clearvars('-except',initial_vars{:})
 close all
-vid = 55;
+vid = 56;
 videoName = [figDir 'analysis\All tracks vid ' num2str(vid)];
 
 % pull video information
@@ -762,10 +781,10 @@ vidLength = movieInfo.NumFrames;
 
 % pull and select data
 traceLength = 30; % how many previous points to demo for each fly track
-roi = 1:vidLength;
-roi = 1:200;
-rawdata = trackROI(vid,arena).tracks;
-
+roi = 1:vidLength-2;
+% roi = 1:1795;
+% rawdata = trackROI(vid,arena).tracks;
+walkLim = 1.5;
 
 % Set up video parameters
 fig = figure; set(fig, 'pos', [2040 499 814 733],'color', 'k'); % X-off, Y-off, width, height
@@ -802,10 +821,20 @@ nanLoc = [nan,nan];
         for arena = 1:4
             rawdata = trackROI(vid,arena).tracks;
             % plot the current position of the flies
-            scatter(squeeze(rawdata(ii,1,:)),squeeze(rawdata(ii,2,:)),30,arenaData(arena).color,'filled')
+            x = squeeze(rawdata(ii,1,:));
+            y = squeeze(rawdata(ii,2,:));
+            % plot all fly positions
+            scatter(x,y,30,arenaData(arena).color,'filled')
+            % Check the walking speed of the flies and color code if they
+            % are 'walking'
+            loc = [false,trackROI(vid,arena).speed(ii,:)>=walkLim];
+            scatter(x(loc'),y(loc'),60,'red','filled')
+            scatter(x(loc'),y(loc'),30,'yellow','filled')
+           
             % plot the past positions of the flies
             if length(pROI)>1
                 plot(squeeze(rawdata(pROI,1,:)),squeeze(rawdata(pROI,2,:)),'color', 'w','LineWidth',0.5)
+
             end
         end
         
