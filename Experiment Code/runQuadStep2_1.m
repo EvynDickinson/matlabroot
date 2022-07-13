@@ -4,7 +4,7 @@ function results = runQuadStep2_1(inputPath,autoSave,essentialfigs)
 %
 %
 % ES Dickinson
-
+%% LOAD DATA
 % Load in the selected data file: 
 warning off
 load(inputPath);
@@ -26,7 +26,7 @@ binSpace = 1; %temp degree bin widths
 initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
 
 
-%% ------------------------------ summary figure -------------------------------------
+%%  summary figure for each arena
 nrow = 5; ncol = 4;
 subplotInd(1).idx = 5:7; % temperature
 subplotInd(2).idx = [9:11,13:15,17:19]; % occupation
@@ -255,6 +255,7 @@ fprintf('Next\n')
 
 % Get the temp rate, temp, and distance from food
 for arena = 1:nArenas
+
     [TR,T_rates] = deal([]); % temp rate data will go here then get saved into Arena Data
 
     % temperature
@@ -289,6 +290,12 @@ for arena = 1:nArenas
     lastdatapoint = size(plotData,1);
     tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
     keepLoc = false(1,lastdatapoint);
+
+    % Skip if no temp change regions matter
+    if tPoints.nDown==0 || tPoints.nUp==0
+        continue;
+    end
+
     % HEATING ramps:
     for ii = 1:tPoints.nUp
         roi = tPoints.up(ii,1):tPoints.up(ii,2);
@@ -615,9 +622,11 @@ for arena = 1:nArenas
         AD = addvars(AD,arenaData(arena).occupancy.dist2wells(:,arenaData(arena).foodwell),...
             'NewVariableNames','dist2food');
     end
-    AD = addvars(AD,[arenaData(arena).TR.rateIdx; nan],'NewVariableNames','temprateIdx');
-    temp = arenaData(arena).TR.data;
-    AD = addvars(AD,[temp(:,4); nan],'NewVariableNames','temprate');
+    if isfield(arenaData,'TR')
+        AD = addvars(AD,[arenaData(arena).TR.rateIdx; nan],'NewVariableNames','temprateIdx');
+        temp = arenaData(arena).TR.data;
+        AD = addvars(AD,[temp(:,4); nan],'NewVariableNames','temprate');
+    end
     % add degree-binned temp column:
     temp = AD.temperature;
     AD = addvars(AD,round(temp),'NewVariableNames','binTemp');
@@ -747,7 +756,7 @@ end
     
 
     
-    
+
     
  %% -----------------------Calculate degree of clustering------------------------------
 % 

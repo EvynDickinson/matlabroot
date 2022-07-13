@@ -91,8 +91,6 @@ close all
 trackROI = struct;
 
 for vid = 1:nvids
-
-    
     % pull and select data
     ntracks = size(data(vid).tracks,4);
     flynums = 1:ntracks;
@@ -285,7 +283,6 @@ ylabel('track length (frames)')
 formatFig(fig,true);
 save_figure(fig, [analysisDir 'track length across videos'], '-png');
 
-
 clearvars('-except',initial_vars{:})
 
 %% ANALYSIS: group the speed data over time
@@ -384,7 +381,7 @@ formatFig(fig, true,[row,col],sb);
 save_figure(fig, [analysisDir 'avg speed over time all arenas'], '-png');
 clearvars('-except',initial_vars{:})
 
-%%  FIGURE: speed histogram
+%% FIGURE: speed histogram
 speedMax = 20;
 
 fig = figure; set(fig, 'pos', [87 258 1230 720])
@@ -408,7 +405,7 @@ formatFig(fig,true,[2,2]);
 save_figure(fig, [analysisDir 'speed histogram across arenas'], '-png');
 clearvars('-except',initial_vars{:})
 
-%% Average speed with speed cap
+%% FIGURE: Average speed with speed cap
 speedMax = 20;
 sSpan = 180;
 
@@ -564,7 +561,7 @@ end
 clearvars('-except',initial_vars{:})
 
 
-%%
+%% 
 
 
 

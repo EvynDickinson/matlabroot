@@ -1,0 +1,17 @@
+% This script looks at data files that had no food and used the step ramp
+% temperature protocols
+
+%% Compare movement and speed
+
+row = 3;
+col = 3;
+sb(1).idx = [1,2];
+sb(2).idx = [4,5,7,8];
+sb(3).idx = [3,6,9];
+
+
+fig = figure;
+subplot(row, col, sb)
+% temperature
+x = data.
+plot()

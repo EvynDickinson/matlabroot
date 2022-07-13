@@ -88,6 +88,10 @@ else %select data structure from folder names out of GroupDataGUI:
                 end
             end
         end
+
+        % load speed data
+        temp = load([filePath expID{trial} ' speed data.mat']);
+        data(trial).speed = temp.speed;
         disp([expID{trial} arenas{trial}])
     end
 end
@@ -373,7 +377,7 @@ food.N = [];
 for trial = 1:ntrials
     % Screen out data pre/post data 
     tempPoints = getTempTurnPoints(T.TempProtocol{trial});
-    roi = sort([tempPoints.DownROI,tempPoints.UpROI]);
+    roi = sort([tempPoints.DownROI,tempPoints.UpROI,tempPoints.HoldROI]);
     switch inputVar
         case 'movement'
             x = data(trial).occupancy.temp(1:end-1);

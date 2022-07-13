@@ -135,6 +135,7 @@ for trial = 1:ntrials
 end
 
 %% FIGURE: visual check of temperature alignment across the experiments:
+
 fig = figure; set(fig, 'position', [107 595 1150 235]); hold on
 for trial = 1:ntrials
     X = data(trial).occupancy.time;
@@ -151,6 +152,10 @@ save_figure(fig, [figDir 'temperature alignment'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
+
+%% FIGURE: group movement
+
+
 
 %% Distance from wells by well location? 
 
