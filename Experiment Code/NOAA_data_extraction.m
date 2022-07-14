@@ -156,7 +156,7 @@ for city = 1:nCity
 end
 save([rootdir 'Processed Data/2021 Subhourly Data'],'-v7.3');
 
-%% ANALYSIS find the temp rates for each sampling location
+%% (start point) ANALYSIS find the temp rates for each sampling location
 latitude = [];
 longitude = [];
 annualT = [];
@@ -264,8 +264,22 @@ fig = figure; hold on
 %     v_line([-0.5,0.5],'orange',':',1)
 %     v_line([-0.25,0.25],'darkviolet',':',1)
 %     v_line([-0.1,0.1],'turquoise',':',1)
+xlim([-0.35,0.35])
 
 save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-pdf'); % rate lines
+
+%% FIGURE:  plot histogram of all the change rates...
+
+allRates = [];
+for city = 1:nCity
+    allRates = [allRates; cityData(city).tempRate];
+end
+
+fig = figure;
+h = histogram(allRates,100);
+xlim([-1,1])
+
+%% FIGURE: correlation of temp and light over a week period
 
 %% FIGURE: temp over a year (single plot example)
 DaysPerMonth = [1 31 28 31 30 31 30 31 31 30 31 30];
@@ -275,7 +289,7 @@ monthNames = {'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oc
 minT = -90; % lowest recorded temperature on record
 maxT = 57; %highest recorded temp on record
 
-city = 106; %Old Town ME
+city = 105; %Old Town ME
 data = cityData(city).T;
 time = data(:,5);
 surf_temp = data(:,13);
@@ -380,7 +394,6 @@ set(gca, 'YColor', Color('dodgerblue'))
 
 save_figure(fig,[rootdir 'Figures/Annual temp-rate histogram with PDF white background ' title_str],'-png');
 
-
 %% FIGURE: show city sample location on the map (single plot example)
 fig = figure; 
 geoscatter(cityData(city).T(1,8), cityData(city).T(1,7), 75, Color('blue'),'filled','^');
@@ -398,8 +411,6 @@ title(city_name{city},'color', 'w')
 % ax.LatitudeLimits = [18.2455 72.6145];
 
 save_figure(fig,[rootdir 'Figures/Sampling location for ' city_name{city}],'-png');
-
-
 
 %% FIGURE: comparison of annual temp and temp rate variability across the US by latitude
 latitude = [];
@@ -551,7 +562,6 @@ ylabel('Solar radiation (W/m^2)')
 
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-png');
-
 
 %% 
 T = [];
@@ -813,7 +823,6 @@ set(gca,'XTickLabel',[])
 formatFig(fig,true, [row,col]);
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multifactor overlays'],'-png');
 
-
 %% TRIAL AND ERROR: try looking at temp patterns by precipitation
 
 % find the 'morning' hours -- i.e. show am vs pm
@@ -964,8 +973,6 @@ save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multif
 
 %% How much into the future could the flies predict from knowing current temp and rate of temp change?
 
-
-
 %% Light levels vs temperature for a full day
 city = 5;
 T = [];
@@ -1057,7 +1064,6 @@ set(gca, 'YColor',Color('orange'))
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-pdf');
 
-
 %% FIGURE: 
 % plot the temp vs solar radiation over time -- averaged across each month
 
@@ -1091,16 +1097,179 @@ legend(monthNames,'box','off')
 
 save_figure(fig,[rootdir 'Figures/solar vs temp month average for ' city_name{city}],'-pdf');
 
+%% Long-range temp vs light overlay
+
+dayROI = 198:204;
+
+[radiData,tempData] = deal([]);
+for ii = dayROI
+  
+  tempData = [tempData; T.time(:,ii), T.temp(:,ii),T.tempR(:,ii)];
+  radiData = [radiData; T.time(:,ii), T.radi(:,ii),[T.radiR(:,ii);nan]];
+
+end
+
+tempData(:,3) = fillmissing(tempData(:,3),'movmedian',30000);  
+radiData(:,3) = fillmissing(radiData(:,3),'movmedian',30000);  
 
 
-%% Annual temperature range
+x = 0:289:size(tempData,1);
+
+% plotList = [169 177 190 195 202];
+ii = 202;
+gap = 3;
+
+row = 2; col = 1;
+fig = figure; set(fig, 'pos', [-951 661 891 499])
+% Rate of change
+    subplot(row,col,1); hold on
+        plot(normalize(tempData(:,3)),'color', Color('dodgerblue'),'linewidth', 1.5)
+        plot(normalize(radiData(:,3)),'color', Color('orange'),'linewidth', 1.5)  
+        ylabel('rate of change z-score')
+        axis tight
+        set(gca, 'XTick',x,'XTickLabels',1:length(x))
+        xlabel('Time (hr)')
+       
+% Absolute values
+    subplot(row,col,2); hold on
+        plot(tempData(:,2),'color', Color('dodgerblue'),'linewidth', 1.5)
+        ylabel('Temperature (\circC)')
+        yyaxis right
+        plot(radiData(:,2),'color', Color('orange'),'linewidth', 1)
+        ylabel('Solar radiation (W/m^2)')
+        axis tight
+        set(gca, 'XTick',x,'XTickLabels',1:length(x))
+        xlabel('Time (hr)')
+        
+% FORMATTING
+formatFig(fig,false, [row,col]);
+subplot(row,col,1);
+% yyaxis left
+% set(gca, 'YColor',Color('dodgerblue'))
+% yyaxis right
+% set(gca, 'YColor',Color('orange'))
+subplot(row,col,2);
+yyaxis left
+set(gca, 'YColor',Color('dodgerblue'))
+yyaxis right
+set(gca, 'YColor',Color('orange'))
+save_figure(fig,[rootdir 'Figures/week long temp vs light ' city_name{city} ' days '...
+    num2str(dayROI(1)) '-' num2str(dayROI(end))],'-pdf');
 
 
 
+
+
+% FIGURE WITH CORRELATION COEFFICIENT
+% Correlation coefficients...
+sSpan = 80; % two hour rolling window
+[corrRate,corrAbs] = deal(nan([size(tempData,1),1]));
+for ii = sSpan/2:size(tempData,1)-sSpan
+    roi = ii:ii+sSpan;
+    R = corrcoef(tempData(roi,3),radiData(roi,3));
+    corrRate(ii) = R(1,2);
+    R = corrcoef(tempData(roi,2),radiData(roi,2));
+    corrAbs(ii) = R(1,2);
+end
+
+
+x = 0:289:size(tempData,1);
+
+% plotList = [169 177 190 195 202];
+ii = 202;
+gap = 3;
+
+row = 3; col = 1;
+fig = figure; set(fig, 'pos', [-1077 456 1050 704])
+% Absolute values
+    subplot(row,col,1); hold on
+        plot(tempData(:,2),'color', Color('dodgerblue'),'linewidth', 1.5)
+        ylabel('Temperature (\circC)')
+        yyaxis right
+        plot(radiData(:,2),'color', Color('orange'),'linewidth', 1)
+        ylabel('Solar radiation (W/m^2)')
+        axis tight
+        xlimits = xlim;
+        set(gca, 'XTick',x,'XTickLabels',1:length(x))
+        xlabel('Time (hr)')
+% Rate of change
+    subplot(row,col,2); hold on
+        plot(normalize(tempData(:,3)),'color', Color('dodgerblue'),'linewidth', 1.5)
+        plot(normalize(radiData(:,3)),'color', Color('orange'),'linewidth', 1.5)  
+        ylabel('rate of change z-score')
+        axis tight
+        xlim(xlimits)
+        set(gca, 'XTick',x,'XTickLabels',1:length(x))
+        xlabel('Time (hr)')
+% Correlation
+    subplot(row,col,3); hold on
+        plot(corrAbs,'color', Color('black'),'linewidth', 1.5)
+        plot(corrRate,'color', Color('grey'),'linewidth', 1.5)  
+        ylabel('Correlation Coefficient')
+        set(gca, 'XTick',x,'XTickLabels',1:length(x))
+        xlabel('Time (hr)')
+        xlim(xlimits)
+% FORMATTING
+formatFig(fig,false, [row,col]);
+% subplot(row,col,1);
+% yyaxis left
+% set(gca, 'YColor',Color('dodgerblue'))
+% yyaxis right
+% set(gca, 'YColor',Color('orange'))
+subplot(row,col,1);
+yyaxis left
+set(gca, 'YColor',Color('dodgerblue'))
+yyaxis right
+set(gca, 'YColor',Color('orange'))
+save_figure(fig,[rootdir 'Figures/absolute rate and coefficient data for ' city_name{city} ' days '...
+    num2str(dayROI(1)) '-' num2str(dayROI(end))],'-pdf');
+
+
+%% Power analysis
+
+workingData = fillmissing(surf_temp,'movmedian',30000);  
+
+
+
+nSamples = length(workingData);
+Fs = 0.083; %five minute bin sampling
+f = 0:Fs/nSamples:Fs/2;     % frequency axis
+a = fft(workingData);         % Fourier transform
+P = a.*conj(a)./nSamples;   % power = square of the amplitude, normalized
+S = P(1:floor(nSamples/2+1));      
+
+% find the frequency with the most power:
+transData = [f',S];
+transData = sortrows(transData,2,'descend'); % first two values here are quite large
+max_spec = transData(1:2,:); %pull out the large values 
+disp('The frequencies the most power are: ') 
+disp(max_spec(:,1))
+disp('The power at these frequencies are: ') 
+disp(max_spec(:,2))
+
+
+% PLOT SPECTRAL FREQUENCY DATA
+row = 2;
+col = 1;
+LW = 2;
 
 fig = figure;
+% Time domain signal (raw)
+subplot(row, col, 1); hold on
+plot(workingData,'color', Color('red'),'linewidth',LW)
+plot(surf_temp,'color', Color('grey'),'linewidth',LW)
+xlabel('time')
+ylabel('temperature (\circC)')
+axis tight
+% Frequency domain signal
+subplot(row,col,2)
+semilogy(f,S,'color', Color('teal'),'linewidth',LW) %log scale
+xlabel('Frequency (Hz)')
+ylabel('Spectral power density')
+% v_line(max_spec(:,1),'red','-.',0.5) 
+axis tight
 
-
+formatFig(fig, false, [row,col]);
 
 
 
