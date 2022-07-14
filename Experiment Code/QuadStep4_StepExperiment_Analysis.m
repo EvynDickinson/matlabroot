@@ -33,21 +33,76 @@ for trial = 1:ntrials
     end
 end
 
-%% Compare movement and speed
+%% ANALYSIS: Average speed for binned temperatures
+sSpan = 180;
+binSpace = 1;
+binbuffer = 0.5;
 
-
-
+[tempAll, plotData] = deal([]); 
 % Average speed for each temperature
 for trial = 1:ntrials
+    % pull data for use:
     raw = data(trial).speed.avg;
-    temp = data(trial).occupancy.temp;
-    %ROI of useable data:
+    temp = (data(trial).occupancy.temp);
+    % ROI of useable data:
     tPoints = getTempTurnPoints(T.TempProtocol{trial});
-    %sort into temperature bins
-    
-    
-    
+    ROI = [tPoints.DownROI';tPoints.UpROI';tPoints.HoldROI']; 
+    tempdata = temp(ROI);
+    speeddata = raw(ROI);
+
+    % determine temperature bins
+    tLow = tPoints.threshLow-binbuffer;
+    tHigh = tPoints.threshHigh+binbuffer;    
+    t_roi = tLow:binSpace:tHigh; 
+%     t_roi(1) = tLow; t_roi(end) = tHigh;
+    % sort data by temperature:
+    binID = discretize(tempdata,t_roi);
+    for tt = 1:length(t_roi)-1
+        loc = binID==tt;
+        plotData(trial,tt) = mean(speeddata(loc),1,'omitnan');
+        tempAll(trial,tt) = mean(t_roi(tt:tt+1));
+    end
 end
+
+speed.avg = plotData;
+speed.temp = tempAll;
+
+initial_vars{end+1} = 'speed';
+clearvars('-except',initial_vars{:})
+
+%% FIGURE: plot avg speed for each temperature
+
+fig = figure;
+hold on
+for trial = 1:ntrials
+    x = speed.temp(trial,:);
+    y = speed.avg(trial,:);
+    x(isnan(y)) = [];
+    y(isnan(y)) = [];
+    
+    plot(x,y,'Marker','o','LineWidth',1,'color','w')
+end
+xlabel('Temperature (\circC)')
+ylabel('Avg Speed (mm/s)')
+formatFig(fig,true);
+
+save_figure(fig, [figDir ExpGroup ' avg speed vs temperature'], '-png');
+
+%% FIGURE: Compare speed for each step to it's control over time
+
+% TODO...
+
+
+
+
+
+
+
+
+
+
+figure; plot(binID)
+    
 
 % Pull plotting data:
 for ii = 1:nfoods+1 %each food type
@@ -62,13 +117,7 @@ for ii = 1:nfoods+1 %each food type
         food(ii).err(tt) = std(food(ii).N(loc,2),0,1,'omitnan')/sqrt(ntrials);
     end
 end
-
-
-
-% group speed over temperature
-for trial = 1:ntrials
-    % TODO...
-end
+    
 
 
 row = 3;

@@ -263,104 +263,107 @@ clearvars('-except',initial_vars{:})
 
 
 %% FIGURE: speed summary figure
-sSpan = 180;
-row = 5;
-col = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:5;
-
-fig = figure; set(fig, 'pos', [1941 145 998 601])
-    subplot(row, col, sb(1).idx)
-    plot(occupancy.time, occupancy.temp,'color', 'w', 'LineWidth',1)
-    ylabel('\circC')
-    subplot(row, col, sb(2).idx)
-    hold on
-    for arena = 1:4
-        plot(occupancy.time, smooth(speed(arena).avg(:),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
-    end
-    xlabel('time (min)')
-    ylabel('speed (mm/s)')
-formatFig(fig, true,[row,col],sb);
-
-save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave);
-clearvars('-except',initial_vars{:})
-
-%% FIGURE: speed histogram
-speedMax = 20;
-
-fig = figure; set(fig, 'pos', [87 258 1230 720])
-for arena = 1:4
-    subplot(2,2,arena)
-    X = speed(arena).raw;
-    h(arena).data = histogram(X,'EdgeColor','w');
-    set(gca, 'YScale','log')
-    h_line(10,'gold')
-    v_line(20,'red')
-    xlabel('speed (mm/s)')
-    ylabel('frame count')
-    % find the portion of frames above the allowable instance:
-    raw = reshape(X,numel(X),1);
-    raw(isnan(raw)) = [];
-    percentHigh(arena) = (sum(raw>speedMax)/length(raw))*100;
-    title(['Over limit: ' num2str(percentHigh(arena)), '%'])
+if essentialfigs == false
+    sSpan = 180;
+    row = 5;
+    col = 1;
+    sb(1).idx = 1;
+    sb(2).idx = 2:5;
     
+    fig = figure; set(fig, 'pos', [1941 145 998 601])
+        subplot(row, col, sb(1).idx)
+        plot(occupancy.time, occupancy.temp,'color', 'w', 'LineWidth',1)
+        ylabel('\circC')
+        subplot(row, col, sb(2).idx)
+        hold on
+        for arena = 1:4
+            plot(occupancy.time, smooth(speed(arena).avg(:),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+        end
+        xlabel('time (min)')
+        ylabel('speed (mm/s)')
+    formatFig(fig, true,[row,col],sb);
+    
+    save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave);
+    clearvars('-except',initial_vars{:})
 end
-formatFig(fig,true,[2,2]);
-
-% Quality control
-if any(percentHigh>1)
-    switch questdlg('More than 1% of frames are above speed limit, continue?')
-        case 'Yes'
-            disp('Continuing with analysis')
-        case 'No'
-            return
-        case 'Cancel'
-            close(fig)
-            return
+%% FIGURE: speed histogram
+if essentialfigs == false
+    speedMax = 20;
+    
+    fig = figure; set(fig, 'pos', [87 258 1230 720])
+    for arena = 1:4
+        subplot(2,2,arena)
+        X = speed(arena).raw;
+        h(arena).data = histogram(X,'EdgeColor','w');
+        set(gca, 'YScale','log')
+        h_line(10,'gold')
+        v_line(20,'red')
+        xlabel('speed (mm/s)')
+        ylabel('frame count')
+        % find the portion of frames above the allowable instance:
+        raw = reshape(X,numel(X),1);
+        raw(isnan(raw)) = [];
+        percentHigh(arena) = (sum(raw>speedMax)/length(raw))*100;
+        title(['Over limit: ' num2str(percentHigh(arena)), '%'])
+        
     end
+    formatFig(fig,true,[2,2]);
+    
+    % Quality control
+    if any(percentHigh>1)
+        switch questdlg('More than 1% of frames are above speed limit, continue?')
+            case 'Yes'
+                disp('Continuing with analysis')
+            case 'No'
+                return
+            case 'Cancel'
+                close(fig)
+                return
+        end
+    end
+    
+    save_figure(fig, [analysisDir expName ' speed histogram across arenas'], '-png', autoSave);
+    clearvars('-except',initial_vars{:})
 end
-
-save_figure(fig, [analysisDir expName ' speed histogram across arenas'], '-png', autoSave);
-clearvars('-except',initial_vars{:})
 
 %% FIGURE: percentage of flies walking
-
-sSpan = 1;
-row = 5;
-col = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:5;
-
-for arena = 1:4
-
-    fig = figure; set(fig, 'pos', [2035 443 908 600])
-        subplot(row, col, sb(1).idx)
-            plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', 2)
-            ylabel('\circC')
-            xlabel('time')
-            set(gca,'TickDir','out')
-            axis tight
-        subplot(row, col, sb(2).idx)
-            plotdata = [smooth(speed(arena).walkNum,sSpan,'moving'),...
-                        smooth(speed(arena).restNum,sSpan,'moving')];
-            y = area(plotdata);
-            y(2).EdgeColor = 'none';
-            y(2).FaceColor = Color('darkslategrey'); % resting
-            y(1).EdgeColor = 'none';
-            y(1).FaceColor = Color('springgreen'); % walking
-        %labels
-        axis tight
-        ylabel('flies (#)')
-        formatFig(fig, true,[row,col],sb);
-        subplot(row, col, sb(2).idx)
-        set(gca,'XColor','k','TickDir','out')
+if essentialfigs == false
+    sSpan = 1;
+    row = 5;
+    col = 1;
+    sb(1).idx = 1;
+    sb(2).idx = 2:5;
     
-    save_figure(fig, [figDir 'Arena ' Alphabet(arena) '\' expName ' walking vs resting fly numbers' ], '-png',autoSave);
-
+    for arena = 1:4
+    
+        fig = figure; set(fig, 'pos', [2035 443 908 600])
+            subplot(row, col, sb(1).idx)
+                plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', 2)
+                ylabel('\circC')
+                xlabel('time')
+                set(gca,'TickDir','out')
+                axis tight
+            subplot(row, col, sb(2).idx)
+                plotdata = [smooth(speed(arena).walkNum,sSpan,'moving'),...
+                            smooth(speed(arena).restNum,sSpan,'moving')];
+                y = area(plotdata);
+                y(2).EdgeColor = 'none';
+                y(2).FaceColor = Color('darkslategrey'); % resting
+                y(1).EdgeColor = 'none';
+                y(1).FaceColor = Color('springgreen'); % walking
+            %labels
+            axis tight
+            ylabel('flies (#)')
+            formatFig(fig, true,[row,col],sb);
+            subplot(row, col, sb(2).idx)
+            set(gca,'XColor','k','TickDir','out')
+        
+        save_figure(fig, [figDir 'Arena ' Alphabet(arena) '\' expName ' walking vs resting fly numbers' ], '-png',autoSave);
+    
+    end
+    
+    clearvars('-except',initial_vars{:})
 end
-
-clearvars('-except',initial_vars{:})
-
 
 %% SAVE: data stored in each subfolder for arenas
 
@@ -370,7 +373,7 @@ save([figDir 'analysis\' expName ' speed data.mat'],'speed', 'trackROI');
 % Save into each group folder:
 SPEED = speed;
 for arena = 1:nArenas
-    speed = SPEED(1);
+    speed = SPEED(arena);
     speedTracks = trackROI(:,arena);
     save([figDir 'Arena ' Alphabet(arena) '\' expName ' speed data.mat'],'speed', 'speedTracks');
 end

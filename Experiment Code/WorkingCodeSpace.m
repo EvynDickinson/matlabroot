@@ -1281,7 +1281,67 @@ for ii = 1:length(fileIdx)
 end
 
 
+%% Select experiments and update something about them
 
+clear; close all; clc
+
+excelWrite = true;
+
+%load excel file:
+[excelfile, Excel, XL] = load_QuadBowlExperiments;
+loc = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+loc = ~loc;
+rownums = find(loc)+1; 
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
+loc1 = cellfun(@isnan,eligible_files(:,4));
+c = cellfun(@string,eligible_files);
+c(loc1,4) = ' ';
+FileNames = join(c);
+fileIdx = listdlg('ListString', FileNames,'ListSize',[300,450]);
+%pull the list of dates and arenas to be 
+List.date = eligible_files(fileIdx,1);
+List.expID = eligible_files(fileIdx,3); 
+
+
+%get base folder pathway
+finishedFiles = [];
+baseFolder = getCloudPath;
+for ii = 1:length(fileIdx)
+    results = [];
+    clear speed trackROI speedTracks SPEED  
+    inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' speed data.mat'];
+    if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
+        load(inputPath)
+
+        % ------ CHANGE THIS ----------
+        SPEED = speed;
+        for arena = 1:4
+            speed = SPEED(arena);
+            speedTracks = trackROI(:,arena);
+            save([baseFolder List.date{ii} '/Arena ' Alphabet(arena) '/' List.expID{ii} ' speed data.mat'],...
+                'speed', 'speedTracks');
+        end
+        results = 'Saved Data';
+        % -----------------------------
+    end
+    finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
+    if excelWrite == true
+        if strcmpi(results, 'Saved Data')
+            XLrow = rownums(fileIdx(ii));
+            % write number of flies into the excel sheet
+            try
+                xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+            catch
+                h = warndlg('Close Experiment Summary excel file and then close this warning box');
+                uiwait(h)
+                xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+            end
+        end
+    end
+disp(['Finished ' FileNames(fileIdx(ii))])         
+end
+
+disp('Done with full set')
 
 
 
