@@ -1312,14 +1312,25 @@ for ii = 1:length(fileIdx)
     inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' speed data.mat'];
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
         load(inputPath)
+        
 
         % ------ CHANGE THIS ----------
+        %trackroi not saved, load from individual prior data set
+        if ~exist('trackROI','var')
+            loadInd = true;
+        end
+
         SPEED = speed;
         for arena = 1:4
+            dataPath = [baseFolder List.date{ii} '/Arena ' Alphabet(arena) '/' List.expID{ii} ' speed data.mat'];
             speed = SPEED(arena);
-            speedTracks = trackROI(:,arena);
-            save([baseFolder List.date{ii} '/Arena ' Alphabet(arena) '/' List.expID{ii} ' speed data.mat'],...
-                'speed', 'speedTracks');
+            
+            if loadInd
+                speedTracks = load(dataPath,'speedTracks');
+            else
+                speedTracks = trackROI(:,arena);
+            end
+            save(dataPath,'speed', 'speedTracks');
         end
         results = 'Saved Data';
         % -----------------------------
@@ -1342,6 +1353,10 @@ disp(['Finished ' FileNames(fileIdx(ii))])
 end
 
 disp('Done with full set')
+
+
+
+%% 
 
 
 
