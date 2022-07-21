@@ -246,7 +246,7 @@ for arena = 1:nArenas
     arenaData(arena).genotype = expData.parameters.(['Arena' arenaIdx{arena}]).genotype;
 end
 
-save([analysisDir 'half processed data.mat'])
+save([analysisDir expName ' half processed data.mat'])
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -457,7 +457,7 @@ for arena = 1:nArenas
         yyaxis right; plot(time,rateIdx,'color', Color('orange')); ylabel('Heating vs. cooling'); 
         formatFig(fig,true); yyaxis right; set(gca, 'YColor', Color('orange')); 
         yyaxis left; set(gca, 'YColor', Color('DodgerBlue'));xlabel('Time (min)')
-        save_figure(fig, [analysisDir 'Temp rate assignment'],'-png',true);
+        save_figure(fig, [analysisDir expName ' Temp rate assignment'],'-png',true);
     end
 
     % FIGURE: temperature rate aligment 
@@ -643,7 +643,7 @@ for arena = 1:nArenas
         continue
     end
     title_str = [folder ' ' expName ' ' arenaData(arena).genotype];
-    fig_file = [arenaData(arena).figDir 'fly count hysteresis'];
+    fig_file = [arenaData(arena).figDir expName ' fly count hysteresis'];
     LW = 1.5;
     % pull data
     AD = arenaData(arena).T;

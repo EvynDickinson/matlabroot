@@ -151,7 +151,8 @@ end
 ylabel('Speed (mm/s)')
 xlabel('Temp Step')
 ax = gca;
-set(ax,'XTick',1:nsteps,'XTickLabel',{'23>16','23>14','23>12','23>10'})
+% set(ax,'XTick',1:nsteps,'XTickLabel',{'23>16','23>14','23>12','23>10'})
+set(ax,'XTick',1:nsteps,'XTickLabel',{'23>10','23>12','23>14','23>16'})
 
 formatFig(fig,true);
 save_figure(fig, [figDir ExpGroup ' control vs temp drop speed avg'], '-png');
@@ -168,7 +169,7 @@ sb(2).idx = 2:4;
 
 fig = figure; set(fig,'pos', [2198 252 622 620])
 subplot(row,col,sb(1).idx)
-plot(data(trial).occupancy.time,data(trial).occupancy.temp,'color','w','LineWidth',2)
+plot(data(1).occupancy.time,data(1).occupancy.temp,'color','w','LineWidth',2)
 ylabel('\circC')
 axis tight
 

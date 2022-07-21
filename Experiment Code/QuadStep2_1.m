@@ -30,6 +30,7 @@ for ii = 1:length(fileIdx)
     inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat'];
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
         results = runQuadStep2_1(inputPath,autoSave,essentialfigs); % Run the basic figures
+        results2 = runQuadStep2_1_movement(inputPath,autoSave,essentialfigs); % Run the basic speed figures
     end
     finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
     if excelWrite == true
