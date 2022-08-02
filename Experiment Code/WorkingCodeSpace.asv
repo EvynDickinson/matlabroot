@@ -1358,12 +1358,14 @@ disp('Done with full set')
 
 %% 
 
-theta = deg2rad(35);
-h = (150)/25.4;
+theta = deg2rad(38.5);
+h = (300)/25.4;
 
-D = 2*tan(theta)*h;
-disp(D)
+D = 
 
+
+h = (d/(tan(deg2rad(theta/2))))*2;
+disp((h/25.4))
 
 
 
