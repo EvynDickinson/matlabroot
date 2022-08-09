@@ -183,7 +183,7 @@ sSpan = 360;
 row = 2; col = 2; 
 kolors = {'gold', 'darkorange', 'red'};
 
-fig = figure; set(fig,'pos',[-1050 362 1045 770])
+fig = figure; %set(fig,'pos',[-1050 362 1045 770])
     for idx = 1:2
         if idx==1 
             trialROI = 1:4;
@@ -236,6 +236,197 @@ fig = figure; set(fig,'pos',[-1050 362 1045 770])
     end
     
 save_figure(fig, [figDir 'temp vs work'], '-png');
+
+
+
+%% FIGURE: Speed Vs Work for the different oscillation frequencies
+
+
+clearvars('-except',initial_vars{:})
+
+% transition points between the different frequencies in the time series
+frequencyBorders = [6452; 68621; 99761; 115359]; 
+
+% sort data into frequency groups
+nfreq = length(frequencyBorders)-1;
+plotData = struct;
+for ii = 1:nfreq
+   for trial = 1:ntrials %only the first experiment type
+       ROI = frequencyBorders(ii):frequencyBorders(ii+1);
+       plotData(ii).speed(:,trial) = data(trial).speed.avg(ROI);
+       plotData(ii).work(:,trial) = data(trial).data.T.tempWork(ROI);
+       plotData(ii).temp(:,trial) = data(trial).occupancy.temp(ROI);
+       plotData(ii).time(:,trial) = data(trial).occupancy.time(ROI);
+       % change in temp: 
+       plotData(ii).temprate(:,trial) = data(trial).data.T.temprate(ROI);
+   end
+end
+
+
+% --------------------------------------------------------------------------------------------------
+% 
+sSpan = 360;
+kolors = {'gold', 'darkorange', 'red'};
+row = 3;
+col = 2;
+
+fig = figure;
+for idx = 1:2
+    if idx==1 
+        trialROI = 1:4;
+        tempTag = 'temp mean: 18\circC';
+    else
+        trialROI = 5:8;
+        tempTag = 'temp mean: 12\circC';
+    end 
+
+    % WORK VS SPEED
+    subplot(row,col,idx)
+    hold on
+        for ii = 1:nfreq
+            y = plotData(ii).speed(:,trialROI); 
+            x = plotData(ii).work(:,trialROI); 
+            z = [x(:),y(:)];
+            z = sortrows(z,1);
+            plot(z(:,1), smooth(z(:,2),sSpan,'moving'),'color',Color(kolors{ii}),'linewidth',2,'linestyle', '-')
+        end
+        xlabel('work (%)')
+        ylabel('speed (mm/s)')
+        ylim([0,2])
+        title(tempTag)
+
+    % TEMP VS SPEED
+    subplot(row,col,idx+2)
+    hold on
+        for ii = 1:nfreq
+            y = plotData(ii).speed(:,trialROI); 
+            x = plotData(ii).temp(:,trialROI); 
+            z = [x(:),y(:)];
+            z = sortrows(z,1);
+            plot(z(:,1), smooth(z(:,2),sSpan,'moving'),'color',Color(kolors{ii}),'linewidth',2,'linestyle', '-')
+        end
+        xlabel('temp (\circC)')
+        ylabel('speed (mm/s)')
+        ylim([0,2.5])
+
+    % TEMPRATE VS SPEED
+    subplot(row,col,idx+4)
+    hold on
+        for ii = 1:nfreq
+            y = plotData(ii).speed(:,trialROI); 
+            x = plotData(ii).temprate(:,trialROI); 
+            z = [x(:),y(:)];
+            z = sortrows(z,1);
+            scatter(z(:,1), z(:,2),15,Color(kolors{ii}))
+        end
+        xlabel('temprate (\circC/min)')
+        ylabel('speed (mm/s)')
+end
+
+
+
+% Format
+formatFig(fig, true, [row,col]);
+    
+save_figure(fig, [figDir 'speed vs temp work and temprate'], '-png');
+
+
+
+%% FIGURE: speed vs temp hysteresis loops
+
+clearvars('-except',initial_vars{:})
+
+% transition points between the different frequencies in the time series
+frequencyBorders = [6452; 68621; 99761; 115359]; 
+
+% sort data into frequency groups
+nfreq = length(frequencyBorders)-1;
+plotData = struct;
+for ii = 1:nfreq
+   for trial = 1:ntrials 
+       tempPoints = getTempTurnPoints(T.TempProtocol{trial});
+       ROI = frequencyBorders(ii):frequencyBorders(ii+1);
+       plotData(ii).speed(:,trial) = data(trial).speed.avg(ROI);
+       plotData(ii).work(:,trial) = data(trial).data.T.tempWork(ROI);
+       plotData(ii).temp(:,trial) = data(trial).occupancy.temp(ROI);
+       plotData(ii).time(:,trial) = data(trial).occupancy.time(ROI);
+       plotData(ii).temprate(:,trial) = data(trial).data.T.temprate(ROI);
+       
+       % Sort speed by increasing temp rates within each frequency
+       [UP, DOWN, FREQ] = deal(false(length(data(trial).data.T.temprate),1));
+       UP(tempPoints.UpROI) = true;
+       DOWN(tempPoints.DownROI) = true;
+       FREQ(ROI) = true;
+       riseROI =  UP & FREQ;
+       fallROI = DOWN & FREQ;
+       plotData(ii).rise(trial).roi = riseROI;
+       plotData(ii).fall(trial).roi = fallROI;
+   end
+end
+
+
+% Make a hysteresis curve for each trial:
+for ii = 1:nfreq
+   for trial = 1:ntrials 
+        if trial<=4 
+            tempTag = 'temp mean: 18\circC';
+            tempEdges = 17:0.1:19;
+        else
+            tempTag = 'temp mean: 12\circC';
+            tempEdges = 11:0.1:13;
+        end 
+        % INCREASING TEMP
+        x = data(trial).occupancy.temp(plotData(ii).rise(trial).roi);
+        y = data(trial).speed.avg(plotData(ii).rise(trial).roi);
+        xROI = discretize(x,tempEdges);
+        for tt = 1:length(tempEdges)-1
+            plotData(ii).riseavg(tt,trial) = mean(y(xROI==tt),'omitnan');
+        end
+        % INCREASING TEMP
+        x = data(trial).occupancy.temp(plotData(ii).fall(trial).roi);
+        y = data(trial).speed.avg(plotData(ii).fall(trial).roi);
+        xROI = discretize(x,tempEdges);
+        for tt = 1:length(tempEdges)-1
+            plotData(ii).fallavg(tt,trial) = mean(y(xROI==tt),'omitnan');
+            plotData(ii).tempavg(tt,trial) = mean(x(xROI==tt),'omitnan');
+        end
+   end
+end
+
+
+row = 1;
+col = 2;
+kolors = {'gold', 'darkorange', 'red'};
+
+fig = figure;
+
+for trial = 1:ntrials 
+    if trial<=4 
+        subplot(row,col,1); hold on
+        tempTag = 'temp mean: 18\circC';
+        kolor = Color('purple');
+    else
+        subplot(row,col,2); hold on
+        tempTag = 'temp mean: 12\circC';
+        tempEdges = 11:0.1:13;
+    end 
+
+    plot(plotData(ii).tempavg, plotData(ii).fallavg)
+
+
+
+figure;
+hold on
+plot(z(:,1), smooth(z(:,2),60,'moving'),'Color','red')
+       
+
+
+
+
+
+
+
+
 
 
 
