@@ -126,6 +126,19 @@ switch TempProtocolString
         tempPoints.rates = 0;
         tempPoints.threshLow = 10;
         tempPoints.threshHigh = 23;
+    case 'Vibrating Single Step 23-15'
+        tempPoints.hold = [665,32994;...
+                           34416, 42822;...
+                           44395, 76724;...
+                           78356, 86553;...
+                           88367, 120454;...
+                           122086, 136275];
+        tempPoints.down = [];
+        tempPoints.up =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0;
+        tempPoints.threshLow = 10;
+        tempPoints.threshHigh = 25;
     % =======================================    
     case 'double_linear_cooling_ramp'
         tempPoints.down = [5549,23510;...

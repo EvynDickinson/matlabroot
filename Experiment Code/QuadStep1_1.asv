@@ -1044,44 +1044,21 @@ disp('Done')
 % disp('Done')
 
 %% Plot work vs temp for full experiment 
-% 
-% x = tempLog(:,3); % temperature
-% y = tempLog(:,4); % work
-% 
-% 
-% fig = figure;
-%     scatter(x,y,45, 'w')
-%     xlabel('temperature (\circC)')
-%     ylabel('work (%)')
-%     formatFig(fig,true);
-% save_figure(fig, [analysisDir expName ' temperature vs work'], '-png',true);
-% 
-% 
-% fig = figure;
-%     yyaxis left
-%     plot(x,'color','b','linewidth',1.5)
-%     ylabel('temperature (\circC)')
-%     yyaxis right
-%     plot(y,'color','w','linewidth',1.5)
-%     ylabel('work (%)')
-%     xlabel('time (au)')
-%     formatFig(fig,true);
-% save_figure(fig, [analysisDir expName ' temperature overlay with work'], '-png',true);
-% 
-% 
-% 
-% fig = figure;
-%     yyaxis left
-%     plot(smooth(x,180,'moving'),'color','b','linewidth',1.5)
-%     ylabel('temperature (\circC)')
-%     yyaxis right
-%     plot(smooth(y,180,'moving'),'color','w','linewidth',1.5)
-%     ylabel('work (%)')
-%     xlabel('time (au)')
-%     formatFig(fig,true);
-% save_figure(fig, [analysisDir expName ' smoothed temperature overlay with work'], '-png',true);
-% 
-% 
+
+x = tempLog
+y = 
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

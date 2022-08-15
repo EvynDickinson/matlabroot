@@ -9,3 +9,5 @@ controlROI =
 for ii = 1:ntrials
     data(trial).speed.avg
 end
+
+
