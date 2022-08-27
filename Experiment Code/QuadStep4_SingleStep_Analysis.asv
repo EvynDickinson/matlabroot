@@ -89,9 +89,10 @@ clearvars('-except',initial_vars{:})
 
 %% Plot out the timepoints for each temp drop (compare across the three drops)
 
-
-
 tempPoints = getTempTurnPoints(T.TempProtocol{1});
+
+ROI_start = 80; % minutes into recovery period
+ROI_duration = 10; % length of ROI to look at
 
 controlIdx = 1;
 lowTempIdx = 2:2:6;
@@ -106,7 +107,8 @@ for ii = 1:length(lowTempIdx)
     cold(ii).data = [];
     for trial = 1:ntrials
         ROI = tempPoints.hold(lowTempIdx(ii),1):tempPoints.hold(lowTempIdx(ii),2);
-        ROI = ROI(end-500:end);
+%         ROI = ROI(end-500:end);
+        ROI = ROI(end-14400:end-1350);
         Y = data(trial).speed.avg(ROI);
         X = shuffle_data(linspace(ii-offset,ii+offset,length(Y)));
         scatter(X,Y,SZ,'filled')
@@ -160,40 +162,35 @@ tempPoints = getTempTurnPoints(T.TempProtocol{1});
 controlIdx = 1;
 lowTempIdx = 2:2:6;
 holdTempIdx = 3:2:7;
-
+stepROI = 5;
 % ---------- Cold step down ----------
 fig = figure; set(fig,'pos', [2058 352 491 660])
-hold on
-offset = 0.3;
-SZ = 50;
-
-
-X = 1:size(tempPoints.hold,1);
-plotData = [];
-for trial = 1:ntrials
-    for ii = X
-        ROI = tempPoints.hold(ii,2)-500:tempPoints.hold(ii,2);
-%         ROI = tempPoints.hold(lowTempIdx(ii),1):tempPoints.hold(lowTempIdx(ii),2);
-        plotData(trial,ii) = mean(data(trial).speed.avg(ROI),'omitnan');
+    hold on
+    offset = 0.3; 
+    SZ = 50;
+    X = 1:size(tempPoints.hold,1);
+    plotData = [];
+    for trial = 1:ntrials
+        for ii = X
+            ROI = tempPoints.hold(ii,2)-(round(stepROI*60*3)):tempPoints.hold(ii,2);
+    %         ROI = tempPoints.hold(lowTempIdx(ii),1):tempPoints.hold(lowTempIdx(ii),2);
+            plotData(trial,ii) = mean(data(trial).speed.avg(ROI),'omitnan');
+        end
+        plot(X,plotData(trial,:),'linewidth',1,'color',Color('grey'))
+        scatter(X(1:2:end),plotData(trial,1:2:end),SZ,'red','filled')
+        scatter(X(2:2:end),plotData(trial,2:2:end),SZ,Color('royalblue'),'filled')
     end
-    plot(X,plotData(trial,:),'linewidth',1,'color',Color('grey'))
-    scatter(X(1:2:end),plotData(trial,1:2:end),SZ,'red','filled')
-    scatter(X(2:2:end),plotData(trial,2:2:end),SZ,Color('royalblue'),'filled')
-end
-% Plot the group average
-for ii = X
-    plot([ii-offset,ii+offset],[mean(plotData(:,ii)),mean(plotData(:,ii))],'color', 'w','LineWidth',2)
-end
-
-       
-
+    % Plot the group average
+    for ii = X
+        plot([ii-offset,ii+offset],[mean(plotData(:,ii)),mean(plotData(:,ii))],'color', Color('gold'),'LineWidth',2)
+    end
 % Formatting
 xlim([0,8])
 formatFig(fig,true);
 xlabel('Cold step down (#)')
 ylabel('Speed (mm/s)')
 
-save_figure(fig, [figDir 'speed during cold drop scatterplot'], '-png');
+save_figure(fig, [figDir 'avg speed for each step last ' num2str(stepROI) ' minutes'], '-png');
 
 
 

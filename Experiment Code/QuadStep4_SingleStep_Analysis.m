@@ -88,9 +88,7 @@ clearvars('-except',initial_vars{:})
 
 
 %% Plot out the timepoints for each temp drop (compare across the three drops)
-
-
-
+FPS = 3;
 tempPoints = getTempTurnPoints(T.TempProtocol{1});
 
 controlIdx = 1;
@@ -124,6 +122,10 @@ ylabel('Speed (mm/s)')
 save_figure(fig, [figDir 'speed during cold drop scatterplot'], '-png');
 
 % ------------Warm recovery -------------
+ROI_start = 80; % minutes into recovery period
+ROI_duration = 30; % length of ROI to look at
+ROI_1 = round(ROI_start*60*FPS);
+ROI_2 = round(ROI_1-(ROI_duration*60*FPS));
 
 fig = figure; set(fig,'pos', [2058 352 491 660])
 hold on
@@ -133,7 +135,8 @@ for ii = 1:length(holdTempIdx)
     hot(ii).data = [];
     for trial = 1:ntrials
         ROI = tempPoints.hold(holdTempIdx(ii),1):tempPoints.hold(holdTempIdx(ii),2);
-        ROI = ROI(end-500:end);
+%         ROI = ROI(end-500:end);
+        ROI = ROI(end-ROI_1:end-ROI_2);
         Y = data(trial).speed.avg(ROI);
         X = shuffle_data(linspace(ii-offset,ii+offset,length(Y)));
         scatter(X,Y,SZ,'filled')
@@ -164,7 +167,7 @@ stepROI = 5;
 % ---------- Cold step down ----------
 fig = figure; set(fig,'pos', [2058 352 491 660])
     hold on
-    offset = 0.3;
+    offset = 0.3; 
     SZ = 50;
     X = 1:size(tempPoints.hold,1);
     plotData = [];
