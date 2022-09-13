@@ -645,7 +645,7 @@ fprintf('Next\n')
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
 disp('Saving data...')
 clearvars('-except',initial_vars{:})
-save([analysisDir expName ' preformed data'])
+save([analysisDir expName ' preformed data'],'-v7.3')
 disp('Formatted data saved')
 disp('Done')
 

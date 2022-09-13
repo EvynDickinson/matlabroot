@@ -155,21 +155,12 @@ fprintf('Next\n')
 
 %% FIGURE: movement across time during the experiment
 
-
-
-fig = figure; set(fig,'pos',[246 253 1001 634])
-hold on
+fig = figure; set(fig,'pos',hold on
 for trial = 1:ntrials
     x = data(trial).occupancy.time;
     y = data(trial).speed.avg;
     plot(x,y,'linewidth',1.5)
-
-    % pull avg. speed
-    maxSize(trial) = size(y,1);
 end
-
-% Plot AVG speed
-
 
 %labels
 xlabel('time (min)')
@@ -177,7 +168,7 @@ ylabel('speed (mm/s)')
 
 formatFig(fig,true);
 
-save_figure(fig, [figDir 'unsmoothed speed across trials'], '-png');
+save_figure(fig,[]);
 
 
 
