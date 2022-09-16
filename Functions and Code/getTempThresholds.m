@@ -51,16 +51,20 @@ switch UserChoice
         
     case 'auto'
         [threshHigh, threshLow] = deal([]);
-
-        for ii = 1:length(tempProtocols)
-            tempPoints = getTempTurnPoints(tempProtocols{ii});
-            threshHigh = max([threshHigh, tempPoints.threshHigh]);
-            threshLow = min([threshLow, tempPoints.threshLow]);
+        if ischar(tempProtocols)
+            tempPoints = getTempTurnPoints(tempProtocols);
+            threshHigh = tempPoints.threshHigh;
+            threshLow = tempPoints.threshLow;
+        else
+            for ii = 1:length(tempProtocols)
+                tempPoints = getTempTurnPoints(tempProtocols{ii});
+                threshHigh = max([threshHigh, tempPoints.threshHigh]);
+                threshLow = min([threshLow, tempPoints.threshLow]);
+            end
         end
     case ''
         return
 end
-
 
 
 

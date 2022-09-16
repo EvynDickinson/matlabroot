@@ -192,9 +192,91 @@ formatFig(fig,true,[3,1],sb);
 
 save_figure(fig, [figDir 'unsmoothed speed across trials'], '-png');
 
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
 
 
-%% Distance from wells by well location? 
+%% Avg movement or speed vs temp
+
+inputVar =  questdlg('Which data type to compare?','','speed','movement','clustering','speed');
+switch inputVar
+    case 'movement'
+        ylab = 'movement (~mm/s)';
+        L_loc = 'southeast';
+    case 'clustering'
+        ylab = 'Inter-fly-distance (mm)';
+        L_loc = 'northwest';
+    case 'speed'
+        ylab = 'speed (mm/s)';
+        L_loc = 'northwest';
+    case ''
+        return
+end
+
+% allocate empty data structure & set params
+food = struct;
+food.N = [];
+for trial = 1:ntrials
+    % Screen out data pre/post data 
+    tempPoints = getTempTurnPoints(T.TempProtocol{trial});
+    roi = sort([tempPoints.DownROI,tempPoints.UpROI,tempPoints.HoldROI]);
+    switch inputVar
+        case 'movement'
+            x = data(trial).occupancy.temp(1:end-1);
+            y = data(trial).occupancy.movement;
+        case 'clustering'
+            y = data(trial).occupancy.IFD';
+            x = data(trial).occupancy.temp;
+        case 'speed'
+            y = data(trial).speed.avg;
+            x = data(trial).occupancy.temp;
+    end 
+    food.N = [food.N; x(roi),y(roi)];
+end 
+
+% Temperature range and bin size formatting
+[threshHigh, threshLow] = getTempThresholds(T.TempProtocol);
+binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
+t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
+if t_roi(end)<ceil(threshHigh)
+    t_roi(end+1) = ceil(threshHigh) + binSpace;
+end
+    
+% cut off the high and low ends of data (to clean):
+loc = food.N(:,1)>threshHigh | food.N(:,1)<threshLow;
+food.N(loc,:) = [];
+% sort all the data by temperature:
+food.N(:,3) = discretize(food.N(:,1),t_roi);
+for tt = 1:length(t_roi)
+    loc = food.N(:,3)==tt;
+    food.avg(tt) = mean(food.N(loc,2),1,'omitnan');
+    food.err(tt) = std(food.N(loc,2),0,1,'omitnan')/sqrt(ntrials);
+end
+
+    
+% FIGURE: plot the avg. temp vs. distance data
+kolor = Color('Teal');
+
+fig = figure; set(fig,'pos', [67 82 675 692]);
+hold on
+x = t_roi;
+y = food.avg;
+y_err = food.err;
+plot(x, y, 'Color', kolor, 'LineWidth', 2)
+plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
+plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
+
+%Labels:
+% xlim([7,20])
+xlabel('temperature (\circC)')
+ylabel(ylab)
+title(strrep(ExpGroup,'_',' '))
+formatFig(fig,true);
+ax = gca;
+set(ax, 'FontSize', 18)
+
+save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
+clearvars('-except',initial_vars{:})
 
 
 
