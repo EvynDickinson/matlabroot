@@ -564,7 +564,7 @@ for trial = 1:ntrials
     else
         rateIdx = discretize(rateData,nRates);
     end
-    for ii = 1:nRates %TODO: adjust this to account for the zero rate of change?
+    for ii = 1:nRates
         TD = rateData(rateIdx==ii);
         T_rates(ii) = round(mean(TD,'omitnan'),2);
         % do these match the assumed rates?
@@ -575,7 +575,6 @@ for trial = 1:ntrials
             sb(1).idx = 1; sb(2).idx = 2:4; r = 4; c = 1;
             fig = figure; set(fig,'pos',[856 299 678 598]); 
                 subplot(r,c,sb(1).idx); plot(time,temp,'color','w'); ylabel('temp (\circC)')
-                hold on; yyaxis right; plot(time(1:end-1),rateIdx,'color','m')
                 subplot(r,c,sb(2).idx); plot(time(1:end-1),diff(temp)./diff(time),'color',Color('grey'))
                 hold on; plot(time(1:end-1),plotData(:,2),'color', 'yellow','linewidth',0.5)
                 ylim([-2,2]); y1 = rangeLine(fig,0.15);% plot event regions
@@ -588,6 +587,11 @@ for trial = 1:ntrials
 %                 v_line(time(tPoints.transitions),'w','-',1)
                 xlabel('time (min)'); ylabel('Temp rate of change')
             formatFig(fig,true,[r,c],sb)
+            subplot(r,c,sb(2).idx);  yyaxis right
+            plot(time(1:end-1),rateIdx,'color','m')
+
+            figure; plot(time(1:end-1),rateData); hold on
+            hline(T_rates)
 
             warndlg('Temp rate not within expected range')
             return
