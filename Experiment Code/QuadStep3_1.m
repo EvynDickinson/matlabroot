@@ -533,6 +533,10 @@ for trial = 1:ntrials
 
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
+    if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15')
+        tPoints.rates = [tPoints.rates(1), 0, tPoints.rates(2)];
+        tPoints.nRates = 3;
+    end
 %     threshLow = tPoints.threshLow;
 %     threshHigh = tPoints.threshHigh;
     keepLoc = false(1,size(plotData,1));
@@ -834,7 +838,7 @@ formatFig(fig, true);
 %     end
 % end
 legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
-set(gca,'fontsize', 18)
+set(gca,'fontsize', 14)
 %Save figure
 save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % 
@@ -1077,6 +1081,7 @@ for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
                 str_tag = 'cooling';
             elseif plotRate==0
                 lstyle = LS{2};
+                str_tag = 'holding';
             end
             kolor = pullFoodColor(foodCat{ii});
             y = HM(ii).avg(jj,:);
@@ -1130,8 +1135,10 @@ clearvars('-except',vars{:})
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
 
-tempList = [8,12,17,22];
-rateList = [0.16,-0.16];
+tempList = [15,18.5,23];
+rateList = [0.125,-0.125];
+% tempList = [8,12,17,22];
+% rateList = [0.16,-0.16];
 % tempList = [15,20,25,30];
 % rateList = [0.15,-0.15];
 
@@ -1197,7 +1204,7 @@ end
 
 % figures   
 idx = 0;
-fig = figure; set(fig, 'color', 'k', 'position', [32 70 1318 435])
+fig = figure; set(fig, 'color', 'k', 'position',  [547 304 992 555]); %[32 70 1318 435]
 for rr = 1:length(rateList)
   for tt = 1:length(tempList)
     idx = idx+1;
@@ -1213,6 +1220,7 @@ for rr = 1:length(rateList)
         c.Color = 'w';
         title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'w')
         caxis([min(cmaps(:,1)) max(cmaps(:,2))]) 
+        axis square
   end
 end
 

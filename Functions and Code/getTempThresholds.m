@@ -10,7 +10,7 @@ function [threshHigh, threshLow] = getTempThresholds(tempProtocols)
 
 
 tempList = {'(8-20)', '(6-25)', '(6-26)', '(7-23)', '(7-26)','(7-35)','(5-30)','(10-35)','(10-23)','Other','auto'};
-UserChoice = tempList{listdlg('ListString', tempList,'ListSize', [100, 150],'SelectionMode','single')};
+UserChoice = tempList{listdlg('ListString', tempList,'ListSize', [100, 180],'SelectionMode','single')};
 
 switch UserChoice
     case '(8-20)'
