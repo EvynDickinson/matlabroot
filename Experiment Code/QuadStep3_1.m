@@ -1,7 +1,7 @@
 
 %    GroupDataGUI
 
-%% LOAD:multiple trials that are grouped into a structure
+%% LOAD: multiple trials that are grouped into a structure
 clear; warning off
 
 if strcmpi('Yes', questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No'))
@@ -560,6 +560,7 @@ for trial = 1:ntrials
     nRates = tPoints.nRates;
     if ~isempty(tPoints.hold) && ~any(tPoints.rates==0) %if there is hold data but no 0 rate included...
         rateIdx = discretize(rateData,nRates+1);
+        nRates = nRates+1;
         % figure; plot(rateIdx)
     else
         rateIdx = discretize(rateData,nRates);
@@ -785,6 +786,7 @@ LS = {'--','-.','-'}; %cooling|stationary|heating
 
 fig = figure;
 hold on
+idx = 0; str = [];
 for rr = 1:nRates
     if tRates(rr)>0
         lstyle = LS{3};
@@ -801,27 +803,36 @@ for rr = 1:nRates
     x = t_roi;
     y = plotData.avg(rr,:);
     y_err = plotData.err(rr,:);
-    plot(x,y,'color', kolor, 'linewidth', 2.5, 'linestyle', lstyle)%Color(cList{rr})
+    %sort nans to allow for error fill plot
+    keep_loc = ~isnan(y) | ~isnan(y_err);
+    x = x(keep_loc); y = y(keep_loc); y_err = y_err(keep_loc);
     if nRates<4
-        plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-        plot(x,y-y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor', 'none');
+        set(h, 'facealpha', 0.3)
+        set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+        idx = idx + 1;
+        str{idx} = [num2str(tRates(rr)) '\circC/min'];
     end
+    plot(x,y,'color', kolor, 'linewidth', 2.5, 'linestyle', lstyle)%Color(cList{rr})
+%     if nRates<4
+%         plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%         plot(x,y-y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%     end
 end
 % title(ExpGroup)
 ylabel(ylab)
 xlabel('Temperature (\circC)')
 formatFig(fig, true);
 % legend:
-idx = 0; str = [];
-for ii = 1:nRates
-    idx = idx+1;
-    str{idx} = [num2str(tRates(ii)) '\circC/min'];
-    if nRates<4
-        str{idx+1} = ''; 
-        str{idx+2} = ''; 
-        idx = idx+2;
-    end
-end
+% idx = 0; str = [];
+% for ii = 1:nRates
+%     idx = idx+1;
+%     str{idx} = [num2str(tRates(ii)) '\circC/min'];
+%     if nRates<4
+%         str{idx+1} = ''; str{idx+2} = ''; idx = idx+2;
+%     end
+% end
 legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
 set(gca,'fontsize', 18)
 %Save figure

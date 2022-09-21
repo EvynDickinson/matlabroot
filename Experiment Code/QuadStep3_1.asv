@@ -1,7 +1,7 @@
 
 %    GroupDataGUI
 
-%% LOAD:multiple trials that are grouped into a structure
+%% LOAD: multiple trials that are grouped into a structure
 clear; warning off
 
 if strcmpi('Yes', questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No'))
@@ -560,11 +560,12 @@ for trial = 1:ntrials
     nRates = tPoints.nRates;
     if ~isempty(tPoints.hold) && ~any(tPoints.rates==0) %if there is hold data but no 0 rate included...
         rateIdx = discretize(rateData,nRates+1);
+        nRates = nRates+1;
         % figure; plot(rateIdx)
     else
         rateIdx = discretize(rateData,nRates);
     end
-    for ii = 1:nRates
+    for ii = 1:nRates %TODO: adjust this to account for the zero rate of change?
         TD = rateData(rateIdx==ii);
         T_rates(ii) = round(mean(TD,'omitnan'),2);
         % do these match the assumed rates?
@@ -575,6 +576,7 @@ for trial = 1:ntrials
             sb(1).idx = 1; sb(2).idx = 2:4; r = 4; c = 1;
             fig = figure; set(fig,'pos',[856 299 678 598]); 
                 subplot(r,c,sb(1).idx); plot(time,temp,'color','w'); ylabel('temp (\circC)')
+                hold on; yyaxis right; plot(time(1:end-1),rateIdx,'color','m')
                 subplot(r,c,sb(2).idx); plot(time(1:end-1),diff(temp)./diff(time),'color',Color('grey'))
                 hold on; plot(time(1:end-1),plotData(:,2),'color', 'yellow','linewidth',0.5)
                 ylim([-2,2]); y1 = rangeLine(fig,0.15);% plot event regions
@@ -587,11 +589,6 @@ for trial = 1:ntrials
 %                 v_line(time(tPoints.transitions),'w','-',1)
                 xlabel('time (min)'); ylabel('Temp rate of change')
             formatFig(fig,true,[r,c],sb)
-            subplot(r,c,sb(2).idx);  yyaxis right
-            plot(time(1:end-1),rateIdx,'color','m')
-
-            figure; plot(time(1:end-1),rateData); hold on
-            hline(T_rates)
 
             warndlg('Temp rate not within expected range')
             return
@@ -805,6 +802,9 @@ for rr = 1:nRates
     x = t_roi;
     y = plotData.avg(rr,:);
     y_err = plotData.err(rr,:);
+    %sort nans to allow for error fill plot
+    del_loc = isnan(y) | isnan(y_err);
+    x = x(
     plot(x,y,'color', kolor, 'linewidth', 2.5, 'linestyle', lstyle)%Color(cList{rr})
     if nRates<4
         plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)

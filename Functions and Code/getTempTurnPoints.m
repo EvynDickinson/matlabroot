@@ -55,7 +55,7 @@ switch TempProtocolString
                            97282 108699;...
                            134477 145827];
         tempPoints.nRates = 2; 
-        tempPoints.rates = [-0.125, 0.125];
+        tempPoints.rates = [-0.125,0, 0.125]; % added zero for hold times... errors in 3.1 w/out 0
         tempPoints.threshLow = 14.5;
         tempPoints.threshHigh = 23.5;  
     % =======================================                   
