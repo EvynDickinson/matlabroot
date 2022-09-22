@@ -12,6 +12,9 @@ switch geno
         c = 'Yellow';
     case 'IsoD1'
         c = 'Dodgerblue';
+    case 'W(1118)'
+        c = 'Moccasin';
+
 end
        
 kolor = Color(c);

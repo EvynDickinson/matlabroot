@@ -1421,13 +1421,13 @@ save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
-
+ 
 %% FIGURE: time course comparison across genotypes
 clearvars('-except',vars{:})
 
 genotypes = unique(T.Genotype);
 n = size(genotypes,1);
-CList = {'BlueViolet', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
+CList = {'BlueViolet', 'white', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
 
 LW = 1.5;
 sSpan = 360;
