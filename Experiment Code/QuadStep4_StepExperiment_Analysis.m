@@ -90,7 +90,7 @@ save_figure(fig, [figDir ExpGroup ' avg speed vs temperature'], '-png');
 
 clearvars('-except',initial_vars{:})
 
-%% FIGURE: Compare speed for each step to it's control over time
+%% FIGURE: Compare speed for each step to its control over time
 
 sSpan = 30;
 % PULL RAW DATA:

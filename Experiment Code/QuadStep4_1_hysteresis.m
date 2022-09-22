@@ -203,9 +203,15 @@ save_figure(fig, [figDir 'distance hysteresis loops all trials'], '-png');
 clearvars('-except',newvars{:})
 
 for trial = 1:ntrials
-    
-    cool = G(trial).TR.heatmap(1,:); % heating
-    heat = G(trial).TR.heatmap(2,:); % heating
+    if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15')
+        hLoc = 3;
+        cLoc = 1;
+    else
+        hLoc = 2;
+        cLoc = 1;
+    end
+    cool = G(trial).TR.heatmap(cLoc,:); % heating
+    heat = G(trial).TR.heatmap(hLoc,:); % heating
     temp = G(trial).TR.temps;
     % cutoff temp and heat cool etc by location
     loc = isnan(cool);
@@ -225,7 +231,7 @@ end
 buff = 0.2;
 SZ = 75;
 LW = 2;
-sSpan = 8;
+sSpan = 10;
 row = 1;
 col = 2;
 
@@ -244,8 +250,8 @@ fig = figure; set(fig,'pos',[174 207 872 537])
 subplot(row,col,1); hold on
     for trial = 1:ntrials
         temp = G(trial).mov_diff;
-%         plot(temp(:,1),temp(:,2),'color', G(trial).color,'linewidth', LW) 
-        plot(temp(:,1),temp(:,2),'color', 'w','linewidth', LW) 
+        plot(temp(:,1),temp(:,2),'color', G(trial).color,'linewidth', LW) 
+%         plot(temp(:,1),temp(:,2),'color', 'w','linewidth', LW) 
     end
     xlabel('temperature (\circC)')  
     ylabel('cool-warm distance hystersis (mm)')
@@ -253,8 +259,8 @@ subplot(row,col,1); hold on
 % hysteresis scatter plot
 subplot(row,col,2); hold on 
     for ii = 1:ngenoList
-%         kolor = pullGenotypeColor(genoList{ii});
-        kolor = 'w';
+        kolor = pullGenotypeColor(genoList{ii});
+%         kolor = 'w';
         x = shuffle_data(linspace(ii-buff,ii+buff,length(hdata(ii).s)));
         scatter(x,hdata(ii).s,SZ,kolor,'filled')
         plot([ii-(buff*1.25),ii+(buff*1.25)],[mean(hdata(ii).s),mean(hdata(ii).s)],'color',kolor,'linewidth',LW)
@@ -264,10 +270,10 @@ subplot(row,col,2); hold on
     set(gca,'XTick',1:ngenoList,'XTickLabel',strrep(genoList,'_',' '),'XTickLabelRotation',15)
     h_line(0,'white',':',1)
     
-    ylim([-200,300])
+    ylim([-50,150])
 formatFig(fig,true,[row,col]);
-save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\distance hysteresis scatter'], '-pdf');
-% save_figure(fig, [figDir 'distance hysteresis scatter'], '-png');
+% save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\distance hysteresis scatter'], '-pdf');
+save_figure(fig, [figDir 'distance hysteresis scatter'], '-png');
 
 % % % POSTER CODE
 % fig = figure; set(fig,'pos',[-980 374 314 861])
@@ -360,6 +366,35 @@ subplot(row,col,2); hold on
     formatFig(fig,true,[row,col]);
 
 save_figure(fig, [figDir 'distance hysteresis loop recovery ' num2str(trial)], '-png');
+
+%% FIGURE: hysteresis across subsequent ramps 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
