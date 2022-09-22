@@ -1628,6 +1628,7 @@ end
 % CList = {'BlueViolet', 'DeepPink','Orange','Lime','DodgerBlue','Teal','Red',...
 %          'Turquoise', 'DarkRed', 'Indigo', 'Plum'};
 colors = {'BlueViolet',...
+         'white',...
          'Indigo',...
          'Plum',...
          'Thistle',...
@@ -1638,7 +1639,9 @@ colors = {'BlueViolet',...
          'DarkRed',...
          'Orange',...
          'Gold'};
-CList = colors([1,5,10,8,2,3,6,11,9,4,7]);
+% CList = colors([1,5,10,8,2,3,6,11,9,4,7]);
+CList = colors([1,2,5,10,8,2,3,6,11,9,4,7]);
+
      
 % group together trials with the same identity
 for trial = 1:ntrials
@@ -1675,7 +1678,7 @@ end
     
 % FIGURE: Plot the temp-rate food proximity tuning curves
 temp = G(1).TR.temps; %all trials should have same temp ids
-LW = 1.5;
+LW = 2;
 lStr = [];
 fig = figure; set(fig, 'pos', [210 121 977 660])
     hold on
@@ -1708,29 +1711,7 @@ save_figure(fig, [figDir inputVar ' tuning overlay'], '-png');
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%% Compare hysteresis across different genotypes
+%% Compare hysteresis across different genotypes -- UNFINISHED
 
 
 clearvars('-except',vars{:}) 

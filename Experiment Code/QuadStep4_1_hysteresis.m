@@ -272,9 +272,13 @@ subplot(row,col,2); hold on
     
     ylim([-50,150])
 formatFig(fig,true,[row,col]);
-% save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\distance hysteresis scatter'], '-pdf');
+
+
 save_figure(fig, [figDir 'distance hysteresis scatter'], '-png');
 
+
+
+% save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\distance hysteresis scatter'], '-pdf');
 % % % POSTER CODE
 % fig = figure; set(fig,'pos',[-980 374 314 861])
 % % hystereis by time
@@ -306,7 +310,7 @@ save_figure(fig, [figDir 'distance hysteresis scatter'], '-png');
 
 
 %% FIGURE -- single trial hysteresis outlines
-clearvars('-except',vars{:})
+clearvars('-except',newvars{:})
 
 SZ = 75;
 LW = 2;
@@ -314,7 +318,7 @@ sSpan = 8;
 row = 1;
 col = 2;
 
-trial = 24;
+trial = 1;
 
 cool = G(trial).TR.heatmap(1,:); % heating
 heat = G(trial).TR.heatmap(2,:); % heating
