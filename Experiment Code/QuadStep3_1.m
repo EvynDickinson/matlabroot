@@ -228,9 +228,11 @@ switch inputVar
     case 'distance'
         ylab = 'Distance from well (mm)';
         L_loc = 'southwest';
+        yLimit = [10,35];
     case 'occupation probability'
         ylab = inputVar;
         L_loc = 'northwest';
+        yLimit = [0,1];
     case 'Cancel'
         return
 end
@@ -307,7 +309,7 @@ for ii = 1:nfoods+1
 end
 %Labels:
 % xlim([7,20])
-ylim([10,35])
+ylim(yLimit)
 xlabel('temperature (\circC)')
 ylabel(ylab)
 title(strrep(ExpGroup,'_',' '))
@@ -1134,8 +1136,8 @@ clearvars('-except',vars{:})
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
-
 tempList = [15,18.5,23];
+% tempList = [15,18.5,23];
 rateList = [0.125,-0.125];
 % tempList = [8,12,17,22];
 % rateList = [0.16,-0.16];
