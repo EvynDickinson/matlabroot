@@ -88,7 +88,7 @@ LW = 2;
 fig = figure;
     hold on
     % Cooling
-    for id = 1:nIDs
+    for id = 3:3% nIDs
         x = G(1).TR.temps; %all trials should have same temp ids
         y = plotData(id).c;
         for ii = 1:size(y,1)
@@ -96,7 +96,7 @@ fig = figure;
         end
     end
     % Heating
-    for id = 1:nIDs
+    for id = 3:3%nIDs
         x = G(1).TR.temps; %all trials should have same temp ids
         y = plotData(id).h;
         for ii = 1:size(y,1)
@@ -112,6 +112,7 @@ formatFig(fig, true);
 set(gca, 'fontsize', 18)
 
 save_figure(fig, [figDir 'distance hysteresis loops all trials'], '-png');
+% save_figure(fig, [figDir 'distance hysteresis loops molasses food only'], '-png')
 
 % % POSTER CODE FIGURE: overlay distance lines for all trials in the structure color coded by heating and cooling
 % % plot all trials individually
@@ -270,7 +271,7 @@ subplot(row,col,2); hold on
     set(gca,'XTick',1:ngenoList,'XTickLabel',strrep(genoList,'_',' '),'XTickLabelRotation',15)
     h_line(0,'white',':',1)
     
-    ylim([-50,150])
+%     ylim([-50,150])
 formatFig(fig,true,[row,col]);
 
 

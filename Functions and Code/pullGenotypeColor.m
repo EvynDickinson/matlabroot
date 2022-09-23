@@ -14,6 +14,9 @@ switch geno
         c = 'Dodgerblue';
     case 'W(1118)'
         c = 'Moccasin';
+    case 'Berlin-WT_stub_arista'
+        c = 'crimson';
+       
 
 end
        

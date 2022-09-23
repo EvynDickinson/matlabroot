@@ -1136,11 +1136,11 @@ clearvars('-except',vars{:})
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
-tempList = [15,18.5,23];
 % tempList = [15,18.5,23];
-rateList = [0.125,-0.125];
-% tempList = [8,12,17,22];
-% rateList = [0.16,-0.16];
+% % tempList = [15,18.5,23];
+% rateList = [0.125,-0.125];
+tempList = [8,12,17,22];
+rateList = [0.16,-0.16];
 % tempList = [15,20,25,30];
 % rateList = [0.15,-0.15];
 
@@ -1421,13 +1421,13 @@ save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
- 
 %% FIGURE: time course comparison across genotypes
 clearvars('-except',vars{:})
 
 genotypes = unique(T.Genotype);
 n = size(genotypes,1);
-CList = {'BlueViolet', 'white', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
+% CList = {'BlueViolet', 'white', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
+CList = {'BlueViolet', 'Purple', 'orange', 'white', 'DeepPink', 'Orange', 'Lime', 'DodgerBlue', 'Teal', 'Red'};
 
 LW = 1.5;
 sSpan = 360;
@@ -1436,9 +1436,10 @@ col = 1;
 sb(1).idx = 1;
 sb(2).idx = 2:3;
 sb(3).idx = 4:5;
+genoList = 2:3;
 
 fig = figure; set(fig, 'pos',[36 77 1082 625]); 
-    for type = 1:n
+    for type = genoList %n %TODO: change this back to 'n'
         [time,temp,movement,distance] = deal([]);
         % pull the data for each plotting category
         for trial = 1:ntrials
@@ -1489,9 +1490,12 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     subplot(row,col,sb(3).idx);
     ylabel('Movement (au)')
     xlabel('Time (min)')
-legend(strrep(genotypes,'_',' '),'textcolor', 'w', 'box', 'off')
+legend(strrep(genotypes(genoList),'_',' '),'textcolor', 'w', 'box', 'off')
 
-save_figure(fig, [figDir 'time course comparison'], '-png');
+% save_figure(fig, [figDir 'time course comparison Berlin vs CantonS'], '-png');
+save_figure(fig, 'G:\My Drive\Jeanne Lab\DATA\Data structures\Molasses Food Looping Ramps Up\time course comparison Berlin vs CantonS', '-png');
+
+
 
 tbl = table(T.Genotype,T.TempProtocol,T.foodCat,T.NumFlies,'VariableNames',{'Genotype','Protocol','Food','N flies'});
 disp(tbl)
@@ -1556,13 +1560,6 @@ disp(tbl)
 % save_figure(fig, [figDir 'time course comparison'], '-pdf');
 
 % 
-
-
-
-
-
-
-
 
 %% Compare MOVEMENT plots across genotypes...
 clearvars('-except',vars{:})
@@ -1708,8 +1705,6 @@ fig = figure; set(fig, 'pos', [210 121 977 660])
     legend(lStr,'textcolor', 'w', 'box', 'off','fontsize', 8)
     
 save_figure(fig, [figDir inputVar ' tuning overlay'], '-png');
-
-
 
 %% Compare hysteresis across different genotypes -- UNFINISHED
 

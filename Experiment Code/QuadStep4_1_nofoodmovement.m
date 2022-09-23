@@ -259,9 +259,12 @@ kolor = Color('Teal');
 
 fig = figure; set(fig,'pos', [67 82 675 692]);
 hold on
-x = t_roi;
-y = food.avg;
-y_err = food.err;
+x = t_roi(1:end-1);
+y = food.avg(1:end-1);
+y_err = food.err(1:end-1);
+fill_data = error_fill(x, y, y_err);
+h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+set(h, 'facealpha', 0.2)
 plot(x, y, 'Color', kolor, 'LineWidth', 2)
 plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
 plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
