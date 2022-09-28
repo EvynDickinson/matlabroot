@@ -669,6 +669,11 @@ for trial = 1:ntrials
 clearvars('-except',vars{:}) 
 end
 
+%% ANALYSIS: Signal Derivative
+% how does the signal symmetry look compared to raw temp vs temp derivative
+% TODO Sep 2022
+
+
 %% FIGURE: Temp hysteresis - distance to food | movement 
 clearvars('-except',vars{:}) 
 dataType =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
@@ -1136,11 +1141,14 @@ clearvars('-except',vars{:})
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
-% tempList = [15,18.5,23];
-% % tempList = [15,18.5,23];
-% rateList = [0.125,-0.125];
-tempList = [8,12,17,22];
-rateList = [0.16,-0.16];
+if strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_23-15')
+    tempList = [15,18.5,23];
+    rateList = [0.125,-0.125];
+else
+    tempList = [8,12,17,22];
+    rateList = [0.16,-0.16];
+end
+
 % tempList = [15,20,25,30];
 % rateList = [0.15,-0.15];
 
@@ -1873,3 +1881,27 @@ set(gca,'fontsize', 18)
 %Save figure
 save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % 
+
+%% Save Processed Data (if wanted)
+
+clearvars('-except',vars{:})
+
+if questdlg('Save processed data?')
+    save([figDir ExpGroup ' post 3.1 data'],'-v7.3')
+end
+fprintf('Data saved\n')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
