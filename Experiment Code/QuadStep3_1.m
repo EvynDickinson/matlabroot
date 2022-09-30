@@ -1887,7 +1887,7 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 clearvars('-except',vars{:})
 
 if questdlg('Save processed data?')
-    save([figDir ExpGroup ' post 3.1 data'],'-v7.3')
+    save([figDir ExpGroup ' post 3.1 data.mat'],'-v7.3')
 end
 fprintf('Data saved\n')
 
