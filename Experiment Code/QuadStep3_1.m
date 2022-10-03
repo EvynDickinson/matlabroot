@@ -535,7 +535,7 @@ for trial = 1:ntrials
 
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
-    if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15')
+    if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15') || strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_25-17')
         tPoints.rates = [tPoints.rates(1), 0, tPoints.rates(2)];
         tPoints.nRates = 3;
     end
@@ -1143,6 +1143,9 @@ clearvars('-except',vars{:})
 clearvars('-except',vars{:})
 if strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_23-15')
     tempList = [15,18.5,23];
+    rateList = [0.125,-0.125];
+elseif strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_25-17')
+    tempList = [17,20.5,25];
     rateList = [0.125,-0.125];
 else
     tempList = [8,12,17,22];
