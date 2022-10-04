@@ -177,7 +177,7 @@ for i = 1:num.exp
 
         if plot_err
             fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
             set(h, 'facealpha', 0.2)
         end
         plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','-')
@@ -190,13 +190,10 @@ for i = 1:num.exp
 
         if plot_err
             fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
             set(h, 'facealpha', 0.2)
         end
-        plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','--','HandleVisibility','off');
-
-        % Names and Colors of included data
-        dataString{i} = grouped(i).name;
+        plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','--')
 end
 
 % FORMATING AND LABELS
@@ -217,11 +214,13 @@ xlabel('time (min)')
 subplot(r,c,sb(4).idx) 
 ylabel('distance (mm)')
 xlabel('temp (\circC)')
-% 
-legend(dataString,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 5)
+% % Title
+% title()
+% TODO: need a tiny label for the colors...
+annotation
 
-% save figure
-save_figure(fig,['G:\My Drive\Jeanne Lab\DATA\Grouped Data Structures\berlin shifted temp ramps comparison'],'-png')
+str = 'Straight Line Plot from 1 to 10';
+annotation('textbox',dim,'String',str,'FitBoxToText','on');
 
 %%
 % Cross genotype comparisons: 
