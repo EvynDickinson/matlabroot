@@ -28,13 +28,35 @@ for i = 1:num.exp
     data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
 end
 
-% Save data? TODO
-
-
+clear list_dirs expIdx dirIdx
 % Set up base variables
 initial_vars = who;
-initial_vars{end+1} = 'initial_vars';
-initial_vars{end+1} = 'grouped';
+initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'];
+initial_vars = unique(initial_vars);
+
+% Save data / make new grouped data folder
+switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure');
+    case 'new structure'
+        expGroup = char(inputdlg('Structure name:'));
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        if ~exist(saveDir,'dir')
+            mkdir(saveDir);
+        end
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'existing structure'
+        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'cancel'
+        return
+end
+
 
 %% ANALYSIS: get average timecourse traces for each group
 
@@ -115,6 +137,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
 
 end
 
+disp('Next')
 
 
 
@@ -221,9 +244,80 @@ xlabel('temp (\circC)')
 legend(dataString,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 5)
 
 % save figure
-save_figure(fig,['G:\My Drive\Jeanne Lab\DATA\Grouped Data Structures\berlin shifted temp ramps comparison'],'-png')
+save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png')
 
-%%
-% Cross genotype comparisons: 
+%% FIGURE: cumulative hysteresis for each genotype / trial
+
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 80;
+r = 1; %rows
+c = 2; %columns
+
+
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
+
+% Pull difference in distance heating-cooling
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    kolor = grouped(i).color;
+    plot(x,y,'color',kolor,'LineWidth',LW); 
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3.5)
+end
+h_line(0,'w',':',1)
+xlabel('temp (\circC)')
+ylabel('distance difference (mm)')
+
+% Cumulative difference in proximity
+subplot(r,c,2)
+hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    plotY = sum(y,1,'omitnan');
+    x = shuffle(linspace(i-buff,i+buff,num.trial(i)));
+    scatter(x,plotY,SZ,kolor,"filled","o")
+    plot([i-buff,i+buff],[mean(plotY),mean(plotY)],'color','w','LineWidth',2)
+end
+xlim([0.5,num.exp+0.5])
+h_line(0,'w',':',1)
+xlabel('Group')
+set(gca,'XTick',1:num.exp)
+
+ylabel('cumulatice distance difference (mm)')
+
+formatFig(fig,true,[r,c]);
+
+% save figure
+save_figure(fig,[saveDir expGroup ' hysteresis summary'],'-png');
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

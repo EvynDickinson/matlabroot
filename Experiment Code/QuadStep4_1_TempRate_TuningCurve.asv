@@ -28,13 +28,35 @@ for i = 1:num.exp
     data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
 end
 
-% Save data? TODO
-
-
+clear list_dirs expIdx dirIdx
 % Set up base variables
 initial_vars = who;
-initial_vars{end+1} = 'initial_vars';
-initial_vars{end+1} = 'grouped';
+initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'];
+initial_vars = unique(initial_vars);
+
+% Save data / make new grouped data folder
+switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure');
+    case 'new structure'
+        expGroup = char(inputdlg('Structure name:'));
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        if ~exist(saveDir,'dir')
+            mkdir(saveDir);
+        end
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'existing structure'
+        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'cancel'
+        return
+end
+
 
 %% ANALYSIS: get average timecourse traces for each group
 
@@ -115,6 +137,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
 
 end
 
+disp('Next')
 
 
 
@@ -177,7 +200,7 @@ for i = 1:num.exp
 
         if plot_err
             fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
             set(h, 'facealpha', 0.2)
         end
         plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','-')
@@ -190,10 +213,13 @@ for i = 1:num.exp
 
         if plot_err
             fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
             set(h, 'facealpha', 0.2)
         end
-        plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','--')
+        plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','--','HandleVisibility','off');
+
+        % Names and Colors of included data
+        dataString{i} = grouped(i).name;
 end
 
 % FORMATING AND LABELS
@@ -214,15 +240,112 @@ xlabel('time (min)')
 subplot(r,c,sb(4).idx) 
 ylabel('distance (mm)')
 xlabel('temp (\circC)')
-% % Title
-% title()
-% TODO: need a tiny label for the colors...
-annotation
+% 
+legend(dataString,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 5)
 
-str = 'Straight Line Plot from 1 to 10';
-annotation('textbox',dim,'String',str,'FitBoxToText','on');
+% save figure
+save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png')
 
-%%
-% Cross genotype comparisons: 
+%% FIGURE: cumulative hysteresis for each genotype / trial
+
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 80;
+r = 1; %rows
+c = 2; %columns
+
+
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
+
+% Pull difference in distance heating-cooling
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    kolor = grouped(i).color;
+    plot(x,y,'color',kolor,'LineWidth',LW); 
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3)
+end
+h_line(0,'w',':',1)
+xlabel('temp (\circC)')
+ylabel('distance difference (mm)')
+
+% Cumulative difference in proximity
+subplot(r,c,2)
+hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    plotY = sum(y,1,'omitnan');
+    x = shuffle(linspace(i-buff,i+buff,num.trial(i)));
+    scatter(x,plotY,SZ,kolor,"filled","o")
+    plot([i-buff,i+buff],[mean(plotY),mean(plotY)],'color','w','LineWidth',2)
+end
+h_line(0,'w',':',1)
+xlabel('Group')
+set(gca,'XTick',1:num.exp)
+xlim([0.5,])
+ylabel('distance difference (mm)')
+
+
+
+
+
+
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+    
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        y = smooth(grouped(i).dist.avg,'moving',sSpan);
+        y_err = smooth(grouped(i).dist.err,'moving',sSpan);
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+            set(h, 'facealpha', 0.2)
+        end
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+
+    %speed
+    subplot(r,c,sb(3).idx); hold on
+        y = smooth(grouped(i).speed.avg,'moving',sSpan);
+        y_err = smooth(grouped(i).speed.err,'moving',sSpan);
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+            set(h, 'facealpha', 0.2)
+        end
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
