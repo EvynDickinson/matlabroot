@@ -267,7 +267,7 @@ for i = 1:num.exp
     y = grouped(i).decreasing.all-grouped(i).increasing.all;
     kolor = grouped(i).color;
     plot(x,y,'color',kolor,'LineWidth',LW); 
-    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3)
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3.5)
 end
 h_line(0,'w',':',1)
 xlabel('temp (\circC)')
@@ -284,46 +284,110 @@ for i = 1:num.exp
     scatter(x,plotY,SZ,kolor,"filled","o")
     plot([i-buff,i+buff],[mean(plotY),mean(plotY)],'color','w','LineWidth',2)
 end
+xlim([0.5,num.exp+0.5])
 h_line(0,'w',':',1)
 xlabel('Group')
 set(gca,'XTick',1:num.exp)
-xlim([0.5,])
-ylabel('distance difference (mm)')
 
+ylabel('cumulatice distance difference (mm)')
 
+formatFig(fig,true,[r,c]);
 
+% save figure
+save_figure(fig,[saveDir expGroup ' hysteresis summary'],'-png');
 
+%%  ANALYSIS & FIGURE: ramp by ramp hysteresis comparision
 
+clearvars('-except',initial_vars{:})
+binWidth = 0.5; %temp bin increment
 
-    x = grouped(i).time;
-    kolor = grouped(i).color;
-
-    %temp
-    subplot(r,c,sb(1).idx); hold on
-        y = grouped(i).temp;
-        plot(x,y,'LineWidth',LW,'Color',kolor)
-    
-    %distance
-    subplot(r,c,sb(2).idx); hold on
-        y = smooth(grouped(i).dist.avg,'moving',sSpan);
-        y_err = smooth(grouped(i).dist.err,'moving',sSpan);
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.2)
+mat = struct;
+% Extract ramp by ramp information from each trial
+for i = 1:num.exp
+    for trial = 1:num.trial(i)
+        tempPoints = getTempTurnPoints(data(i).T.TempProtocol{trial});
+        foodLoc = data(i).T.foodLoc(trial);
+        threshLow = tempPoints.threshLow;
+        threshHigh = tempPoints.threshHigh;
+        dist = data(i).data(trial).occupancy.dist2wells(:,foodLoc);
+        temp = data(i).data(trial).occupancy.temp;
+        tempBins = floor(threshLow):binWidth:ceil(threshHigh); 
+        if tempBins(end)<ceil(threshHigh)
+            tempBins(end+1) = ceil(threshHigh) + binSpace;
         end
-        plot(x,y,'LineWidth',LW,'Color',kolor)
 
-    %speed
-    subplot(r,c,sb(3).idx); hold on
-        y = smooth(grouped(i).speed.avg,'moving',sSpan);
-        y_err = smooth(grouped(i).speed.err,'moving',sSpan);
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.2)
+        for idx = 1:tempPoints.nDown
+            % COOLING
+            downROI = tempPoints.down(idx,1):tempPoints.down(idx,2);
+            mat(i).cooling(idx).dist(:,trial) = dist(downROI);
+            mat(i).cooling(idx).temp(:,trial) = temp(downROI);
+            mat(i).cooling(idx).tempIdx(:,trial) = discretize(temp(downROI),tempBins);
+
+            % HEATING
+            upROI = tempPoints.up(idx,1):tempPoints.up(idx,2);
+            mat(i).heating(idx).dist(:,trial) = dist(upROI);
+            mat(i).heating(idx).temp(:,trial) = temp(upROI);
+            mat(i).heating(idx).tempIdx(:,trial) = discretize(temp(upROI),tempBins);
+
+            % HYSTERESIS MEASURE
+            for n = 1:length(tempBins)-1 %pull avg temp for this particular cooling ramp
+                %cooling
+                C_loc = mat(i).cooling(idx).tempIdx(:,trial)==n;
+                mat(i).cooling(idx).bintemp(n,trial) = mean(mat(i).cooling(idx).dist(C_loc,trial),'omitnan');
+                %heating
+                H_loc = mat(i).heating(idx).tempIdx(:,trial)==n;
+                mat(i).heating(idx).bintemp(n,trial) = mean(mat(i).heating(idx).dist(H_loc,trial),'omitnan');
+            end
+            mat(i).hysteresis(idx).all(:,trial) = mat(i).cooling(idx).bintemp(:,trial)-mat(i).heating(idx).bintemp(:,trial);
+            mat(i).hysteresis(idx).sum(trial) = sum(mat(i).hysteresis(idx).all(:,trial),'omitnan');
+            mat(i).hysteresis(idx).tempbins = tempBins;
+            mat(i).distHist(:,trial,idx) = mat(i).hysteresis(idx).all(:,trial); %hyst by temp bin
+            mat(i).cumHist(trial,idx) = mat(i).hysteresis(idx).sum(trial); %cumulative hysteresis
         end
-        plot(x,y,'LineWidth',LW,'Color',kolor)
+        
+    end
+end
+
+
+% FIGURE: plot the heating vs cooling plots for each of the four ramps
+% acros each of the different trials
+buff = 0.3;
+LW = 0.75;
+
+fig = figure; hold on
+    for i = 1:num.exp
+        kolor = grouped(i).color;
+        nRamps = size(mat(i).hysteresis,2);
+        x = repmat(linspace(i-buff,i+buff,nRamps),[num.trial(i),1]);
+        plot(x',mat(i).cumHist','color',kolor,'linewidth',LW,...
+             'Marker','o', 'MarkerFaceColor',kolor)
+    end
+
+h_line(0,'w',':',1)
+formatFig(fig,true);
+set(gca,'XTick',1:num.exp)
+xlabel('Group')
+ylabel('Cumulative dist difference (cool-heat)')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

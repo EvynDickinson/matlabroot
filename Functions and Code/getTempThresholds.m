@@ -1,6 +1,6 @@
 
 function [threshHigh, threshLow] = getTempThresholds(tempProtocols)
-% [threshHigh, threshLow] = getTempThresholds;
+% [threshHigh, threshLow] = getTempThresholds(tempProtocols);
 %
 % Returns temperature thresholds from a list
 % as selected by the user
