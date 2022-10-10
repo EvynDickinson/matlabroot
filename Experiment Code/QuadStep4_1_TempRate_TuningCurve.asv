@@ -31,7 +31,7 @@ end
 clear list_dirs expIdx dirIdx
 % Set up base variables
 initial_vars = who;
-initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'];
+initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat'];
 initial_vars = unique(initial_vars);
 
 % Save data / make new grouped data folder
@@ -65,11 +65,11 @@ clearvars('-except',initial_vars{:})
 % colors for each group
 colors = {'BlueViolet',...
          'Orange',...
-         'white',...
-         'Indigo',...
+         'teal',...
+         'Pink',...
          'Plum',...
          'Thistle',...
-         'Teal',...
+         'white',...
          'Turquoise',...
          'Aquamarine',...
          'Red',...
@@ -136,6 +136,55 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     grouped(i).decreasing.rate = median(tempRates(:,downIdx));
 
 end
+
+% RAMP-TO-RAMP COMPARISONS
+binWidth = 0.5; %temp bin increment
+mat = struct;
+% Extract ramp by ramp information from each trial
+for i = 1:num.exp
+    for trial = 1:num.trial(i)
+        tempPoints = getTempTurnPoints(data(i).T.TempProtocol{trial});
+        foodLoc = data(i).T.foodLoc(trial);
+        threshLow = tempPoints.threshLow;
+        threshHigh = tempPoints.threshHigh;
+        dist = data(i).data(trial).occupancy.dist2wells(:,foodLoc);
+        temp = data(i).data(trial).occupancy.temp;
+        tempBins = floor(threshLow):binWidth:ceil(threshHigh); 
+        if tempBins(end)<ceil(threshHigh)
+            tempBins(end+1) = ceil(threshHigh) + binSpace;
+        end
+
+        for idx = 1:tempPoints.nDown
+            % COOLING
+            downROI = tempPoints.down(idx,1):tempPoints.down(idx,2);
+            mat(i).cooling(idx).dist(:,trial) = dist(downROI);
+            mat(i).cooling(idx).temp(:,trial) = temp(downROI);
+            mat(i).cooling(idx).tempIdx(:,trial) = discretize(temp(downROI),tempBins);
+
+            % HEATING
+            upROI = tempPoints.up(idx,1):tempPoints.up(idx,2);
+            mat(i).heating(idx).dist(:,trial) = dist(upROI);
+            mat(i).heating(idx).temp(:,trial) = temp(upROI);
+            mat(i).heating(idx).tempIdx(:,trial) = discretize(temp(upROI),tempBins);
+
+            % HYSTERESIS MEASURE
+            for n = 1:length(tempBins)-1 %pull avg temp for this particular cooling ramp
+                %cooling
+                C_loc = mat(i).cooling(idx).tempIdx(:,trial)==n;
+                mat(i).cooling(idx).bintemp(n,trial) = mean(mat(i).cooling(idx).dist(C_loc,trial),'omitnan');
+                %heating
+                H_loc = mat(i).heating(idx).tempIdx(:,trial)==n;
+                mat(i).heating(idx).bintemp(n,trial) = mean(mat(i).heating(idx).dist(H_loc,trial),'omitnan');
+            end
+            mat(i).hysteresis(idx).all(:,trial) = mat(i).cooling(idx).bintemp(:,trial)-mat(i).heating(idx).bintemp(:,trial);
+            mat(i).hysteresis(idx).sum(trial) = sum(mat(i).hysteresis(idx).all(:,trial),'omitnan');
+            mat(i).hysteresis(idx).tempbins = tempBins;
+            mat(i).distHist(:,trial,idx) = mat(i).hysteresis(idx).all(:,trial); %hyst by temp bin
+            mat(i).cumHist(trial,idx) = mat(i).hysteresis(idx).sum(trial); %cumulative hysteresis
+        end
+    end
+end
+
 
 disp('Next')
 
@@ -244,7 +293,7 @@ xlabel('temp (\circC)')
 legend(dataString,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 5)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png')
+save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
 
 %% FIGURE: cumulative hysteresis for each genotype / trial
 
@@ -296,57 +345,9 @@ formatFig(fig,true,[r,c]);
 % save figure
 save_figure(fig,[saveDir expGroup ' hysteresis summary'],'-png');
 
-%%  ANALYSIS & FIGURE: ramp by ramp hysteresis comparision
+%%  FIGURE: ramp by ramp hysteresis comparision
 
 clearvars('-except',initial_vars{:})
-binWidth = 0.5; %temp bin increment
-
-mat = struct;
-% Extract ramp by ramp information from each trial
-for i = 1:num.exp
-    for trial = 1:num.trial(i)
-        tempPoints = getTempTurnPoints(data(i).T.TempProtocol{trial});
-        foodLoc = data(i).T.foodLoc(trial);
-        threshLow = tempPoints.threshLow;
-        threshHigh = tempPoints.threshHigh;
-        dist = data(i).data(trial).occupancy.dist2wells(:,foodLoc);
-        temp = data(i).data(trial).occupancy.temp;
-        tempBins = floor(threshLow):binWidth:ceil(threshHigh); 
-        if tempBins(end)<ceil(threshHigh)
-            tempBins(end+1) = ceil(threshHigh) + binSpace;
-        end
-
-        for idx = 1:tempPoints.nDown
-            % COOLING
-            downROI = tempPoints.down(idx,1):tempPoints.down(idx,2);
-            mat(i).cooling(idx).dist(:,trial) = dist(downROI);
-            mat(i).cooling(idx).temp(:,trial) = temp(downROI);
-            mat(i).cooling(idx).tempIdx(:,trial) = discretize(temp(downROI),tempBins);
-
-            % HEATING
-            upROI = tempPoints.up(idx,1):tempPoints.up(idx,2);
-            mat(i).heating(idx).dist(:,trial) = dist(upROI);
-            mat(i).heating(idx).temp(:,trial) = temp(upROI);
-            mat(i).heating(idx).tempIdx(:,trial) = discretize(temp(upROI),tempBins);
-
-            % HYSTERESIS MEASURE
-            for n = 1:length(tempBins)-1 %pull avg temp for this particular cooling ramp
-                %cooling
-                C_loc = mat(i).cooling(idx).tempIdx(:,trial)==n;
-                mat(i).cooling(idx).bintemp(n,trial) = mean(mat(i).cooling(idx).dist(C_loc,trial),'omitnan');
-                %heating
-                H_loc = mat(i).heating(idx).tempIdx(:,trial)==n;
-                mat(i).heating(idx).bintemp(n,trial) = mean(mat(i).heating(idx).dist(H_loc,trial),'omitnan');
-            end
-            mat(i).hysteresis(idx).all(:,trial) = mat(i).cooling(idx).bintemp(:,trial)-mat(i).heating(idx).bintemp(:,trial);
-            mat(i).hysteresis(idx).sum(trial) = sum(mat(i).hysteresis(idx).all(:,trial),'omitnan');
-            mat(i).hysteresis(idx).tempbins = tempBins;
-            mat(i).distHist(:,trial,idx) = mat(i).hysteresis(idx).all(:,trial); %hyst by temp bin
-            mat(i).cumHist(trial,idx) = mat(i).hysteresis(idx).sum(trial); %cumulative hysteresis
-        end
-        
-    end
-end
 
 
 % FIGURE: plot the heating vs cooling plots for each of the four ramps
@@ -354,7 +355,7 @@ end
 buff = 0.3;
 LW = 0.75;
 
-fig = figure; hold on
+fig = figure; set(fig,'pos',[1998 582 431 497]); hold on
     for i = 1:num.exp
         kolor = grouped(i).color;
         nRamps = size(mat(i).hysteresis,2);
@@ -369,8 +370,11 @@ set(gca,'XTick',1:num.exp)
 xlabel('Group')
 ylabel('Cumulative dist difference (cool-heat)')
 
+% save figure
+save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png');
 
 
+%% 
 
 
 
