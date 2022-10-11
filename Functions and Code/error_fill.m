@@ -1,6 +1,6 @@
 
 function fill_data = error_fill(xdata, ydata, error)
-% fill_data = error_fill(xdata, ydata, error)
+% fill_data = error_fill(x, y, y_err)
 % use in this context:
 %
 % fill_data = error_fill(xdata, ydata, error)

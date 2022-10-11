@@ -63,8 +63,7 @@ end
 clearvars('-except',initial_vars{:})
 
 % colors for each group
-colors = {'BlueViolet',...
-         'Orange',...
+colors = {'BlueViolet',...         'Orange',...
          'red',...
          'white',...
          'Turquoise',...
@@ -97,7 +96,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     grouped(i).dist.err = std(distance,0,2,'omitnan')/sqrt(num.trial(i));
     
     % BINNED
-    tempRates = [];
+    [tempRates,decreasing,increasing,temperatures] = deal([]);
     for trial = 1:num.trial(i)
         % Account for multiple numbers of rate trials
         rates = data(i).G(1).TR.rates;
@@ -371,6 +370,79 @@ save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png')
 
 %% Event-aligned comparisons
 %TODO
+clearvars('-except',initial_vars{:})
+
+timeROI = 25; % how many minutes to look at behavior after each event
+duration = ceil(timeROI*3*60);
+
+sections = {'increasing','decreasing','holding'};
+s_color = {'red','dodgerblue','white'};
+
+for i = 1:num.exp
+
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+
+    for ss = 1:length(sections)
+        switch sections{ss}
+            case 'increasing'
+                tpBin = 'up';
+                nrr = tp.nUp;
+            case 'decreasing'
+                tpBin = 'down';
+                nrr = tp.nDown;
+            case 'holding'
+                tpBin = 'hold';
+                nrr = tp.nHold;
+        end
+        temp = [];
+        for rr = 1:nrr
+            ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
+            temp(:,:,rr) = grouped(i).dist.all(ROI,:);
+        end
+    
+        temp_norm = temp-mean(temp(1:10,:,:),'omitnan');
+        temp_avg = mean(temp_norm,3);
+        % add to the grouped data
+        grouped(i).aligned.([sections{ss} '_avg']) = temp_avg;
+        grouped(i).aligned.([sections{ss} '_norm']) = temp_norm;
+        grouped(i).aligned.([sections{ss} '_all']) = temp;
+        grouped(i).aligned.([sections{ss} '_SEM']) = std(temp_avg,0,2,'omitnan')/sqrt(num.trial(i));
+        grouped(i).aligned.([sections{ss} '_MEAN']) = mean(temp_avg,2,'omitnan');
+    end
+end
+
+
+
+
+% SINGLE EXPERIMENT COMPARISON
+x = linspace(0,timeROI,duration+1);
+LW = 1.5;
+
+for i = 1:num.exp
+
+    fig = figure; set(fig,'pos',[2130 275 428 534])
+    hold on
+    for ss = 1:length(sections)
+        y = grouped(i).aligned.([sections{ss} '_MEAN']);
+        y_err = grouped(i).aligned.([sections{ss} '_SEM']);
+    
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, Color(s_color{ss}), 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.4)
+        plot(x, y,'color',Color(s_color{ss}),'LineWidth',LW)
+    end
+    
+    xlabel('time (min)')
+    ylabel('distance from food (mm)')
+    formatFig(fig,true);
+    title([grouped(i).name],'Color','w','FontSize',12,'FontName','times')
+    
+    save_figure(fig,[saveDir grouped(i).name ' event aligned distance'],'-png',true);
+end
+
+% CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
+
+
 
 
 

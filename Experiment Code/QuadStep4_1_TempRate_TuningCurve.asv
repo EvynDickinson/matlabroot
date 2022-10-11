@@ -63,18 +63,12 @@ end
 clearvars('-except',initial_vars{:})
 
 % colors for each group
-colors = {'BlueViolet',...
-         'Orange',...
-         'teal',...
-         'Pink',...
-         'Plum',...
-         'Thistle',...
+colors = {'BlueViolet',...         'Orange',...
+         'red',...
          'white',...
          'Turquoise',...
-         'Aquamarine',...
-         'Red',...
-         'DarkRed',...
-         'Gold'};
+         'Gold',...
+         'pink'};
 
 grouped = struct;
 for i = 1:num.exp % FOR EACH DATA GROUP
@@ -102,7 +96,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     grouped(i).dist.err = std(distance,0,2,'omitnan')/sqrt(num.trial(i));
     
     % BINNED
-    tempRates = [];
+    [tempRates,decreasing,increasing,temperatures] = deal([]);
     for trial = 1:num.trial(i)
         % Account for multiple numbers of rate trials
         rates = data(i).G(1).TR.rates;
@@ -374,7 +368,100 @@ ylabel('Cumulative dist difference (cool-heat)')
 save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png');
 
 
-%% 
+%% Event-aligned comparisons
+%TODO
+clearvars('-except',initial_vars{:})
+
+timeROI = 25; % how many minutes to look at behavior after each event
+duration = ceil(timeROI*3*60);
+
+sections = {'increasing','decreasing','holding'};
+
+
+for i = 1:num.exp
+
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+
+    for ss = 1:length(sections)
+        switch sections{ss}
+            case 'increasing'
+                tpBin = 'up';
+                nrr = tp.nUp;
+            case 'decreasing'
+                tpBin = 'down';
+                nrr = tp.nDown;
+            case 'holding'
+                tpBin = 'hold';
+                nrr = tp.nHold;
+        end
+
+    % INCREASING
+    temp = [];
+    for rr = 1:nrr
+        ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
+        temp(:,:,rr) = grouped(i).dist.all(ROI,:);
+    end
+
+    temp_norm = temp-mean(temp(1:10,:,:),'omitnan');
+    temp_avg = mean(temp_norm,3);
+    % add to the grouped data
+    grouped(i).aligned.([section{ss} '_avg']) = increasing_avg;
+    grouped(i).aligned.increasing_norm = temp_norm;
+    grouped(i).aligned.increasing_all = increasing;
+    grouped(i).aligned.increasing_SEM = std(increasing_avg,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).aligned.increasing_MEAN = mean(increasing_avg,2,'omitnan');
+
+    % DECREASING
+    decreasing = [];
+    for rr = 1:tp.nDown
+        ROI = tp.down(rr,1):tp.down(rr,1)+duration;
+        decreasing(:,:,rr) = grouped(i).dist.all(ROI,:);
+    end
+    decreasing_norm = decreasing-mean(decreasing(1:10,:,:),'omitnan');
+    decreasing_avg = mean(decreasing_norm,3);
+    % add to the grouped data
+    grouped(i).aligned.decreasing_avg = decreasing_avg;
+    grouped(i).aligned.decreasing_norm = decreasing_norm;
+    grouped(i).aligned.decreasing_all = decreasing;
+    grouped(i).aligned.decreasing_SEM = std(decreasing_avg,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).aligned.decreasing_MEAN = mean(decreasing_avg,2,'omitnan');
+
+    % HOLD
+    holding = [];
+    for rr = 1:tp.nHold
+        ROI = tp.hold(rr,1):tp.hold(rr,1)+duration;
+        holding(:,:,rr) = grouped(i).dist.all(ROI,:);
+    end
+    holding_norm = holding-mean(holding(1:10,:,:),'omitnan');
+    holding_avg = mean(holding_norm,3);
+    % add to the grouped data
+    grouped(i).aligned.holding_avg = holding_avg;
+    grouped(i).aligned.holding_norm = holding_norm;
+    grouped(i).aligned.holding_all = holding;
+    grouped(i).aligned.holding_SEM = std(holding_avg,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).aligned.holding_MEAN = mean(holding_avg,2,'omitnan');
+end
+
+
+
+
+% SINGLE EXPERIMENT COMPARISON
+x = linspace(0,timeROI,duration+1);
+
+for i = 1:num.exp
+
+fig = figure; 
+hold on
+%holding
+    plot(x, grouped(i).aligned.holding_avg,'color','w','LineWidth',0.5)
+    plot(x, mean(grouped(i).aligned.holding_avg,2,'omitnan'),'color','w','LineWidth',2)
+
+
+
+formatFig(fig,true);
+    
+
+
 
 
 
