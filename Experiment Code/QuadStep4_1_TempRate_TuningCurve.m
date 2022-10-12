@@ -368,11 +368,11 @@ ylabel('Cumulative dist difference (cool-heat)')
 save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png');
 
 
-%% Event-aligned comparisons
-%TODO
+%% ANALYSIS AND FIGURES: Event-aligned comparisons
+
 clearvars('-except',initial_vars{:})
 
-timeROI = 25; % how many minutes to look at behavior after each event
+timeROI = 60; % how many minutes to look at behavior after each event
 duration = ceil(timeROI*3*60);
 
 sections = {'increasing','decreasing','holding'};
@@ -412,10 +412,10 @@ for i = 1:num.exp
 end
 
 
-
-
-% SINGLE EXPERIMENT COMPARISON
-x = linspace(0,timeROI,duration+1);
+% FIGURES: SINGLE EXPERIMENT COMPARISON
+dispROI = 10;
+duration = ceil(dispROI*3*60);
+x = linspace(0,dispROI,duration+1);
 LW = 1.5;
 
 for i = 1:num.exp
@@ -423,8 +423,8 @@ for i = 1:num.exp
     fig = figure; set(fig,'pos',[2130 275 428 534])
     hold on
     for ss = 1:length(sections)
-        y = grouped(i).aligned.([sections{ss} '_MEAN']);
-        y_err = grouped(i).aligned.([sections{ss} '_SEM']);
+        y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1);
+        y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
     
         fill_data = error_fill(x, y, y_err);
         h = fill(fill_data.X, fill_data.Y, Color(s_color{ss}), 'EdgeColor','none','HandleVisibility','off');
@@ -437,10 +437,120 @@ for i = 1:num.exp
     formatFig(fig,true);
     title([grouped(i).name],'Color','w','FontSize',12,'FontName','times')
     
-    save_figure(fig,[saveDir grouped(i).name ' event aligned distance'],'-png',true);
+    save_figure(fig,[saveDir grouped(i).name...
+                ' event aligned distance -duration ' num2str(dispROI) ' min'],...
+                '-png',true);
 end
 
-% CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
+% FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
+r = 1;
+c = 3;
+
+dispROI = 50;
+duration = ceil(dispROI*3*60);
+x = linspace(0,dispROI,duration+1);
+LW = 1.5;
+SEM_shading = false;
+sSpan = 15;
+
+
+fig = figure; set(fig,'pos',[1933 272 1051 534])
+for ss = 1:length(sections) %
+    subplot(r,c,ss); hold on
+    for i = 1:num.exp
+        y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1);
+        if SEM_shading
+            y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.4)
+        end
+        plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
+    end
+    xlabel('time (min)')
+    ylabel('distance from food (mm)')
+    title(sections{ss})
+end
+formatFig(fig,true,[r,c]);
+
+save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
+            num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
+    
+
+
+%% FIGURE: 
+% vectors to fly 'mass' in arena at different temperatures from food
+
+clearvars('-except',initial_vars{:})
+
+
+% 1) for a given experiment, find the avg fly position for each frame. 
+% 2) plot the avg position on a 'blank' arena with the food loc indicated
+% color coded by temperature at the time
+% 3) add the avg vector line for binned temperatures
+% 4) figure out how to rotate the arena or overlay vectors to collapse
+% across trials within an experimental group e.g. berlin 
+
+
+
+% 1)
+% ------------------------------
+i = 1; 
+trial = 1;
+
+position = [];
+% positions for all 'flies' over time
+x = data(i).data(trial).data.x_loc; 
+y = data(i).data(trial).data.y_loc;
+x_avg = mean(x,2,'omitnan');
+y_avg = mean(y,2,'omitnan');
+
+well_loc = data(i).T.foodLoc(trial);
+C = data(i).data(trial).data.centre;
+r = data(i).data(trial).data.r;
+well_C = data(i).data(trial).data.wellcenters(:,well_loc);
+arena_C = data(i).data(trial).data.wellcenters(:,5);
+
+h = drawcircle('Center',[C(1),C(2)],'Radius',r,'StripeColor','red');
+
+
+figure; hold on
+    scatter(x_avg, y_avg,5,'b','filled')
+    for well = 1:4
+        C = data(i).data(trial).data.wellcenters(:,well);
+        scatter(C(1),C(2),20,'k','filled')
+    end
+    scatter(well_C(1),well_C(2),20,'r','filled')
+    viscircles([arena_C(1),arena_C(2)],r)
+    axis square
+
+
+x = data(trial).data.x_loc(frames,:);
+y = data(trial).data.y_loc(frames,:);
+X = reshape(x,numel(x),1);
+Y = reshape(y,numel(y),1);
+pos = [X,Y];
+
+% get the 'square' units for partitioning space
+C = data(trial).data.centre;
+r = data(trial).data.r;
+x_edge = linspace(C(1)-r,C(1)+r,n);
+y_edge = linspace(C(2)-r,C(2)+r,n);
+
+% find x and y that are within each 'box'
+xInd = discretize(pos(:,1),x_edge);
+yInd = discretize(pos(:,2),y_edge);
+
+% find the number of flies within each spatial bin:
+for row = 1:n
+    for col = 1:n
+        nflies(row,col) = sum(yInd==row & xInd==col);
+    end
+end
+
+% Rotate the matrix if needed to align to a well position of '2'
+k = T.foodLoc(trial)-2;
+B = rot90(nflies,k);
 
 
 
@@ -453,15 +563,87 @@ end
 
 
 
+n = 10; % number of spatial bins
+tt = 1; 
+buffer = 0.5; % temperature buffer around target temperature
+idx = 1;
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList)   
+    temp = tempList(tt); % temp in C
+    rate = find(rateList(rr)==G(trial).TR.rates);
+    HM = zeros(n);
+    for trial = 1:ntrials
+        % frame location selection
+        tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
+        rLoc = G(trial).TR.rateIdx==rate;
+        frames = tLoc & rLoc;
 
+        % pull the position data for these frames and concatenate into a large
+        % structure for this temp rate and temp location
+        x = data(trial).data.x_loc(frames,:);
+        y = data(trial).data.y_loc(frames,:);
+        X = reshape(x,numel(x),1);
+        Y = reshape(y,numel(y),1);
+        pos = [X,Y];
 
+        % get the 'square' units for partitioning space
+        C = data(trial).data.centre;
+        r = data(trial).data.r;
+        x_edge = linspace(C(1)-r,C(1)+r,n);
+        y_edge = linspace(C(2)-r,C(2)+r,n);
 
+        % find x and y that are within each 'box'
+        xInd = discretize(pos(:,1),x_edge);
+        yInd = discretize(pos(:,2),y_edge);
 
+        % find the number of flies within each spatial bin:
+        for row = 1:n
+            for col = 1:n
+                nflies(row,col) = sum(yInd==row & xInd==col);
+            end
+        end
 
+        % Rotate the matrix if needed to align to a well position of '2'
+        k = T.foodLoc(trial)-2;
+        B = rot90(nflies,k);
 
+%         fig = figure; imagesc(B);
+%         uiwait(fig)
 
+        % Save matrix to the structure:
+        HM = HM + B;
+    end
+    plotData(rr,tt).HM = HM;
+    cmaps(idx,1) = min(min(HM));
+    cmaps(idx,2) = max(max(HM));
+    idx = idx + 1;
+  end
+end
 
+% figures   
+idx = 0;
+fig = figure; set(fig, 'color', 'k', 'position',  [547 304 992 555]); %[32 70 1318 435]
+for rr = 1:length(rateList)
+  for tt = 1:length(tempList)
+    idx = idx+1;
+    subplot(length(rateList),length(tempList),idx)
+        imagesc(plotData(rr,tt).HM)
+        ax = gca;
+        set(ax, 'xscale', 'log', 'yscale', 'log')
+        axis tight
+        set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);
+        c = colorbar;
+        c.Label.String = 'Number of flies';
+        c.Label.Color = 'w';
+        c.Color = 'w';
+        title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'w')
+        caxis([min(cmaps(:,1)) max(cmaps(:,2))]) 
+        axis square
+  end
+end
 
+save_figure(fig, [figDir 'Four temp hysteresis position heatmaps'], '-png');
+clearvars('-except',vars{:})
 
 
 
