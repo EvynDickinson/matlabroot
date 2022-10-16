@@ -501,12 +501,15 @@ clearvars('-except',initial_vars{:})
 % 4) figure out how to rotate the arena or overlay vectors to collapse
 % across trials within an experimental group e.g. berlin 
 
-
-
-% 1)
-% ------------------------------
-
-saveFig = false;
+ 
+switch questdlg('Save trial by trial figures?','','yes','no','cancel','no')
+    case 'yes' 
+        saveFig = true;
+    case 'no'
+        saveFig = false;
+    case 'cancel'
+        return
+end
 
 for i = 1:num.exp 
   for trial = 1:num.trial(i)
@@ -572,8 +575,7 @@ for i = 1:num.exp
             scatter(well_C(1),well_C(2),SZ,'y','filled')
             viscircles([arena_C(1),arena_C(2)],r,'Color','w');
             scatter(position(:,1),position(:,2),15,cMap,'filled','o','MarkerEdgeColor','w')
-            matchAxis(fig);
-            axis square;
+            axis equal square;
             formatFig(fig,true);
             set(gca,'XColor','k','YColor','k');
             % set color bar information
@@ -589,7 +591,7 @@ for i = 1:num.exp
         if ~exist(figFolder,'dir')
             mkdir(figFolder);
         end
-        save_figure(fig,[figFolder data(i).T.Date{trial} ' ' data(i).T.ExperimentID{trial}],'-png',true);
+        save_figure(fig,[figFolder data(i).T.Date{trial} ' ' data(i).T.ExperimentID{trial} ' ' data(i).T.Arena{trial}],'-png',true);
     end
   end
 end
@@ -677,9 +679,6 @@ end
 %%
 
 
-% Rotate the matrix if needed to align to a well position of '2'
-k = T.foodLoc(trial)-2;
-B = rot90(nflies,k);
 
 
 
@@ -692,87 +691,7 @@ B = rot90(nflies,k);
 
 
 
-n = 10; % number of spatial bins
-tt = 1; 
-buffer = 0.5; % temperature buffer around target temperature
-idx = 1;
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList)   
-    temp = tempList(tt); % temp in C
-    rate = find(rateList(rr)==G(trial).TR.rates);
-    HM = zeros(n);
-    for trial = 1:ntrials
-        % frame location selection
-        tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
-        rLoc = G(trial).TR.rateIdx==rate;
-        frames = tLoc & rLoc;
 
-        % pull the position data for these frames and concatenate into a large
-        % structure for this temp rate and temp location
-        x = data(trial).data.x_loc(frames,:);
-        y = data(trial).data.y_loc(frames,:);
-        X = reshape(x,numel(x),1);
-        Y = reshape(y,numel(y),1);
-        pos = [X,Y];
-
-        % get the 'square' units for partitioning space
-        C = data(trial).data.centre;
-        r = data(trial).data.r;
-        x_edge = linspace(C(1)-r,C(1)+r,n);
-        y_edge = linspace(C(2)-r,C(2)+r,n);
-
-        % find x and y that are within each 'box'
-        xInd = discretize(pos(:,1),x_edge);
-        yInd = discretize(pos(:,2),y_edge);
-
-        % find the number of flies within each spatial bin:
-        for row = 1:n
-            for col = 1:n
-                nflies(row,col) = sum(yInd==row & xInd==col);
-            end
-        end
-
-        % Rotate the matrix if needed to align to a well position of '2'
-        k = T.foodLoc(trial)-2;
-        B = rot90(nflies,k);
-
-%         fig = figure; imagesc(B);
-%         uiwait(fig)
-
-        % Save matrix to the structure:
-        HM = HM + B;
-    end
-    plotData(rr,tt).HM = HM;
-    cmaps(idx,1) = min(min(HM));
-    cmaps(idx,2) = max(max(HM));
-    idx = idx + 1;
-  end
-end
-
-% figures   
-idx = 0;
-fig = figure; set(fig, 'color', 'k', 'position',  [547 304 992 555]); %[32 70 1318 435]
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList)
-    idx = idx+1;
-    subplot(length(rateList),length(tempList),idx)
-        imagesc(plotData(rr,tt).HM)
-        ax = gca;
-        set(ax, 'xscale', 'log', 'yscale', 'log')
-        axis tight
-        set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);
-        c = colorbar;
-        c.Label.String = 'Number of flies';
-        c.Label.Color = 'w';
-        c.Color = 'w';
-        title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'w')
-        caxis([min(cmaps(:,1)) max(cmaps(:,2))]) 
-        axis square
-  end
-end
-
-save_figure(fig, [figDir 'Four temp hysteresis position heatmaps'], '-png');
-clearvars('-except',vars{:})
 
 
 

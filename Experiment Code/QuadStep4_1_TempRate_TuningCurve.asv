@@ -62,11 +62,20 @@ end
 
 clearvars('-except',initial_vars{:})
 
+% % colors for each group
+% colors = {'BlueViolet',...         
+%          'red',...
+%          'white',...
+%          'Turquoise',...
+%          'Gold',...
+%          'pink',...
+%          'Orange'};
+
 % colors for each group
 colors = {'BlueViolet',...         
-         'red',...
          'white',...
-         'Turquoise',...
+         'turquoise',...
+         'red',...
          'Gold',...
          'pink',...
          'Orange'};
@@ -187,7 +196,7 @@ disp('Next')
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols
 clearvars('-except',initial_vars{:})
-plot_err = true;
+plot_err = false;
 
 % set up figure aligments
 r = 5; %rows
@@ -496,8 +505,10 @@ clearvars('-except',initial_vars{:})
 
 % 1)
 % ------------------------------
-
-saveFig = false;
+% 
+switch questdlg('Save trial by trial figures?')
+    case '' 
+        saveFig = true;
 
 for i = 1:num.exp 
   for trial = 1:num.trial(i)
@@ -563,8 +574,7 @@ for i = 1:num.exp
             scatter(well_C(1),well_C(2),SZ,'y','filled')
             viscircles([arena_C(1),arena_C(2)],r,'Color','w');
             scatter(position(:,1),position(:,2),15,cMap,'filled','o','MarkerEdgeColor','w')
-            matchAxis(fig);
-            axis square;
+            axis equal square;
             formatFig(fig,true);
             set(gca,'XColor','k','YColor','k');
             % set color bar information
@@ -645,7 +655,8 @@ for i = 1:num.exp
     
     viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color',grouped(i).color);
     
-    axis square;
+    axis square; 
+    axis equal;
     formatFig(fig,true);
     set(gca,'XColor','k','YColor','k');
     % set color bar information

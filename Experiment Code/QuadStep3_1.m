@@ -669,9 +669,6 @@ for trial = 1:ntrials
 clearvars('-except',vars{:}) 
 end
 
-%% ANALYSIS: Signal Derivative
-% how does the signal symmetry look compared to raw temp vs temp derivative
-% TODO Sep 2022
 
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
