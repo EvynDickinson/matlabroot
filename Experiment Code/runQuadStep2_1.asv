@@ -47,7 +47,7 @@ for arena = 1:nArenas
     fig = getfig(''); 
      % tracking accuracy proxy (# flies)
      subplot(nrow,ncol,subplotInd(3).idx)
-        y = smooth(plotZ,sSpan);
+        y = smooth(plotZ,'moving',sSpan);
         roi = 2:length(y)-1;
         plot(time(roi), y(roi), 'linewidth', LW, 'color', Color('grey'))
         hline(arenaData(arena).nflies, 'w--')
@@ -55,7 +55,7 @@ for arena = 1:nArenas
 
      % temperature over time
      subplot(nrow,ncol,subplotInd(1).idx)
-        y = smooth(T.temperature,sSpan);
+        y = smooth(T.temperature,'moving',sSpan);
         roi = 2:length(y)-1;
         plot(time(roi), y(roi), 'linewidth', LW, 'color', 'w')
         ylabel('temp (\circC)')
@@ -66,7 +66,7 @@ for arena = 1:nArenas
         hold on
         for well = 1:4
             kolor = pullFoodColor(wellLabels{well});
-            y = smooth(plotY(:,well),sSpan);
+            y = smooth(plotY(:,well),'moving',sSpan);
             roi = 2:length(y)-1;
             plot(time(roi), y(roi), 'linewidth', LW, 'color', kolor);
         end

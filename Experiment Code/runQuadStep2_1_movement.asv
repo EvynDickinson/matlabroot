@@ -284,32 +284,29 @@ clearvars('-except',initial_vars{:})
 
 
 %% FIGURE: speed summary figure
-sSpan = 180;
-row = 5;
-col = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:5;
-
-fig = figure; set(fig, 'pos', [1941 145 998 601])
-    subplot(row, col, sb(1).idx)
-    plot(occupancy.time, occupancy.temp,'color', 'w', 'LineWidth',1)
-    ylabel('\circC')
-    subplot(row, col, sb(2).idx)
-    hold on
-    for arena = 1:4
-       try
-           plot(occupancy.time, smooth(speed(arena).avg(1:end-1),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
-       catch
-           plot(occupancy.time, smooth(speed(arena).avg,sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
-       end
-    end
-    xlabel('time (min)')
-    ylabel('speed (mm/s)')
-formatFig(fig, true,[row,col],sb);
-
-save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave);
-clearvars('-except',initial_vars{:})
-
+if essentialfigs == false
+    sSpan = 180;
+    row = 5;
+    col = 1;
+    sb(1).idx = 1;
+    sb(2).idx = 2:5;
+    
+    fig = figure; set(fig, 'pos', [1941 145 998 601])
+        subplot(row, col, sb(1).idx)
+        plot(occupancy.time, occupancy.temp,'color', 'w', 'LineWidth',1)
+        ylabel('\circC')
+        subplot(row, col, sb(2).idx)
+        hold on
+        for arena = 1:4
+            plot(occupancy.time, smooth(speed(arena).avg(:),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+        end
+        xlabel('time (min)')
+        ylabel('speed (mm/s)')
+    formatFig(fig, true,[row,col],sb);
+    
+    save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave);
+    clearvars('-except',initial_vars{:})
+end
 %% FIGURE: speed histogram
 if essentialfigs == false
     speedMax = 20;

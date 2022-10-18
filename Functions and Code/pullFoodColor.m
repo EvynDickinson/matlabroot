@@ -62,6 +62,9 @@ switch foodString
     case 'Water_and_ACV'
         colorname = 'Gold';
         num = 2;
+    case 'Caviar'
+        colorname = 'Gold';
+        num = 2;
     % --------------------------------
     % TEMPERATURE RATES....
     case {-0.65, 0.65}

@@ -1404,13 +1404,13 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
         % Plot the temperature protocol averages 
         % TEMPERATURE
         subplot(row,col,sb(1).idx); hold on
-        plot(time,smooth(mean(temp,2),sSpan),'color',kolor,'linewidth',LW)
+        plot(time,smooth(mean(temp,2),'moving',sSpan),'color',kolor,'linewidth',LW)
         % DISTANCE
         subplot(row,col,sb(2).idx); hold on
-        plot(time,smooth(mean(distance,2),sSpan),'color',kolor,'linewidth',LW)
+        plot(time,smooth(mean(distance,2),'moving',sSpan),'color',kolor,'linewidth',LW)
         % MOVEMENT
         subplot(row,col,sb(3).idx); hold on
-        plot(time,smooth(mean(movement,2),sSpan),'color',kolor,'linewidth',LW)
+        plot(time,smooth(mean(movement,2),'moving',sSpan),'color',kolor,'linewidth',LW)
     end
     % labels and formatting
     formatFig(fig,true, [row,col],sb);

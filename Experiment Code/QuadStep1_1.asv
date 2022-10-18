@@ -260,13 +260,44 @@ disp(nflies)
 [vidNums, vidFrame, frame, temperature, tempWork] = deal([]);
 currFrame = 0;
 for vid = 1:nvids
-    if ~isempty(data(vid).occupancy_matrix) %add blanks for corrupt videos
-        nframes = size(data(vid).occupancy_matrix,2);
-    else
+    if isempty(data(vid).occupancy_matrix)
+        %take the mean video duration for all others and add 'blanks'
+        median(occupancy.frameROI(:,2)-occupancy.frameROI(:,1));
+
+        % find number of frames per vid
+        occupancy.frameROI(vid,1) = currFrame+1;
         nframes = median(occupancy.frameROI(:,2)-occupancy.frameROI(:,1));
+        
+        currFrame = nframes + currFrame;
+        occupancy.frameROI(vid,2) = currFrame;
+        % video numbers
+        vidNums = [vidNums; vid*ones(nframes,1)];
+        % frame num in video
+        vidFrame = [vidFrame; (1:nframes)'];
+        % total frame count
+        frame = [frame; (occupancy.frameROI(vid,1):occupancy.frameROI(vid,2))'];
+        % temperature log
+        logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
+        logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));
+        tempCourse = tempLog(logROI(1):logROI(2),2);
+        x = round(linspace(1, nframes, length(tempCourse)));
+        fullTempList = interp1(x,tempCourse,1:nframes,'spline');   
+        data(vid).tempLog = fullTempList;
+        temperature = [temperature; fullTempList']; 
+        % temp plate work log
+        workCourse = tempLog(logROI(1):logROI(2),4);
+        x = round(linspace(1, nframes, length(workCourse)));
+        fullWorkList = interp1(x,workCourse,1:nframes,'spline');   
+        tempWork = [tempWork; fullWorkList']; 
+
+
+
+
+        return
     end
     % find number of frames per vid
     occupancy.frameROI(vid,1) = currFrame+1;
+    nframes = size(data(vid).occupancy_matrix,2);
     currFrame = nframes + currFrame;
     occupancy.frameROI(vid,2) = currFrame;
     % video numbers
@@ -306,18 +337,12 @@ fprintf('Next\n')
 % how many tracks max within this whole experiment?
 w = 0;
 for vid = 1:nvids
-    if isempty(data(vid).occupancy_matrix)
-        continue
-    end
     w = max([size(data(vid).occupancy_matrix,1),w]);
 end
 [X, Y] = deal(nan(T.frame(end),w));
 
 % load fly locations into the X & Y matrices
 for vid = 1:nvids
-    if isempty(data(vid).occupancy_matrix)
-        continue
-    end
     % ---- fly tracked locations -------
     headData = squeeze(data(vid).tracks(:,1,:,:));
     % x-y coordinates of flies for each frame
@@ -357,7 +382,7 @@ for arena = 1:4
     Y(~loc) = nan;
     flyNum = sum(loc,2); % how many points tracked
 
-    % Save into data structure: TODO - this does nothing?? 
+    % Save into data structure:
     data(vid).x_loc = X;
     data(vid).y_loc = Y;
 
@@ -443,9 +468,6 @@ for arena = 1:4
     for ii = 1:n
         frame = lowIDX(ii);
         vidNum = T.vidNums(frame);
-        if isempty(data(vidNum).occupancy_matrix)
-            continue
-        end
         vidframe = T.vidFrame(frame);
         movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
         img = read(movieInfo,vidframe);
@@ -481,9 +503,6 @@ for arena = 1:4
     for ii = 1:n
         frame = highIDX(ii);
         vidNum = T.vidNums(frame);
-        if isempty(data(vidNum).occupancy_matrix)
-            continue
-        end
         vidframe = T.vidFrame(frame);
         movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
         img = read(movieInfo,vidframe);
@@ -630,7 +649,7 @@ for arena = 1:4
         hold on
         for well = 1:4
             kolor = pullFoodColor(arenaData(arena).wellLabels{well});
-            y = smooth(arenaData(arena).occ_P(:,well),'moving',sSpan);
+            y = smooth(arenaData(arena).occ_P(:,well),sSpan);
             plot(T.time, y, 'linewidth', LW, 'color', kolor);
         end
         ylabel('occupation probability')
@@ -640,7 +659,7 @@ for arena = 1:4
         hold on
         for well = 1:4
             kolor = pullFoodColor(arenaData(arena).wellLabels{well});
-            y = smooth(arenaData(arena).dist2well(:,well),'moving',sSpan);
+            y = smooth(arenaData(arena).dist2well(:,well),sSpan);
             plot(T.time, y, 'linewidth', LW, 'color', kolor);
         end
         ylabel('distance to food (mm)')
