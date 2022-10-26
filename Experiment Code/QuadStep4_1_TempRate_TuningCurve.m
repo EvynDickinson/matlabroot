@@ -73,7 +73,6 @@ clearvars('-except',initial_vars{:})
 
 % colors for each group
 colors = {'BlueViolet',...         
-         'Grey',...
          'white',...
          'turquoise',...
          'Gold',...
@@ -632,9 +631,9 @@ for i = 1:num.exp
                 WELLS(:,2) = -wells_x;
             case 2 
                 plotData(:,1) = X;
-                plotData(:,2) = Y;
+                plotData(:,2) = -Y;
                 WELLS(:,1) = wells_x;
-                WELLS(:,2) = wells_y;
+                WELLS(:,2) = -wells_y;
             case 3
                 plotData(:,1) = -Y;
                 plotData(:,2) = X;
@@ -642,9 +641,9 @@ for i = 1:num.exp
                 WELLS(:,2) = wells_x;
             case 4 
                 plotData(:,1) = X;
-                plotData(:,2) = -Y;
+                plotData(:,2) = Y;
                 WELLS(:,1) = wells_x;
-                WELLS(:,2) = -wells_y;
+                WELLS(:,2) = wells_y;
         end
         
         % PLOT
@@ -676,15 +675,39 @@ end
 
 
 
-%%
+%% FIGURE: TODO Comparison of temperature driven movement
+
+% temp migrationL:  avg distance at hottest - avg distance at coolest
+% distance at warmest
+% distance at coolest
+% dashed line between them?
+
+
+fig = figure;
 
 
 
 
 
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
+
+% Pull difference in distance heating-cooling
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    kolor = grouped(i).color;
+    plot(x,y,'color',kolor,'LineWidth',LW); 
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3.5)
+end
+h_line(0,'w',':',1)
+xlabel('temp (\circC)')
+ylabel('distance difference (mm)')
 
 
-
+%% FIGURE: TODO COM for ramp up and ramp down, without holding period
 
 
 
