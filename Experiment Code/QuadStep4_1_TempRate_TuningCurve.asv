@@ -601,6 +601,8 @@ end
 %% FIGURE: Register position COM to common frame
 
 clearvars('-except',initial_vars{:})
+
+
 SZ = 40;
 
 
@@ -653,11 +655,14 @@ for i = 1:num.exp
         
     end
     
-    viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color',grouped(i).color);
+%     viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color',grouped(i).color);
+        viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color','k');
+
     
     axis square; 
     axis equal;
-    formatFig(fig,true);
+    formatFig(fig,false);
+    
     set(gca,'XColor','k','YColor','k');
     % set color bar information
     colorData = uint8(round(kolor.*255)); % convert color map to uint8
@@ -667,7 +672,7 @@ for i = 1:num.exp
     c.Label.String = 'Temperature (\circC)';
     c.Label.VerticalAlignment = "bottom";
     title([data(i).ExpGroup],'color','w')
-    save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
+    save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-pdf',true);
 
 end
 
@@ -675,8 +680,12 @@ end
 
 
 
-%% FIGURE: Comparison of temperature driven movement
+%% FIGURE: TODO Comparison of temperature driven movement
 
+% temp migrationL:  avg distance at hottest - avg distance at coolest
+% distance at warmest
+% distance at coolest
+% dashed line between them?
 
 
 fig = figure;
@@ -703,7 +712,7 @@ xlabel('temp (\circC)')
 ylabel('distance difference (mm)')
 
 
-
+%% FIGURE: TODO COM for ramp up and ramp down, without holding period
 
 
 

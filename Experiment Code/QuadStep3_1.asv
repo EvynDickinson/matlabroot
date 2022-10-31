@@ -111,6 +111,14 @@ fprintf('Data loaded\n')
 if ~exist('pix2mm','var')
     pix2mm = 12.8;
 end
+
+% RANDOMIZE well location for empty trials (movement only controls) TODO
+for trial = 1:ntrials
+    data(trial).wellLabels{1} = 'Movement';
+    T.Well1{trial} = 'Movement';
+end
+
+
 % fill out the data structure
 for trial = 1:ntrials
     if isempty(data(trial).occupancy)
@@ -141,7 +149,7 @@ end
 
 % group names into 'classes' and extract the food group identities
 [foodName,foodLoc,foodCat] = deal([]);
-bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar'};
+bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar','Movement'};
 for trial = 1:ntrials
     loc = ~strcmp(data(trial).wellLabels,'Empty');
     foodName{trial,1} = data(trial).wellLabels{loc};
@@ -535,7 +543,7 @@ for trial = 1:ntrials
 
     % find the mean temp rate during each ramp period:
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
-    if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15')
+    if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15') || strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_25-17')
         tPoints.rates = [tPoints.rates(1), 0, tPoints.rates(2)];
         tPoints.nRates = 3;
     end
@@ -669,9 +677,6 @@ for trial = 1:ntrials
 clearvars('-except',vars{:}) 
 end
 
-%% ANALYSIS: Signal Derivative
-% how does the signal symmetry look compared to raw temp vs temp derivative
-% TODO Sep 2022
 
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
@@ -852,48 +857,49 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 
 % 
 % % ---- POSTER CODE -----
-% LS = {'--','-.','-'}; %cooling|stationary|heating
-% fig = figure; set(fig, 'pos',[-768 538 341 645])
-% hold on
-% for rr = 1:nRates
-%     if tRates(rr)>0
-%         lstyle = LS{3};
-%         kolor = Color('darkred');
-%     elseif tRates(rr)<0
-%         lstyle = LS{1};
-%         kolor = Color('navy');
-%     elseif tRates(rr)==0
-%         continue
-%         lstyle = LS{2};
-%         kolor = Color('white');
-%     end
-% %     kolor = pullFoodColor(tRates(rr));
-%     x = t_roi;
-%     y = plotData.avg(rr,:);
-%     y_err = plotData.err(rr,:);
-% %     plot(x,y,'color', kolor, 'linewidth', 2.5)%Color(cList{rr})
-%     plot(x,y,'color', Color('darkgreen'), 'linewidth', 2.5,'linestyle', lstyle)
-%     if nRates<4
-% %         plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
-% %         plot(x,y-y_err,'color', kolor, 'linewidth', 0.5,'linestyle', lstyle)
-%         
-%         plot(x,y+y_err,'color', Color('darkgreen'), 'linewidth', 0.5, 'linestyle', lstyle)
-%         plot(x,y-y_err,'color', Color('darkgreen'), 'linewidth', 0.5,'linestyle', lstyle)
-%     end
-% end
-% % title(ExpGroup)
-% ylabel('movement (~mm/s)')
-% % ylabel('distance from food (mm)')
-% xlabel('temperature (\circC)')
-% formatFig(fig, false);
-% axis tight
-% xlim([threshLow-2, threshHigh+2])
-% set(gca,'fontsize', 15)
-% ylim([10,28])
-% %Save figure
-% save_figure(fig, [figDir 'temp_rate ' dataType ' Berlin vs Cantons all rates demo'], '-pdf');
+LS = {'--','-.','-'}; %cooling|stationary|heating
+kolor = 'black';
+fig = figure; set(fig, 'pos',[-768 538 341 645])
+hold on
+for rr = 1:nRates
+    if tRates(rr)>0
+        lstyle = LS{3};
+        kolor = Color('darkred');
+    elseif tRates(rr)<0
+        lstyle = LS{1};
+        kolor = Color('navy');
+    elseif tRates(rr)==0
+        continue
+        lstyle = LS{2};
+        kolor = Color('white');
+    end
+%     kolor = pullFoodColor(tRates(rr));
+    x = t_roi;
+    y = plotData.avg(rr,:);
+    y_err = plotData.err(rr,:);
+%     plot(x,y,'color', kolor, 'linewidth', 2.5)%Color(cList{rr})
+    plot(x,y,'color', Color(kolor), 'linewidth', 2.5,'linestyle', lstyle)
+    if nRates<4
+%         plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
+%         plot(x,y-y_err,'color', kolor, 'linewidth', 0.5,'linestyle', lstyle)
+        
+        plot(x,y+y_err,'color', Color(kolor), 'linewidth', 0.5, 'linestyle', lstyle)
+        plot(x,y-y_err,'color', Color(kolor), 'linewidth', 0.5,'linestyle', lstyle)
+    end
+end
+% title(ExpGroup)
+ylabel('movement (~mm/s)')
+% ylabel('distance from food (mm)')
+xlabel('temperature (\circC)')
+formatFig(fig, false);
+axis tight
+xlim([threshLow-2, threshHigh+2])
+set(gca,'fontsize', 15)
+ylim([10,28])
+%Save figure
+save_figure(fig, [figDir 'temp_rate ' dataType ' Berlin vs Cantons all rates demo'], '-pdf');
 
-% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Neuroscience retreat poster 5.25.2022\Berlin vs Cantons movement all rates demo', '-pdf');
+save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Neuroscience retreat poster 5.25.2022\Berlin vs Cantons movement all rates demo', '-pdf');
 
 % ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
 % TODO: adjust this to account for actual data...
@@ -1141,12 +1147,17 @@ clearvars('-except',vars{:})
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
-if T.TempProtocol{1}
-tempList = [15,18.5,23];
-% tempList = [15,18.5,23];
-rateList = [0.125,-0.125];
-% tempList = [8,12,17,22];
-% rateList = [0.16,-0.16];
+if strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_23-15')
+    tempList = [15,18.5,23];
+    rateList = [0.125,-0.125];
+elseif strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_25-17')
+    tempList = [17,20.5,25];
+    rateList = [0.125,-0.125];
+else
+    tempList = [8,12,17,22];
+    rateList = [0.16,-0.16];
+end
+
 % tempList = [15,20,25,30];
 % rateList = [0.15,-0.15];
 
@@ -1402,13 +1413,13 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
         % Plot the temperature protocol averages 
         % TEMPERATURE
         subplot(row,col,sb(1).idx); hold on
-        plot(time,smooth(mean(temp,2),sSpan),'color',kolor,'linewidth',LW)
+        plot(time,smooth(mean(temp,2),'moving',sSpan),'color',kolor,'linewidth',LW)
         % DISTANCE
         subplot(row,col,sb(2).idx); hold on
-        plot(time,smooth(mean(distance,2),sSpan),'color',kolor,'linewidth',LW)
+        plot(time,smooth(mean(distance,2),'moving',sSpan),'color',kolor,'linewidth',LW)
         % MOVEMENT
         subplot(row,col,sb(3).idx); hold on
-        plot(time,smooth(mean(movement,2),sSpan),'color',kolor,'linewidth',LW)
+        plot(time,smooth(mean(movement,2),'moving',sSpan),'color',kolor,'linewidth',LW)
     end
     % labels and formatting
     formatFig(fig,true, [row,col],sb);
@@ -1879,3 +1890,27 @@ set(gca,'fontsize', 18)
 %Save figure
 save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % 
+
+%% Save Processed Data (if wanted)
+
+clearvars('-except',vars{:})
+
+if questdlg('Save processed data?')
+    save([figDir ExpGroup ' post 3.1 data.mat'],'-v7.3')
+end
+fprintf('Data saved\n')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

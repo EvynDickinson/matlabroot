@@ -111,6 +111,14 @@ fprintf('Data loaded\n')
 if ~exist('pix2mm','var')
     pix2mm = 12.8;
 end
+
+% % RANDOMIZE well location for empty trials (movement only controls) TODO
+% for trial = 1:ntrials
+%     data(trial).wellLabels{1} = 'Movement';
+%     T.Well1{trial} = 'Movement';
+% end
+
+
 % fill out the data structure
 for trial = 1:ntrials
     if isempty(data(trial).occupancy)
@@ -141,7 +149,7 @@ end
 
 % group names into 'classes' and extract the food group identities
 [foodName,foodLoc,foodCat] = deal([]);
-bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar'};
+bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar','Movement'};
 for trial = 1:ntrials
     loc = ~strcmp(data(trial).wellLabels,'Empty');
     foodName{trial,1} = data(trial).wellLabels{loc};
@@ -850,6 +858,7 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % 
 % % ---- POSTER CODE -----
 % LS = {'--','-.','-'}; %cooling|stationary|heating
+% kolor_str = 'black';
 % fig = figure; set(fig, 'pos',[-768 538 341 645])
 % hold on
 % for rr = 1:nRates
@@ -869,13 +878,13 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 %     y = plotData.avg(rr,:);
 %     y_err = plotData.err(rr,:);
 % %     plot(x,y,'color', kolor, 'linewidth', 2.5)%Color(cList{rr})
-%     plot(x,y,'color', Color('darkgreen'), 'linewidth', 2.5,'linestyle', lstyle)
+%     plot(x,y,'color', Color(kolor_str), 'linewidth', 2.5,'linestyle', lstyle)
 %     if nRates<4
 % %         plot(x,y+y_err,'color', kolor, 'linewidth', 0.5, 'linestyle', lstyle)
 % %         plot(x,y-y_err,'color', kolor, 'linewidth', 0.5,'linestyle', lstyle)
 %         
-%         plot(x,y+y_err,'color', Color('darkgreen'), 'linewidth', 0.5, 'linestyle', lstyle)
-%         plot(x,y-y_err,'color', Color('darkgreen'), 'linewidth', 0.5,'linestyle', lstyle)
+%         plot(x,y+y_err,'color', Color(kolor_str), 'linewidth', 0.5, 'linestyle', lstyle)
+%         plot(x,y-y_err,'color', Color(kolor_str), 'linewidth', 0.5,'linestyle', lstyle)
 %     end
 % end
 % % title(ExpGroup)
@@ -886,10 +895,10 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % axis tight
 % xlim([threshLow-2, threshHigh+2])
 % set(gca,'fontsize', 15)
-% ylim([10,28])
+% ylim([10,30])
 % %Save figure
 % save_figure(fig, [figDir 'temp_rate ' dataType ' Berlin vs Cantons all rates demo'], '-pdf');
-
+% 
 % save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Neuroscience retreat poster 5.25.2022\Berlin vs Cantons movement all rates demo', '-pdf');
 
 % ========== Line plots of separated by rate MANUAL ADJUST FOR MORE RATES ==============
