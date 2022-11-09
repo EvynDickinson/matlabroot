@@ -63,21 +63,21 @@ end
 clearvars('-except',initial_vars{:})
 
 % % colors for each group
-% colors = {'BlueViolet',...         
-%          'red',...
-%          'white',...
-%          'Turquoise',...
-%          'Gold',...
-%          'pink',...
-%          'Orange'};
-
-% colors for each group
-colors = {'green',...         
-         'black',...
-         'turquoise',...
+colors = {'BlueViolet',...         
+         'red',...
+         'white',...
+         'Turquoise',...
          'Gold',...
          'pink',...
          'Orange'};
+
+% colors for each group
+% colors = {'red',...         
+%          'yellow',...
+%          'dodgerblue',...
+%          'Gold',...
+%          'pink',...
+%          'Orange'};
 % colors = {'BlueViolet',...         
 %          'white',...
 %          'turquoise',...
@@ -98,16 +98,16 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     for trial = 1:num.trial(i)
         time = autoCat(time,data(i).data(trial).occupancy.time,false,true);
         temp = autoCat(temp,data(i).data(trial).occupancy.temp,false,true);
-%         speed = autoCat(speed,data(i).data(trial).speed.avg,false,true);
+        speed = autoCat(speed,data(i).data(trial).speed.avg,false,true);
 % movement = autoCat(speed,data(i).data(trial).speed.avg,false,true);
         distance = autoCat(distance,data(i).data(trial).dist2wells(:,data(i).T.foodLoc(trial)),...
                    false,true);
     end
     grouped(i).time = mean(time,2,'omitnan');
     grouped(i).temp = mean(temp,2,'omitnan');
-%     grouped(i).speed.all = speed;
-%     grouped(i).speed.avg = mean(speed,2,'omitnan');
-%     grouped(i).speed.err = std(speed,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).speed.all = speed;
+    grouped(i).speed.avg = mean(speed,2,'omitnan');
+    grouped(i).speed.err = std(speed,0,2,'omitnan')/sqrt(num.trial(i));
     grouped(i).dist.all = distance;
     grouped(i).dist.avg = mean(distance,2,'omitnan');
     grouped(i).dist.err = std(distance,0,2,'omitnan')/sqrt(num.trial(i));
@@ -205,7 +205,7 @@ disp('Next')
 clearvars('-except',initial_vars{:})
 plot_err = false;
 
-blkbgd = false;
+blkbgd = true;
 
 % set up figure aligments
 r = 5; %rows
@@ -250,14 +250,14 @@ for i = 1:num.exp
 
 %     %speed
     subplot(r,c,sb(3).idx); hold on
-%         y = smooth(grouped(i).speed.avg,'moving',sSpan);
-%         y_err = smooth(grouped(i).speed.err,'moving',sSpan);
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-%             set(h, 'facealpha', 0.2)
-%         end
-%         plot(x,y,'LineWidth',LW,'Color',kolor)
+        y = smooth(grouped(i).speed.avg,'moving',sSpan);
+        y_err = smooth(grouped(i).speed.err,'moving',sSpan);
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+            set(h, 'facealpha', 0.2)
+        end
+        plot(x,y,'LineWidth',LW,'Color',kolor)
 
     %temp rate depended distance
     subplot(r,c,sb(4).idx); hold on
@@ -314,7 +314,7 @@ xlabel('temp (\circC)')
 legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary'],'-pdf');
+save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
 
 %% FIGURE: cumulative hysteresis for each genotype / trial
 
@@ -440,7 +440,7 @@ end
 
 
 % FIGURES: SINGLE EXPERIMENT COMPARISON
-dispROI = 10;
+dispROI = 15;
 duration = ceil(dispROI*3*60);
 x = linspace(0,dispROI,duration+1);
 LW = 1.5;
@@ -473,7 +473,7 @@ end
 r = 1;
 c = 3;
 
-dispROI = 50;
+dispROI = 15;
 duration = ceil(dispROI*3*60);
 x = linspace(0,dispROI,duration+1);
 LW = 1.5;
@@ -568,7 +568,12 @@ for i = 1:num.exp
         position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
     end
     
-    cMap = Color('deepskyblue','red',ntemps);
+    g1 = floor(ntemps/2);
+    g2 = ntemps-g1;
+    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
+    g2_cMap = Color('grey','red',g2);
+    cMap = [g1_cMap;g2_cMap];
+
     kolors = cMap(dsData(:,4),:); 
     
     % save data into structure:
@@ -619,7 +624,7 @@ end
 %% FIGURE: Register position COM to common frame
 
 clearvars('-except',initial_vars{:})
-blkbgk = false;
+blkbgk = true;
 if blkbgk
     backColor = 'k';
     foreColor = 'w';
@@ -691,13 +696,13 @@ for i = 1:num.exp
     set(gca,'XColor',backColor,'YColor',backColor);
     % set color bar information
     colorData = uint8(round(kolor.*255)); % convert color map to uint8
-%     colormap(colorData);
+    colormap(colorData);
     c = colorbar('color',foreColor);
     set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
     c.Label.String = 'Temperature (\circC)';
     c.Label.VerticalAlignment = "bottom";
     title([data(i).ExpGroup],'color',foreColor)
-    save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-pdf',true);
+    save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
 
 end
 

@@ -1367,14 +1367,25 @@ disp(D)
 
 %% 
 
-expData.parameters.ArenaA.well
+
+parameters.ArenaA.well_1 = 'Caviar';
+
+
+
+expData.parameters.ArenaA.well_4 = 'Empty';
+expData.parameters.ArenaB.well_4 = 'Empty';
+expData.parameters.ArenaC.well_4 = 'Empty';
+expData.parameters.ArenaD.well_4 = 'Empty';
+
+data.wellLabels{4} = 'Empty';
+    
+    
 
     
-    
+%%
 
-    
-    
-    
+trial = 1;
+figure; plot(data(i).data(trial).occupancy.temp)
 
     
 

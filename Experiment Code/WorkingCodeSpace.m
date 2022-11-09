@@ -1367,18 +1367,34 @@ disp(D)
 
 %% 
 
-expData.parameters.ArenaA.well_4 = 'Empty';
-expData.parameters.ArenaB.well_4 = 'Empty';
-expData.parameters.ArenaC.well_4 = 'Empty';
-expData.parameters.ArenaD.well_4 = 'Empty';
+% PRE STEP 1
+parameters.ArenaA.well_1 = 'Caviar';
+parameters.ArenaB.well_1 = 'Caviar';
+parameters.ArenaC.well_1 = 'Caviar';
+parameters.ArenaD.well_1 = 'Caviar';
 
+% PRE STEP 2
+arenaData(1).wellLabels{1} = 'Caviar';
+arenaData(2).wellLabels{1} = 'Caviar';
+arenaData(3).wellLabels{1} = 'Caviar';
+arenaData(4).wellLabels{1} = 'Caviar';
+
+expData.parameters.ArenaA.well_1 = 'Caviar';
+expData.parameters.ArenaB.well_1 = 'Caviar';
+expData.parameters.ArenaC.well_1 = 'Caviar';
+expData.parameters.ArenaD.well_1 = 'Caviar';
+
+
+% DONT REMEMBER
 data.wellLabels{4} = 'Empty';
     
     
 
     
-    
-    
+%%
+
+trial = 1;
+figure; plot(data(i).data(trial).occupancy.temp)
 
     
 

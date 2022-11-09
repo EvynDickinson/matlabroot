@@ -63,21 +63,28 @@ end
 clearvars('-except',initial_vars{:})
 
 % % colors for each group
+colors = {'BlueViolet',...         
+         'red',...
+         'white',...
+         'Turquoise',...
+         'Gold',...
+         'pink',...
+         'Orange'};
+
+% colors for each group
+% colors = {'red',...         
+%          'yellow',...
+%          'dodgerblue',...
+%          'Gold',...
+%          'pink',...
+%          'Orange'};
 % colors = {'BlueViolet',...         
-%          'red',...
 %          'white',...
-%          'Turquoise',...
+%          'turquoise',...
 %          'Gold',...
 %          'pink',...
 %          'Orange'};
 
-% colors for each group
-colors = {'BlueViolet',...         
-         'white',...
-         'turquoise',...
-         'Gold',...
-         'pink',...
-         'Orange'};
 
 grouped = struct;
 for i = 1:num.exp % FOR EACH DATA GROUP
@@ -92,6 +99,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
         time = autoCat(time,data(i).data(trial).occupancy.time,false,true);
         temp = autoCat(temp,data(i).data(trial).occupancy.temp,false,true);
         speed = autoCat(speed,data(i).data(trial).speed.avg,false,true);
+% movement = autoCat(speed,data(i).data(trial).speed.avg,false,true);
         distance = autoCat(distance,data(i).data(trial).dist2wells(:,data(i).T.foodLoc(trial)),...
                    false,true);
     end
@@ -197,6 +205,8 @@ disp('Next')
 clearvars('-except',initial_vars{:})
 plot_err = false;
 
+blkbgd = true;
+
 % set up figure aligments
 r = 5; %rows
 c = 3; %columns
@@ -207,6 +217,14 @@ sb(4).idx = 3:3:15; %binned distance alignment
 
 LW = 1.5;
 sSpan = 180;
+
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+else
+    foreColor = 'k';
+    backColor = 'w';
+end
 
 % FIGURE:
 fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
@@ -230,7 +248,7 @@ for i = 1:num.exp
         end
         plot(x,y,'LineWidth',LW,'Color',kolor)
 
-    %speed
+%     %speed
     subplot(r,c,sb(3).idx); hold on
         y = smooth(grouped(i).speed.avg,'moving',sSpan);
         y_err = smooth(grouped(i).speed.err,'moving',sSpan);
@@ -275,15 +293,15 @@ for i = 1:num.exp
 end
 
 % FORMATING AND LABELS
-formatFig(fig,true,[r,c],sb);
+formatFig(fig,blkbgd,[r,c],sb);
 % temp
 subplot(r,c,sb(1).idx) 
 ylabel('\circC')
-set(gca,"XColor",'k')
+set(gca,"XColor",backColor)
 % distance
 subplot(r,c,sb(2).idx) 
 ylabel('distance (mm)')
-set(gca,"XColor",'k')
+set(gca,"XColor",backColor)
 % speed
 subplot(r,c,sb(3).idx) 
 ylabel('speed (mm/s)')
@@ -293,7 +311,7 @@ subplot(r,c,sb(4).idx)
 ylabel('distance (mm)')
 xlabel('temp (\circC)')
 % 
-legend(dataString,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 5)
+legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
@@ -381,7 +399,7 @@ save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png')
 
 clearvars('-except',initial_vars{:})
 
-timeROI = 60; % how many minutes to look at behavior after each event
+timeROI = 15; % how many minutes to look at behavior after each event
 duration = ceil(timeROI*3*60);
 
 sections = {'increasing','decreasing','holding'};
@@ -550,7 +568,12 @@ for i = 1:num.exp
         position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
     end
     
-    cMap = Color('deepskyblue','red',ntemps);
+    g1 = floor(ntemps/2);
+    g2 = ntemps-g1;
+    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
+    g2_cMap = Color('grey','red',g2);
+    cMap = [g1_cMap;g2_cMap];
+
     kolors = cMap(dsData(:,4),:); 
     
     % save data into structure:
@@ -601,7 +624,14 @@ end
 %% FIGURE: Register position COM to common frame
 
 clearvars('-except',initial_vars{:})
-
+blkbgk = true;
+if blkbgk
+    backColor = 'k';
+    foreColor = 'w';
+else
+    backColor = 'w';
+    foreColor = 'k';
+end
 
 SZ = 40;
 
@@ -649,8 +679,8 @@ for i = 1:num.exp
         end
         
         % PLOT
-        scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,'w','filled')
-        scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'y','filled')
+        scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')
+        scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'green','filled')
         scatter(plotData(:,1),plotData(:,2),15,kolor,'filled')
         
     end
@@ -661,17 +691,17 @@ for i = 1:num.exp
     
     axis square; 
     axis equal;
-    formatFig(fig,false);
+    formatFig(fig,blkbgk);
     
-    set(gca,'XColor','k','YColor','k');
+    set(gca,'XColor',backColor,'YColor',backColor);
     % set color bar information
     colorData = uint8(round(kolor.*255)); % convert color map to uint8
     colormap(colorData);
-    c = colorbar('color','w');
+    c = colorbar('color',foreColor);
     set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
     c.Label.String = 'Temperature (\circC)';
     c.Label.VerticalAlignment = "bottom";
-    title([data(i).ExpGroup],'color','w')
+    title([data(i).ExpGroup],'color',foreColor)
     save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-pdf',true);
 
 end
