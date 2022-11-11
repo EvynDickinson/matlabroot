@@ -1,4 +1,4 @@
-function [out1,out2,out3] = crosshairs(arg1)
+function [out1,out2,out3] = crosshairs(arg1,colorChoice)
 %GINPUT Graphical input from mouse.
 %   [X,Y] = GINPUT(N) gets N points from the current axes and returns
 %   the X- and Y-coordinates in length N vectors X and Y.  The cursor
@@ -59,7 +59,7 @@ end
     gca(fig);    
     
     % Setup the figure to disable interactive modes and activate pointers. 
-    initialState = setupFcn(fig);
+    initialState = setupFcn(fig,colorChoice);
     
     % onCleanup object to restore everything to original state in event of
     % completion, closing of figure errors or ctrl+c. 
@@ -134,7 +134,7 @@ end
                 continue            
             end
             
-            drawnow;
+            drawnow; %setupFcn % FIGURE THIS OUT...
             pt = get(axes_handle, 'CurrentPoint');            
             how_many = how_many - 1;
             
@@ -201,52 +201,52 @@ if nargout>0, key = keydown; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 
-function initialState = setupFcn(fig)
+function initialState = setupFcn(fig,colorChoice)
 
-% Store Figure Handle. 
-initialState.figureHandle = fig; 
-
-% Suspend figure functions
-initialState.uisuspendState = uisuspend(fig);
-
-% Disable Plottools Buttons
-initialState.toolbar = findobj(allchild(fig),'flat','Type','uitoolbar');
-if ~isempty(initialState.toolbar)
-    initialState.ptButtons = [uigettool(initialState.toolbar,'Plottools.PlottoolsOff'), ...
-        uigettool(initialState.toolbar,'Plottools.PlottoolsOn')];
-    initialState.ptState = get (initialState.ptButtons,'Enable');
-    set (initialState.ptButtons,'Enable','off');
-end
-
-% Disable AxesToolbar
-initialState.axes = findobj(allchild(fig),'-isa','matlab.graphics.axis.AbstractAxes');
-tb = get(initialState.axes, 'Toolbar');
-if ~iscell(tb)
-    initialState.toolbarVisible{1} = tb.Visible;
-    tb.Visible = 'off';
-else
-    for i=1:numel(tb)
-        initialState.toolbarVisible{i} = tb{i}.Visible;
-        tb{i}.Visible = 'off';
+    % Store Figure Handle
+    initialState.figureHandle = fig; 
+    
+    % Suspend figure functions
+    initialState.uisuspendState = uisuspend(fig);
+    
+    % Disable Plottools Buttons
+    initialState.toolbar = findobj(allchild(fig),'flat','Type','uitoolbar');
+    if ~isempty(initialState.toolbar)
+        initialState.ptButtons = [uigettool(initialState.toolbar,'Plottools.PlottoolsOff'), ...
+            uigettool(initialState.toolbar,'Plottools.PlottoolsOn')];
+        initialState.ptState = get (initialState.ptButtons,'Enable');
+        set (initialState.ptButtons,'Enable','off');
     end
-end
-
-%Setup empty pointer
-cdata = NaN(16,16);
-hotspot = [8,8];
-set(gcf,'Pointer','custom','PointerShapeCData',cdata,'PointerShapeHotSpot',hotspot)
-
-% Create uicontrols to simulate fullcrosshair pointer.
-initialState.CrossHair = createCrossHair(fig);
-
-% Adding this to enable automatic updating of currentpoint on the figure 
-% This function is also used to update the display of the fullcrosshair
-% pointer and make them track the currentpoint.
-set(fig,'WindowButtonMotionFcn',@(o,e) dummy()); % Add dummy so that the CurrentPoint is constantly updated
-initialState.MouseListener = addlistener(fig,'WindowMouseMotion', @(o,e) updateCrossHair(o,initialState.CrossHair));
-
-% Get the initial Figure Units
-initialState.fig_units = get(fig,'Units');
+    
+    % Disable AxesToolbar
+    initialState.axes = findobj(allchild(fig),'-isa','matlab.graphics.axis.AbstractAxes');
+    tb = get(initialState.axes, 'Toolbar');
+    if ~iscell(tb)
+        initialState.toolbarVisible{1} = tb.Visible;
+        tb.Visible = 'off';
+    else
+        for i=1:numel(tb)
+            initialState.toolbarVisible{i} = tb{i}.Visible;
+            tb{i}.Visible = 'off';
+        end
+    end
+    
+    %Setup empty pointer
+    cdata = NaN(16,16);
+    hotspot = [8,8];
+    set(gcf,'Pointer','custom','PointerShapeCData',cdata,'PointerShapeHotSpot',hotspot)
+    
+    % Create uicontrols to simulate fullcrosshair pointer.
+    initialState.CrossHair = createCrossHair(fig,colorChoice);
+    
+    % Adding this to enable automatic updating of currentpoint on the figure 
+    % This function is also used to update the display of the fullcrosshair
+    % pointer and make them track the currentpoint.
+    set(fig,'WindowButtonMotionFcn',@(o,e) dummy()); % Add dummy so that the CurrentPoint is constantly updated
+    initialState.MouseListener = addlistener(fig,'WindowMouseMotion', @(o,e) updateCrossHair(o,initialState.CrossHair));
+    
+    % Get the initial Figure Units
+    initialState.fig_units = get(fig,'Units');
 end
 
 function restoreFcn(initialState)
@@ -297,10 +297,16 @@ set(crossHair(3), 'Position', [cp(1) 0 thickness cp(2)-gap]);
 set(crossHair(4), 'Position', [cp(1) cp(2)+gap thickness figHeight-cp(2)-gap]);
 end
 
-function crossHair = createCrossHair(fig)
+function crossHair = createCrossHair(fig,colorChoice)
 % Create thin uicontrols with black backgrounds to simulate fullcrosshair pointer.
 % 1: horizontal left, 2: horizontal right, 3: vertical bottom, 4: vertical top
-colors_list = {'black', 'black', 'yellow', 'yellow'};
+if nargin<2
+    colors_list = {'black', 'black', 'yellow', 'yellow'};
+else
+    colors_list = colorChoice;
+end
+
+
 
 for k = 1:4
     ColorInput = Color(colors_list{k});

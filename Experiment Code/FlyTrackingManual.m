@@ -18,7 +18,7 @@ expArena = data.name;
 TP = getTempTurnPoints(expData.parameters.protocol);
 
 % 'Buffer' before/after ramps
-buffer = 5; %minutes
+buffer = 20; %minutes
 
 % Ramps 1-4
 vidROI = [];
@@ -108,6 +108,38 @@ if any(isnan(nflies))
 demoImg = rgb2gray(read(movieInfo,1));
 radii = 165; %well surround regions
 
+
+
+
+
+%%
+fig = gcf;
+frame = 32761;
+save_figure(fig,['G:\My Drive\Jeanne Lab\DATA\Manual Tracking\tracking progress ' num2str(frame)],'-png');
+
+%%
+
+load('G:\My Drive\Jeanne Lab\DATA\Manual Tracking\caviar_recovery_ramp manual tracks.mat')
+
+% calculate avg distance from food well each time... or avg fly position...
+
+x = mean(trackPoints(1,:,:),3,'omitnan');
+y = mean(trackPoints(2,:,:),3,'omitnan');
+
+
+figure
+scatter(x,y)
+
+
+
+
+
+x = (trackPoints(1,:,:));
+y = mean(trackPoints(2,:,:),3,'omitnan');
+
+% x_dist = 
+
+temp = data.occupancy.temp;
 
 
 
