@@ -95,7 +95,7 @@ clearvars('-except',initial_vars{:})
 %          'magenta',...
 %          'dodgerblue',...
 %          'Orange'};
-colors = {'White',...
+colors = {'Gold',...
          'magenta',...
          'dodgerblue',...
          'Orange'};
@@ -907,7 +907,6 @@ legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off',
 
 % save figure
 save_figure(fig,[saveDir expGroup ' zscore timecourse summary'],'-png');
-
 %% FIGURE: Position averages across temp (regardless heat/cool)
 
 
@@ -936,6 +935,9 @@ else
 end
 buff = 0.2;
 
+
+[datastats.all, datastats.id] = deal([]);
+
 % FIGURE:
 fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590]); hold on
 for i = 1:num.exp
@@ -952,29 +954,21 @@ xlim([0,num.exp+1])
 xlabel('Fly Strain')
 ylabel('distance traveled (mm)')
 formatFig(fig,true);
-save_figure(fig,[saveDir expGroup ' distance modulation by temperature'],'-png');
+    
 
-% STATS:
-[datastats.all, datastats.id] = deal([]);
-for i = 1:num.exp
-    y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
-    datastats.all = autoCat(datastats.all,y,false);
-    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
-end
+datastats.id
 
 [~,~,stats] = anova1(datastats.all,datastats.id);
-[c,~,~,gnames] = multcompare(stats);
+[c,m,h,gnames] = multcompare(stats);
+
 stats_tbl = array2table(c,"VariableNames", ...
     ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"]);
-disp(table(expNames',(1:num.exp)', 'VariableNames',{'Name', 'ID number'}))
-disp(stats_tbl)
 
-% determine which groups differ from each other
-
+table(expNames,"VariableNames",['Name', 'ID #'],)
 
 
 %%
-    x = grouped(i).increasing.temps;
+        x = grouped(i).increasing.temps;
 
     if plot_err
         fill_data = error_fill(x, y, y_err);
