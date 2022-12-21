@@ -83,6 +83,12 @@ clearvars('-except',initial_vars{:})
 %          'Gold',...
 %          'pink',...
 %          'Orange'};
+colors = {'turquoise',...         
+         'white',...
+         'BlueViolet',...
+         'Gold',...
+         'pink',...
+         'Orange'};
 % colors = {'BlueViolet',...
 %          'gold',...
 %          'white',...
@@ -95,10 +101,10 @@ clearvars('-except',initial_vars{:})
 %          'magenta',...
 %          'dodgerblue',...
 %          'Orange'};
-colors = {'White',...
-         'magenta',...
-         'dodgerblue',...
-         'Orange'};
+% colors = {'White',...
+%          'magenta',...
+%          'dodgerblue',...
+%          'Orange'};
 grouped = struct;
 for i = 1:num.exp % FOR EACH DATA GROUP
     % GENERAL
@@ -728,74 +734,6 @@ for i = 1:num.exp
 end
 
 
-
-
-
-%% FIGURE: TODO Comparison of temperature driven movement
-
-% temp migrationL:  avg distance at hottest - avg distance at coolest
-% distance at warmest
-% distance at coolest
-% dashed line between them?
-
-
-fig = figure;
-
-
-
-
-
-% FIGURE:
-fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
-
-% Pull difference in distance heating-cooling
-subplot(r,c,1)
-hold on
-for i = 1:num.exp
-    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
-    y = grouped(i).decreasing.all-grouped(i).increasing.all;
-    kolor = grouped(i).color;
-    plot(x,y,'color',kolor,'LineWidth',LW); 
-    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3.5)
-end
-h_line(0,'w',':',1)
-xlabel('temp (\circC)')
-ylabel('distance difference (mm)')
-
-
-%% FIGURE: TODO COM for ramp up and ramp down, without holding period
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% FIGURE: Normalized increasing/decreasing temp responses
 
 clearvars('-except',initial_vars{:})
@@ -973,31 +911,226 @@ disp(stats_tbl)
 
 
 
+
+%% FIGURE & STATS: distance traveled over temperature variation
+
+clearvars('-except',initial_vars{:})
+y_limits = [1,25];
+plot_err = false;
+blkbgd = true;
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = 1:2; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse
+sb(3).idx = 3:3:15; %binned distance alignment
+
+LW = 1.5;
+SZ = 50;
+sSpan = 180;
+
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+else
+    foreColor = 'k';
+    backColor = 'w';
+end
+buff = 0.2;
+
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[2289 468 706 590]); hold on %[1934 468 1061 590]
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    x = shuffle_data(linspace(i-buff,i+buff,num.trial(i)));
+    y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
+%     datastats.all = autoCat(datastats.all,y,false);
+%     datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+    scatter(x,y,SZ,kolor,'filled')
+    plot([i-buff,i+buff],[mean(y),mean(y)],'color', kolor,'linewidth',LW)
+end
+set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
+xlim([0,num.exp+1])
+ylim(y_limits)
+xlabel('Fly Strain')
+ylabel('distance traveled (mm)')
+formatFig(fig,true);
+save_figure(fig,[saveDir expGroup ' distance modulation by temperature'],'-png');
+
+% STATS:
+[datastats.all, datastats.id] = deal([]);
+for i = 1:num.exp
+    y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
+    datastats.all = autoCat(datastats.all,y,false);
+    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+end
+
+[~,~,stats] = anova1(datastats.all,datastats.id);
+[c,~,~,~] = multcompare(stats);
+stats_tbl = array2table(c,"VariableNames", ...
+    ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"]);
+disp(table(expNames',(1:num.exp)', 'VariableNames',{'Name', 'ID number'}))
+disp(stats_tbl)
+
+% determine which groups differ from each other
+
+
+%% TODO FIGURE & STATS: Average distance from the food and closest sustained distance from the food (for a temperature bin)
+% TODO: combine this with the above section and automate the stats with
+% significance lines
+clearvars('-except',initial_vars{:})
+blkbgd = true;
+y_limits = [0,30];
+
+plotdata = [];
+for i = 1:num.exp
+    [M,avg] = deal([]);
+    x = grouped(i).increasing.all;
+    for trial = 1:num.trial(i)
+        temp = smooth(x(:,trial),2,'moving');
+        M(trial) = min(temp);
+        avg(trial) = mean(temp,'omitnan');
+    end
+    plotdata(i).min = M;
+    plotdata(i).avg_dist = avg;
+end
+
+% FIGURE:
+r = 1;
+c = 2;
+LW = 1.5;
+SZ = 50;
+
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+else
+    foreColor = 'k';
+    backColor = 'w';
+end
+buff = 0.2;
+
+
+fig = figure; set(fig,'color','w',"Position",[2126 458 660 590])
+% minimum distance to food (for a 1deg C period)
+subplot(r,c,1); hold on
+    for i = 1:num.exp
+        kolor = grouped(i).color;
+        x = shuffle_data(linspace(i-buff,i+buff,num.trial(i)));
+        y = plotdata(i).min;
+        scatter(x,y,SZ,kolor,'filled')
+        plot([i-buff,i+buff],[mean(y),mean(y)],'color', kolor,'linewidth',LW)
+    end
+    set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
+    xlim([0,num.exp+1])
+    ylim(y_limits)
+    xlabel('Fly Strain')
+    ylabel('peak food proximity (mm)')
+
+% minimum distance to food (for a 1deg C period)
+subplot(r,c,2); hold on
+    for i = 1:num.exp
+        kolor = grouped(i).color;
+        x = shuffle_data(linspace(i-buff,i+buff,num.trial(i)));
+        y = plotdata(i).avg_dist;
+        scatter(x,y,SZ,kolor,'filled')
+        plot([i-buff,i+buff],[mean(y),mean(y)],'color', kolor,'linewidth',LW)
+    end
+    set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
+    xlim([0,num.exp+1])
+    ylim(y_limits)
+    xlabel('Fly Strain')
+    ylabel('avg distance to food (mm)')
+
+
+formatFig(fig,true,[r,c]);
+save_figure(fig,[saveDir expGroup ' food proximity modulation by temperature'],'-png');
+
+
+% % STATS:
+% [datastats.all, datastats.id] = deal([]);
+% for i = 1:num.exp
+%     y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
+%     datastats.all = autoCat(datastats.all,y,false);
+%     datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+% end
+% 
+% [~,~,stats] = anova1(datastats.all,datastats.id);
+% [c,~,~,gnames] = multcompare(stats);
+% stats_tbl = array2table(c,"VariableNames", ...
+%     ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"]);
+% disp(table(expNames',(1:num.exp)', 'VariableNames',{'Name', 'ID number'}))
+% disp(stats_tbl)
+
+
 %%
-    x = grouped(i).increasing.temps;
 
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
-    plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','-')
-    %decreasing 
-    x = grouped(i).decreasing.temps;
-    y = grouped(i).decreasing.zscore.avg;
-    y_err = grouped(i).decreasing.err;
-    loc = isnan(y) | isnan(y_err);% remove nans 
-    y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
-    plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','--','HandleVisibility','off');
 
-    % Names and Colors of included data
-    dataString{i} = grouped(i).name;
+%% FIGURE: TODO Comparison of temperature driven movement
+
+% temp migration:  avg distance at hottest - avg distance at coolest
+% distance at warmest
+% distance at coolest
+% dashed line between them?
+
+
+fig = figure;
+
+
+
+
+
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
+
+% Pull difference in distance heating-cooling
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    kolor = grouped(i).color;
+    plot(x,y,'color',kolor,'LineWidth',LW); 
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3.5)
+end
+h_line(0,'w',':',1)
+xlabel('temp (\circC)')
+ylabel('distance difference (mm)')
+
+
+%% FIGURE: TODO COM for ramp up and ramp down, without holding period
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

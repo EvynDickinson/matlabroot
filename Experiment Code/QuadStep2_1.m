@@ -5,7 +5,17 @@
 clear; close all; clc
 autoSave = true;
 essentialfigs = true; 
-excelWrite = true;oc1,4) = ' ';
+excelWrite = true;
+
+%load excel file:
+[excelfile, Excel, XL] = load_QuadBowlExperiments;
+loc = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+loc = ~loc;
+rownums = find(loc)+1; 
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
+loc1 = cellfun(@isnan,eligible_files(:,4));
+c = cellfun(@string,eligible_files);
+c(loc1,4) = ' ';
 FileNames = join(c);
 fileIdx = listdlg('ListString', FileNames,'ListSize',[300,450]);
 %pull the list of dates and arenas to be 
