@@ -880,14 +880,14 @@ for i = 1:num.exp
     kolor = grouped(i).color;
     x = shuffle_data(linspace(i-buff,i+buff,num.trial(i)));
     y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
-    datastats.all = autoCat(datastats.all,y,false);
-    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+%     datastats.all = autoCat(datastats.all,y,false);
+%     datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
     scatter(x,y,SZ,kolor,'filled')
     plot([i-buff,i+buff],[mean(y),mean(y)],'color', kolor,'linewidth',LW)
 end
 set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
 xlim([0,num.exp+1])
-xlabel('Fly Strain')
+% xlabel('Fly Strain')
 ylabel('distance traveled (mm)')
 formatFig(fig,true);
 save_figure(fig,[saveDir expGroup ' distance modulation by temperature'],'-png');
@@ -974,7 +974,6 @@ disp(table(expNames',(1:num.exp)', 'VariableNames',{'Name', 'ID number'}))
 disp(stats_tbl)
 
 % determine which groups differ from each other
-
 
 %% TODO FIGURE & STATS: Average distance from the food and closest sustained distance from the food (for a temperature bin)
 % TODO: combine this with the above section and automate the stats with
@@ -1064,7 +1063,184 @@ save_figure(fig,[saveDir expGroup ' food proximity modulation by temperature'],'
 % disp(stats_tbl)
 
 
-%%
+%% FIGURE AND ANALYSIS: temp range at minimum and max distances
+clearvars('-except',initial_vars{:})
+
+for tt = 1:2
+  switch tt
+     case 1
+        type = 'increasing';
+     case 2
+        type = 'decreasing';
+  end
+
+    % Pull the avg min|max distance and temperature index for each trial
+    [min_dist,max_dist,I_min,I_max]  = deal(nan([max(num.trial),num.exp]));
+    for i = 1:num.exp
+        for trial = 1:num.trial(i)
+            y = grouped(i).(type).all(:,trial);
+            % Minimum distance
+            [min_dist(trial,i), I_min(trial,i)] = min(y); %I is the temp index 
+            % Maximum distance
+            [max_dist(trial,i), I_max(trial,i)] = max(y);
+        end
+    end 
+    
+    % For each trial -- find which temperatures have a mean distance that falls
+    % within the SE of the distance for the 'min|max' distance found above
+    [minimumTempRangeStart,minimumTempRangeEnd,mimimumTemp] = deal(nan([max(num.trial),num.exp]));
+    [maxTempRangeStart,maxTempRangeEnd,maxTemp] = deal(nan([max(num.trial),num.exp]));
+    for i = 1:num.exp
+        for trial = 1:num.trial(i)
+            rateIDX = 3; %3=increasing
+            tempList = data(i).G(trial).TR.temps;
+            y = data(i).G(trial).TR.data(:,3); % distance from food for this whole trial
+            positionAvg = grouped(i).(type).all(:,trial); % avg distance at temps for trial
+            
+            % ------ minimum temp -------
+            % find the SE for the distance at the minumum temperature:
+            loc = (data(i).G(trial).TR.tempIdx==I_min(trial,i)) &...
+                  (data(i).G(trial).TR.rateIdx==rateIDX);
+            testData = y(loc);
+            SE = std(testData,'omitnan');
+            boundLimit = min_dist(trial,i)+SE; %since this is minumum value, the limit would only exist above
+            tempLocWithinBounds = positionAvg<=boundLimit;
+            
+            % find other temps that have their distance within 1 STD of the min food distance
+            upTemp = tempLocWithinBounds(I_min(trial,i):end);
+            upLoc = find(diff(upTemp)<0);
+            if ~isempty(upLoc)
+                tempLocWithinBounds(I_min(trial,i)+upLoc(1):end) = false;
+            end
+            downTemp = tempLocWithinBounds(1:I_min(trial,i));
+            downLoc = find(diff(downTemp)>0);
+            if ~isempty(downLoc)
+                tempLocWithinBounds(1:downLoc(end)) = false;
+            end
+            tempswithinBounds = tempList(tempLocWithinBounds);
+    
+            % Save the temp ranges for minumum distance:
+            minimumTempRangeStart(trial,i) = tempswithinBounds(1);
+            minimumTempRangeEnd(trial,i) = tempswithinBounds(end);
+            mimimumTemp(trial,i) = tempList(I_min(trial,i));
+        
+             % ------ maximum temp -------
+            % find the SE for the distance at the minumum temperature:
+            loc = (data(i).G(trial).TR.tempIdx==I_max(trial,i)) & ...
+                  (data(i).G(trial).TR.rateIdx==rateIDX);
+            testData = y(loc);
+            SE = std(testData,'omitnan');
+            boundLimit = max_dist(trial,i)-SE; %since this is maximum value, the limit would only exist below
+            tempLocWithinBounds = positionAvg>=boundLimit;
+            
+            % find other temps that have their distance within 1 STD of the max food distance
+            upTemp = tempLocWithinBounds(I_max(trial,i):end);
+            upLoc = find(diff(upTemp)<0);
+            if ~isempty(upLoc)
+                tempLocWithinBounds(I_max(trial,i)+upLoc(1):end) = false;
+            end
+            downTemp = tempLocWithinBounds(1:I_max(trial,i));
+            downLoc = find(diff(downTemp)>0);
+            if ~isempty(downLoc)
+                tempLocWithinBounds(1:downLoc(end)) = false;
+            end
+            tempswithinBounds = tempList(tempLocWithinBounds);
+    
+            % Save the temp ranges for minumum distance:
+            maxTempRangeStart(trial,i) = tempswithinBounds(1);
+            maxTempRangeEnd(trial,i) = tempswithinBounds(end);
+            maxTemp(trial,i) = tempList(I_max(trial,i));
+        end
+        grouped(i).(type).minDist.TempRange = [minimumTempRangeStart(:,i),minimumTempRangeEnd(:,i)];
+        grouped(i).(type).minDist.Temp = mimimumTemp(:,i);
+        grouped(i).(type).maxDist.TempRange = [maxTempRangeStart(:,i),maxTempRangeEnd(:,i)];
+        grouped(i).(type).maxDist.Temp = maxTemp(:,i);
+    end
+end
+
+% FIGURE: 
+buff = 0.15;
+r = 1;
+c = 2;
+yLimits = [14,24];
+fig = figure; 
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    % MAX DISTANCE TEMP RANGE
+    subplot(r,c,1); hold on
+    % -- increasing ---
+    y1 = mean(grouped(i).increasing.maxDist.TempRange(:,1),'omitnan');
+    y2 = mean(grouped(i).increasing.maxDist.TempRange(:,2),'omitnan');
+    plot([i+buff,i+buff],[y1,y2],'color',kolor,'LineWidth',1.5) 
+    scatter(i+buff,mean(grouped(i).increasing.maxDist.Temp,'omitnan'),50,kolor,'filled')
+    % -- decreasing ---
+    y1 = mean(grouped(i).decreasing.maxDist.TempRange(:,1),'omitnan');
+    y2 = mean(grouped(i).decreasing.maxDist.TempRange(:,2),'omitnan');
+    plot([i-buff,i-buff],[y1,y2],'color',kolor,'LineWidth',1.5,'LineStyle',':') 
+    scatter(i-buff,mean(grouped(i).decreasing.maxDist.Temp,'omitnan'),50,kolor,'filled')
+
+    % MIN DISTANCE TEMP RANGE
+    subplot(r,c,2); hold on
+    % -- increasing ---
+    y1 = mean(grouped(i).increasing.minDist.TempRange(:,1),'omitnan');
+    y2 = mean(grouped(i).increasing.minDist.TempRange(:,2),'omitnan');
+    plot([i+buff,i+buff],[y1,y2],'color',kolor,'LineWidth',1.5) 
+    scatter(i+buff,mean(grouped(i).increasing.minDist.Temp,'omitnan'),50,kolor,'filled')
+    % -- decreasing ---
+    y1 = mean(grouped(i).decreasing.minDist.TempRange(:,1),'omitnan');
+    y2 = mean(grouped(i).decreasing.minDist.TempRange(:,2),'omitnan');
+    plot([i-buff,i-buff],[y1,y2],'color',kolor,'LineWidth',1.5,'linestyle',':') 
+    scatter(i-buff,mean(grouped(i).decreasing.minDist.Temp,'omitnan'),50,kolor,'filled')
+end
+subplot(r,c,2)
+xlim([0,num.exp+1]); ylim(yLimits)
+set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
+xlabel(' ')
+ylabel('temp (\circC) when closest to food')
+subplot(r,c,1)
+xlim([0,num.exp+1]); ylim(yLimits)
+set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
+xlabel(' ')
+ylabel('temp (\circC) when furthest from food')
+formatFig(fig,true,[r,c]);
+    
+save_figure(fig,[saveDir expGroup ' min and max ranges'],'-png');
+
+
+%% TODO ANALYSIS AND FIGURE: Closest neighbor analysis
+clearvars('-except',initial_vars{:})
+
+data(1).data(1).data.x_loc
+
+
+
+%% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
+clearvars('-except',initial_vars{:})
+
+
+%% TODO ANALYSIS AND FIGURE: 3D temperature modulation of behavior
+
+clearvars('-except',initial_vars{:})
+
+% hysteresis 
+
+% distance range
+
+% 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
