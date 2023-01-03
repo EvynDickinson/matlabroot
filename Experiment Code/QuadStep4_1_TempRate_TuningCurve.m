@@ -72,12 +72,12 @@ if strcmp(expGroup,'WT linear recovery caviar')
     end
 else
     expOrder = 1:num.exp;
-    colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
+%     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
     % colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
     % colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'};
     % colors = {'BlueViolet','gold','white','turquoise','pink','Orange'};
     % colors = {'Teal','gold','white', 'magenta','dodgerblue','Orange'};
-    % colors = {'White','magenta','dodgerblue','Orange'};
+    colors = {'White','magenta','dodgerblue','Orange'}; % sex comparison colors
 end
 
 
@@ -359,6 +359,7 @@ SZ = 50;
 r = 1; %rows
 c = 3; %columns
 plot_err = false;
+plotSig = true; %plot significance stars
 
 
 % FIGURE:
@@ -437,6 +438,34 @@ formatFig(fig,true,[r,c]);
 set(gca,'XTick',[],'xcolor','k')
 xlabel('Group','color','w')
 
+% STATS: are the means of any groups different from zero?
+p = [];
+for ii = 1:num.exp
+    i = expOrder(ii);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    plotY = sum(y,1,'omitnan');
+    [~,p(ii)] = ttest(plotY); 
+    group_name{ii} = expNames{i};
+end
+%Bonferonni correction: 
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+h = p<=p_limit;
+stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+disp(stats_tbl)
+
+% add significance stars to the figure:
+if plotSig
+    y_pos = rangeLine(fig,1);
+    subplot(r,c,3); hold on
+    for ii = 1:num.exp
+        if h(ii)
+            scatter(ii,y_pos,100,'w','*')
+        end
+    end
+end
+
 % save figure
 save_figure(fig,[saveDir expGroup ' hysteresis summary'],'-png');
 
@@ -468,7 +497,6 @@ ylabel('Cumulative dist difference (cool-heat)')
 
 % save figure
 save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png');
-
 
 %% ANALYSIS AND FIGURES: Event-aligned comparisons
 
@@ -578,8 +606,6 @@ formatFig(fig,true,[r,c]);
 save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
             num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
     
-
-
 %% ANALYSIS AND FIGURES: COM of postions for each trial
 % vectors to fly 'mass' in arena at different temperatures from food
 
@@ -693,9 +719,6 @@ for i = 1:num.exp
   end
 end
 
-
-
-
 %% FIGURE: Register position COM to common frame
 
 clearvars('-except',initial_vars{:})
@@ -780,7 +803,6 @@ for i = 1:num.exp
     save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
 
 end
-
 
 %% FIGURE: Normalized increasing/decreasing temp responses
 
@@ -894,7 +916,7 @@ legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off',
 % save figure
 save_figure(fig,[saveDir expGroup ' zscore timecourse summary'],'-png');
 
-%% FIGURE: Position averages across temp (regardless heat/cool)
+%% FIGURE: distance traveled over temperature variation
 
 
 clearvars('-except',initial_vars{:})
@@ -940,6 +962,7 @@ ylim([0,22])
 % xlabel('Fly Strain')
 ylabel('temp-driven spatial range (mm)')
 formatFig(fig,true);
+set(gca,'XColor',backColor)
 save_figure(fig,[saveDir expGroup ' distance modulation by temperature'],'-png');
 
 % STATS:
@@ -974,91 +997,25 @@ end
 sig_comp = table(Group1,Group2,P_Value);
 disp(sig_comp)
 
-%% FIGURE & STATS: distance traveled over temperature variation
-
-clearvars('-except',initial_vars{:})
-y_limits = [1,25];
-plot_err = false;
-blkbgd = true;
-
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = 1:2; %temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse
-sb(3).idx = 3:3:15; %binned distance alignment
-
-LW = 1.5;
-SZ = 50;
-sSpan = 180;
-
-if blkbgd
-    foreColor = 'w';
-    backColor = 'k';
-else
-    foreColor = 'k';
-    backColor = 'w';
-end
-buff = 0.2;
-
-% FIGURE:
-fig = figure; set(fig,'color','w',"Position",[2289 468 706 590]); hold on %[1934 468 1061 590]
-for i = 1:num.exp
-    kolor = grouped(i).color;
-    x = shuffle_data(linspace(i-buff,i+buff,num.trial(i)));
-    y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
-%     datastats.all = autoCat(datastats.all,y,false);
-%     datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
-    scatter(x,y,SZ,kolor,'filled')
-    plot([i-buff,i+buff],[mean(y),mean(y)],'color', kolor,'linewidth',LW)
-end
-set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
-xlim([0,num.exp+1])
-ylim(y_limits)
-xlabel('Fly Strain')
-ylabel('distance traveled (mm)')
-formatFig(fig,true);
-save_figure(fig,[saveDir expGroup ' distance modulation by temperature'],'-png');
-
-% STATS:
-[datastats.all, datastats.id] = deal([]);
-for i = 1:num.exp
-    y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
-    datastats.all = autoCat(datastats.all,y,false);
-    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
-end
-
-[~,~,stats] = anova1(datastats.all,datastats.id);
-[c,~,~,~] = multcompare(stats);
-stats_tbl = array2table(c,"VariableNames", ...
-    ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"]);
-disp(table(expNames',(1:num.exp)', 'VariableNames',{'Name', 'ID number'}))
-disp(stats_tbl)
-
-% determine which groups differ from each other
-
 %% TODO FIGURE & STATS: Average distance from the food and closest sustained distance from the food (for a temperature bin)
-% TODO: combine this with the above section and automate the stats with
-% significance lines
+% TODO: adjust to account for both increasing and decreasing temp rates and min|max
+% for each 1/2/23
 clearvars('-except',initial_vars{:})
 blkbgd = true;
 y_limits = [0,30];
 
-
-
-
- 
-
 plotdata = [];
 for i = 1:num.exp
-    [M,avg] = deal([]);
+    [Mn,avg,Mx] = deal([]);
     x = grouped(i).increasing.all;
     for trial = 1:num.trial(i)
         temp = smooth(x(:,trial),2,'moving');
-        M(trial) = min(temp);
+        Mn(trial) = min(temp);
+        Mx(trial) = max(temp);
         avg(trial) = mean(temp,'omitnan');
     end
-    plotdata(i).min = M;
+    plotdata(i).min = Mn;
+    plotdata(i).max = Mx;
     plotdata(i).avg_dist = avg;
 end
 
@@ -1094,7 +1051,7 @@ subplot(r,c,1); hold on
     xlabel('Fly Strain')
     ylabel('peak food proximity (mm)')
 
-% minimum distance to food (for a 1deg C period)
+% avg distance to food (for a 1deg C period)
 subplot(r,c,2); hold on
     for i = 1:num.exp
         kolor = grouped(i).color;
@@ -1109,11 +1066,10 @@ subplot(r,c,2); hold on
     xlabel('Fly Strain')
     ylabel('avg distance to food (mm)')
 
-
 formatFig(fig,true,[r,c]);
 save_figure(fig,[saveDir expGroup ' food proximity modulation by temperature'],'-png');
 
-
+% 
 % % STATS:
 % [datastats.all, datastats.id] = deal([]);
 % for i = 1:num.exp
@@ -1122,15 +1078,35 @@ save_figure(fig,[saveDir expGroup ' food proximity modulation by temperature'],'
 %     datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
 % end
 % 
+% % determine which groups differ from each other
 % [~,~,stats] = anova1(datastats.all,datastats.id);
-% [c,~,~,gnames] = multcompare(stats);
-% stats_tbl = array2table(c,"VariableNames", ...
-%     ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"]);
-% disp(table(expNames',(1:num.exp)', 'VariableNames',{'Name', 'ID number'}))
-% disp(stats_tbl)
+% [c,~,~,~] = multcompare(stats);
+% 
+% % bonferonni multiple comparisons correction
+% alpha = 0.05; %significance level
+% m = size(c,1); %number of hypotheses
+% sigThreshold = alpha/m;
+% %find p-values that fall under the threshold
+% significantHypotheses = c(:,6)<=sigThreshold;
+% fprintf('\n\nTemp-driven position range statistics\n\n')
+% [Group1,Group2,P_Value] = deal([]);
+% idx = 0;
+% for i = 1:length(significantHypotheses)
+%     if significantHypotheses(i)
+%         idx = idx+1;
+%         Group1{idx,1} = expNames{c(i,1)};
+%         Group2{idx,1} = expNames{c(i,2)};
+%         P_Value(idx,1) = c(i,6);
+%     end
+% end
+% sig_comp = table(Group1,Group2,P_Value);
+% disp(sig_comp)
+
+
 
 
 %% FIGURE AND ANALYSIS: temp range at minimum and max distances
+% TODO: statistical comparisions within groups 1/2/23
 clearvars('-except',initial_vars{:})
 
 for tt = 1:2
@@ -1273,17 +1249,13 @@ formatFig(fig,true,[r,c]);
     
 save_figure(fig,[saveDir expGroup ' min and max ranges'],'-png');
 
-
 %% TODO ANALYSIS AND FIGURE: Closest neighbor analysis
 clearvars('-except',initial_vars{:})
 
 data(1).data(1).data.x_loc
 
-
-
 %% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
 clearvars('-except',initial_vars{:})
-
 
 %% TODO ANALYSIS AND FIGURE: 3D temperature modulation of behavior
 
