@@ -1102,54 +1102,91 @@ save_figure(fig,[saveDir expGroup ' food proximity modulation by temperature'],'
 for ll = 1:2 
     switch ll
         case 1 
-            distGroup = 'minDist'; 
-        case 2 
-            distGroup = 'maxDist'; 
+for tt = 1:2
+    switch tt
+     case 1
+        type = 'increasing';
+     case 2
+        type = 'decreasing';
     end
-    for tt = 1:2
-        switch tt
-         case 1
-            type = 'increasing';
-         case 2
-            type = 'decreasing';
-        end
-
-        [datastats.all, datastats.id] = deal([]);
-        for i = 1:num.exp
-            y = grouped(i).(type).(distGroup).dist; y(isnan(y)) = [];
-            datastats.all = autoCat(datastats.all,y',false);
-            datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
-        end
-        % % determine which groups differ from each other
-        [~,~,stats] = anova1(datastats.all,datastats.id,'off'); close all
-        [c,~,~,~] = multcompare(stats,[],'off');
-
-        % bonferonni multiple comparisons correction
-        alpha = 0.05; %significance level
-        m = size(c,1); %number of hypotheses
-        sigThreshold = alpha/m;
-        %find p-values that fall under the threshold
-        significantHypotheses = c(:,6)<=sigThreshold;
-        fprintf(['\n\n' type ' temp rate | ' distGroup ' comparison\n\n'])
-        [Group1,Group2,P_Value] = deal([]);
-        idx = 0;
-        if any(significantHypotheses)
-            for i = 1:length(significantHypotheses)
-                if significantHypotheses(i)
-                    idx = idx+1;
-                    Group1{idx,1} = expNames{c(i,1)};
-                    Group2{idx,1} = expNames{c(i,2)};
-                    P_Value(idx,1) = c(i,6);
-                end
+     
+    % =========  Minimum distance =========:
+    [datastats.all, datastats.id] = deal([]);
+    for i = 1:num.exp
+        y = grouped(i).(type).minDist.dist; y(isnan(y)) = [];
+        datastats.all = autoCat(datastats.all,y',false);
+        datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+    end
+    % % determine which groups differ from each other
+    [~,~,stats] = anova1(datastats.all,datastats.id,'off'); close all
+    [c,~,~,~] = multcompare(stats,[],'off');
+    
+    % bonferonni multiple comparisons correction
+    alpha = 0.05; %significance level
+    m = size(c,1); %number of hypotheses
+    sigThreshold = alpha/m;
+    %find p-values that fall under the threshold
+    significantHypotheses = c(:,6)<=sigThreshold;
+    fprintf(['\n\n' type 'temp rate | minumum distance comparison\n\n'])
+    [Group1,Group2,P_Value] = deal([]);
+    idx = 0;
+    if any(significantHypotheses)
+        for i = 1:length(significantHypotheses)
+            if significantHypotheses(i)
+                idx = idx+1;
+                Group1{idx,1} = expNames{c(i,1)};
+                Group2{idx,1} = expNames{c(i,2)};
+                P_Value(idx,1) = c(i,6);
             end
-            sig_comp = table(Group1,Group2,P_Value);
-            disp(sig_comp)
-        else
-            disp('no significance')
         end
-
+        sig_comp = table(Group1,Group2,P_Value);
+        disp(sig_comp)
+    else
+        disp('no significance')
     end
+
 end
+
+
+
+
+
+
+
+
+% % STATS:
+% [datastats.all, datastats.id] = deal([]);
+% for i = 1:num.exp
+%     y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
+%     datastats.all = autoCat(datastats.all,y,false);
+%     datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+% end
+% 
+% % determine which groups differ from each other
+% [~,~,stats] = anova1(datastats.all,datastats.id);
+% [c,~,~,~] = multcompare(stats);
+% 
+% % bonferonni multiple comparisons correction
+% alpha = 0.05; %significance level
+% m = size(c,1); %number of hypotheses
+% sigThreshold = alpha/m;
+% %find p-values that fall under the threshold
+% significantHypotheses = c(:,6)<=sigThreshold;
+% fprintf('\n\nTemp-driven position range statistics\n\n')
+% [Group1,Group2,P_Value] = deal([]);
+% idx = 0;
+% for i = 1:length(significantHypotheses)
+%     if significantHypotheses(i)
+%         idx = idx+1;
+%         Group1{idx,1} = expNames{c(i,1)};
+%         Group2{idx,1} = expNames{c(i,2)};
+%         P_Value(idx,1) = c(i,6);
+%     end
+% end
+% sig_comp = table(Group1,Group2,P_Value);
+% disp(sig_comp)
+
+
 
 
 %% FIGURE AND ANALYSIS: temp range at minimum and max distances
@@ -1293,8 +1330,6 @@ set(gca,'xtick',0:num.exp+1,'XTickLabel',[])
 xlabel(' ')
 ylabel('temp (\circC) when furthest from food')
 formatFig(fig,true,[r,c]);
-
-% STATS: 
     
 save_figure(fig,[saveDir expGroup ' min and max ranges'],'-png');
 
