@@ -559,7 +559,7 @@ fig = figure; set(fig,'pos',[1932 690 1050 438])
 for ss = 1:length(sections) %
     subplot(r,c,ss); hold on
     for i = 1:num.exp
-        y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1);
+        y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1); 
         if SEM_shading
             y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
             fill_data = error_fill(x, y, y_err);
