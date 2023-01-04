@@ -56,7 +56,6 @@ switch questdlg('Select data saving format:','','new structure','existing struct
         return
 end
 
-
 %% ANALYSIS: get average timecourse traces for each group
 
 clearvars('-except',initial_vars{:})
@@ -214,8 +213,6 @@ end
 
 
 disp('Next')
-
-
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols
 clearvars('-except',initial_vars{:})
@@ -1149,7 +1146,6 @@ for ll = 1:2
     end
 end
 
-
 %% FIGURE AND ANALYSIS: temp range at minimum and max distances
 % TODO: statistical comparisions within groups 1/2/23
 clearvars('-except',initial_vars{:})
@@ -1304,72 +1300,73 @@ clearvars('-except',initial_vars{:})
 pix2mm = 12.8;
 
 % Calculate nearest neighbor distance for each frame
-for i = 1:num.exp
-    for trial = 1:num.trial(i)
-        x = data(i).data(trial).data.x_loc;
-        y = data(i).data(trial).data.y_loc;
-        for frame = 1:size(x,1)
-            D = pdist([x(frame,:)',y(frame,:)']); 
-            Z = squareform(D);
-            loc = logical(eye(size(Z))); %remove self from list
-            Z(loc) = nan;
-            minD = min(Z);
-            NN(frame) = mean(minD,'omitnan');
-            %     % === demo figure ===
-            %     [minD, Idx] = min(Z);
-            %     fig = figure; hold on
-            %     scatter(x(frame,:),y(frame,:),40,'w','filled')
-            %     for ii = 1:length(Idx)
-            %         plot([x(frame,ii);x(frame,Idx(ii))],[y(frame,ii);y(frame,Idx(ii))])
-            %     end
-            %     formatFig(fig,true);
-            %     xlabel('X'); ylabel('Y')
-            %     axis equal
-            %     title(['Avg N.N. = ' num2str(mean(minD,'omitnan'))],'color','w')
-            %     save_figure(fig,[saveDir expGroup ' nearest neighbor demo frame ' num2str(frame)],'-png');
-        end
-        grouped(i).NN.data(trial).all = NN./pix2mm; %get mm from pixel distance
-        disp(['Done exp ' num2str(i) ' trial ' num2str(trial)])
-    end  
-end
-disp('All finished')
-
-for i = 1:num.exp
-    NN_all = [];
-    for trial = 1:num.trial(i)
-        % avg across trials 
-        NN_all = autoCat(NN_all,grouped(i).NN.data(trial).all);
+if ~isfield(grouped,'NN')
+    for i = 1:num.exp
+        for trial = 1:num.trial(i)
+            x = data(i).data(trial).data.x_loc;
+            y = data(i).data(trial).data.y_loc;
+            for frame = 1:size(x,1)
+                D = pdist([x(frame,:)',y(frame,:)']); 
+                Z = squareform(D);
+                loc = logical(eye(size(Z))); %remove self from list
+                Z(loc) = nan;
+                minD = min(Z);
+                NN(frame) = mean(minD,'omitnan');
+                %     % === demo figure ===
+                %     [minD, Idx] = min(Z);
+                %     fig = figure; hold on
+                %     scatter(x(frame,:),y(frame,:),40,'w','filled')
+                %     for ii = 1:length(Idx)
+                %         plot([x(frame,ii);x(frame,Idx(ii))],[y(frame,ii);y(frame,Idx(ii))])
+                %     end
+                %     formatFig(fig,true);
+                %     xlabel('X'); ylabel('Y')
+                %     axis equal
+                %     title(['Avg N.N. = ' num2str(mean(minD,'omitnan'))],'color','w')
+                %     save_figure(fig,[saveDir expGroup ' nearest neighbor demo frame ' num2str(frame)],'-png');
+            end
+            grouped(i).NN.data(trial).all = NN./pix2mm; %get mm from pixel distance
+            disp(['Done exp ' num2str(i) ' trial ' num2str(trial)])
+        end  
     end
-    grouped(i).NN.avg = mean(NN_all,1,'omitnan');
-    grouped(i).NN.err = std(NN_all,0,1,'omitnan');
-    grouped(i).NN.all = NN_all;
-end
+    disp('All finished')
 
-% Calculate the avg nearest neighbor for each temperature 
-for i = 1:num.exp   
-    for trial = 1:num.trial(i)
-        temps = unique(data(i).G(1).TR.temps);
-        rateIdx = data(i).G(trial).TR.rateIdx;
-        tempIdx = data(i).G(trial).TR.tempIdx;
-        % find rate index
-        heatRate = find(data(i).G(trial).TR.rates>0);
-        coolRate = find(data(i).G(trial).TR.rates<0);
-        holdRate = find(data(i).G(trial).TR.rates==0);
-        for temp = 1:length(temps)
-            % increasing rates:
-            loc = rateIdx==heatRate & tempIdx==temp; %rate and temp align
-            grouped(i).NN.increasing(trial,temp) = mean(grouped(i).NN.all(trial,loc),'omitnan');
-            % decreasing rates:
-            loc = rateIdx==coolRate & tempIdx==temp; %rate and temp align
-            grouped(i).NN.decreasing(trial,temp) = mean(grouped(i).NN.all(trial,loc),'omitnan');
-            % decreasing rates:
-            loc = rateIdx==holdRate & tempIdx==temp; %rate and temp align
-            grouped(i).NN.holding(trial,temp) = mean(grouped(i).NN.all(trial,loc),'omitnan');
+    for i = 1:num.exp
+        NN_all = [];
+        for trial = 1:num.trial(i)
+            % avg across trials 
+            NN_all = autoCat(NN_all,grouped(i).NN.data(trial).all);
         end
+        grouped(i).NN.avg = mean(NN_all,1,'omitnan');
+        grouped(i).NN.err = std(NN_all,0,1,'omitnan');
+        grouped(i).NN.all = NN_all;
     end
-    grouped(i).NN.temps = temps;
+
+    % Calculate the avg nearest neighbor for each temperature 
+    for i = 1:num.exp   
+        for trial = 1:num.trial(i)
+            temps = unique(data(i).G(1).TR.temps);
+            rateIdx = data(i).G(trial).TR.rateIdx;
+            tempIdx = data(i).G(trial).TR.tempIdx;
+            % find rate index
+            heatRate = find(data(i).G(trial).TR.rates>0);
+            coolRate = find(data(i).G(trial).TR.rates<0);
+            holdRate = find(data(i).G(trial).TR.rates==0);
+            for temp = 1:length(temps)
+                % increasing rates:
+                loc = rateIdx==heatRate & tempIdx==temp; %rate and temp align
+                grouped(i).NN.increasing(trial,temp) = mean(grouped(i).NN.all(trial,loc),'omitnan');
+                % decreasing rates:
+                loc = rateIdx==coolRate & tempIdx==temp; %rate and temp align
+                grouped(i).NN.decreasing(trial,temp) = mean(grouped(i).NN.all(trial,loc),'omitnan');
+                % decreasing rates:
+                loc = rateIdx==holdRate & tempIdx==temp; %rate and temp align
+                grouped(i).NN.holding(trial,temp) = mean(grouped(i).NN.all(trial,loc),'omitnan');
+            end
+        end
+        grouped(i).NN.temps = temps;
+    end
 end
- 
 
 % ==== TIME COURSE FIGURE ====
 blkbgd = true;
@@ -1446,6 +1443,7 @@ save_figure(fig,[saveDir expGroup ' nearest neighbor timecourse'],'-png');
 
 
 % ======== DISTANCE TO FOOD VS N.N. DISTANCE FIGURE =========
+LW = 1;
 fig = figure; set(fig,'pos',[2111 307 497 732]); hold on
 
 for i = 1:num.exp
@@ -1472,7 +1470,6 @@ xlabel('Distance to food (mm)')
 formatFig(fig, true);
 
 save_figure(fig,[saveDir expGroup ' nearest neighbor vs food distance'],'-png');
-
 
 %% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
 clearvars('-except',initial_vars{:})
@@ -1507,46 +1504,13 @@ set(gca,'zcolor','w')
 
 save_figure(fig,[saveDir expGroup ' 3D space modulation by temperature'],'-png');
 
-
-%% FIGURE: TODO Comparison of temperature driven movement
-
-% temp migration:  avg distance at hottest - avg distance at coolest
-% distance at warmest
-% distance at coolest
-% dashed line between them?
-
-
-fig = figure;
-
-
-
-
-
-% FIGURE:
-fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
-
-% Pull difference in distance heating-cooling
-subplot(r,c,1)
-hold on
-for i = 1:num.exp
-    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
-    y = grouped(i).decreasing.all-grouped(i).increasing.all;
-    kolor = grouped(i).color;
-    plot(x,y,'color',kolor,'LineWidth',LW); 
-    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',3.5)
-end
-h_line(0,'w',':',1)
-xlabel('temp (\circC)')
-ylabel('distance difference (mm)')
-
-
 %% FIGURE: TODO COM for ramp up and ramp down, without holding period
 
 
 
 
 
-
+% F tests to compare sample variances 
 
 
 
