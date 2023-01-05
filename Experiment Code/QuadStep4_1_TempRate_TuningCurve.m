@@ -771,6 +771,7 @@ end
 
 %% FIGURE: Register position COM to common frame
 
+
 clearvars('-except',initial_vars{:})
 blkbgk = true;
 if blkbgk
@@ -851,6 +852,162 @@ for i = 1:num.exp
     c.Label.VerticalAlignment = "bottom";
     title([data(i).ExpGroup],'color',foreColor)
     save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
+
+end
+
+%% ANALYSIS AND FIGURES: COM of postions for each trial divided by heating / cooling
+% periods
+
+% vectors to fly 'mass' in arena at different temperatures from food
+
+clearvars('-except',initial_vars{:})
+
+types = {'hold', 'up', 'down'};
+
+for i = 1:num.exp 
+  for trial = 1:num.trial(i)
+
+    % get arena information
+    well_loc = data(i).T.foodLoc(trial);
+    C = data(i).data(trial).data.centre;
+    r = data(i).data(trial).data.r;
+    well_C = data(i).data(trial).data.wellcenters(:,well_loc);
+    arena_C = data(i).data(trial).data.wellcenters(:,5);   
+    
+    % positions for all 'flies' over time
+    x = data(i).data(trial).data.x_loc; 
+    y = data(i).data(trial).data.y_loc;
+    x_avg = mean(x,2,'omitnan');
+    y_avg = mean(y,2,'omitnan');
+    % temperature for each frame
+    temperature = data(i).data(trial).occupancy.temp;
+    temporary = [temperature,x_avg,y_avg]; 
+    
+    % get temp color distribution (1/4 degree incrememts)
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    cMapRange = tp.threshLow:0.25:tp.threshHigh;
+    
+    bin = 1*60*3;
+    ntemps = length(cMapRange)-1;
+    % color map information
+    g1 = floor(ntemps/2);
+    g2 = ntemps-g1;
+    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
+    g2_cMap = Color('grey','red',g2);
+    cMap = [g1_cMap;g2_cMap];
+   
+    for type = 1:length(types)
+        [dsData,position] = deal([]);
+        for ramp = 1:size(tp.(types{type}),1)
+            smoothData = [];
+            ROI = tp.(types{type})(ramp,1):tp.(types{type})(ramp,2); %time points for first type period (e.g. first hold etc)
+            % smooth into 1 minute bins to select one point for each minute
+            for c = 1:size(temporary,2)
+                smoothData(:,c) = smooth(temporary(ROI,c),'moving',bin);
+            end
+            dsData = autoCat(dsData, smoothData(1:bin:end,:)); % select one point for each minute
+        end
+        dsData(:,4) = discretize(dsData(:,1),cMapRange); %binned temp category
+        dsData(isnan(dsData(:,4)),:) = []; %remove data points outside allowed range
+        
+        %avg position for each binned temp
+        for g = 1:ntemps
+            loc = dsData(:,4)==g;
+            position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
+        end
+        % save data into structure:
+        mat(i).position(trial).(types{type}).data = position;
+        mat(i).position(trial).(types{type}).tempBins = cMapRange;
+        mat(i).position(trial).(types{type}).cMap = cMap;
+        mat(i).position(trial).(types{type}).wells = data(i).data(trial).data.wellcenters;
+        mat(i).position(trial).(types{type}).wellLoc = well_loc;
+    end
+  end
+end
+
+
+clearvars('-except',initial_vars{:})
+blkbgk = true;
+if blkbgk
+    backColor = 'k';
+    foreColor = 'w';
+else
+    backColor = 'w';
+    foreColor = 'k';
+end
+
+SZ = 40;
+types = {'hold','down','up'};
+
+for i = 1:num.exp
+  fig = figure; set(fig, 'pos',[41 282 1368 557])%[26 722 1077 568])
+     for trial = 1:num.trial(i)
+        wells = mat(i).position(trial).wells;
+        wellLoc = mat(i).position(trial).wellLoc;
+        kolor = mat(i).position(trial).cMap;
+        
+        for tt = 1:3 
+            subplot(1,3,tt); hold on
+            x = mat(i).position(trial).(types{tt}).data(:,1);
+            y = mat(i).position(trial).(types{tt}).data(:,2);
+
+            % Make food well the origin
+            x_offset = wells(1,wellLoc);
+            y_offset = wells(2,wellLoc);
+            wells_x = wells(1,:)-x_offset;
+            wells_y = wells(2,:)-y_offset;
+            X = x-x_offset;
+            Y = y-y_offset;
+        
+            % Rotate to correct orientation
+            switch wellLoc
+                case 1
+                    plotData(:,1) = Y;
+                    plotData(:,2) = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 2 
+                    plotData(:,1) = X;
+                    plotData(:,2) = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 3
+                    plotData(:,1) = -Y;
+                    plotData(:,2) = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+                case 4 
+                    plotData(:,1) = X;
+                    plotData(:,2) = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+            end
+            % PLOT
+            scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')
+            scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'green','filled')
+            scatter(plotData(:,1),plotData(:,2),15,kolor,'filled')
+        end
+     end
+     % Formatting
+     formatFig(fig,blkbgk,[1,3]);
+     for tt = 1:3   
+        subplot(1,3,tt)
+        viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color','k');
+        axis square; 
+        axis equal;
+        title(types{tt},'color','w')
+        set(gca,'XColor',backColor,'YColor',backColor);
+        % set color bar information
+        colorData = uint8(round(kolor.*255)); % convert color map to uint8
+        colormap(colorData);
+        c = colorbar('color',foreColor);
+        set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
+        c.Label.String = 'Temperature (\circC)';
+        c.Label.VerticalAlignment = "bottom";
+     end
+    
+%     title([data(i).ExpGroup],'color',foreColor)
+    save_figure(fig,[saveDir expGroup grouped(i).name ' rate divided COM position'],'-png',true);
 
 end
 
@@ -1638,162 +1795,6 @@ clearvars('-except',initial_vars{:})
  
 
 
-
-%% TODO FIGURE: COM for ramp up and ramp down, without holding period
-% ANALYSIS AND FIGURES: COM of postions for each trial divided by heating / cooling
-% periods
-
-% vectors to fly 'mass' in arena at different temperatures from food
-
-clearvars('-except',initial_vars{:})
-
-types = {'hold', 'up', 'down'};
-
-for i = 1:num.exp 
-  for trial = 1:num.trial(i)
-
-    % get arena information
-    well_loc = data(i).T.foodLoc(trial);
-    C = data(i).data(trial).data.centre;
-    r = data(i).data(trial).data.r;
-    well_C = data(i).data(trial).data.wellcenters(:,well_loc);
-    arena_C = data(i).data(trial).data.wellcenters(:,5);   
-    
-    % positions for all 'flies' over time
-    x = data(i).data(trial).data.x_loc; 
-    y = data(i).data(trial).data.y_loc;
-    x_avg = mean(x,2,'omitnan');
-    y_avg = mean(y,2,'omitnan');
-    % temperature for each frame
-    temperature = data(i).data(trial).occupancy.temp;
-    temporary = [temperature,x_avg,y_avg]; 
-    
-    % get temp color distribution (1/4 degree incrememts)
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
-    cMapRange = tp.threshLow:0.25:tp.threshHigh;
-    
-    bin = 1*60*3;
-    ntemps = length(cMapRange)-1;
-    % color map information
-    g1 = floor(ntemps/2);
-    g2 = ntemps-g1;
-    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
-    g2_cMap = Color('grey','red',g2);
-    cMap = [g1_cMap;g2_cMap];
-   
-    for type = 1:length(types)
-        [dsData,position] = deal([]);
-        for ramp = 1:size(tp.(types{type}),1)
-            smoothData = [];
-            ROI = tp.(types{type})(ramp,1):tp.(types{type})(ramp,2); %time points for first type period (e.g. first hold etc)
-            % smooth into 1 minute bins to select one point for each minute
-            for c = 1:size(temporary,2)
-                smoothData(:,c) = smooth(temporary(ROI,c),'moving',bin);
-            end
-            dsData = autoCat(dsData, smoothData(1:bin:end,:)); % select one point for each minute
-        end
-        dsData(:,4) = discretize(dsData(:,1),cMapRange); %binned temp category
-        dsData(isnan(dsData(:,4)),:) = []; %remove data points outside allowed range
-        
-        %avg position for each binned temp
-        for g = 1:ntemps
-            loc = dsData(:,4)==g;
-            position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
-        end
-        % save data into structure:
-        mat(i).position(trial).(types{type}).data = position;
-        mat(i).position(trial).(types{type}).tempBins = cMapRange;
-        mat(i).position(trial).(types{type}).cMap = cMap;
-        mat(i).position(trial).(types{type}).wells = data(i).data(trial).data.wellcenters;
-        mat(i).position(trial).(types{type}).wellLoc = well_loc;
-    end
-  end
-end
-
-
-clearvars('-except',initial_vars{:})
-blkbgk = true;
-if blkbgk
-    backColor = 'k';
-    foreColor = 'w';
-else
-    backColor = 'w';
-    foreColor = 'k';
-end
-
-SZ = 40;
-types = {'hold','down','up'};
-
-for i = 1:num.exp
-  fig = figure; set(fig, 'pos',[26 722 1077 568])
-     for trial = 1:num.trial(i)
-        wells = mat(i).position(trial).wells;
-        wellLoc = mat(i).position(trial).wellLoc;
-        kolor = mat(i).position(trial).cMap;
-        
-        for tt = 1:3 
-            subplot(1,3,tt); hold on
-            x = mat(i).position(trial).(types{tt}).data(:,1);
-            y = mat(i).position(trial).(types{tt}).data(:,2);
-
-            % Make food well the origin
-            x_offset = wells(1,wellLoc);
-            y_offset = wells(2,wellLoc);
-            wells_x = wells(1,:)-x_offset;
-            wells_y = wells(2,:)-y_offset;
-            X = x-x_offset;
-            Y = y-y_offset;
-        
-            % Rotate to correct orientation
-            switch wellLoc
-                case 1
-                    plotData(:,1) = Y;
-                    plotData(:,2) = -X;
-                    WELLS(:,1) = wells_y;
-                    WELLS(:,2) = -wells_x;
-                case 2 
-                    plotData(:,1) = X;
-                    plotData(:,2) = -Y;
-                    WELLS(:,1) = wells_x;
-                    WELLS(:,2) = -wells_y;
-                case 3
-                    plotData(:,1) = -Y;
-                    plotData(:,2) = X;
-                    WELLS(:,1) = -wells_y;
-                    WELLS(:,2) = wells_x;
-                case 4 
-                    plotData(:,1) = X;
-                    plotData(:,2) = Y;
-                    WELLS(:,1) = wells_x;
-                    WELLS(:,2) = wells_y;
-            end
-            % PLOT
-            scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')
-            scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'green','filled')
-            scatter(plotData(:,1),plotData(:,2),15,kolor,'filled')
-        end
-     end
-     % Formatting
-     formatFig(fig,blkbgk,[1,3]);
-     for tt = 1:3   
-        subplot(1,3,tt)
-        viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color','k');
-        axis square; 
-        axis equal;
-        title(types{tt},'color','w')
-        set(gca,'XColor',backColor,'YColor',backColor);
-     end
-    % set color bar information
-    colorData = uint8(round(kolor.*255)); % convert color map to uint8
-    colormap(colorData);
-    c = colorbar('color',foreColor);
-    set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
-    c.Label.String = 'Temperature (\circC)';
-    c.Label.VerticalAlignment = "bottom";
-%     title([data(i).ExpGroup],'color',foreColor)
-    save_figure(fig,[saveDir expGroup grouped(i).name ' rate divided COM position'],'-png',true);
-
-end
 
 
 
