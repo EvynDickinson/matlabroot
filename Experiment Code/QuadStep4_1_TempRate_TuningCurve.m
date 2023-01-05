@@ -59,6 +59,9 @@ end
 %% ANALYSIS: get average timecourse traces for each group
 
 clearvars('-except',initial_vars{:})
+initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+initial_vars = unique(initial_vars);
+
 grouped = struct;
 
 if strcmp(expGroup,'WT linear recovery caviar')
@@ -217,10 +220,7 @@ disp('Next')
 %% FIGURE: Basic over-lap of time-trials and temperature protocols
 clearvars('-except',initial_vars{:})
 plot_err = false;
-
 blkbgd = true;
-
-
 
 % set up figure aligments
 r = 5; %rows
@@ -520,20 +520,23 @@ for i = 1:num.exp
                 tpBin = 'hold';
                 nrr = tp.nHold;
         end
-        temp = [];
+        [temp,temperature] = deal([]);
         for rr = 1:nrr
             ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
             temp(:,:,rr) = grouped(i).dist.all(ROI,:);
+            temperature(:,rr) = grouped(i).temp(ROI);
         end
-    
-        temp_norm = temp-mean(temp(1:10,:,:),'omitnan');
+        
+        temp_norm = temp-mean(temp(1:10,:,:),'omitnan'); %normalize to zero distance
         temp_avg = mean(temp_norm,3);
+        
         % add to the grouped data
         grouped(i).aligned.([sections{ss} '_avg']) = temp_avg;
         grouped(i).aligned.([sections{ss} '_norm']) = temp_norm;
         grouped(i).aligned.([sections{ss} '_all']) = temp;
         grouped(i).aligned.([sections{ss} '_SEM']) = std(temp_avg,0,2,'omitnan')/sqrt(num.trial(i));
         grouped(i).aligned.([sections{ss} '_MEAN']) = mean(temp_avg,2,'omitnan');
+        grouped(i).aligned.([sections{ss} '_temperature']) = mean(temperature,2,'omitnan');
     end
 end
 
@@ -567,6 +570,51 @@ end
 %                 ' event aligned distance -duration ' num2str(dispROI) ' min'],...
 %                 '-png',true);
 % end
+
+% FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
+r = 4;
+c = 3;
+sb(1).idx = 1; sb(2).idx = 2; sb(3).idx = 3; % temperature ramps
+sb(4).idx = [4,7,10]; sb(5).idx = [5,8,11];  sb(6).idx = [6,9,12];
+
+dispROI = 50;
+duration = ceil(dispROI*3*60);
+x = linspace(0,dispROI,duration+1);
+LW = 1.5;
+SEM_shading = false;
+sSpan = 1;
+
+
+fig = figure; set(fig,'pos',[1932 690 1050 438])
+for ss = 1:length(sections) %
+    % temp ramp
+    subplot(r,c,sb(ss).idx)
+    y = grouped(i).aligned.([sections{ss} '_temperature'])(1:duration+1);
+    ylabel('\circC')
+    ylim([tp.threshLow,tp.threshHigh]) % TODO 1/4
+    plot(x,y,'color', 'w','linewidth',LW)
+    % event-aligned plot
+    subplot(r,c,sb(ss+3).idx); hold on
+    for i = 1:num.exp
+        y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1); 
+        if SEM_shading
+            y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.4)
+        end
+        plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
+    end
+    xlabel('time (min)')
+    ylabel('distance from food (mm)')
+%     title(sections{ss})
+    ylim(ylimits)
+end
+formatFig(fig,true,[r,c],sb);
+
+
+
+
 
 % FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
 r = 1;
