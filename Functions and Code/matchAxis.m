@@ -1,23 +1,25 @@
 
-function fig = matchAxis(fig,scale,independent,);
-% fig = matchAxis(fig,~)
+function fig = matchAxis(fig,independent)
+% fig = matchAxis(fig,independent)
 % makes the x and y axes equal to the larger of the axes
-% if there are multiple subplots, it will align those as well 
-% r_c = rows and columns in the figure
-% sp = subplot indexes
+% independent = true if you want to match the x and y axes independently; false if
+% you want x&y to match across all subplots
 
-% 
-
-if nargin==1
-
-    [y_lim, x_lim] = deal([]);
-    figAxes = findall(fig,'type','axes');
-    % get axis limits:
-    for ii = 1:size(figAxes,1)
-        x_lim = autoCat(x_lim,figAxes(ii).XLim);
-        y_lim = autoCat(y_lim,figAxes(ii).YLim);
-    end
+[y_lim, x_lim] = deal([]);
+figAxes = findall(fig,'type','axes');
+% get axis limits:
+for ii = 1:size(figAxes,1)
+    x_lim = autoCat(x_lim,figAxes(ii).XLim);
+    y_lim = autoCat(y_lim,figAxes(ii).YLim);
+end
     
+    
+if nargin==2 && independent==true
+    for ii = 1:size(figAxes,1)
+        figAxes(ii).XLim = [min(min(x_lim)),max(max(x_lim))];
+        figAxes(ii).YLim = [min(min(y_lim)),max(max(y_lim))];
+    end
+else
     % find min and max:
     low = min(min([x_lim; y_lim]));
     high = max(max([x_lim; y_lim]));
@@ -26,30 +28,8 @@ if nargin==1
         figAxes(ii).XLim = [low,high];
         figAxes(ii).YLim = [low,high];
     end
-
-elseif nargin == 2  %normalize axes for each subplot independently
-    % TODO
 end
 
-% % could also add a function here that would set all the subplot axes to the
-% % same even if the x and y are different
-% 
-% if nargin==2
-%     [y_lim, x_lim] = deal([]);
-%     figAxes = findall(fig,'type','axes');
-%     % get axis limits:
-%     for ii = 1:size(figAxes,1)
-%         x_lim = autoCat(x_lim,figAxes(ii).XLim);
-%         y_lim = autoCat(y_lim,figAxes(ii).YLim);
-%     end
-%     
-%     % find min and max:
-%     xRange = 
-%     low = min(min([x_lim; y_lim]));
-%     high = max(max([x_lim; y_lim]));
-% 
-% 
-% 
 
 
 
