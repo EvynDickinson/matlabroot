@@ -432,8 +432,8 @@ kolor = Color('Teal');
 fig = figure; set(fig,'pos', [67 82 675 692]);
 hold on
 x = t_roi(1:end-1);
-y = food.avg(1:end-1);
-y_err = food.err(1:end-1);
+y = food.avg(1:end-1); % y = y./pix2mm;
+y_err = food.err(1:end-1); %y_err = y_err./pix2mm;
 
 
 fill_data = error_fill(x,y, y_err);

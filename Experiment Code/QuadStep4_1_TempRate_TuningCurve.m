@@ -75,11 +75,12 @@ if strcmp(expGroup,'WT linear recovery caviar')
 else
     expOrder = 1:num.exp;
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
-    % colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
+    colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
     % colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'};
     % colors = {'BlueViolet','gold','white','turquoise','pink','Orange'};
     % colors = {'Teal','gold','white', 'magenta','dodgerblue','Orange'};
-    colors = {'White','magenta','dodgerblue','Orange'}; % sex comparison colors
+%     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
+%     colors = {'White','magenta','dodgerblue','Orange'}; % sex comparison colors
 end
 
 
@@ -498,8 +499,17 @@ save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png')
 %% ANALYSIS AND FIGURES: Event-aligned comparisons
 
 clearvars('-except',initial_vars{:})
-ylimits = [-8,4];
-% ylimits = [-15,15];
+switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min)','Cancel','Short (15 min)')
+    case 'Short (15 min)'
+        ylimits = [-8,4];
+        dispROI = 15;
+    case 'Long (50 min)'   
+        ylimits = [-15,15];
+        dispROI = 50;
+end
+        
+
+% 
 timeROI = 60; % how many minutes to look at behavior after each event
 duration = ceil(timeROI*3*60);
 
@@ -577,7 +587,7 @@ c = 3;
 sb(1).idx = 1; sb(2).idx = 2; sb(3).idx = 3; % temperature ramps
 sb(4).idx = 4:3:(r*c); sb(5).idx = 5:3:(r*c);  sb(6).idx = 6:3:(r*c);
 
-dispROI = 15;
+% dispROI = 50;
 duration = ceil(dispROI*3*60);
 x = linspace(0,dispROI,duration+1);
 LW = 1.5;
