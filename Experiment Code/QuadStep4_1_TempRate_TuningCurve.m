@@ -630,7 +630,7 @@ save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
             num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
 
 
-% 
+
 % % FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING -- NO TEMP PLOTS)
 % r = 1;
 % c = 3;
@@ -1795,6 +1795,215 @@ save_figure(fig,[saveDir expGroup ' 3D space modulation by temperature'],'-png')
 %% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
 clearvars('-except',initial_vars{:})
 
+%% FIGURE: speed histogram
+clearvars('-except',initial_vars{:})
+
+% Simple histogram of speed across full experiment
+bins = 0:0.5:15;
+xlimit = [-0.5,7];
+
+fig = figure; set(fig,'pos',[132 133 953 1021]);
+[nrows, ncols] = subplot_numbers(num.exp, 3);
+for i = 1:num.exp
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,true);
+    end
+    % histogram for each group
+    subplot(nrows,ncols,i)
+    histogram(temp,bins,'FaceColor',grouped(i).color,'facealpha',1)
+    v_line(mean(temp,'omitnan'),'w','--',1.5)
+%     title(grouped(i).name)
+    xlabel('speed (mm/s)')
+    ylabel('count')
+    xlim(xlimit)
+end
+formatFig(fig,true,[nrows,ncols]);
+save_figure(fig,[saveDir expGroup ' speed histograms'],'-png',true);
+
+%% FIGURE AND STATS: average experiment speed
+% Comparision of avg speed and range across full experiments
+clearvars('-except',initial_vars{:})
+
+buff = 0.2;
+SZ = 50;
+LW = 1.5;
+
+fig = figure; set(fig,'pos',[2108 475 453 590]);
+hold on
+for ii = 1:num.exp
+    i = expOrder(ii);
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,false);
+    end
+    y = mean(temp,1,'omitnan');
+    y_avg = mean(mean(temp,'omitnan'));
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+    scatter(x,y,SZ,grouped(i).color,'filled')
+    plot([ii-buff,ii+buff],[y_avg,y_avg],'color', grouped(i).color,'linewidth',LW)
+end
+xlim([0,num.exp+(buff*2)])
+ylabel('speed (mm/s)')
+formatFig(fig,true);
+set(gca,'xcolor','k')
+save_figure(fig,[saveDir expGroup ' avg speed'],'-png',true);
+
+% AVG SPEED STATS:
+[datastats.all, datastats.id] = deal([]);
+for i = 1:num.exp
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,false);
+    end
+    y = mean(temp,1,'omitnan');
+
+    datastats.all = autoCat(datastats.all,y,false);
+    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+end
+
+% determine which groups differ from each other
+[~,~,stats] = anova1(datastats.all,datastats.id,'off');
+[c,~,~,~] = multcompare(stats,[],'off');
+
+% bonferonni multiple comparisons correction
+alpha = 0.05; %significance level
+m = size(c,1); %number of hypotheses
+sigThreshold = alpha/m;
+%find p-values that fall under the threshold
+significantHypotheses = c(:,6)<=sigThreshold;
+fprintf('\n\nAverage speed statistics\n\n')
+[Group1,Group2,P_Value] = deal([]);
+idx = 0;
+if ~any(significantHypotheses)
+    disp('No statistical differences in avg speed between groups')
+else
+    for i = 1:length(significantHypotheses)
+        if significantHypotheses(i)
+            idx = idx+1;
+            Group1{idx,1} = expNames{c(i,1)};
+            Group2{idx,1} = expNames{c(i,2)};
+            P_Value(idx,1) = c(i,6);
+        end
+    end
+    sig_comp = table(Group1,Group2,P_Value);
+    disp(sig_comp)
+end
+
+%% FIGURE: cumulative distribution function of speed
+clearvars('-except',initial_vars{:})
+LW = 1;
+xlimit = [0,10];
+
+fig = figure; hold on
+for i = 1:num.exp
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,true);
+    end
+    h = cdfplot(temp);
+    set(h,'color',grouped(i).color,'linewidth',LW)
+end
+xlim(xlimit)
+xlabel('Speed (mm/s)')
+ylabel('Empirical CDF')
+title('')
+formatFig(fig, true);   
+set(gca,'xgrid','off','ygrid','off')
+set(gca,'ytick',0:0.2:1)
+save_figure(fig,[saveDir expGroup ' speed CDF'],'-png',true);
+    
+%% FIGURE: speed hysteresis across groups
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 50;
+r = 1; %rows
+c = 3; %columns
+
+
+fig = figure; set(fig,'color','w',"Position",[1932 690 1050 438])
+for ii = 1:num.exp
+    i = expOrder(ii);
+    kolor = grouped(i).color;
+    x = data(i).G(1).TR.temps;
+    
+    % heating | cooling settings
+    heatloc = find(data(i).G(1).TR.rates>0);
+    h_style = '--';
+    coolloc = find(data(i).G(1).TR.rates<0);
+    c_style = '-';
+
+    % pull all temp-rate-binned speed data
+    [heat,cool] = deal([]);
+    for trial = 1:num.trial(i)
+        heat = autoCat(heat,data(i).G(trial).TR.movement.avg(heatloc,:),true);
+        cool = autoCat(cool,data(i).G(trial).TR.movement.avg(coolloc,:),true);
+    end
+    
+    % plot heat and cooling lines
+    subplot(r,c,1); hold on
+        heat_y = mean(heat,1,'omitnan'); 
+        cool_y = mean(cool,1,'omitnan'); 
+        plot(x,heat_y,'color',kolor,'linewidth',LW,'linestyle',h_style)
+        plot(x,cool_y,'color',kolor,'linewidth',LW,'linestyle',c_style)
+        
+    % plot speed hysteresis for each temp bin
+    subplot(r,c,2); hold on
+    y = cool_y-heat_y;
+    plot(x,y,'color',kolor,'linewidth',LW)
+    
+    % plot cumulative hysteresis for each trial
+    subplot(r,c,3); hold on
+    y = sum((cool-heat),2,'omitnan');
+    y_avg = mean(y);
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i))); 
+    scatter(x,y,SZ,kolor,'filled')
+    plot([ii-buff,ii+buff],[y_avg,y_avg],'color',kolor,'linewidth',1.3)
+end
+%formatting and labels
+formatFig(fig,true,[r,c]);    
+subplot(r,c,1)
+    xlabel('Temp (\circC)')
+    ylabel('Speed (mm/s)')
+subplot(r,c,2)
+    xlabel('Temp (\circC)')
+    ylabel('Speed diff (cool-heat)')
+subplot(r,c,3)
+    h_line(0,'w',':',1)
+    ylabel('Cumulative speed difference')
+    set(gca,'xcolor','k')
+% save figure
+save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],'-png');  
+
+
+% STATS: are the means of any groups different from zero?
+p = [];
+for ii = 1:num.exp
+    i = expOrder(ii);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    plotY = sum(y,1,'omitnan');
+    [~,p(ii)] = ttest(plotY); 
+    group_name{ii} = expNames{i};
+end
+%Bonferonni correction: 
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+h = p<=p_limit;
+stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+disp(stats_tbl)
+
+% add significance stars to the figure:
+if plotSig
+    y_pos = rangeLine(fig,1);
+    subplot(r,c,3); hold on
+    for ii = 1:num.exp
+        if h(ii)
+            scatter(ii,y_pos,100,'w','*')
+        end
+    end
+end
 
 
 
@@ -1802,7 +2011,15 @@ clearvars('-except',initial_vars{:})
 
 
 
- 
+
+
+
+
+
+
+
+
+
 
 
 

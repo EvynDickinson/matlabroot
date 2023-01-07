@@ -75,11 +75,12 @@ if strcmp(expGroup,'WT linear recovery caviar')
 else
     expOrder = 1:num.exp;
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
-    % colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
+    colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
     % colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'};
     % colors = {'BlueViolet','gold','white','turquoise','pink','Orange'};
     % colors = {'Teal','gold','white', 'magenta','dodgerblue','Orange'};
-    colors = {'White','magenta','dodgerblue','Orange'}; % sex comparison colors
+%     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
+%     colors = {'White','magenta','dodgerblue','Orange'}; % sex comparison colors
 end
 
 
@@ -498,8 +499,17 @@ save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],'-png')
 %% ANALYSIS AND FIGURES: Event-aligned comparisons
 
 clearvars('-except',initial_vars{:})
-ylimits = [-8,4];
-% ylimits = [-15,15];
+switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min)','Cancel','Short (15 min)')
+    case 'Short (15 min)'
+        ylimits = [-8,4];
+        dispROI = 15;
+    case 'Long (50 min)'   
+        ylimits = [-15,15];
+        dispROI = 50;
+end
+        
+
+% 
 timeROI = 60; % how many minutes to look at behavior after each event
 duration = ceil(timeROI*3*60);
 
@@ -577,7 +587,7 @@ c = 3;
 sb(1).idx = 1; sb(2).idx = 2; sb(3).idx = 3; % temperature ramps
 sb(4).idx = 4:3:(r*c); sb(5).idx = 5:3:(r*c);  sb(6).idx = 6:3:(r*c);
 
-dispROI = 15;
+% dispROI = 50;
 duration = ceil(dispROI*3*60);
 x = linspace(0,dispROI,duration+1);
 LW = 1.5;
@@ -620,7 +630,7 @@ save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
             num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
 
 
-% 
+
 % % FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING -- NO TEMP PLOTS)
 % r = 1;
 % c = 3;
@@ -771,6 +781,7 @@ end
 
 %% FIGURE: Register position COM to common frame
 
+
 clearvars('-except',initial_vars{:})
 blkbgk = true;
 if blkbgk
@@ -851,6 +862,162 @@ for i = 1:num.exp
     c.Label.VerticalAlignment = "bottom";
     title([data(i).ExpGroup],'color',foreColor)
     save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
+
+end
+
+%% ANALYSIS AND FIGURES: COM of postions for each trial divided by heating / cooling
+% periods
+
+% vectors to fly 'mass' in arena at different temperatures from food
+
+clearvars('-except',initial_vars{:})
+
+types = {'hold', 'up', 'down'};
+
+for i = 1:num.exp 
+  for trial = 1:num.trial(i)
+
+    % get arena information
+    well_loc = data(i).T.foodLoc(trial);
+    C = data(i).data(trial).data.centre;
+    r = data(i).data(trial).data.r;
+    well_C = data(i).data(trial).data.wellcenters(:,well_loc);
+    arena_C = data(i).data(trial).data.wellcenters(:,5);   
+    
+    % positions for all 'flies' over time
+    x = data(i).data(trial).data.x_loc; 
+    y = data(i).data(trial).data.y_loc;
+    x_avg = mean(x,2,'omitnan');
+    y_avg = mean(y,2,'omitnan');
+    % temperature for each frame
+    temperature = data(i).data(trial).occupancy.temp;
+    temporary = [temperature,x_avg,y_avg]; 
+    
+    % get temp color distribution (1/4 degree incrememts)
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    cMapRange = tp.threshLow:0.25:tp.threshHigh;
+    
+    bin = 1*60*3;
+    ntemps = length(cMapRange)-1;
+    % color map information
+    g1 = floor(ntemps/2);
+    g2 = ntemps-g1;
+    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
+    g2_cMap = Color('grey','red',g2);
+    cMap = [g1_cMap;g2_cMap];
+   
+    for type = 1:length(types)
+        [dsData,position] = deal([]);
+        for ramp = 1:size(tp.(types{type}),1)
+            smoothData = [];
+            ROI = tp.(types{type})(ramp,1):tp.(types{type})(ramp,2); %time points for first type period (e.g. first hold etc)
+            % smooth into 1 minute bins to select one point for each minute
+            for c = 1:size(temporary,2)
+                smoothData(:,c) = smooth(temporary(ROI,c),'moving',bin);
+            end
+            dsData = autoCat(dsData, smoothData(1:bin:end,:)); % select one point for each minute
+        end
+        dsData(:,4) = discretize(dsData(:,1),cMapRange); %binned temp category
+        dsData(isnan(dsData(:,4)),:) = []; %remove data points outside allowed range
+        
+        %avg position for each binned temp
+        for g = 1:ntemps
+            loc = dsData(:,4)==g;
+            position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
+        end
+        % save data into structure:
+        mat(i).position(trial).(types{type}).data = position;
+        mat(i).position(trial).(types{type}).tempBins = cMapRange;
+        mat(i).position(trial).(types{type}).cMap = cMap;
+        mat(i).position(trial).(types{type}).wells = data(i).data(trial).data.wellcenters;
+        mat(i).position(trial).(types{type}).wellLoc = well_loc;
+    end
+  end
+end
+
+
+clearvars('-except',initial_vars{:})
+blkbgk = true;
+if blkbgk
+    backColor = 'k';
+    foreColor = 'w';
+else
+    backColor = 'w';
+    foreColor = 'k';
+end
+
+SZ = 40;
+types = {'hold','down','up'};
+
+for i = 1:num.exp
+  fig = figure; set(fig, 'pos',[41 282 1368 557])%[26 722 1077 568])
+     for trial = 1:num.trial(i)
+        wells = mat(i).position(trial).wells;
+        wellLoc = mat(i).position(trial).wellLoc;
+        kolor = mat(i).position(trial).cMap;
+        
+        for tt = 1:3 
+            subplot(1,3,tt); hold on
+            x = mat(i).position(trial).(types{tt}).data(:,1);
+            y = mat(i).position(trial).(types{tt}).data(:,2);
+
+            % Make food well the origin
+            x_offset = wells(1,wellLoc);
+            y_offset = wells(2,wellLoc);
+            wells_x = wells(1,:)-x_offset;
+            wells_y = wells(2,:)-y_offset;
+            X = x-x_offset;
+            Y = y-y_offset;
+        
+            % Rotate to correct orientation
+            switch wellLoc
+                case 1
+                    plotData(:,1) = Y;
+                    plotData(:,2) = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 2 
+                    plotData(:,1) = X;
+                    plotData(:,2) = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 3
+                    plotData(:,1) = -Y;
+                    plotData(:,2) = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+                case 4 
+                    plotData(:,1) = X;
+                    plotData(:,2) = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+            end
+            % PLOT
+            scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')
+            scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'green','filled')
+            scatter(plotData(:,1),plotData(:,2),15,kolor,'filled')
+        end
+     end
+     % Formatting
+     formatFig(fig,blkbgk,[1,3]);
+     for tt = 1:3   
+        subplot(1,3,tt)
+        viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color','k');
+        axis square; 
+        axis equal;
+        title(types{tt},'color','w')
+        set(gca,'XColor',backColor,'YColor',backColor);
+        % set color bar information
+        colorData = uint8(round(kolor.*255)); % convert color map to uint8
+        colormap(colorData);
+        c = colorbar('color',foreColor);
+        set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
+        c.Label.String = 'Temperature (\circC)';
+        c.Label.VerticalAlignment = "bottom";
+     end
+    
+%     title([data(i).ExpGroup],'color',foreColor)
+    save_figure(fig,[saveDir expGroup grouped(i).name ' rate divided COM position'],'-png',true);
 
 end
 
@@ -1628,172 +1795,234 @@ save_figure(fig,[saveDir expGroup ' 3D space modulation by temperature'],'-png')
 %% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
 clearvars('-except',initial_vars{:})
 
-
-
-
-
-
-
-
- 
-
-
-
-%% TODO FIGURE: COM for ramp up and ramp down, without holding period
-% ANALYSIS AND FIGURES: COM of postions for each trial divided by heating / cooling
-% periods
-
-% vectors to fly 'mass' in arena at different temperatures from food
-
+%% FIGURE: speed histogram
 clearvars('-except',initial_vars{:})
 
-types = {'hold', 'up', 'down'};
+% Simple histogram of speed across full experiment
+bins = 0:0.5:15;
+xlimit = [-0.5,7];
 
-for i = 1:num.exp 
-  for trial = 1:num.trial(i)
-
-    % get arena information
-    well_loc = data(i).T.foodLoc(trial);
-    C = data(i).data(trial).data.centre;
-    r = data(i).data(trial).data.r;
-    well_C = data(i).data(trial).data.wellcenters(:,well_loc);
-    arena_C = data(i).data(trial).data.wellcenters(:,5);   
-    
-    % positions for all 'flies' over time
-    x = data(i).data(trial).data.x_loc; 
-    y = data(i).data(trial).data.y_loc;
-    x_avg = mean(x,2,'omitnan');
-    y_avg = mean(y,2,'omitnan');
-    % temperature for each frame
-    temperature = data(i).data(trial).occupancy.temp;
-    temporary = [temperature,x_avg,y_avg]; 
-    
-    % get temp color distribution (1/4 degree incrememts)
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
-    cMapRange = tp.threshLow:0.25:tp.threshHigh;
-    
-    bin = 1*60*3;
-    ntemps = length(cMapRange)-1;
-    % color map information
-    g1 = floor(ntemps/2);
-    g2 = ntemps-g1;
-    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
-    g2_cMap = Color('grey','red',g2);
-    cMap = [g1_cMap;g2_cMap];
-   
-    for type = 1:length(types)
-        [dsData,position] = deal([]);
-        for ramp = 1:size(tp.(types{type}),1)
-            smoothData = [];
-            ROI = tp.(types{type})(ramp,1):tp.(types{type})(ramp,2); %time points for first type period (e.g. first hold etc)
-            % smooth into 1 minute bins to select one point for each minute
-            for c = 1:size(temporary,2)
-                smoothData(:,c) = smooth(temporary(ROI,c),'moving',bin);
-            end
-            dsData = autoCat(dsData, smoothData(1:bin:end,:)); % select one point for each minute
-        end
-        dsData(:,4) = discretize(dsData(:,1),cMapRange); %binned temp category
-        dsData(isnan(dsData(:,4)),:) = []; %remove data points outside allowed range
-        
-        %avg position for each binned temp
-        for g = 1:ntemps
-            loc = dsData(:,4)==g;
-            position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
-        end
-        % save data into structure:
-        mat(i).position(trial).(types{type}).data = position;
-        mat(i).position(trial).(types{type}).tempBins = cMapRange;
-        mat(i).position(trial).(types{type}).cMap = cMap;
-        mat(i).position(trial).(types{type}).wells = data(i).data(trial).data.wellcenters;
-        mat(i).position(trial).(types{type}).wellLoc = well_loc;
-    end
-  end
-end
-
-
-clearvars('-except',initial_vars{:})
-blkbgk = true;
-if blkbgk
-    backColor = 'k';
-    foreColor = 'w';
-else
-    backColor = 'w';
-    foreColor = 'k';
-end
-
-SZ = 40;
-types = {'hold','down','up'};
-
+fig = figure; set(fig,'pos',[132 133 953 1021]);
+[nrows, ncols] = subplot_numbers(num.exp, 3);
 for i = 1:num.exp
-  fig = figure; set(fig, 'pos',[80 619 1067 548])
-     for trial = 1:num.trial(i)
-        wells = mat(i).position(trial).wells;
-        wellLoc = mat(i).position(trial).wellLoc;
-        kolor = mat(i).position(trial).cMap;
-        
-        for tt = 1:3 
-            subplot(1,3,tt); hold on
-            x = mat(i).position(trial).(types{tt}).data(:,1);
-            y = mat(i).position(trial).(types{tt}).data(:,2);
-
-            % Make food well the origin
-            x_offset = wells(1,wellLoc);
-            y_offset = wells(2,wellLoc);
-            wells_x = wells(1,:)-x_offset;
-            wells_y = wells(2,:)-y_offset;
-            X = x-x_offset;
-            Y = y-y_offset;
-        
-            % Rotate to correct orientation
-            switch wellLoc
-                case 1
-                    plotData(:,1) = Y;
-                    plotData(:,2) = -X;
-                    WELLS(:,1) = wells_y;
-                    WELLS(:,2) = -wells_x;
-                case 2 
-                    plotData(:,1) = X;
-                    plotData(:,2) = -Y;
-                    WELLS(:,1) = wells_x;
-                    WELLS(:,2) = -wells_y;
-                case 3
-                    plotData(:,1) = -Y;
-                    plotData(:,2) = X;
-                    WELLS(:,1) = -wells_y;
-                    WELLS(:,2) = wells_x;
-                case 4 
-                    plotData(:,1) = X;
-                    plotData(:,2) = Y;
-                    WELLS(:,1) = wells_x;
-                    WELLS(:,2) = wells_y;
-            end
-            % PLOT
-            scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')
-            scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'green','filled')
-            scatter(plotData(:,1),plotData(:,2),15,kolor,'filled')
-        end
-     end
-     % Formatting
-     for tt = 1:3    
-        viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color','k');
-        axis square; 
-        axis equal;
-     end
-        
-    formatFig(fig,blkbgk);
-    
-    set(gca,'XColor',backColor,'YColor',backColor);
-    % set color bar information
-    colorData = uint8(round(kolor.*255)); % convert color map to uint8
-    colormap(colorData);
-    c = colorbar('color',foreColor);
-    set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
-    c.Label.String = 'Temperature (\circC)';
-    c.Label.VerticalAlignment = "bottom";
-    title([data(i).ExpGroup],'color',foreColor)
-    save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
-
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,true);
+    end
+    % histogram for each group
+    subplot(nrows,ncols,i)
+    histogram(temp,bins,'FaceColor',grouped(i).color,'facealpha',1)
+    v_line(mean(temp,'omitnan'),'w','--',1.5)
+%     title(grouped(i).name)
+    xlabel('speed (mm/s)')
+    ylabel('count')
+    xlim(xlimit)
 end
+formatFig(fig,true,[nrows,ncols]);
+save_figure(fig,[saveDir expGroup ' speed histograms'],'-png',true);
+
+%% FIGURE AND STATS: average experiment speed
+% Comparision of avg speed and range across full experiments
+clearvars('-except',initial_vars{:})
+
+buff = 0.2;
+SZ = 50;
+LW = 1.5;
+
+fig = figure; set(fig,'pos',[2108 475 453 590]);
+hold on
+for ii = 1:num.exp
+    i = expOrder(ii);
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,false);
+    end
+    y = mean(temp,1,'omitnan');
+    y_avg = mean(mean(temp,'omitnan'));
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+    scatter(x,y,SZ,grouped(i).color,'filled')
+    plot([ii-buff,ii+buff],[y_avg,y_avg],'color', grouped(i).color,'linewidth',LW)
+end
+xlim([0,num.exp+(buff*2)])
+ylabel('speed (mm/s)')
+formatFig(fig,true);
+set(gca,'xcolor','k')
+save_figure(fig,[saveDir expGroup ' avg speed'],'-png',true);
+
+% AVG SPEED STATS:
+[datastats.all, datastats.id] = deal([]);
+for i = 1:num.exp
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,false);
+    end
+    y = mean(temp,1,'omitnan');
+
+    datastats.all = autoCat(datastats.all,y,false);
+    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+end
+
+% determine which groups differ from each other
+[~,~,stats] = anova1(datastats.all,datastats.id,'off');
+[c,~,~,~] = multcompare(stats,[],'off');
+
+% bonferonni multiple comparisons correction
+alpha = 0.05; %significance level
+m = size(c,1); %number of hypotheses
+sigThreshold = alpha/m;
+%find p-values that fall under the threshold
+significantHypotheses = c(:,6)<=sigThreshold;
+fprintf('\n\nAverage speed statistics\n\n')
+[Group1,Group2,P_Value] = deal([]);
+idx = 0;
+if ~any(significantHypotheses)
+    disp('No statistical differences in avg speed between groups')
+else
+    for i = 1:length(significantHypotheses)
+        if significantHypotheses(i)
+            idx = idx+1;
+            Group1{idx,1} = expNames{c(i,1)};
+            Group2{idx,1} = expNames{c(i,2)};
+            P_Value(idx,1) = c(i,6);
+        end
+    end
+    sig_comp = table(Group1,Group2,P_Value);
+    disp(sig_comp)
+end
+
+%% FIGURE: cumulative distribution function of speed
+clearvars('-except',initial_vars{:})
+LW = 1;
+xlimit = [0,10];
+
+fig = figure; hold on
+for i = 1:num.exp
+    temp = [];
+    for trial = 1:num.trial(i)
+        temp = autoCat(temp,data(i).data(trial).speed.avg,true);
+    end
+    h = cdfplot(temp);
+    set(h,'color',grouped(i).color,'linewidth',LW)
+end
+xlim(xlimit)
+xlabel('Speed (mm/s)')
+ylabel('Empirical CDF')
+title('')
+formatFig(fig, true);   
+set(gca,'xgrid','off','ygrid','off')
+set(gca,'ytick',0:0.2:1)
+save_figure(fig,[saveDir expGroup ' speed CDF'],'-png',true);
+    
+%% FIGURE: speed hysteresis across groups
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 50;
+r = 1; %rows
+c = 3; %columns
+
+
+fig = figure; set(fig,'color','w',"Position",[1932 690 1050 438])
+
+for ii = 1:num.exp
+    i = expOrder(ii);
+    kolor = grouped(i).color;
+    x = data(i).G(1).TR.temps;
+    
+    % heating | cooling settings
+    heatloc = find(data(i).G(1).TR.rates>0);
+    h_style = '--';
+    coolloc = find(data(i).G(1).TR.rates<0);
+    c_style = '-';
+
+    % pull all temp-rate-binned speed data
+    [heat,cool] = deal([]);
+    for trial = 1:num.trial(i)
+        heat = autoCat(heat,data(i).G(trial).TR.movement.avg(heatloc,:),true);
+        cool = autoCat(cool,data(i).G(trial).TR.movement.avg(coolloc,:),true);
+    end
+    
+    % plot heat and cooling lines
+    subplot(r,c,1); hold on
+        heat_y = mean(heat,1,'omitnan'); 
+        cool_y = mean(cool,1,'omitnan'); 
+        plot(x,heat_y,'color',kolor,'linewidth',LW,'linestyle',h_style)
+        plot(x,cool_y,'color',kolor,'linewidth',LW,'linestyle',c_style)
+        
+    % plot speed hysteresis for each temp bin
+    subplot(r,c,2); hold on
+    y = cool_y-heat_y;
+    plot(x,y,'color',kolor,'linewidth',LW)
+    
+    % plot cumulative hysteresis for each trial
+    subplot(r,c,3); hold on
+    y = sum((cool-heat),2,'omitnan');
+    y_avg = mean(y);
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i))); 
+    scatter(x,y,SZ,kolor,'filled')
+    plot([ii-buff,ii+buff],[y_avg,y_avg],'color',kolor,'linewidth',1.3)
+end
+%formatting and labels
+formatFig(fig,true,[r,c]);    
+subplot(r,c,1)
+    xlabel('Temp (\circC)')
+    ylabel('Speed (mm/s)')
+subplot(r,c,2)
+    xlabel('Temp (\circC)')
+    ylabel('Speed diff (cool-heat)')
+subplot(r,c,3)
+    
+    ylabel('Cumulative speed difference')
+    set(gca,'xcolor','k')
+% save figure
+save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],'-png');  
+
+
+% STATS: are the means of any groups different from zero?
+p = [];
+for ii = 1:num.exp
+    i = expOrder(ii);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    plotY = sum(y,1,'omitnan');
+    [~,p(ii)] = ttest(plotY); 
+    group_name{ii} = expNames{i};
+end
+%Bonferonni correction: 
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+h = p<=p_limit;
+stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+disp(stats_tbl)
+
+% add significance stars to the figure:
+if plotSig
+    y_pos = rangeLine(fig,1);
+    subplot(r,c,3); hold on
+    for ii = 1:num.exp
+        if h(ii)
+            scatter(ii,y_pos,100,'w','*')
+        end
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
