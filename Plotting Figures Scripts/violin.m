@@ -134,7 +134,7 @@ if isempty(find(strcmp(varargin,'medc')))==0
         plotmedian = 0;
     end
 end
-if isempty(find(strcmp(varargin,'bw')))==0
+if isempty(find(strcmp(varargin,'bw')))==0 %bandwidth
     b = varargin{find(strcmp(varargin,'bw'))+1}
     if length(b)==1
         disp(['same bandwidth bw = ',num2str(b),' used for all cols'])
