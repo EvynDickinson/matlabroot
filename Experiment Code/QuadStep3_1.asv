@@ -112,7 +112,8 @@ if ~exist('pix2mm','var')
     pix2mm = 12.8;
 end
 
-% % RANDOMIZE well location for empty trials (movement only controls) TODO
+% RANDOMIZE well location for empty trials (movement only controls) TODO
+% 
 % for trial = 1:ntrials
 %     data(trial).wellLabels{randi(4)} = 'Movement';
 %     T.Well1{trial} = 'Movement';
@@ -678,6 +679,8 @@ for trial = 1:ntrials
 
 clearvars('-except',vars{:}) 
 end
+
+
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
 clearvars('-except',vars{:}) 

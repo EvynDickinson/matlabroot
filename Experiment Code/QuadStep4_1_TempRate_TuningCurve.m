@@ -75,8 +75,9 @@ if strcmp(expGroup,'WT linear recovery caviar')
 else
     expOrder = 1:num.exp;
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
-    colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
-    % colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'};
+%     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
+    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'};
+%     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
     % colors = {'BlueViolet','gold','white','turquoise','pink','Orange'};
     % colors = {'Teal','gold','white', 'magenta','dodgerblue','Orange'};
 %     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
@@ -84,7 +85,7 @@ else
 end
 
 
-for i = 1:num.exp % FOR EACH DATA GROUP
+for i = 1:num.exp % FOR EACH DATA GROUP 
     % GENERAL
     grouped(i).name = data(i).ExpGroup;
     grouped(expOrder(i)).color = Color(colors{(i)});
@@ -220,7 +221,7 @@ disp('Next')
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols
 clearvars('-except',initial_vars{:})
-plot_err = false;
+plot_err = true;
 blkbgd = true;
 
 % set up figure aligments
@@ -257,25 +258,25 @@ for i = 1:num.exp
     subplot(r,c,sb(2).idx); hold on
         y = smooth(grouped(i).dist.avg,'moving',sSpan);
         y_err = smooth(grouped(i).dist.err,'moving',sSpan);
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.2)
-        end
+%         if plot_err
+%             fill_data = error_fill(x, y, y_err);
+%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%             set(h, 'facealpha', 0.2)
+%         end
         plot(x,y,'LineWidth',LW,'Color',kolor)
 
 %     %speed
     subplot(r,c,sb(3).idx); hold on
         y = smooth(grouped(i).speed.avg,'moving',sSpan);
         y_err = smooth(grouped(i).speed.err,'moving',sSpan);
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.2)
-        end
+%         if plot_err
+%             fill_data = error_fill(x, y, y_err);
+%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%             set(h, 'facealpha', 0.2)
+%         end
         plot(x,y,'LineWidth',LW,'Color',kolor)
 
-    %temp rate depended distance
+    %temp dependent distance
     subplot(r,c,sb(4).idx); hold on
         x = grouped(i).dist.distavgbytemp(:,1);
         y = grouped(i).dist.distavgbytemp(:,2);
@@ -338,10 +339,12 @@ set(gca,"XColor",backColor)
 subplot(r,c,sb(3).idx) 
 ylabel('speed (mm/s)')
 xlabel('time (min)')
-% temp rate 
+% temp-distance relationship 
 subplot(r,c,sb(4).idx) 
 ylabel('distance (mm)')
 xlabel('temp (\circC)')
+ylim([0,40])
+h_line([18.1,36.2],'grey',':',1)
 % 
 legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
 
@@ -853,13 +856,16 @@ for i = 1:num.exp
     formatFig(fig,blkbgk);
     
     set(gca,'XColor',backColor,'YColor',backColor);
-    % set color bar information
-    colorData = uint8(round(kolor.*255)); % convert color map to uint8
-    colormap(colorData);
-    c = colorbar('color',foreColor);
-    set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
-    c.Label.String = 'Temperature (\circC)';
-    c.Label.VerticalAlignment = "bottom";
+    if ~strcmpi(getenv('COMPUTERNAME'),'EVYNPC')
+    
+        % set color bar information
+        colorData = uint8(round(kolor.*255)); % convert color map to uint8
+        colormap(colorData);
+        c = colorbar('color',foreColor);
+        set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
+        c.Label.String = 'Temperature (\circC)';
+        c.Label.VerticalAlignment = "bottom";
+    end
     title([data(i).ExpGroup],'color',foreColor)
     save_figure(fig,[saveDir expGroup grouped(i).name ' COM position'],'-png',true);
 
@@ -1007,13 +1013,15 @@ for i = 1:num.exp
         axis equal;
         title(types{tt},'color','w')
         set(gca,'XColor',backColor,'YColor',backColor);
-        % set color bar information
-        colorData = uint8(round(kolor.*255)); % convert color map to uint8
-        colormap(colorData);
-        c = colorbar('color',foreColor);
-        set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
-        c.Label.String = 'Temperature (\circC)';
-        c.Label.VerticalAlignment = "bottom";
+        if ~strcmpi(getenv('COMPUTERNAME'),'EVYNPC')
+            % set color bar information
+            colorData = uint8(round(kolor.*255)); % convert color map to uint8
+            colormap(colorData);
+            c = colorbar('color',foreColor);
+            set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
+            c.Label.String = 'Temperature (\circC)';
+            c.Label.VerticalAlignment = "bottom";
+        end
      end
     
 %     title([data(i).ExpGroup],'color',foreColor)
@@ -1797,7 +1805,8 @@ clearvars('-except',initial_vars{:})
 
 % Simple histogram of speed across full experiment
 bins = 0:0.5:15;
-xlimit = [-0.5,7];
+% xlimit = [-0.5,7];
+xlimit = [-.5,20];
 
 fig = figure; set(fig,'pos',[132 133 953 1021]);
 [nrows, ncols] = subplot_numbers(num.exp, 3);
@@ -1821,13 +1830,49 @@ save_figure(fig,[saveDir expGroup ' speed histograms'],'-png',true);
 %% FIGURE AND STATS: average experiment speed
 % Comparision of avg speed and range across full experiments
 clearvars('-except',initial_vars{:})
-
+plot_err = true;
 buff = 0.2;
 SZ = 50;
 LW = 1.5;
+r = 1;
+c = 3;
+sb(1).idx = 1:2; %avg speed per temp
+sb(2).idx = 3;   %avg speed
 
-fig = figure; set(fig,'pos',[2108 475 453 590]);
-hold on
+
+fig = figure; set(fig,'pos',[2108 475 1000 590]);
+subplot(r,c,sb(1).idx); hold on
+    %pull temp avg data
+    [speed,speed_err,temp] = deal([]);
+    for i = 1:num.exp
+        temp(:,i) = data(i).G(1).TR.temps;
+        tempIdx = data(i).G(1).TR.tempIdx;
+        for t = 1:size(temp,1)-1
+            loc = (tempIdx==t);
+            raw = mean(grouped(i).speed.all(loc,:),'omitnan');
+            y = mean(raw);
+            y_err = std(raw)./sqrt(num.trial(i));
+            speed(t,i) = y;
+            speed_err(t,i) = y_err;
+        end
+    end
+    for i = 1:num.exp
+        kolor = grouped(i).color;
+        loc = ~isnan(speed(:,i));
+        x = temp(loc,i);
+        y = speed(loc,i);
+        y_err = speed_err(loc,i);
+        if plot_err
+           fill_data = error_fill(x, y, y_err);
+          h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+          set(h, 'facealpha', 0.3)
+        end
+        plot(x,y,'color',kolor,'linewidth', LW)
+    end
+    xlabel('Temperature (\circC)')
+    ylabel('Speed (mm/s)')
+
+subplot(r,c,sb(2).idx);hold on
 for ii = 1:num.exp
     i = expOrder(ii);
     temp = [];
@@ -1841,8 +1886,8 @@ for ii = 1:num.exp
     plot([ii-buff,ii+buff],[y_avg,y_avg],'color', grouped(i).color,'linewidth',LW)
 end
 xlim([0,num.exp+(buff*2)])
-ylabel('speed (mm/s)')
-formatFig(fig,true);
+ylabel('avg speed (mm/s)')
+formatFig(fig,true,[r,c],sb);
 set(gca,'xcolor','k')
 save_figure(fig,[saveDir expGroup ' avg speed'],'-png',true);
 
@@ -1890,7 +1935,8 @@ end
 %% FIGURE: cumulative distribution function of speed
 clearvars('-except',initial_vars{:})
 LW = 1;
-xlimit = [0,10];
+% xlimit = [0,10];
+xlimit = [0,20];
 
 fig = figure; hold on
 for i = 1:num.exp
@@ -1925,25 +1971,37 @@ fig = figure; set(fig,'color','w','pos',[1932 517 1050 611])
 for ii = 1:num.exp
     i = expOrder(ii);
     kolor = grouped(i).color;
-    x = data(i).G(1).TR.temps;
+    x = data(i).G(1).TR.temps(1:end-1);
+    [h_speed,c_speed] = deal([]);
     
-    % heating | cooling settings
-    heatloc = find(data(i).G(1).TR.rates>0);
+    % heating | cooling locations 
+    rateIdx = data(i).G(1).TR.rateIdx;
+    idx = find(data(i).G(1).TR.rates>0);
+    heatloc = rateIdx==idx;
     h_style = '--'; 
-    coolloc = find(data(i).G(1).TR.rates<0);
+    idx = find(data(i).G(1).TR.rates<0);
+    coolloc = rateIdx==idx;
     c_style = '-';
 
-    % pull all temp-rate-binned speed data
-    [heat,cool] = deal([]);
-    for trial = 1:num.trial(i)
-        heat = autoCat(heat,data(i).G(trial).TR.movement.avg(heatloc,:),true);
-        cool = autoCat(cool,data(i).G(trial).TR.movement.avg(coolloc,:),true);
+    %pull temp avg data
+    tempIdx = data(i).G(1).TR.tempIdx;
+    speed_data = grouped(i).speed.all;
+    for t = 1:length(x)
+        temp_loc = (tempIdx==t);
+        % heating
+        loc = temp_loc & heatloc;
+        raw = mean(speed_data(loc,:),'omitnan');
+        h_speed(t,:) =  raw;
+        % cooling
+        loc = temp_loc & coolloc;
+        raw = mean(speed_data(loc,:),'omitnan');
+        c_speed(t,:) =  raw;
     end
     
     % plot heat and cooling lines
     subplot(r,c,1); hold on
-        heat_y = mean(heat,1,'omitnan'); 
-        cool_y = mean(cool,1,'omitnan'); 
+        heat_y = mean(h_speed,2,'omitnan'); 
+        cool_y = mean(c_speed,2,'omitnan'); 
         plot(x,heat_y,'color',kolor,'linewidth',LW,'linestyle',h_style)
         plot(x,cool_y,'color',kolor,'linewidth',LW,'linestyle',c_style)
 
@@ -1954,15 +2012,16 @@ for ii = 1:num.exp
     
     % plot cumulative hysteresis for each trial
     subplot(r,c,3); hold on
-        y = sum((cool-heat),2,'omitnan');
+        y = sum((c_speed-h_speed),1,'omitnan');
         y_avg = mean(y);
         x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i))); 
         scatter(x,y,SZ,kolor,'filled')
         plot([ii-buff,ii+buff],[y_avg,y_avg],'color',kolor,'linewidth',1.3)
         % save cumulative difference for stats
-        stats = autoCat(stats,y,false);
+        stats = autoCat(stats,y,true);
         groupName{ii} = grouped(i).name;
 end
+    
 %formatting and labels
 formatFig(fig,true,[r,c]);    
 subplot(r,c,1)
@@ -1976,12 +2035,11 @@ subplot(r,c,3)
     h_line(0,'w',':',1)
     ylabel('Cumulative speed difference')
     set(gca,'xcolor','k')
-    
-
+   
 % SIG HYSTERESIS STATS: are the means of any groups different from zero?
 p = [];
 for ii = 1:num.exp
-    [~,p(ii)] = ttest(stats(:,ii)); 
+    [~,p(ii)] = ttest(stats(ii,:)); 
 end
 %Bonferonni correction: 
 alpha = 0.05;
@@ -2004,7 +2062,7 @@ end
     
 % SIG DIFF BETWEEN GROUPS STATS:
 %format for anova
-stats_id = repmat(1:num.exp,[size(stats,1),1]);
+stats_id = repmat((1:num.exp)',[1,size(stats,2)]);
 stats_id = reshape(stats_id,[numel(stats),1]);
 x = reshape(stats,[numel(stats),1]);
 loc = isnan(x);
@@ -2021,19 +2079,24 @@ m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
 %find p-values that fall under the threshold
 significantHypotheses = c(:,6)<=sigThreshold;
-fprintf('\n\nSpeed hysteresis comparison statistics\n\n')
+fprintf('\n\nSpeed hysteresis comparison statistics:\n\n')
 [Group1,Group2,P_Value] = deal([]);
 idx = 0;
-for i = 1:length(significantHypotheses)
-    if significantHypotheses(i)
-        idx = idx+1;
-        Group1{idx,1} = groupName{c(i,1)};
-        Group2{idx,1} = groupName{c(i,2)};
-        P_Value(idx,1) = c(i,6);
+if any(significantHypotheses)
+    for i = 1:length(significantHypotheses)
+        if significantHypotheses(i)
+            idx = idx+1;
+            Group1{idx,1} = groupName{c(i,1)};
+            Group2{idx,1} = groupName{c(i,2)};
+            P_Value(idx,1) = c(i,6);
+        end
     end
+    sig_comp = table(Group1,Group2,P_Value);
+    disp(sig_comp)
+else
+    disp('no significant differences between groups')
 end
-sig_comp = table(Group1,Group2,P_Value);
-disp(sig_comp)
+
 
 % save figure
 save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],'-png');  
@@ -2050,7 +2113,6 @@ clearvars('-except',initial_vars{:})
 % min distance over ramp 
 
 %% FIGURE: avg distance between wells using the pix2mm conversion
-
 pix2mm = 12.8;
 
 d = [];
