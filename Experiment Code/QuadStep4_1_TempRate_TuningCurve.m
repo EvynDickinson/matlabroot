@@ -75,8 +75,8 @@ if strcmp(expGroup,'WT linear recovery caviar')
 else
     expOrder = 1:num.exp;
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
-%     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
-    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; % food no-food comp.
+    colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
+%     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; % food no-food comp.
 %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
     % colors = {'BlueViolet','gold','white','turquoise','pink','Orange'};
     % colors = {'Teal','gold','white', 'magenta','dodgerblue','Orange'};
@@ -1213,6 +1213,10 @@ legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off',
 save_figure(fig,[saveDir expGroup ' zscore heating and cooling overlay'],'-png');
 
 %% FIGURE & STATS: Distance traveled over temperature variation
+% TODO: fix error message
+% Error using multcompare
+% ALPHA must be a scalar between 0 and 1, exclusive.
+% Error in QuadStep4_1_TempRate_TuningCurve (line 1273)
 
 clearvars('-except',initial_vars{:})
 
@@ -1270,8 +1274,11 @@ end
 
 % determine which groups differ from each other
 [~,~,stats] = anova1(datastats.all,datastats.id,'off');
-[c,~,~,~] = multcompare(stats,[],'off');
-
+if strcmp(getenv('COMPUTERNAME'),'ACADIA')
+    [c,~,~,~] = multcompare(stats);
+else
+    [c,~,~,~] = multcompare(stats,[],'off');
+end
 % bonferonni multiple comparisons correction
 alpha = 0.05; %significance level
 m = size(c,1); %number of hypotheses
