@@ -507,7 +507,7 @@ clearvars('-except',initial_vars{:})
 %% ANALYSIS: Get temp rate information from all trials
 G = struct;
 [threshHigh, threshLow] = getTempThresholds(T.TempProtocol);
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
+binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'0.5'}))); 
 vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace','G', 'vars'];
 
 % Get the temp rate, temp, and distance from food

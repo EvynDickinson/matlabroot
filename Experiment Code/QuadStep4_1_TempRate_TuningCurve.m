@@ -76,7 +76,7 @@ else
     expOrder = 1:num.exp;
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
 %     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'}; % Temp shift colors
-    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'};
+    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; % food no-food comp.
 %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
     % colors = {'BlueViolet','gold','white','turquoise','pink','Orange'};
     % colors = {'Teal','gold','white', 'magenta','dodgerblue','Orange'};
@@ -1935,8 +1935,8 @@ end
 %% FIGURE: cumulative distribution function of speed
 clearvars('-except',initial_vars{:})
 LW = 1;
-% xlimit = [0,10];
-xlimit = [0,20];
+xlimit = [0,10];
+% xlimit = [0,20];
 
 fig = figure; hold on
 for i = 1:num.exp
@@ -1967,21 +1967,22 @@ c = 3; %columns
 
 [groupName, stats] = deal([]);
 
-fig = figure; set(fig,'color','w','pos',[1932 517 1050 611])
+fig = figure; set(fig,'color','w','pos',[1932 481 1268 647])%[1932 517 1050 611]
 for ii = 1:num.exp
     i = expOrder(ii);
     kolor = grouped(i).color;
     x = data(i).G(1).TR.temps(1:end-1);
     [h_speed,c_speed] = deal([]);
-    
-    % heating | cooling locations 
     rateIdx = data(i).G(1).TR.rateIdx;
+    
+    % heating locations 
     idx = find(data(i).G(1).TR.rates>0);
     heatloc = rateIdx==idx;
-    h_style = '--'; 
+    h_style = '-'; 
+    % cooling locations
     idx = find(data(i).G(1).TR.rates<0);
     coolloc = rateIdx==idx;
-    c_style = '-';
+    c_style = '--';
 
     %pull temp avg data
     tempIdx = data(i).G(1).TR.tempIdx;
@@ -2032,9 +2033,11 @@ subplot(r,c,2)
     ylabel('Speed diff (cool-heat)')
     h_line(0,'w',':',1)
 subplot(r,c,3)
+    xlim([0.5,num.exp+.5])
     h_line(0,'w',':',1)
     ylabel('Cumulative speed difference')
     set(gca,'xcolor','k')
+    
    
 % SIG HYSTERESIS STATS: are the means of any groups different from zero?
 p = [];
@@ -2100,6 +2103,68 @@ end
 
 % save figure
 save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],'-png');  
+
+%% FIGURE: difference between a 'control' and 'test' group (i.e. food | no food)
+
+clearvars('-except',initial_vars{:})
+
+if ~(num.exp==2)
+    warndlg('Need to input paired exp numbers')
+    return
+end
+plot_err = true;
+blkbgd = true;
+
+
+LW = 0.75;
+sSpan = 180;
+
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+else
+    foreColor = 'k';
+    backColor = 'w';
+end
+compareY = [];
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[2414 500 397 590])
+hold on
+for i = 1:num.exp
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+        x = grouped(i).dist.distavgbytemp(:,1);
+        y = grouped(i).dist.distavgbytemp(:,2);
+        y_err = grouped(i).dist.distavgbytemp_err(:,2);
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
+        dataString{i} = grouped(i).name;
+        compareY(:,i) = y;
+end
+diffY = compareY(:,2)-compareY(:,1);
+plot(x, diffY,'color',Color('lightpink'),'linewidth',2);
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd);
+
+% temp-distance relationship 
+ylabel('distance (mm)')
+xlabel('temp (\circC)')
+ylim([0,35])
+% 
+legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[saveDir expGroup ' distance difference between groups'],'-png');
 
 %% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
 % do we need a fourth ramp??
