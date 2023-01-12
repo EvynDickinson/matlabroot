@@ -56,7 +56,7 @@ switch questdlg('Select data saving format:','','new structure','existing struct
         return
 end
 
-%% ANALYSIS: get average timecourse traces for each group
+%% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
@@ -235,8 +235,13 @@ disp('Next')
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols
 clearvars('-except',initial_vars{:})
-plot_err = true;
+plot_err = false;
 blkbgd = true;
+% Y limit ranges
+speed_lim = [0,6.2]; %speed
+dist_lim = [10, 31]; %distance
+dt_lim = [14, 28];        %distance-temp
+nMax = 6; %num.exp
 
 % set up figure aligments
 r = 5; %rows
@@ -259,7 +264,8 @@ end
 
 % FIGURE:
 fig = figure; set(fig,'color','w',"Position",[1934 468 1061 590])
-for i = 1:num.exp
+for i = 1:nMax
+%     i = expOrder(ii);
     x = grouped(i).time;
     kolor = grouped(i).color;
 
@@ -272,23 +278,15 @@ for i = 1:num.exp
     subplot(r,c,sb(2).idx); hold on
         y = smooth(grouped(i).dist.avg,'moving',sSpan);
         y_err = smooth(grouped(i).dist.err,'moving',sSpan);
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-%             set(h, 'facealpha', 0.2)
-%         end
         plot(x,y,'LineWidth',LW,'Color',kolor)
+        ylim(dist_lim)
 
 %     %speed
     subplot(r,c,sb(3).idx); hold on
         y = smooth(grouped(i).speed.avg,'moving',sSpan);
         y_err = smooth(grouped(i).speed.err,'moving',sSpan);
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-%             set(h, 'facealpha', 0.2)
-%         end
         plot(x,y,'LineWidth',LW,'Color',kolor)
+        ylim(speed_lim)
 
     %temp dependent distance
     subplot(r,c,sb(4).idx); hold on
@@ -307,36 +305,6 @@ for i = 1:num.exp
             set(h, 'facealpha', 0.2)
         end
         dataString{i} = grouped(i).name;
-
-%         %increasing 
-%         x = grouped(i).increasing.temps;
-%         y = grouped(i).increasing.avg;
-%         y_err = grouped(i).increasing.err;
-%         loc = isnan(y) | isnan(y_err);% remove nans 
-%         y(loc) = []; x(loc) = []; y_err(loc) = [];
-% 
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.2)
-%         end
-%         plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
-%         %decreasing 
-%         x = grouped(i).decreasing.temps;
-%         y = grouped(i).decreasing.avg;
-%         y_err = grouped(i).decreasing.err;
-%         loc = isnan(y) | isnan(y_err);% remove nans 
-%         y(loc) = []; x(loc) = []; y_err(loc) = [];
-% 
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.2)
-%         end
-%         plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
-% 
-%         % Names and Colors of included data
-%         dataString{i} = grouped(i).name;
 end
 
 % FORMATING AND LABELS
@@ -357,9 +325,7 @@ xlabel('time (min)')
 subplot(r,c,sb(4).idx) 
 ylabel('distance (mm)')
 xlabel('temp (\circC)')
-ylim([10,40])
-% ylim([10,30])
-% ylim([16,28])
+ylim(dt_lim)
 h_line([18.1,36.2],'grey',':',1)
 % 
 legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
@@ -492,7 +458,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(mlt(:),id(:),'off');
 if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats);
+    [c,~,~,~] = multcompare(stats,.05,'off');
 else
     [c,~,~,~] = multcompare(stats,[],'off');
 end
