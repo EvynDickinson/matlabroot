@@ -525,7 +525,7 @@ switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min
         ylimits = [-15,15];
         dispROI = 50;
 end
-        
+      
 
 % 
 timeROI = 60; % how many minutes to look at behavior after each event
@@ -2514,3 +2514,353 @@ save_figure(fig,[saveDir expGroup ' physcial well distance selection'],'-png');
 
 
 
+%% FIGURE & STATS: Hysteresis within a specific time range
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 50;
+r = 1; %rows
+c = 3; %columns
+plot_err = false;
+plotSig = true; %plot significance stars
+
+ROI = [14,18];
+
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[1932 517 1050 611])
+% Hystersis
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    %increasing 
+    x = grouped(i).increasing.temps;
+    y = grouped(i).increasing.avg;
+    y_err = grouped(i).increasing.err;
+    loc = isnan(y) | isnan(y_err);% remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
+    %decreasing 
+    x = grouped(i).decreasing.temps;
+    y = grouped(i).decreasing.avg;
+    y_err = grouped(i).decreasing.err;
+    loc = isnan(y) | isnan(y_err);% remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
+
+    % Names and Colors of included data
+    dataString{i} = grouped(i).name;
+end
+subplot(r,c,1) 
+ylabel('distance (mm)')
+xlabel('temp (\circC)')
+xlim([ROI(1),ROI(2)])
+
+% Pull difference in distance heating-cooling
+subplot(r,c,2)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    kolor = grouped(i).color;
+%     plot(x,y,'color',kolor,'LineWidth',LW); 
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',2)
+end
+h_line(0,'w',':',1)
+xlim([ROI(1),ROI(2)])
+xlabel('temp (\circC)')
+ylabel('distance difference (mm)')
+
+% Cumulative difference in proximity
+subplot(r,c,3)
+hold on
+
+%TODO: update for smaller range or range that doesn't match exactly the
+%temperature bins
+for ii = 1:num.exp
+    i = expOrder(ii);
+    kolor = grouped(i).color;
+    %find temp ROI region: 
+    loc = [];
+    loc(1) = find(grouped(i).decreasing.temps==ROI(1));
+    loc(2) = find(grouped(i).decreasing.temps==ROI(2));
+    y1 = grouped(i).decreasing.all(loc(1):loc(2),:);
+    y2 = grouped(i).increasing.all(loc(1):loc(2),:);
+    y = y1-y2;
+    plotY = sum(y,1,'omitnan');
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i))); 
+    scatter(x,plotY,SZ,kolor,"filled","o")
+    plot([ii-buff,ii+buff],[mean(plotY),mean(plotY)],'color','w','LineWidth',2)
+end
+xlim([0.5,num.exp+0.5])
+h_line(0,'w',':',1)
+ylabel('cumulatice difference (mm)')
+
+formatFig(fig,true,[r,c]);
+set(gca,'XTick',[],'xcolor','k')
+xlabel('Group','color','w')
+
+% STATS: are the means of any groups different from zero?
+[p, mlt, id] = deal([]); 
+for ii = 1:num.exp
+    i = expOrder(ii);
+    loc = [];
+    loc(1) = find(grouped(i).decreasing.temps==ROI(1));
+    loc(2) = find(grouped(i).decreasing.temps==ROI(2));
+    y1 = grouped(i).decreasing.all(loc(1):loc(2),:);
+    y2 = grouped(i).increasing.all(loc(1):loc(2),:);
+    y = y1-y2;
+    plotY = sum(y,1,'omitnan');
+    [~,p(ii)] = ttest(plotY); 
+    group_name{ii} = expNames{i};
+    %multicompare
+    mlt = autoCat(mlt, plotY',false);
+    id = autoCat(id,i*ones(length(plotY),1),false);
+end
+%Bonferonni correction: 
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+h = p<=p_limit;
+stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+disp(stats_tbl)
+
+% add significance stars to the figure:
+if plotSig
+    y_pos = rangeLine(fig,1);
+    subplot(r,c,3); hold on
+    for ii = 1:num.exp
+        if h(ii)
+            scatter(ii,y_pos,100,'w','*')
+        end
+    end
+end
+
+
+% STATS:
+% determine which groups differ from each other
+[~,~,stats] = anova1(mlt(:),id(:),'off');
+if strcmp(getenv('COMPUTERNAME'),'ACADIA')
+    [c,~,~,~] = multcompare(stats,.05,'off');
+else
+    [c,~,~,~] = multcompare(stats,[],'off');
+end
+% bonferonni multiple comparisons correction
+alpha = 0.05; %significance level
+m = size(c,1); %number of hypotheses
+sigThreshold = alpha/m;
+%find p-values that fall under the threshold
+significantHypotheses = c(:,6)<=sigThreshold;
+fprintf('\n\nPosition hysteresis cross group comparison statistics\n\n')
+[Group1,Group2,P_Value] = deal([]);
+idx = 0;
+for i = 1:length(significantHypotheses)
+    if significantHypotheses(i)
+        idx = idx+1;
+        Group1{idx,1} = expNames{c(i,1)};
+        Group2{idx,1} = expNames{c(i,2)};
+        P_Value(idx,1) = c(i,6);
+    end
+end
+sig_comp = table(Group1,Group2,P_Value);
+disp(sig_comp)
+
+% save figure
+save_figure(fig,[saveDir 'Hysteresis summary ' num2str(ROI(1)) ' to ' num2str(ROI(2)) ' deg'],'-png');
+
+%% FIGURE: Event aligned with preceding data before event
+
+clearvars('-except',initial_vars{:})
+switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min)','Cancel','Short (15 min)')
+    case 'Short (15 min)'
+        ylimits = [-8,4];
+        dispROI = 15;
+        pre_disp = 10;
+    case 'Long (50 min)'   
+        ylimits = [-15,15];
+        dispROI = 50;
+        pre_disp = 20;
+end
+        
+
+% SELECT THE TIME ROIs
+timeROI = 60; % how many minutes to look at behavior after each event
+preROI = pre_disp;  % how many minutes to look at behavior before each event
+post_duration = ceil(timeROI*3*60);
+pre_duration = ceil(preROI*3*60);
+total_duration = pre_duration+post_duration;
+
+sections = {'increasing','decreasing','holding'};
+s_color = {'red','dodgerblue','white'};
+temp_limits = [nan,nan];
+for i = 1:num.exp
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    for ss = 1:length(sections)
+        switch sections{ss}
+            case 'increasing'
+                tpBin = 'up';
+                nrr = tp.nUp; %number of events for this category
+            case 'decreasing'
+                tpBin = 'down';
+                nrr = tp.nDown;
+            case 'holding'
+                tpBin = 'hold';
+                nrr = tp.nHold;
+        end
+        [temp,temperature] = deal([]);
+        for rr = 1:nrr
+            ROI = tp.(tpBin)(rr,1)-pre_duration:tp.(tpBin)(rr,1)+post_duration;
+            temp(:,:,rr) = grouped(i).dist.all(ROI,:);
+            temperature(:,rr) = grouped(i).temp(ROI);
+        end
+        
+        temp_norm = temp-mean(temp(pre_duration-5:pre_duration+5,:,:),'omitnan'); %normalize to zero distance
+        temp_avg = mean(temp_norm,3);
+        
+        % add to the grouped data
+        grouped(i).ext_aligned.([sections{ss} '_avg']) = temp_avg;
+        grouped(i).ext_aligned.([sections{ss} '_norm']) = temp_norm;
+        grouped(i).ext_aligned.([sections{ss} '_all']) = temp;
+        grouped(i).ext_aligned.([sections{ss} '_SEM']) = std(temp_avg,0,2,'omitnan')/sqrt(num.trial(i));
+        grouped(i).ext_aligned.([sections{ss} '_MEAN']) = mean(temp_avg,2,'omitnan');
+        grouped(i).ext_aligned.([sections{ss} '_temperature']) = mean(temperature,2,'omitnan');
+    end
+    temp_limits(1) = min([temp_limits(1),tp.threshLow]);
+    temp_limits(2) = max([temp_limits(2),tp.threshHigh]);
+    grouped(i).ext_aligned.postTime = timeROI;
+    grouped(i).ext_aligned.preTime = preROI ;
+    grouped(i).ext_aligned.post_duration = post_duration;
+    grouped(i).ext_aligned.pre_duration = pre_duration;  
+end
+
+
+% % FIGURES: SINGLE EXPERIMENT COMPARISON
+% dispROI = 15;
+% duration = ceil(dispROI*3*60);
+% x = linspace(0,dispROI,duration+1);
+% LW = 1.5;
+% 
+for i = 1:num.exp
+% 
+%     fig = figure; set(fig,'pos',[2130 275 428 534])
+%     hold on
+%     for ss = 1:length(sections)
+%         y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1);
+%         y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
+%     
+%         fill_data = error_fill(x, y, y_err);
+%         h = fill(fill_data.X, fill_data.Y, Color(s_color{ss}), 'EdgeColor','none','HandleVisibility','off');
+%         set(h, 'facealpha', 0.4)
+%         plot(x, y,'color',Color(s_color{ss}),'LineWidth',LW)
+%     end
+%     
+%     xlabel('time (min)')
+%     ylabel('distance from food (mm)')
+%     formatFig(fig,true);
+%     title([grouped(i).name],'Color','w','FontSize',12,'FontName','times')
+%     
+%     save_figure(fig,[saveDir grouped(i).name...
+%                 ' event aligned distance -duration ' num2str(dispROI) ' min'],...
+%                 '-png',true);
+end
+
+% FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
+r = 5;
+c = 3;
+sb(1).idx = 1; sb(2).idx = 2; sb(3).idx = 3; % temperature ramps
+sb(4).idx = 4:3:(r*c); sb(5).idx = 5:3:(r*c);  sb(6).idx = 6:3:(r*c);
+
+
+post_dur = ceil(dispROI*3*60);
+pre_dur = ceil(pre_disp*3*60);
+x = [linspace(-pre_disp,0,pre_dur), linspace(0,dispROI,post_dur+1)];
+LW = 1.5;
+SEM_shading = false;
+sSpan = 1;
+
+
+fig = figure; set(fig,'pos',[1932 586 1050 542])
+for ss = 1:length(sections) %
+    % temp ramp
+    subplot(r,c,sb(ss).idx); hold on
+    for i = 1:num.exp
+        y = grouped(i).ext_aligned.([sections{ss} '_temperature'])(1:length(x));
+        plot(x,y,'color', grouped(i).color,'linewidth',LW)
+    end
+    ylabel('\circC')
+    ylim(temp_limits) % TODO 1/4[tp.threshLow,tp.threshHigh]
+    % event-aligned plot
+    subplot(r,c,sb(ss+3).idx); hold on
+    for i = 1:num.exp
+        y = grouped(i).ext_aligned.([sections{ss} '_MEAN'])(1:length(x)); 
+        if SEM_shading
+            y_err = grouped(i).ext_aligned.([sections{ss} '_SEM'])(1:length(x));
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.4)
+        end
+        plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
+    end
+    xlabel('time (min)')
+    ylabel('distance from food (mm)')
+%     title(sections{ss})
+    ylim(ylimits)
+end
+formatFig(fig,true,[r,c],sb);
+for ss = 1:length(sections) %
+    subplot(r,c,sb(ss).idx)
+    set(gca,'xcolor','k')
+end
+
+save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
+            num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
+
+
+
+% % FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING -- NO TEMP PLOTS)
+% r = 1;
+% c = 3;
+% 
+% dispROI = 50;
+% duration = ceil(dispROI*3*60);
+% x = linspace(0,dispROI,duration+1);
+% LW = 1.5;
+% SEM_shading = false;
+% sSpan = 1;
+% 
+% 
+% fig = figure; set(fig,'pos',[1932 690 1050 438])
+% for ss = 1:length(sections) %
+%     subplot(r,c,ss); hold on
+%     for i = 1:num.exp
+%         y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1); 
+%         if SEM_shading
+%             y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
+%             fill_data = error_fill(x, y, y_err);
+%             h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
+%             set(h, 'facealpha', 0.4)
+%         end
+%         plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
+%     end
+%     xlabel('time (min)')
+%     ylabel('distance from food (mm)')
+%     title(sections{ss})
+%     ylim(ylimits)
+% end
+% formatFig(fig,true,[r,c]);
+
+% save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
+%             num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
+    
