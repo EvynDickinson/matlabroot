@@ -2476,44 +2476,6 @@ set(gca,'xcolor','k','ytick',35:1:40)
 save_figure(fig,[saveDir expGroup ' physcial well distance selection'],'-png'); 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% FIGURE & STATS: Hysteresis within a specific time range
 clearvars('-except',initial_vars{:})
 LW = 0.75;
@@ -2685,8 +2647,9 @@ save_figure(fig,[saveDir 'Hysteresis summary ' num2str(ROI(1)) ' to ' num2str(RO
 clearvars('-except',initial_vars{:})
 switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min)','Cancel','Short (15 min)')
     case 'Short (15 min)'
-        ylimits = [-8,4];
-        dispROI = 15;
+%         ylimits = [-8,4];
+        ylimits = [-5,2];
+        dispROI = 10;
         pre_disp = 10;
     case 'Long (50 min)'   
         ylimits = [-15,15];
@@ -2722,12 +2685,22 @@ for i = 1:num.exp
         [temp,temperature] = deal([]);
         for rr = 1:nrr
             ROI = tp.(tpBin)(rr,1)-pre_duration:tp.(tpBin)(rr,1)+post_duration;
-            temp(:,:,rr) = grouped(i).dist.all(ROI,:);
-            temperature(:,rr) = grouped(i).temp(ROI);
+            if any(ROI<=0)
+                loc = (ROI<=0);
+                ROI(loc) = [];
+                xx = find(loc); 
+                MT = nan(xx(end),num.trial(i));
+                temp(:,:,rr) = [MT ; grouped(i).dist.all(ROI,:)];
+                temperature(:,rr) = [MT(:,1); grouped(i).temp(ROI)];
+            else
+                temp(:,:,rr) = grouped(i).dist.all(ROI,:);
+                temperature(:,rr) = grouped(i).temp(ROI);
+            end
+            
         end
         
         temp_norm = temp-mean(temp(pre_duration-5:pre_duration+5,:,:),'omitnan'); %normalize to zero distance
-        temp_avg = mean(temp_norm,3);
+        temp_avg = mean(temp_norm,3,'omitnan');
         
         % add to the grouped data
         grouped(i).ext_aligned.([sections{ss} '_avg']) = temp_avg;
@@ -2746,36 +2719,6 @@ for i = 1:num.exp
 end
 
 
-% % FIGURES: SINGLE EXPERIMENT COMPARISON
-% dispROI = 15;
-% duration = ceil(dispROI*3*60);
-% x = linspace(0,dispROI,duration+1);
-% LW = 1.5;
-% 
-for i = 1:num.exp
-% 
-%     fig = figure; set(fig,'pos',[2130 275 428 534])
-%     hold on
-%     for ss = 1:length(sections)
-%         y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1);
-%         y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
-%     
-%         fill_data = error_fill(x, y, y_err);
-%         h = fill(fill_data.X, fill_data.Y, Color(s_color{ss}), 'EdgeColor','none','HandleVisibility','off');
-%         set(h, 'facealpha', 0.4)
-%         plot(x, y,'color',Color(s_color{ss}),'LineWidth',LW)
-%     end
-%     
-%     xlabel('time (min)')
-%     ylabel('distance from food (mm)')
-%     formatFig(fig,true);
-%     title([grouped(i).name],'Color','w','FontSize',12,'FontName','times')
-%     
-%     save_figure(fig,[saveDir grouped(i).name...
-%                 ' event aligned distance -duration ' num2str(dispROI) ' min'],...
-%                 '-png',true);
-end
-
 % FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING)
 r = 5;
 c = 3;
@@ -2788,8 +2731,8 @@ pre_dur = ceil(pre_disp*3*60);
 x = [linspace(-pre_disp,0,pre_dur), linspace(0,dispROI,post_dur+1)];
 LW = 1.5;
 SEM_shading = false;
-sSpan = 1;
-
+sSpan = 30;
+xlimit = [-pre_disp,dispROI];
 
 fig = figure; set(fig,'pos',[1932 586 1050 542])
 for ss = 1:length(sections) %
@@ -2801,6 +2744,8 @@ for ss = 1:length(sections) %
     end
     ylabel('\circC')
     ylim(temp_limits) % TODO 1/4[tp.threshLow,tp.threshHigh]
+    v_line(0,'w',':',1)
+    xlim(xlimit)
     % event-aligned plot
     subplot(r,c,sb(ss+3).idx); hold on
     for i = 1:num.exp
@@ -2811,12 +2756,14 @@ for ss = 1:length(sections) %
             h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
             set(h, 'facealpha', 0.4)
         end
-        plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
+        plot(x, smooth(y,sSpan,'moving'),'color',grouped(i).color,'LineWidth',LW)
     end
     xlabel('time (min)')
-    ylabel('distance from food (mm)')
+    ylabel('distance (mm)')
 %     title(sections{ss})
     ylim(ylimits)
+    v_line(0,'w',':',1)
+    xlim(xlimit)
 end
 formatFig(fig,true,[r,c],sb);
 for ss = 1:length(sections) %
@@ -2825,42 +2772,47 @@ for ss = 1:length(sections) %
 end
 
 save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
-            num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
+            num2str(sSpan) ' duration ' num2str(dispROI) ' min with pretime'],'-png',true);
 
 
 
-% % FIGURE: CROSS EXPERIMENT COMPARISION (WITHIN HEATING,COOLING,HOLDING -- NO TEMP PLOTS)
-% r = 1;
-% c = 3;
-% 
-% dispROI = 50;
-% duration = ceil(dispROI*3*60);
-% x = linspace(0,dispROI,duration+1);
-% LW = 1.5;
-% SEM_shading = false;
-% sSpan = 1;
-% 
-% 
-% fig = figure; set(fig,'pos',[1932 690 1050 438])
-% for ss = 1:length(sections) %
-%     subplot(r,c,ss); hold on
-%     for i = 1:num.exp
-%         y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1); 
-%         if SEM_shading
-%             y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.4)
-%         end
-%         plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
-%     end
-%     xlabel('time (min)')
-%     ylabel('distance from food (mm)')
-%     title(sections{ss})
-%     ylim(ylimits)
-% end
-% formatFig(fig,true,[r,c]);
-
-% save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
-%             num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
+% % 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

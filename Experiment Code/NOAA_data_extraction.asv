@@ -295,13 +295,15 @@ for ii = 1 : nCity
 end
 
 fig = figure;
-scatter(latitude,all_corr,40,'w')%longitude
-xlabel('Latitude')
+scatter(longitude,all_corr,40,'w')
+xlabel('Longitude')
 ylabel('Correlation coefficient')
 formatFig(fig,true);
-xlim([10,80])
+xlim([-180,-60])
 save_figure(fig,[rootdir 'Figures/Temp-light correlation across cities'],'-png');
-   
+
+    
+    
     
 %% FIGURE: temp over a year (single plot example)
 DaysPerMonth = [1 31 28 31 30 31 30 31 31 30 31 30];
@@ -323,7 +325,7 @@ surf_temp(loc) = nan;
 loc = air_temp<minT | air_temp>maxT;
 air_temp(loc) = nan;
 
-fig = figure; set(fig,'pos',[-1024 265 944 306])
+fig = figure;
 plot(surf_temp,'linewidth', 2, 'Color',Color('teal'))
 set(gca,'XTick',MonthStart,'XTickLabel',monthNames)
 ylabel('Temperature (\circC)')
@@ -337,8 +339,8 @@ save_figure(fig,[rootdir 'Figures/Annual temp in ' city_name{city}],'-png');
 
 %% FIGURE: temp rate over a for a year (single plot example)
 
-fig = figure;set(fig,'pos',[-1024 265 944 306])
-plot(cityData(city).tempRate,'linewidth', 2, 'Color',Color('grey'))%Color('orangered')
+fig = figure;
+plot(cityData(city).tempRate,'linewidth', 2, 'Color',Color('orangered'))
 set(gca,'XTick',MonthStart,'XTickLabel',monthNames)
 ylabel('\DeltaT (\circC/min)')
 title_str = [city_name{city} ' 2021'];
@@ -348,7 +350,6 @@ axis tight
 
 formatFig(fig,true);
 set(gca, 'fontsize', 15)
-ylim([-1.5,1.5])
 save_figure(fig,[rootdir 'Figures/Annual temprate in ' city_name{city}],'-png');
 
 %% FIGURE: temp rate histogram over a year (sinple plot example)
