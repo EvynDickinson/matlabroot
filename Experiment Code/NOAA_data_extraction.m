@@ -252,21 +252,23 @@ save_figure(fig,[rootdir 'Figures/Sample locations'],'-pdf');
 %% FIGURE: temp rate PDFs for all NOAA stations
 
 % Plot the distribution functions overlaid
-fig = figure; hold on
+fig = figure; set(fig,'pos',[-655 564 442 662]); hold on
     temp = data1(:,5:end)';
     for ii = 1:size(temp,2)
-        plot(X, temp(:,ii),'color', CList(ii,:),'linewidth',1)
+        plot(X, temp(:,ii),'color', Color('grey'),'linewidth',0.5) %CList(ii,:)
     end
     xlabel('\DeltaT (\circC/min)')
     ylabel('PDF')
-    formatFig(fig, false);
+    formatFig(fig, true);
     set(gca, 'fontsize', 18)
+%     v_line([-0.5,0.5],'lime','-',1)
+%     v_line([-0.1,0.1],'lime','-',1)
 %     v_line([-0.5,0.5],'orange',':',1)
 %     v_line([-0.25,0.25],'darkviolet',':',1)
 %     v_line([-0.1,0.1],'turquoise',':',1)
-xlim([-0.35,0.35])
+% xlim([-0.35,0.35])
 
-save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-pdf'); % rate lines
+save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-png'); % rate lines
 
 %% FIGURE:  plot histogram of all the change rates...
 
@@ -1294,12 +1296,48 @@ axis tight
 
 formatFig(fig, false, [row,col]);
 
+%% Range of temperature change in a day
 
 
+tRange = nan(366,nCity);
+for city = 1:nCity
+    temp = cityData(city).T(:,9); % air temp
+    time = cityData(city).T(:,5); % local solar time
+    %remove temp outliers
+    loc = temp(:,1)>57 | temp(:,1)<-90;
+    temp(loc) = nan;   
+    %find temp range per day
+    dayStarts = find(time==0);
+    for ii = 1:length(dayStarts)-1
+        ROI = dayStarts(ii):dayStarts(ii+1);
+        tRange(ii,city) = range(temp(ROI));
+    end
+end
 
 
+% FIGURE
+SZ = 10;
+MT = ones(1,366);
+fig = figure; set(fig,'pos',[-1056 637 1010 496]); hold on
+for city = 1:nCity
+    x = city*MT;
+    y = tRange(:,city);
+    scatter(x,y,SZ,'w')
+    scatter(city,mean(y,'omitnan'),SZ,'r','filled')
+end
+formatFig(fig,true);
+ylabel('Daily temperature range (\circC)')
+set(gca,'xtick',[],'xcolor','k')
+xlabel('2021 US cities','color','white')
+% optional plot nationwide average
+national_avg = mean(mean(tRange,1,'omitnan'));
+h_line(national_avg,'lime','-',1)
+
+save_figure(fig,[rootdir 'Figures/avg temperature range all cities'],'-png');
 
 
+[~,city] = (max(mean(tRange,1,'omitnan')));
+disp(city_name{city})
 
 
 

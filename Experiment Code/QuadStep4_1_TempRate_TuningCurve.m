@@ -67,6 +67,7 @@ grouped = struct;
 if strcmp(expGroup,'WT linear recovery caviar')
     expOrder = [];
     expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'};
+%     expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi','Zimbabwe'};
     colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
     for ii = 1:num.exp
         expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
@@ -93,11 +94,13 @@ else
 %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
 %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
 %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
-    colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
+%     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
 %     colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
-%     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'}; %===UAS linecomparisons===
+%===UAS linecomparisons===
+%     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'}; 
 %     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
-%     colors = {'White','magenta','dodgerblue','Orange'}; % ===sex comparison colors===
+% ===sex comparison colors===
+    colors = {'White','magenta','dodgerblue','Orange'}; 
 end
 
 for i = 1:num.exp % FOR EACH DATA GROUP 
@@ -235,13 +238,14 @@ disp('Next')
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols
 clearvars('-except',initial_vars{:})
-plot_err = false;
+plot_err = true;
 blkbgd = true;
 % Y limit ranges
 speed_lim = [0,6.2]; %speed
 dist_lim = [10, 31]; %distance
-dt_lim = [14, 28];        %distance-temp
-nMax = 6; %num.exp
+% dt_lim = [14, 28];        %distance-temp
+dt_lim = [10, 28];        %distance-temp
+nMax = num.exp;%
 
 % set up figure aligments
 r = 5; %rows
@@ -2208,7 +2212,7 @@ legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off',
 % save figure
 save_figure(fig,[saveDir expGroup ' distance difference between groups'],'-png');
 
-%% FIGURE: speed and distance correlation
+%% FIGURE: Speed - distance correlation
 clearvars('-except',initial_vars{:})
 plot_err = true;
 corr_coef = [];
@@ -2474,7 +2478,6 @@ h_line(36.2,'gold','--',1.5)
 ylim([35,40])
 set(gca,'xcolor','k','ytick',35:1:40)
 save_figure(fig,[saveDir expGroup ' physcial well distance selection'],'-png'); 
-
 
 %% FIGURE & STATS: Hysteresis within a specific time range
 clearvars('-except',initial_vars{:})
@@ -2778,15 +2781,67 @@ save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
 
 % % 
     
+%% FIGURE: (WT) latutide organized 
+clearvars('-except',initial_vars{:})
+corr_coef = [];
+buff = 0.2;
+
+lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
+latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];
+
+% get correlation data
+for i = 1:num.exp
+    pooledData = [];
+    % get speed / distance information
+    for trial = 1:num.trial(i)
+        x = data(i).data(trial).occupancy.temp;
+        y = grouped(i).dist.all(:,trial);
+        temp = [];
+        temp = autoCat(temp,x,false);%temp for each trial within the exp.
+        temp = autoCat(temp,y,false);%dist for each trial within the exp
+        loc = any(isnan(temp),2);
+        temp(loc,:) = [];
+        % speed-distance correlation
+        rho = corr(temp); 
+        corr_coef(i).all(trial) = rho(1,2);
+        % save data for pooled comparison
+        pooledData = [pooledData; temp];
+    end
+    % Pooled speed-distance correlation
+    rho = corr(pooledData); 
+    corr_coef(i).group = rho(1,2);
+end
 
 
+% correlation coefficients
+fig = figure; set(fig,'color','w',"Position",[2108 475 453 590]); hold on
+hold on
+ for ii = 1:num.exp
+   i = find(contains(expNames,lat_list(ii)));
+     
+   kolor = grouped(i).color;
+   lat = latitudes(ii);
+   xlow = lat-2;
+   xhigh = lat+2;
+%    x = shuffle_data(linspace(lat-buff,lat+buff,num.trial(i)));
+   x = lat*ones(1,num.trial(i));
+   y = corr_coef(i).all;
+   y_avg = mean(corr_coef(i).all);
+   scatter(x,y,50,kolor,'filled')
+%    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
+%    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
+ end
+ xlim([-30,70])       
+ ylabel('temperature-distance correlation')
+ h_line(0,'w',':',1)    
+ formatFig(fig,true);    
+ set(gca,'xcolor','w')
+ xlabel('latitude (\circ)')
+% save figure
+save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],'-png');  
 
 
-
-
-
-
-
+    
 
 
 

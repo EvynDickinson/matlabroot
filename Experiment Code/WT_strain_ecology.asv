@@ -1,0 +1,16 @@
+
+
+
+% Berlin.min_temp = ;
+% Berlin.max_temp = ;
+% Berlin.temp_variance = ;
+% Berlin.elevation = 43;
+
+Berlin.lat = 52.5200;
+Zimbabwe.lat = -19.0154;
+Malawi.lat = -13.2543;
+CantonS.lat = 40.7989;
+Swedish.lat = 60.1282;
+OregonR.lat = 43.8041;
+
+
