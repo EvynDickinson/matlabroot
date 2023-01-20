@@ -86,21 +86,26 @@ else
     
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
 
-%     % Temperature shift experiments
+% === Temperature shift experiments ===
 %     expOrder = [3, 1, 2]; %lowest to highest
 %     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
-    
-%     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; % ===food no-food comp===
+
+% === food no-food comp ===
+%     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
 %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
 %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
 %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
 %     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
 %     colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
-%===UAS linecomparisons===
-%     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'}; 
+%=== UAS linecomparisons ===
+%     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'};
+%     expOrder = [1,3,2]; %lowest to highest
+%     colors = {'Blue','DeepSkyBlue','White'};
+    expOrder = [1,2,3]; %lowest to highest
+    colors = {'Blue','CadetBlue','LightGrey'};
 %     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
-% ===sex comparison colors===
-    colors = {'White','magenta','dodgerblue','Orange'}; 
+% === sex comparison colors ===
+%     colors = {'White','magenta','dodgerblue','Orange'}; 
 end
 
 for i = 1:num.exp % FOR EACH DATA GROUP 
@@ -241,11 +246,11 @@ clearvars('-except',initial_vars{:})
 plot_err = true;
 blkbgd = true;
 % Y limit ranges
-speed_lim = [0,6.2]; %speed
-dist_lim = [10, 31]; %distance
+speed_lim = [0,10]; %speed
+dist_lim = [10, 35]; %distance
 % dt_lim = [14, 28];        %distance-temp
-dt_lim = [10, 28];        %distance-temp
-nMax = num.exp;%
+dt_lim = [12, 30];        %distance-temp
+nMax =  num.exp;%
 
 % set up figure aligments
 r = 5; %rows
@@ -526,7 +531,7 @@ switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min
         ylimits = [-8,4];
         dispROI = 15;
     case 'Long (50 min)'   
-        ylimits = [-15,15];
+        ylimits = [-12,12];
         dispROI = 50;
 end
       
@@ -583,7 +588,7 @@ end
 % 
 % for i = 1:num.exp
 % 
-%     fig = figure; set(fig,'pos',[2130 275 428 534])
+%     fig = figure; set(fig,'pos',[2143 225 428 832]) %[2130 275 428 534])
 %     hold on
 %     for ss = 1:length(sections)
 %         y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1);
@@ -619,7 +624,7 @@ SEM_shading = false;
 sSpan = 1;
 
 
-fig = figure; set(fig,'pos',[1932 586 1050 542])
+fig = figure; set(fig,'pos',[728 463 1459 542]) %[1932 586 1050 542])
 for ss = 1:length(sections) %
     % temp ramp
     subplot(r,c,sb(ss).idx); hold on
@@ -653,7 +658,7 @@ for ss = 1:length(sections) %
 end
 
 save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
-            num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png',true);
+            num2str(sSpan) ' duration ' num2str(dispROI) ' min'],'-png');
 
 
 
@@ -1803,6 +1808,65 @@ xlabel('Distance to food (mm)')
 formatFig(fig, true);
 
 save_figure(fig,[saveDir expGroup ' nearest neighbor vs food distance'],'-png');
+
+%% FIGURE: Nearest neighbor-temp correlation
+
+clearvars('-except',initial_vars{:})
+corr_coef = [];
+buff = 0.2;
+if num.exp<=3
+    fig_pos = [2108 475 314 590];
+else
+    fig_pos = [2108 475 453 590];
+end
+
+% get correlation data
+for i = 1:num.exp
+    pooledData = [];
+    % get speed / distance information
+    for trial = 1:num.trial(i)
+        x = data(i).data(trial).occupancy.temp; % temperature
+        y = grouped(i).NN.all(trial,:)';       % nearest neighbor distance
+        temp = [];
+        temp = autoCat(temp,x,false);%temp for each trial within the exp.
+        temp = autoCat(temp,y,false);%dist for each trial within the exp
+        loc = any(isnan(temp),2);
+        temp(loc,:) = [];
+        % speed-distance correlation
+        rho = corr(temp); 
+        corr_coef(i).all(trial) = rho(1,2);
+        % save data for pooled comparison
+        pooledData = [pooledData; temp];
+    end
+    % Pooled speed-distance correlation
+    rho = corr(pooledData); 
+    corr_coef(i).group = rho(1,2);
+end
+
+
+% correlation coefficients
+fig = figure; set(fig,'color','w',"Position",fig_pos); hold on
+hold on
+ for ii = 1:num.exp
+   i = expOrder(ii);
+   kolor = grouped(i).color;
+   xlow = ii-buff-0.1;
+   xhigh = ii+buff+0.1;
+   x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+   y = corr_coef(i).all;
+   y_avg = mean(corr_coef(i).all);
+   scatter(x,y,50,kolor,'filled')
+   plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
+   plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
+ end
+ xlim([0.5,num.exp+.5])       
+ ylabel('correlation between temp-clustering')
+ h_line(0,'w',':',1)    
+ formatFig(fig,true);    
+ set(gca,'xcolor','k')
+ 
+% save figure
+save_figure(fig,[saveDir expGroup ' temp NearestNeighbor correlation'],'-png');  
 
 %% FIGURE: 3D temperature modulation of behavior
 clearvars('-except',initial_vars{:})
