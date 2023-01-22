@@ -24,6 +24,99 @@ Zimbabwe.lat = -19.0154;
 
 
 
+%% Saved geographical locations and names
+
+stocks(1).name = 'Berlin';
+stocks(1).coor = [52.52, 13.4];
+stocks(1).color = 'Purple';
+
+stocks(2).name = 'CantonS';
+stocks(2).coor = [40.79, -81.38];
+stocks(2).color = 'Blue';
+
+stocks(3).name = 'OregonR';
+stocks(3).coor = [43.8,-120.55];
+stocks(3).color = 'Green';
+
+stocks(4).name = 'SwedishC';
+stocks(4).coor = [60.13, 18.64];
+stocks(4).color = 'Red';
+
+stocks(5).name = 'Malawi';
+stocks(5).coor = [-13.25, 34.3];
+stocks(5).color = 'Gold';
+
+stocks(6).name = 'Zimbabwe';
+stocks(6).coor = [-19.02, 29.15];
+stocks(6).color = 'White';
+%%  potnetial new stocks
+
+%japan
+stocks(7).name = 'Hikone';
+stocks(7).coor = [35.27,136.26];
+stocks(7).color = 'orange';
+
+%harwich, mass (~same as canton/oregon)
+stocks(8).name = 'Harwich';
+stocks(8).coor = [41.67, -70.06];
+stocks(8).color = 'cyan';
+
+stocks(9).name = 'Crimea';
+stocks(9).coor = [45.34,34.50];
+stocks(9).color = 'magenta';
 
 
-%% Temperature data
+% stocks(7).name = 'Samarakand';
+% stocks(7).coor = [];
+% stocks(7).color = '';
+
+% stocks(7).name = 'Lausanna';
+% stocks(7).coor = [];
+% stocks(7).color = '';
+
+% stocks(7).name = '';
+% stocks(7).coor = [];
+% stocks(7).color = '';
+
+% stocks(7).name = '';
+% stocks(7).coor = [];
+% stocks(7).color = '';
+
+%% Geographical locations
+
+rootdir = 'G:\My Drive\Jeanne Lab\DATA\Ecological Data\';
+
+blackbackground = true;
+if blackbackground
+    fColor = 'k';
+    bColor = 'w';
+else
+    fColor = 'w';
+    bColor = 'k';
+end
+
+
+
+% Plot locations
+fig = figure; set(fig, 'pos',[534 166 956 663])
+for i = 1:length(stocks)
+    geoscatter(stocks(i).coor(1), stocks(i).coor(2), 36, Color(stocks(i).color),'filled','MarkerEdgeColor','black')
+    geobasemap colorterrain
+    set(fig, 'color', fColor); 
+    hold on
+end
+ax = gca;
+set(ax, 'fontsize', 15, 'grid', 'on')
+
+ax.LongitudeLabel.Color = bColor;
+ax.LatitudeLabel.Color = bColor;
+ax.LongitudeAxis.Color = bColor;
+ax.LatitudeAxis.Color = bColor;
+
+% ax.LongitudeLimits = [-175.3770 -62.7130];
+% ax.LatitudeLimits = [18.2455 72.6145];
+
+save_figure(fig,[rootdir 'Figures/Genotype locations'],'-png');
+
+
+
