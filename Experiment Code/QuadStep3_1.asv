@@ -114,9 +114,8 @@ end
 
 % RANDOMIZE well location for empty trials (movement only controls) TODO
 for trial = 1:ntrials
-    loc = randi(4);
-    data(trial).wellLabels{loc} = 'Movement';
-    T.(['Well' num2str(loc)]){trial} = 'Movement';
+    data(trial).wellLabels{randi(4)} = 'Movement';
+    T.Well1{trial} = 'Movement';
 end
 
 
