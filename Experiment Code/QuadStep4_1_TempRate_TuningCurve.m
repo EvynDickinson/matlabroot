@@ -96,13 +96,13 @@ else
 %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
 %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
 %     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
-%     colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
+    colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
 %=== UAS linecomparisons ===
 %     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'};
 %     expOrder = [1,3,2]; %lowest to highest
 %     colors = {'Blue','DeepSkyBlue','White'};
-    expOrder = [1,2,3]; %lowest to highest
-    colors = {'Blue','CadetBlue','LightGrey'};
+%     expOrder = [1,2,3]; %lowest to highest
+%     colors = {'Blue','CadetBlue','LightGrey'};
 %     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
 % === sex comparison colors ===
 %     colors = {'White','magenta','dodgerblue','Orange'}; 
@@ -2501,17 +2501,6 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation'],'-png');  
 
-%% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
-% do we need a fourth ramp??
-clearvars('-except',initial_vars{:})
-
-
-% range traveled over ramp
-
-% hysteresis over ramp
-
-% min distance over ramp 
-
 %% FIGURE: avg distance between wells using the pix2mm conversion
 pix2mm = 12.8;
 
@@ -2904,8 +2893,174 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],'-png');  
 
+%% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
+% do we need a fourth ramp??
+clearvars('-except',initial_vars{:})
+CList = {'BlueViolet','MediumPurple','Plum','Thistle'};
+buff = 0.2;
+SZ = 50;
+
+for i = 1:num.exp %experimental group
+
+    % Pull data for this experimental group
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    ROIs = [tp.down(:,1),tp.up(:,2)];
+    nRamps = size(ROIs,1);
+    [avg_dist,avg_dist_err,dist_range,TD_corr] = deal([]);
+    for ramp = 1:nRamps
+        idx = ROIs(ramp,1):ROIs(ramp,2);
+        temp = grouped(i).dist.all(idx,:);
+        % avg distance
+        avg_dist = autoCat(avg_dist,mean(temp,2,'omitnan'),false);
+        avg_dist_err = autoCat(avg_dist_err,std(temp,0,2,'omitnan'),false);
+        % temp range
+        dist_range(:,ramp) = range(temp)';
+        % temp_correlation
+        temperature = grouped(i).temp(idx);
+        TD_corr(:,ramp) = corr(temperature,temp)';
+    end
+
 
     
+
+    fig = figure; set(fig, 'pos',[-1015 668 927 532]); 
+    % Plot the ramp overlays:
+    subplot(1,3,1); hold on
+        for ramp = 1:nRamps
+
+            y = avg_dist(:,ramp);
+            y_err = avg_dist_err(:,ramp);
+            x = 1:length(y); x = x./(3*60); %convert to minutes (fps*sec/min)
+
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, Color(CList{ramp}), 'EdgeColor','none');
+            set(h, 'facealpha', 0.2)
+            plot(x,y,'linewidth',1,'color',Color(CList{ramp}))
+        end
+        set(gca,'YDir','reverse')
+        ylabel('Proximity to food (mm)')
+        xlabel('Time (min)')
+
+    % Plot the ramp range:
+    subplot(1,3,2); hold on
+        for ramp = 1:nRamps
+            x = shuffle_data(linspace(ramp-buff,ramp+buff,num.trial(i)));
+            y = dist_range(:,ramp);
+            scatter(x,y,SZ,Color(CList{ramp}),'filled')
+            plot([ramp-buff,ramp+buff],[mean(y),mean(y)],'linewidth',1.5,'color', Color(CList{ramp}))
+        end
+        xlim([1-(buff*3),nRamps+(buff*3)])
+        ylabel('Range traveled (mm)')
+        set(gca,'xtick',1:nRamps)
+        xlabel('Ramp')
+    % Plot the temp-distance correlation:
+    subplot(1,3,3); hold on
+        for ramp = 1:nRamps
+            x = shuffle_data(linspace(ramp-buff,ramp+buff,num.trial(i)));
+            y = TD_corr(:,ramp);
+            scatter(x,y,SZ,Color(CList{ramp}),'filled')
+            plot([ramp-buff,ramp+buff],[mean(y),mean(y)],'linewidth',1.5,'color', Color(CList{ramp}))
+        end
+        xlim([1-(buff*3),nRamps+(buff*3)])
+        ylabel('Temp-distance correlation')
+        set(gca,'xtick',1:nRamps)
+        xlabel('Ramp')
+
+    formatFig(fig,true,[1,3]);
+
+    save_figure(fig,[saveDir expNames{i} ' ramp-by-ramp overlay'],'-png',true);
+
+end
+
+%% FIGURE: is ramp 4 neccessary??
+% How does the data with ramps 1-3 compare to with ramps 1-4??
+clearvars('-except',initial_vars{:})
+
+
+
+for i = 1:num.exp %experimental group
+
+    % Pull data for this experimental group
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    ROIs = [tp.down(:,1),tp.up(:,2)];
+    nRamps = size(ROIs,1);
+    [avg_dist,avg_dist_err,dist_range,TD_corr] = deal([]);
+    
+    
+    
+    
+    
+    
+    plotData = [];
+    for trial = 1:num.trial(i)
+        temp = [];
+        % Ramps 1:3
+        for ramp = 1:3
+            idx = ROIs(ramp,1):ROIs(ramp,2);
+            y = data(i).G(trial).TR.data(idx,:);
+            temp = autoCat(temp, y, true);
+        end
+        % find the avg temp, distance relationship for each trial:
+        proximity = [];
+        bins = tp.threshLow:0.5:tp.threshHigh;
+        for bb = 1:length(bins)-1
+            loc = temp(:,1)>=bins(bb) & temp(:,1)<bins(bb+1);
+            proximity(bb) = mean(temp(loc,3),'omitnan');
+        end
+        plotData(1).prox(:,trial) = proximity;
+    end
+        
+        figure; 
+        plot( plotData(1).prox)
+        % todo continue here....1/24/23
+        
+        
+        
+        
+        % avg distance
+        avg_dist = autoCat(avg_dist,mean(temp,2,'omitnan'),false);
+        avg_dist_err = autoCat(avg_dist_err,std(temp,0,2,'omitnan'),false);
+        % temp range
+        dist_range(:,trial) = range(temp)';
+        % temp_correlation
+        temperature = grouped(i).temp(idx);
+        TD_corr(:,trial) = corr(temperature,temp)';
+    end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
