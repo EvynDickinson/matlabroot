@@ -2991,7 +2991,7 @@ for i = 1:num.exp %experimental group
     
     
     
-    plotData = [];
+    plotData = []; 
     for trial = 1:num.trial(i)
         temp = [];
         % Ramps 1:3

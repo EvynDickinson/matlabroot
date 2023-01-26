@@ -2991,7 +2991,7 @@ for i = 1:num.exp %experimental group
     
     
     
-    
+    plotData = []; 
     for trial = 1:num.trial(i)
         temp = [];
         % Ramps 1:3
@@ -3007,11 +3007,12 @@ for i = 1:num.exp %experimental group
             loc = temp(:,1)>=bins(bb) & temp(:,1)<bins(bb+1);
             proximity(bb) = mean(temp(loc,3),'omitnan');
         end
-        
+        plotData(1).prox(:,trial) = proximity;
+    end
         
         figure; 
-        plot(proximity)
-        
+        plot( plotData(1).prox)
+        % todo continue here....1/24/23
         
         
         
