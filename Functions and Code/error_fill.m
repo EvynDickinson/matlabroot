@@ -3,8 +3,8 @@ function fill_data = error_fill(xdata, ydata, error)
 % fill_data = error_fill(x, y, y_err)
 % use in this context:
 %
-% fill_data = error_fill(x, y, y_err)
-% h = fill(fill_data.X, fill_data.Y, get_color(color), 'EdgeColor','none');
+% fill_data = error_fill(x, y, y_err);
+% h = fill(fill_data.X, fill_data.Y, Color(color), 'EdgeColor','none');
 % set(h, 'facealpha', 0.2)
 %
 % This takes x,y and y's error data and sorts it into the proper format for 

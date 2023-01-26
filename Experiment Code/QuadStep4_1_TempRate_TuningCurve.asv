@@ -2893,8 +2893,8 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],'-png');  
 
-%% TODO ANALYSIS AND FIGURE: ramp to ramp comparisons of movement
-% do we need a fourth ramp??
+%% FIGURE: Ramp to ramp comparisons of food proximity
+% Q: do we need a fourth ramp??
 clearvars('-except',initial_vars{:})
 CList = {'BlueViolet','MediumPurple','Plum','Thistle'};
 buff = 0.2;
@@ -2976,8 +2976,6 @@ end
 % How does the data with ramps 1-3 compare to with ramps 1-4??
 clearvars('-except',initial_vars{:})
 
-
-
 for i = 1:num.exp %experimental group
 
     % Pull data for this experimental group
@@ -2985,50 +2983,102 @@ for i = 1:num.exp %experimental group
     ROIs = [tp.down(:,1),tp.up(:,2)];
     nRamps = size(ROIs,1);
     [avg_dist,avg_dist_err,dist_range,TD_corr] = deal([]);
-    
-    
-    
-    
-    
-    
-    plotData = []; 
-    for trial = 1:num.trial(i)
-        temp = [];
-        % Ramps 1:3
-        for ramp = 1:3
-            idx = ROIs(ramp,1):ROIs(ramp,2);
-            y = data(i).G(trial).TR.data(idx,:);
-            temp = autoCat(temp, y, true);
+    bins = tp.threshLow:0.5:tp.threshHigh;
+    plotData = [];
+    for g = 1:2 % Groups: 1-3 and full 1-4 ramps
+        switch g
+            case 1
+                rampIdx = 1:4; 
+                plotData(g).color = 'cyan';
+            case 2
+                rampIdx = 1:3;
+                plotData(g).color = 'gold';
+        end              
+        for trial = 1:num.trial(i)
+            temp = []; ramp_range = [];
+            for ramp = rampIdx
+                idx = ROIs(ramp,1):ROIs(ramp,2);
+                y = data(i).G(trial).TR.data(idx,:);
+                temp = autoCat(temp, y, true); % add all ramp data to other ramps
+                ramp_range(ramp) = range(y(:,3)); % get the ramp-specific distance range
+            end
+            % find the avg temp, distance relationship for each trial:
+            % [ignores heating and cooling differences]
+            proximity = [];
+            for bb = 1:length(bins)-1
+                loc = temp(:,1)>=bins(bb) & temp(:,1)<bins(bb+1);
+                proximity(bb) = mean(temp(loc,3),'omitnan');
+            end
+            % distance-temp avg
+            plotData(g).prox(:,trial) = proximity;
+            % correlation
+            plotData(g).corr(trial) = corr(temp(:,1),temp(:,3));
+            % range
+            plotData(g).range(trial) = mean(ramp_range);
         end
-        % find the avg temp, distance relationship for each trial:
-        proximity = [];
-        bins = tp.threshLow:0.5:tp.threshHigh;
-        for bb = 1:length(bins)-1
-            loc = temp(:,1)>=bins(bb) & temp(:,1)<bins(bb+1);
-            proximity(bb) = mean(temp(loc,3),'omitnan');
-        end
-        plotData(1).prox(:,trial) = proximity;
-    end
-        
-        figure; 
-        plot( plotData(1).prox)
-        % todo continue here....1/24/23
-        
-        
-        
-        
-        % avg distance
-        avg_dist = autoCat(avg_dist,mean(temp,2,'omitnan'),false);
-        avg_dist_err = autoCat(avg_dist_err,std(temp,0,2,'omitnan'),false);
-        % temp range
-        dist_range(:,trial) = range(temp)';
-        % temp_correlation
-        temperature = grouped(i).temp(idx);
-        TD_corr(:,trial) = corr(temperature,temp)';
     end
 
+    % Overlay figure
+    SZ = 50;
+    LW = 2;
 
+    fig = figure; 
+    set(fig,'pos',[116 189 1274 622]); 
+    % Average distance per temp bin
+    subplot(1,3,1); hold on
+        x = bins(1:end-1);
+        for g = 1:2
+            kolor = Color(plotData(g).color);
+            y = mean(plotData(g).prox,2,'omitnan');
+            y_err = std(plotData(g).prox,0,2,'omitnan');
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+            set(h, 'facealpha', 0.3)
+            plot(x,y,'linewidth',LW,'color',kolor)
+        end       
+        xlabel('Temperature (\circC)')
+        ylabel('Food proximity (mm)')
+        set(gca,'ydir', 'reverse')
+    % Distance range over ramps
+    subplot(1,3,2); hold on
+        x = [1,2];
+        for trial = 1:num.trial
+            y = [plotData(1).range(trial),plotData(2).range(trial)];
+            plot(x,y,'linewidth',LW,'Color','w')
+        end
+        for g = 1:2
+            x = g*ones(1,num.trial(i));
+            y = plotData(g).range;
+            scatter(x,y,SZ,Color(plotData(g).color),'filled')
+        end
+        xlim([0.8,2.2])
+        ylabel('range (mm)')
+  % Distance range over ramps
+    subplot(1,3,3); hold on
+    x = [1,2];
+        for trial = 1:num.trial
+            y = [plotData(1).corr(trial),plotData(2).corr(trial)];
+            plot(x,y,'linewidth',LW,'Color','w')
+        end
+        for g = 1:2
+            x = g*ones(1,num.trial(i));
+            y = plotData(g).corr;
+            scatter(x,y,SZ,Color(plotData(g).color),'filled')
+        end
+        ylabel('temp-distance correlation')
+        xlim([0.8,2.2])
 
+    formatFig(fig,true, [1,3]);
+    subplot(1,3,2)
+    set(gca,'xcolor','k')
+    subplot(1,3,3)
+    set(gca,'xcolor','k')
+
+    save_figure(fig,[saveDir expNames{i} ' temp-prox ramp comparison'],'-png',true);
+        
+        
+        
+end
 
 
 
