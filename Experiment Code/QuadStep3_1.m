@@ -113,12 +113,14 @@ if ~exist('pix2mm','var')
 end
 
 % RANDOMIZE well location for empty trials (movement only controls) TODO
-for trial = 1:ntrials
-    loc = randi(4);
-    data(trial).wellLabels{loc} = 'Movement';
-    T.(['Well' num2str(loc)]){trial} = 'Movement';
+if all(strcmpi(T.Well1(:),'Empty')) && all(strcmpi(T.Well2(:),'Empty')) &&...
+   all(strcmpi(T.Well3(:),'Empty')) && all(strcmpi(T.Well4(:),'Empty'))     
+    for trial = 1:ntrials
+        loc = randi(4);
+        data(trial).wellLabels{loc} = 'Movement';
+        T.(['Well' num2str(loc)]){trial} = 'Movement';
+    end
 end
-
 
 % fill out the data structure
 for trial = 1:ntrials

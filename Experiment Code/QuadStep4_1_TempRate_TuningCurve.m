@@ -61,9 +61,9 @@ disp(expNames')
 clearvars('-except',initial_vars{:})
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
 initial_vars = unique(initial_vars);
-
 grouped = struct;
 
+% Color selections
 if strcmp(expGroup,'WT linear recovery caviar')
     expOrder = [];
     expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'};
@@ -92,11 +92,11 @@ else
 
 % === food no-food comp ===
 %     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
-%     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
+    colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
 %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
 %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
 %     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
-    colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
+%     colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
 %=== UAS linecomparisons ===
 %     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'};
 %     expOrder = [1,3,2]; %lowest to highest
@@ -248,7 +248,7 @@ blkbgd = true;
 % Y limit ranges
 speed_lim = [0,10]; %speed
 dist_lim = [10, 35]; %distance
-% dt_lim = [14, 28];        %distance-temp
+% dt_lim = [14, 28];      %distance-temp
 dt_lim = [12, 30];        %distance-temp
 nMax =  num.exp;%
 
@@ -324,18 +324,20 @@ ylabel('\circC')
 set(gca,"XColor",backColor)
 % distance
 subplot(r,c,sb(2).idx) 
-ylabel('distance (mm)')
+ylabel('proximity to food (mm)')
 set(gca,"XColor",backColor)
+set(gca,'ydir','reverse')
 % speed
 subplot(r,c,sb(3).idx) 
 ylabel('speed (mm/s)')
 xlabel('time (min)')
 % temp-distance relationship 
 subplot(r,c,sb(4).idx) 
-ylabel('distance (mm)')
+ylabel('proximity to food (mm)')
 xlabel('temp (\circC)')
 ylim(dt_lim)
 h_line([18.1,36.2],'grey',':',1)
+set(gca,'ydir','reverse')
 % 
 legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
 
@@ -392,8 +394,9 @@ for i = 1:num.exp
     dataString{i} = grouped(i).name;
 end
 subplot(r,c,1) 
-ylabel('distance (mm)')
+ylabel('proxiity to food (mm)')
 xlabel('temp (\circC)')
+set(gca, 'ydir', 'reverse')
 
 % Pull difference in distance heating-cooling
 subplot(r,c,2)
@@ -633,7 +636,9 @@ for ss = 1:length(sections) %
         plot(x,y,'color', grouped(i).color,'linewidth',LW)
     end
     ylabel('\circC')
-    ylim(temp_limits) % TODO 1/4[tp.threshLow,tp.threshHigh]
+    ylim(temp_limits) 
+    
+    % TODO 1/4[tp.threshLow,tp.threshHigh]
     % event-aligned plot
     subplot(r,c,sb(ss+3).idx); hold on
     for i = 1:num.exp
@@ -1059,6 +1064,7 @@ end
 
 %% FIGURE: Normalized increasing/decreasing temp responses
 % TODO: add option to plot the heating | cooling on different subplots
+% TODO  1/26 invert the zscore ...  
 clearvars('-except',initial_vars{:})
 
 sep_h_c = true; %separate heating and cooling ramps
