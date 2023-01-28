@@ -88,11 +88,11 @@ else
 
 % === Temperature shift experiments ===
 %     expOrder = [3, 1, 2]; %lowest to highest
-%     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
+    colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
 
 % === food no-food comp ===
 %     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
-    colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
+%     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
 %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
 %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
 %     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
@@ -247,9 +247,9 @@ plot_err = true;
 blkbgd = true;
 % Y limit ranges
 speed_lim = [0,10]; %speed
-dist_lim = [10, 35]; %distance
+dist_lim = [5, 30]; %distance
 % dt_lim = [14, 28];      %distance-temp
-dt_lim = [12, 30];        %distance-temp
+dt_lim = [10, 30];        %distance-temp
 nMax =  num.exp;%
 
 % set up figure aligments
@@ -1459,8 +1459,12 @@ for ll = 1:2
         end
         % % determine which groups differ from each other
         [~,~,stats] = anova1(datastats.all,datastats.id,'off'); close all
-        [c,~,~,~] = multcompare(stats,[],'off');
-
+        if strcmp(getenv('COMPUTERNAME'),'ACADIA')
+            [c,~,~,~] = multcompare(stats);
+        else
+            [c,~,~,~] = multcompare(stats,[],'off');
+        end
+        
         % bonferonni multiple comparisons correction
         alpha = 0.05; %significance level
         m = size(c,1); %number of hypotheses
@@ -2190,7 +2194,11 @@ x(loc) = [];
 
 % determine which groups differ from each other
 [~,~,data_stats] = anova1(x,stats_id,'off');
-[c,~,~,~] = multcompare(data_stats,[],'off');
+if strcmp(getenv('COMPUTERNAME'),'ACADIA')
+    [c,~,~,~] = multcompare(data_stats,"Display",'off');
+else
+    [c,~,~,~] = multcompare(data_stats,[],'off');
+end
 
 % bonferonni multiple comparisons correction
 alpha = 0.05; %significance level
@@ -3083,6 +3091,133 @@ for i = 1:num.exp %experimental group
     save_figure(fig,[saveDir expNames{i} ' temp-prox ramp comparison'],'-png',true);
 
 end
+
+
+%% FIGURE: temp shift experiments: align distance by events not temp
+% TODO: do this for combined and separated heating/cooling distances
+
+clearvars('-except',initial_vars{:})
+plot_err = true;
+blkbgd = true;
+% Y limit ranges
+speed_lim = [0,10]; %speed
+dist_lim = [5, 30]; %distance
+% dt_lim = [14, 28];      %distance-temp
+dt_lim = [10, 30];        %distance-temp
+nMax =  num.exp;%
+
+% set up figure aligments
+LW = 1.5;
+r = 1;
+c = 2;
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+else
+    foreColor = 'k';
+    backColor = 'w';
+end
+
+% FIGURE:
+fig = figure; %set(fig,'color','w',"Position",[1934 468 1061 590])
+subplot(r,c,1)
+hold on
+for i = 1:nMax
+    kolor = grouped(i).color;
+    y = grouped(i).dist.distavgbytemp(:,2);
+    x = 1:length(y);
+
+    y_err = grouped(i).dist.distavgbytemp_err(:,2);
+    loc = isnan(y)|isnan(y_err);
+    x(loc) = [];
+    y(loc) = [];
+    y_err(loc) = [];
+
+    plot(x,y,'color',kolor,'linewidth',LW+1)
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    dataString{i} = grouped(i).name;
+end
+
+subplot(r,c,2)
+hold on
+for i = 1:nMax
+    kolor = grouped(i).color;
+    %increasing 
+    x = grouped(i).increasing.temps;
+    y = grouped(i).increasing.avg;
+    y_err = grouped(i).increasing.err;
+    loc = isnan(y) | isnan(y_err);% remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
+    %decreasing 
+    x = grouped(i).decreasing.temps;
+    y = grouped(i).decreasing.avg;
+    y_err = grouped(i).decreasing.err;
+    loc = isnan(y) | isnan(y_err);% remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
+
+    % Names and Colors of included data
+    dataString{i} = grouped(i).name;
+end
+subplot(r,c,1) 
+ylabel('proxiity to food (mm)')
+xlabel('temp (\circC)')
+set(gca, 'ydir', 'reverse')
+
+
+
+
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx) 
+ylabel('\circC')
+set(gca,"XColor",backColor)
+% distance
+subplot(r,c,sb(2).idx) 
+ylabel('proximity to food (mm)')
+set(gca,"XColor",backColor)
+set(gca,'ydir','reverse')
+% speed
+subplot(r,c,sb(3).idx) 
+ylabel('speed (mm/s)')
+xlabel('time (min)')
+% temp-distance relationship 
+subplot(r,c,sb(4).idx) 
+ylabel('proximity to food (mm)')
+xlabel('temp (\circC)')
+ylim(dt_lim)
+h_line([18.1,36.2],'grey',':',1)
+set(gca,'ydir','reverse')
+% 
+legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
+
+
+
+
+
+
 
 
 
