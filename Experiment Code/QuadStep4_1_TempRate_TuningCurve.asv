@@ -87,11 +87,11 @@ else
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
 
 % === Temperature shift experiments ===
-    expOrder = [3, 1, 2]; %lowest to highest
-    colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
+%     expOrder = [3, 1, 2]; %lowest to highest
+%     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
 
 % === food no-food comp ===
-%     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
+    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
 %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
 %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
 %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
@@ -3093,7 +3093,7 @@ for i = 1:num.exp %experimental group
 end
 
 
-%% FIGURE: temp shift experiments: align distance by events not temp
+%% FIGURE: [temp shift experiments] align distance by events not temp
 % TODO: do this for combined and separated heating/cooling distances
 
 clearvars('-except',initial_vars{:})
@@ -3166,6 +3166,218 @@ for i = 1:nMax
     end
     plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
     %decreasing 
+    y = grouped(i).decreasing.avg;
+    x = 1:length(y);
+    y_err = grouped(i).decreasing.err;
+    loc = isnan(y) | isnan(y_err);% remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
+
+    % Names and Colors of included data
+    dataString{i} = grouped(i).name;
+end
+xmax = x(end);
+xlim([0,xmax+1])
+set(gca,'xtick',[1,xmax],'xticklabels',{'Min','Max'},'ydir', 'reverse')
+xlabel('Temperature')
+ylabel('proxiity to food (mm)')
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c]);
+
+% save figure
+save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],'-png');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% VIDEO: position binned by temp and hysteresis
+
+clearvars('-except',initial_vars{:})
+
+% get temp color distribution (1/4 degree incrememts)
+tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+cMapRange = tp.threshLow:0.25:tp.threshHigh;
+ntemps = length(cMapRange)-1;
+% color map information
+g1 = floor(ntemps/2);
+g2 = ntemps-g1;
+g1_cMap = Color('darkblue','grey',g1); %deepskyblue
+g2_cMap = Color('grey','red',g2);
+cMap = [g1_cMap;g2_cMap];
+
+
+types = {'hold', 'up', 'down'};
+
+for i = 1:num.exp 
+
+  all_data = struct;  
+  for trial = 1:num.trial(i)
+    plotData = [];
+   
+    % positions for all 'flies' over time
+    x = data(i).data(trial).data.x_loc; 
+    y = data(i).data(trial).data.y_loc;
+
+    % temperature for each frame
+    temperature = data(i).data(trial).occupancy.temp;
+    temp_rate = data(i).G(trial).TR.data(:,4); %temp rate info
+%     temporary = [temperature,x_avg,y_avg]; 
+
+    % get arena information
+    well_loc = data(i).T.foodLoc(trial);
+    C = data(i).data(trial).data.centre;
+    r = data(i).data(trial).data.r;
+    well_C = data(i).data(trial).data.wellcenters(:,well_loc);
+    arena_C = data(i).data(trial).data.wellcenters(:,5);   
+    wells = data(i).data(trial).data.wellcenters(:,1:4);
+
+    % Make food well the origin
+    x_offset = wells(1,well_loc);
+    y_offset = wells(2,well_loc);
+    wells_x = wells(1,:)-x_offset;
+    wells_y = wells(2,:)-y_offset;
+    X = x-x_offset;
+    Y = y-y_offset;
+
+    % pull the data points for the 'correct' conditions
+    for ii = 1:ntemps
+
+        
+
+        loc = temperature>=
+
+
+    % Rotate to correct orientation
+    switch well_loc
+        case 1
+            plotData(:,1) = Y;
+            plotData(:,2) = -X;
+            WELLS(:,1) = wells_y;
+            WELLS(:,2) = -wells_x;
+        case 2 
+            plotData(:,1) = X;
+            plotData(:,2) = -Y;
+            WELLS(:,1) = wells_x;
+            WELLS(:,2) = -wells_y;
+        case 3
+            plotData(:,1) = -Y;
+            plotData(:,2) = X;
+            WELLS(:,1) = -wells_y;
+            WELLS(:,2) = wells_x;
+        case 4 
+            plotData(:,1) = X;
+            plotData(:,2) = Y;
+            WELLS(:,1) = wells_x;
+            WELLS(:,2) = wells_y;
+    end
+    
+    
+
+
+
+
+
+
+
+LW = 0.75;
+buff = 0.2;
+SZ = 50;
+r = 1; %rows
+c = 3; %columns
+plot_err = false;
+plotSig = true; %plot significance stars
+
+
+% FIGURE:
+fig = figure; set(fig,'color','w',"Position",[1932 517 1050 611])
+% Hystersis
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    %increasing 
+    x = grouped(i).increasing.temps;
+    y = grouped(i).increasing.avg;
+    y_err = grouped(i).increasing.err;
+    loc = isnan(y) | isnan(y_err);% remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
+    %decreasing 
     x = grouped(i).decreasing.temps;
     y = grouped(i).decreasing.avg;
     y_err = grouped(i).decreasing.err;
@@ -3183,70 +3395,44 @@ for i = 1:nMax
     dataString{i} = grouped(i).name;
 end
 subplot(r,c,1) 
-
-set(gca, )
-
-
-
-
-
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx) 
-ylabel('\circC')
-set(gca,"XColor",backColor)
-% distance
-subplot(r,c,sb(2).idx) 
-ylabel('proximity to food (mm)')
-set(gca,"XColor",backColor)
-set(gca,'ydir','reverse')
-% speed
-subplot(r,c,sb(3).idx) 
-ylabel('speed (mm/s)')
-xlabel('time (min)')
-% temp-distance relationship 
-subplot(r,c,sb(4).idx) 
-ylabel('proximity to food (mm)')
+ylabel('proxiity to food (mm)')
 xlabel('temp (\circC)')
-ylim(dt_lim)
-h_line([18.1,36.2],'grey',':',1)
-set(gca,'ydir','reverse')
-% 
-legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
+set(gca, 'ydir', 'reverse')
 
-% save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
+% Pull difference in distance heating-cooling
+subplot(r,c,2)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    kolor = grouped(i).color;
+%     plot(x,y,'color',kolor,'LineWidth',LW); 
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',2)
+end
+h_line(0,'w',':',1)
+xlabel('temp (\circC)')
+ylabel('distance difference (mm)')
 
+% Cumulative difference in proximity
+subplot(r,c,3)
+hold on
+for ii = 1:num.exp
+    i = expOrder(ii);
 
+    kolor = grouped(i).color;
+    y = grouped(i).decreasing.all-grouped(i).increasing.all;
+    plotY = sum(y,1,'omitnan');
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i))); 
+    scatter(x,plotY,SZ,kolor,"filled","o")
+    plot([ii-buff,ii+buff],[mean(plotY),mean(plotY)],'color','w','LineWidth',2)
+end
+xlim([0.5,num.exp+0.5])
+h_line(0,'w',':',1)
+ylabel('cumulatice difference (mm)')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+formatFig(fig,true,[r,c]);
+set(gca,'XTick',[],'xcolor','k')
+xlabel('Group','color','w')
 
 
 
@@ -3255,26 +3441,150 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
 
 
 
+% vectors to fly 'mass' in arena at different temperatures from food
 
+clearvars('-except',initial_vars{:})
 
+types = {'hold', 'up', 'down'};
 
+for i = 1:num.exp 
+  for trial = 1:num.trial(i)
 
+    % get arena information
+    well_loc = data(i).T.foodLoc(trial);
+    C = data(i).data(trial).data.centre;
+    r = data(i).data(trial).data.r;
+    well_C = data(i).data(trial).data.wellcenters(:,well_loc);
+    arena_C = data(i).data(trial).data.wellcenters(:,5);   
+    
+    % positions for all 'flies' over time
+    x = data(i).data(trial).data.x_loc; 
+    y = data(i).data(trial).data.y_loc;
+    x_avg = mean(x,2,'omitnan');
+    y_avg = mean(y,2,'omitnan');
+    % temperature for each frame
+    temperature = data(i).data(trial).occupancy.temp;
+    temporary = [temperature,x_avg,y_avg]; 
+    
+    % get temp color distribution (1/4 degree incrememts)
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    cMapRange = tp.threshLow:0.25:tp.threshHigh;
+    
+    bin = 1*60*3;
+    ntemps = length(cMapRange)-1;
+    % color map information
+    g1 = floor(ntemps/2);
+    g2 = ntemps-g1;
+    g1_cMap = Color('darkblue','grey',g1); %deepskyblue
+    g2_cMap = Color('grey','red',g2);
+    cMap = [g1_cMap;g2_cMap];
+   
+    for type = 1:length(types)
+        [dsData,position] = deal([]);
+        for ramp = 1:size(tp.(types{type}),1)
+            smoothData = [];
+            ROI = tp.(types{type})(ramp,1):tp.(types{type})(ramp,2); %time points for first type period (e.g. first hold etc)
+            % smooth into 1 minute bins to select one point for each minute
+            for c = 1:size(temporary,2)
+                smoothData(:,c) = smooth(temporary(ROI,c),'moving',bin);
+            end
+            dsData = autoCat(dsData, smoothData(1:bin:end,:)); % select one point for each minute
+        end
+        dsData(:,4) = discretize(dsData(:,1),cMapRange); %binned temp category
+        dsData(isnan(dsData(:,4)),:) = []; %remove data points outside allowed range
+        
+        %avg position for each binned temp
+        for g = 1:ntemps
+            loc = dsData(:,4)==g;
+            position(g,:) = mean(dsData(loc,2:3),1,'omitnan');
+        end
+        % save data into structure:
+        mat(i).position(trial).(types{type}).data = position;
+        mat(i).position(trial).(types{type}).tempBins = cMapRange;
+        mat(i).position(trial).(types{type}).cMap = cMap;
+        mat(i).position(trial).(types{type}).wells = data(i).data(trial).data.wellcenters;
+        mat(i).position(trial).(types{type}).wellLoc = well_loc;
+    end
+  end
+end
 
+% COM
 
+types = {'hold','down','up'};
 
+for i = 1:num.exp
+  fig = figure; set(fig, 'pos',[41 282 1368 557])
+     for trial = 1:num.trial(i)
+        wells = mat(i).position(trial).wells;
+        wellLoc = mat(i).position(trial).wellLoc;
+        kolor = mat(i).position(trial).cMap;
+        
+        for tt = 1:3 %flip through the different types (heating, cooling, holding)
+            subplot(1,3,tt); hold on
+            x = mat(i).position(trial).(types{tt}).data(:,1);
+            y = mat(i).position(trial).(types{tt}).data(:,2);
 
+            % Make food well the origin
+            x_offset = wells(1,wellLoc);
+            y_offset = wells(2,wellLoc);
+            wells_x = wells(1,:)-x_offset;
+            wells_y = wells(2,:)-y_offset;
+            X = x-x_offset;
+            Y = y-y_offset;
+        
+            % Rotate to correct orientation
+            switch wellLoc
+                case 1
+                    plotData(:,1) = Y;
+                    plotData(:,2) = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 2 
+                    plotData(:,1) = X;
+                    plotData(:,2) = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 3
+                    plotData(:,1) = -Y;
+                    plotData(:,2) = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+                case 4 
+                    plotData(:,1) = X;
+                    plotData(:,2) = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+            end
+            % PLOT
+            scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')
+            scatter(WELLS(wellLoc,1),WELLS(wellLoc,2),SZ,'green','filled')
+            scatter(plotData(:,1),plotData(:,2),15,kolor,'filled')
+        end
+     end
+     % Formatting
+     formatFig(fig,blkbgk,[1,3]);
+     for tt = 1:3   
+        subplot(1,3,tt)
+        viscircles([WELLS(5,1),WELLS(5,2)],data(i).data(trial).data.r,'Color','k');
+        axis square; 
+        axis equal;
+        title(types{tt},'color','w')
+        set(gca,'XColor',backColor,'YColor',backColor);
+        if ~strcmpi(getenv('COMPUTERNAME'),'EVYNPC')
+            % set color bar information
+            colorData = uint8(round(kolor.*255)); % convert color map to uint8
+            colormap(colorData);
+            c = colorbar('color',foreColor);
+            set(c,'Ticks',[0,1],'TickLabels',[mat(i).position(trial).tempBins(1),mat(i).position(trial).tempBins(end)]);
+            c.Label.String = 'Temperature (\circC)';
+            c.Label.VerticalAlignment = "bottom";
+        end
+     end
+    
+%     title([data(i).ExpGroup],'color',foreColor)
+    save_figure(fig,[saveDir expGroup grouped(i).name ' rate divided COM position'],'-png',true);
 
-
-
-
-
-
-
-
-
-
-
-
+end
 
 
 
