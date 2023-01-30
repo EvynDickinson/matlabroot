@@ -87,7 +87,7 @@ else
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
 
 % === Temperature shift experiments ===
-%     expOrder = [3, 1, 2]; %lowest to highest
+    expOrder = [3, 1, 2]; %lowest to highest
     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
 
 % === food no-food comp ===
@@ -3141,14 +3141,20 @@ for i = 1:nMax
     end
     dataString{i} = grouped(i).name;
 end
+xmax = x(end);
+xlim([0,xmax+1])
+set(gca,'xtick',[1,xmax],'xticklabels',{'Min','Max'},'ydir', 'reverse')
+xlabel('Temperature')
+ylabel('proxiity to food (mm)')
 
 subplot(r,c,2)
 hold on
 for i = 1:nMax
     kolor = grouped(i).color;
+    
     %increasing 
-    x = grouped(i).increasing.temps;
     y = grouped(i).increasing.avg;
+    x = 1:length(y);
     y_err = grouped(i).increasing.err;
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
@@ -3177,9 +3183,8 @@ for i = 1:nMax
     dataString{i} = grouped(i).name;
 end
 subplot(r,c,1) 
-ylabel('proxiity to food (mm)')
-xlabel('temp (\circC)')
-set(gca, 'ydir', 'reverse')
+
+set(gca, )
 
 
 

@@ -15,12 +15,15 @@ save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', 
 
 
 %% get base folder pathway
-baseFolder = getCloudPath;
+% baseFolder = getCloudPath;
 
-params.well_1 = 'Plant';
-params.well_2 = 'Empty';
-params.well_3 = 'Empty';
-params.well_4 = 'Empty';
+parameters.ArenaA.well_1 = 'Caviar';
+parameters.ArenaA.well_3 = 'Empty';
+
+
+parameters.well_2 = 'Empty';
+parameters.well_3 = 'Empty';
+parameters.well_4 = 'Empty';
 
 params.genotype = select_cross; % choose the fly genotypes
 params.protocol = select_protocol;  % choose experiment protocol

@@ -87,7 +87,7 @@ else
 %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
 
 % === Temperature shift experiments ===
-%     expOrder = [3, 1, 2]; %lowest to highest
+    expOrder = [3, 1, 2]; %lowest to highest
     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
 
 % === food no-food comp ===
@@ -3141,14 +3141,20 @@ for i = 1:nMax
     end
     dataString{i} = grouped(i).name;
 end
+xmax = x(end);
+xlim([0,xmax+1])
+set(gca,'xtick',[1,xmax],'xticklabels',{'Min','Max'},'ydir', 'reverse')
+xlabel('Temperature')
+ylabel('proxiity to food (mm)')
 
 subplot(r,c,2)
 hold on
 for i = 1:nMax
     kolor = grouped(i).color;
+    
     %increasing 
-    x = grouped(i).increasing.temps;
     y = grouped(i).increasing.avg;
+    x = 1:length(y);
     y_err = grouped(i).increasing.err;
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
@@ -3160,8 +3166,8 @@ for i = 1:nMax
     end
     plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
     %decreasing 
-    x = grouped(i).decreasing.temps;
     y = grouped(i).decreasing.avg;
+    x = 1:length(y);
     y_err = grouped(i).decreasing.err;
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
@@ -3176,42 +3182,16 @@ for i = 1:nMax
     % Names and Colors of included data
     dataString{i} = grouped(i).name;
 end
-subplot(r,c,1) 
+xmax = x(end);
+xlim([0,xmax+1])
+set(gca,'xtick',[1,xmax],'xticklabels',{'Min','Max'},'ydir', 'reverse')
+xlabel('Temperature')
 ylabel('proxiity to food (mm)')
-xlabel('temp (\circC)')
-set(gca, 'ydir', 'reverse')
-
-
-
-
-
 % FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx) 
-ylabel('\circC')
-set(gca,"XColor",backColor)
-% distance
-subplot(r,c,sb(2).idx) 
-ylabel('proximity to food (mm)')
-set(gca,"XColor",backColor)
-set(gca,'ydir','reverse')
-% speed
-subplot(r,c,sb(3).idx) 
-ylabel('speed (mm/s)')
-xlabel('time (min)')
-% temp-distance relationship 
-subplot(r,c,sb(4).idx) 
-ylabel('proximity to food (mm)')
-xlabel('temp (\circC)')
-ylim(dt_lim)
-h_line([18.1,36.2],'grey',':',1)
-set(gca,'ydir','reverse')
-% 
-legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
+formatFig(fig,blkbgd,[r,c]);
 
 % save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary'],'-png');
+save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],'-png');
 
 
 
