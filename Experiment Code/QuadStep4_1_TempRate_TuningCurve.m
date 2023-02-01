@@ -3398,7 +3398,8 @@ end
 
 clearvars('-except',initial_vars{:})
 
-exp = 1; 
+exp = 6;
+
 all_data = grouped(exp).video.all_data;
 ntemps = length(grouped(exp).video.temperatures)-1;
 
@@ -3409,31 +3410,66 @@ idx = 1;
 % decreasing temp data first
 tt = 3; 
 for ii = ntemps-1:-1:2
-    n(idx) = max(all_data(tt,ii).N,[],'all');
+    tot = sum(all_data(tt,ii).N,'all');
     % Pull the distance data into a single structure
     dist  = autoCat(dist,[all_data(tt,ii).dist,all_data(tt,ii).dist_err,all_data(tt,ii).temp,-1]);
     % collate image data
-    imageStack(:,:,idx) = rot90(all_data(tt,ii).N);
+    img = all_data(tt,ii).N;
+    imageStack(:,:,idx) = rot90((img./tot)*100);
+    n(idx) = max(imageStack(:,:,idx),[],'all');
     idx = idx+1;
 end
 % increasing temp data next
 tt = 2; 
 for ii = 2:ntemps-1
-    n(idx) = max(all_data(tt,ii).N,[],'all');
+    tot = sum(all_data(tt,ii).N,'all');
     % Pull the distance data into a single structure
     dist  = autoCat(dist,[all_data(tt,ii).dist,all_data(tt,ii).dist_err,all_data(tt,ii).temp,1]);
     % collate image data
-    imageStack(:,:,idx) = rot90(all_data(tt,ii).N);
+    img = all_data(tt,ii).N;
+    imageStack(:,:,idx) = rot90((img./tot)*100);
+    n(idx) = max(imageStack(:,:,idx),[],'all');
     idx = idx+1;
 end; clear idx tt ii
 
+% % Find max count across all frames & pull distance data & organize images
+% % into movie order
+% idx = 1;
+% [dist, n, imageStack] = deal([]);
+% % decreasing temp data first
+% tt = 3; 
+% for ii = ntemps-1:-1:2
+%     n(idx) = max(all_data(tt,ii).N,[],'all');
+%     % Pull the distance data into a single structure
+%     dist  = autoCat(dist,[all_data(tt,ii).dist,all_data(tt,ii).dist_err,all_data(tt,ii).temp,-1]);
+%     % collate image data
+%     imageStack(:,:,idx) = rot90(all_data(tt,ii).N);
+%     idx = idx+1;
+% end
+% % increasing temp data next
+% tt = 2; 
+% for ii = 2:ntemps-1
+%     n(idx) = max(all_data(tt,ii).N,[],'all');
+%     % Pull the distance data into a single structure
+%     dist  = autoCat(dist,[all_data(tt,ii).dist,all_data(tt,ii).dist_err,all_data(tt,ii).temp,1]);
+%     % collate image data
+%     imageStack(:,:,idx) = rot90(all_data(tt,ii).N);
+%     idx = idx+1;
+% end; clear idx tt ii
+
+
 % Determine plot limits
-colorLim = [0,max(n)];
+colorLim = [0,ceil(max(n))];
+% colorLim = [0,5];
 nFrames = size(imageStack,3);
 tp = getTempTurnPoints(data(exp).T.TempProtocol{1});
 tempLim = [tp.threshLow,tp.threshHigh];
 distLim = [floor(min(dist(:,1)-dist(:,2))), ceil(max(dist(:,1)+dist(:,2)))];
 rateShift = find(diff(dist(:,4))>1);
+
+timeStep = median(abs(diff(dist(:,3))))/abs(tp.rates(1)); %temp step/exp temp rate
+time = [0;cumsum(abs(diff(dist(:,3)))./abs(tp.rates(1)))];
+
 
 % Video formatting
 
@@ -3463,7 +3499,8 @@ subplot(r,c,sb(1).idx)
     cla
     set(gca,'box','off','color','k','xcolor','w','ycolor','w','Linewidth',LW); hold on
     ROI = 1:i;
-    x = (ROI-1)*2;
+%     x = (ROI-1)*2;
+    x = time(ROI);
     y = dist(ROI,3); % temperature data
     plot(x,y,'linewidth',LW,'color',Color('dodgerblue'))
     if i > rateShift
@@ -3485,8 +3522,8 @@ subplot(r,c,sb(2).idx)
     clim(colorLim)
     cb = colorbar;
     set(cb,'Location', 'westoutside','color','w');
-    set(cb,'Ticks', colorLim, 'TickLabels',{'0','Max'})
-    ylabel(cb,'Fly density','FontSize',12)
+    set(cb,'Ticks', colorLim) 
+    ylabel(cb,'Occupation (%)','FontSize',12)
     hold on
     scatter(9.5,4.5,20,'r','filled')
     hold off
@@ -3541,7 +3578,6 @@ end
 close(v) %close the movie writer object
 close(fig)
 
-% TODO: figure out the weird middle frame between heating/cooling
  
 
 
