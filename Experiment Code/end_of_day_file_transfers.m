@@ -13,11 +13,12 @@ switch getenv('COMPUTERNAME')
     case 'DENALI'
         baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
     case 'TOGIAK'
-        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';  
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
+    case 'ACADIA'
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
 end
 
 %select folder date   
-%TODO update this to iterate through multiple folders if need be
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
     folderNames{i-2} = list_dirs(i).name;
