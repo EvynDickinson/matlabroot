@@ -16,11 +16,15 @@ save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', 
 
 %% get base folder pathway
 % baseFolder = getCloudPath;
+let = {'A' 'B' 'C' 'D'};
+for i = 1:4
+    parameters.(['Arena' let{i}]).well_3 = 'Caviar';
+    parameters.(['Arena' let{i}]).well_4 = 'Empty';
+end
+clear let i
 
-parameters.ArenaA.well_1 = 'Caviar';
-parameters.ArenaA.well_3 = 'Empty';
 
-
+%%
 parameters.well_2 = 'Empty';
 parameters.well_3 = 'Empty';
 parameters.well_4 = 'Empty';

@@ -25,7 +25,7 @@ switch TempProtocolString
                            41133 44142;...
                            61202 64219];
         tempPoints.nRates = 2; 
-        tempPoints.rates = [-0.5, 0.5]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
+        tempPoints.rates = [-1, 1]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
         tempPoints.threshLow = 16.5;
         tempPoints.threshHigh = 25.5;   
    
@@ -588,18 +588,17 @@ switch TempProtocolString
         tempPoints.threshLow = 14;
         tempPoints.threshHigh = 22;
          % =======================================
-        case 'double_eaton_cooling_warming_ramp'
-            tempPoints.down = [5720,34628;...
-                               64819,93739];
-            tempPoints.up =   [34629,64818;...
-                               93740,141259];
-                           
-        case 'double_eaton_warming_cooling_ramp'
-            tempPoints.up =   [5720,34628;...
-                               64819,93739];
-            tempPoints.down = [34629,64818;...
-                               93740,141259];
-        
+    case 'double_eaton_cooling_warming_ramp'
+        tempPoints.down = [5720,34628;...
+                           64819,93739];
+        tempPoints.up =   [34629,64818;...
+                           93740,141259];
+                       
+    case 'double_eaton_warming_cooling_ramp'
+        tempPoints.up =   [5720,34628;...
+                           64819,93739];
+        tempPoints.down = [34629,64818;...
+                           93740,141259];
 end
 
 % increasing|decreasing ROI:

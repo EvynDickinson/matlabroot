@@ -4,98 +4,103 @@
 %% LOAD: multiple trials that are grouped into a structure
 clear; warning off
 
-if strcmpi('Yes', questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No'))
-    % baseFolder = getCloudPath;
-    [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
-    baseFolder = getCloudPath;
-    
-    % Select structure to load:
-    [~,~,structInfo] = getExcelStructureNames(true);
-    ExpGroup = structInfo.StructName;
-    ntrials = structInfo.numTrials;
-    
-    % Make a data folder for structure images
-    figDir = [baseFolder 'Data structures/' ExpGroup '/'];
-    if ~exist(figDir, 'dir'); mkdir(figDir); end
-    
-    % Load data from each trial in the structure
-    data = [];
-    fprintf('\nLoading trials: \n')
-    for trial = 1:ntrials
-        % print the experiments as they are loaded
-        trialExpID = excelfile{structInfo.rowNum(trial), Excel.expID};
-        trialDate = excelfile{structInfo.rowNum(trial), Excel.date};
-        trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
-        trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
-        disp(trialName)
-        
-        % build the path for the trial data
-        dirc = [baseFolder, trialDate, '/Arena ' trialArena '/analysis/' trialExpID trialArena  ' timecourse data.mat'];
-        
-        % load data
-        todel = load(dirc);
-        variList = fieldnames(todel);
-    %     todel = load(dirc, varList{:});
-        data(trial).trialName = trialName;
-        for ii = 1:length(variList)
-            data(trial).(variList{ii}) = todel.(variList{ii});
-        end
-    end
+run_ans = questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No');
 
-else %select data structure from folder names out of GroupDataGUI:
-    [baseFolder, folder] = getCloudPath(3);
-    list_dirs = dir(folder); 
-    list_dirs = {list_dirs(:).name};
-    list_dirs(1:2) = [];
-    idx = listdlg('ListString', list_dirs,'ListSize', [250, 400]);
-    
-    figDir = [folder list_dirs{idx} '/'];
-    ExpGroup = list_dirs{idx};
-    
-    % load the directory list:
-    load([figDir 'fileList.mat'])
-    
-    % extract information
-    ntrials = size(T,1);
-    dates = T.Date;
-    arenas = T.Arena;
-    expID = T.ExperimentID;
-    
-    % load data
-    n = cell(1,ntrials);
-    data = struct('dist2wells', n, 'wellLabels', n, 'occupancy', n,'nflies',n,'data', n);  
-    var2load = fieldnames(data);
-    
-    for trial = 1:ntrials
-        filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
-        if ~isfolder(filePath)
-            filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/'];
-        end
+switch run_ans
+    case 'Yes'
+        % baseFolder = getCloudPath;
+        [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
+        baseFolder = getCloudPath;
         
-        temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
-        for ii = 1:length(var2load)
-            try data(trial).(var2load{ii}) = temp.(var2load{ii});
-            catch
-                try data(trial).(var2load{ii}) = temp.data.(var2load{ii});
-                catch
-                    if strcmp(var2load{ii},'dist2wells')
-                        try data(trial).(var2load{ii}) = temp.data.dist2well;
-                        catch; data(trial).(var2load{ii}) = [];
-                        end
-                    else
-                        data(trial).(var2load{ii}) = [];
-                    end
-                end
+        % Select structure to load:
+        [~,~,structInfo] = getExcelStructureNames(true);
+        ExpGroup = structInfo.StructName;
+        ntrials = structInfo.numTrials;
+        
+        % Make a data folder for structure images
+        figDir = [baseFolder 'Data structures/' ExpGroup '/'];
+        if ~exist(figDir, 'dir'); mkdir(figDir); end
+        
+        % Load data from each trial in the structure
+        data = [];
+        fprintf('\nLoading trials: \n')
+        for trial = 1:ntrials
+            % print the experiments as they are loaded
+            trialExpID = excelfile{structInfo.rowNum(trial), Excel.expID};
+            trialDate = excelfile{structInfo.rowNum(trial), Excel.date};
+            trialArena = excelfile{structInfo.rowNum(trial), Excel.arena};
+            trialName = [trialExpID ' Arena ' trialArena ' ' trialDate];
+            disp(trialName)
+            
+            % build the path for the trial data
+            dirc = [baseFolder, trialDate, '/Arena ' trialArena '/analysis/' trialExpID trialArena  ' timecourse data.mat'];
+            
+            % load data
+            todel = load(dirc);
+            variList = fieldnames(todel);
+        %     todel = load(dirc, varList{:});
+            data(trial).trialName = trialName;
+            for ii = 1:length(variList)
+                data(trial).(variList{ii}) = todel.(variList{ii});
             end
         end
 
-        % load speed data
-        temp = load([filePath expID{trial} ' speed data.mat']);
-        data(trial).speed = temp.speed;
-        disp([expID{trial} arenas{trial}])
-    end
-end
+    case 'No' %select data structure from folder names out of GroupDataGUI:
+        [baseFolder, folder] = getCloudPath(3);
+        list_dirs = dir(folder); 
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        idx = listdlg('ListString', list_dirs,'ListSize', [250, 400]);
+        
+        figDir = [folder list_dirs{idx} '/'];
+        ExpGroup = list_dirs{idx};
+        
+        % load the directory list:
+        load([figDir 'fileList.mat'])
+        
+        % extract information
+        ntrials = size(T,1);
+        dates = T.Date;
+        arenas = T.Arena;
+        expID = T.ExperimentID;
+        
+        % load data
+        n = cell(1,ntrials);
+        data = struct('dist2wells', n, 'wellLabels', n, 'occupancy', n,'nflies',n,'data', n);  
+        var2load = fieldnames(data);
+        
+        for trial = 1:ntrials
 
+            filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+            if ~isfolder(filePath)
+                filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/'];
+            end
+            
+            temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
+            for ii = 1:length(var2load)
+                try data(trial).(var2load{ii}) = temp.(var2load{ii});
+                catch
+                    try data(trial).(var2load{ii}) = temp.data.(var2load{ii});
+                    catch
+                        if strcmp(var2load{ii},'dist2wells')
+                            try data(trial).(var2load{ii}) = temp.data.dist2well;
+                            catch; data(trial).(var2load{ii}) = [];
+                            end
+                        else
+                            data(trial).(var2load{ii}) = [];
+                        end
+                    end
+                end
+            end
+    
+            % load speed data
+            temp = load([filePath expID{trial} ' speed data.mat']);
+            data(trial).speed = temp.speed;
+            disp([expID{trial} arenas{trial}])
+        end
+    case 'Cancel'
+        return
+end
 %Pull and reorganize data within the structure:
 
 % pix2mm = 12.8; %conversion from pixels to mm for these videos
@@ -237,13 +242,15 @@ inputVar =  questdlg('Which data type to compare?','','distance','occupation pro
 food = struct;
 switch inputVar
     case 'distance'
-        ylab = 'Distance from well (mm)';
+        ylab = 'Proximity to food (mm)';
         L_loc = 'southwest';
-        yLimit = [10,35];
+        yLimit = [5,35];
+        y_dir = 'reverse';
     case 'occupation probability'
         ylab = inputVar;
         L_loc = 'northwest';
         yLimit = [0,1];
+        y_dir = 'normal';
     case 'Cancel'
         return
 end
@@ -333,6 +340,7 @@ for i = 1:length(str)
     leg_str{i*2} = str{i};
 end
 legend(leg_str,'textcolor', 'w', 'location', L_loc, 'box', 'off','fontsize',12)
+set(gca,'ydir',y_dir)
 
 save_figure(fig, [figDir 'Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-png');
 clearvars('-except',initial_vars{:})
@@ -508,6 +516,8 @@ save_figure(fig, [figDir 'Movement histogram'], '-png');
 clearvars('-except',initial_vars{:})
 
 %% ANALYSIS: Get temp rate information from all trials
+clearvars('-except',initial_vars{:})
+
 G = struct;
 [threshHigh, threshLow] = getTempThresholds(T.TempProtocol);
 binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'0.5'}))); 
@@ -548,7 +558,8 @@ for trial = 1:ntrials
     tPoints = getTempTurnPoints(T.TempProtocol{trial}); %accomodates multiple temp protocols within the data group
     if strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_23-15') || ...
        strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_25-17') || ...
-       strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_27-19')
+       strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_27-19') || ...
+       strcmp(T.TempProtocol{trial},'linear_ramp_F_25-17')
         tPoints.rates = [tPoints.rates(1), 0, tPoints.rates(2)];
         tPoints.nRates = 3;
     end
@@ -688,11 +699,13 @@ dataType =  questdlg('Which data type to compare?','','distance','movement','Can
 
 switch dataType
     case 'distance'
-        ylab = 'Distance from well (mm)';
+        ylab = 'Proximity to food (mm)';
         L_loc = 'southwest';
+        y_dir = 'reverse';
     case 'movement'
         ylab = 'Movement (au)';
         L_loc = 'northwest';
+        y_dir = 'normal';
     case 'Cancel'
         return
 end
@@ -841,6 +854,7 @@ for rr = 1:nRates
 end
 % title(ExpGroup)
 ylabel(ylab)
+set(gca,'ydir',y_dir)
 xlabel('Temperature (\circC)')
 formatFig(fig, true);
 % legend:
