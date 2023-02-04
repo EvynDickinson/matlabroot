@@ -2,11 +2,9 @@
 % Temp-rate distance tuning curve for a single genotype or across genotypes
 % Show how a single genotypes compares in food attraction:temperature for
 % different rates of temperature change
-
-% THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE
-% PROTOCOLS
-% DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP
-% RATE
+% CAVEATS:
+% ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
+% *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
 %% Select data groups to compare
 
@@ -34,7 +32,7 @@ initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir
 initial_vars = unique(initial_vars);
 
 % Save data / make new grouped data folder
-switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure');
+switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
     case 'new structure'
         expGroup = char(inputdlg('Structure name:'));
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
