@@ -130,10 +130,6 @@ y = mean(trackPoints(2,:,:),3,'omitnan');
 figure
 scatter(x,y)
 
-
-
-
-
 x = (trackPoints(1,:,:));
 y = mean(trackPoints(2,:,:),3,'omitnan');
 
@@ -188,7 +184,6 @@ loc = ~isnan(avg_dist);
 
 
 % FIGURE
-
 rows = 4;
 cols = 1;
 sb(1).idx = 1;
@@ -197,16 +192,24 @@ sb(2).idx = 2:4;
 fig = figure; 
 subplot(rows,cols,sb(1).idx)
     plot(time, temp,'Color','w','LineWidth',1.5)
+    ylabel('T (\circC)')
 
 subplot(rows,cols,sb(2).idx); hold on
     plot(time,data.occupancy.dist2wells(:,well_loc),'Color','w','linewidth',1)
     plot(time(loc), avg_dist(loc),'Color',Color('orangered'),'linewidth',1)
+    ylabel('distance to food (mm)')
+    xlabel('time (min)')
 
 formatFig(fig,true,[rows,cols],sb);
+subplot(rows,cols,sb(1).idx)
+set(gca,'XColor','k')
+
+save_figure(fig,[figFolder 'manual vs SLEAP distance'],'-png')
 
 
 
 
+%%  FLY EATING MANUAL COUNT
 
 
 

@@ -130,10 +130,6 @@ y = mean(trackPoints(2,:,:),3,'omitnan');
 figure
 scatter(x,y)
 
-
-
-
-
 x = (trackPoints(1,:,:));
 y = mean(trackPoints(2,:,:),3,'omitnan');
 
@@ -213,13 +209,19 @@ save_figure(fig,[figFolder 'manual vs SLEAP distance'],'-png')
 
 
 
+%%  FLY EATING MANUAL COUNT
+clear
+load('G:\My Drive\Jeanne Lab\DATA\Manual Tracking\caviar_recovery_ramp manual tracks.mat')
+
+temp = squeeze(trackPoints(1,:,:));
+flyNum = sum(~isnan(temp),2);
+
+fig = figure;
+scatter(1:length(flyNum),flyNum)
 
 
 
 
-
-
-% 
 
 
 
