@@ -28,6 +28,15 @@ switch TempProtocolString
         tempPoints.rates = [-0.5, 0.5]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
         tempPoints.threshLow = 16.5;
         tempPoints.threshHigh = 25.5;   
+    case 'linear_ramp_XS_25-17'
+        tempPoints.hold = [3864 18180; 63980 78830];
+        tempPoints.down = [18181 41450; 78831 101900];
+        tempPoints.up =   [41451 36979; 101901 124799];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = [-0.061, 0.061]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
+        tempPoints.threshLow = 16.5;
+        tempPoints.threshHigh = 25.5;   
+   
    
     % ========================================
     case {'linear_ramp_with_recovery_23-15','linear_ramp_with_recovery_23-15 '}
