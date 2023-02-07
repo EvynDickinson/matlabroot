@@ -25,15 +25,29 @@ switch TempProtocolString
                            41133 44142;...
                            61202 64219];
         tempPoints.nRates = 2; 
-        tempPoints.rates = [-0.5, 0.5]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
+        tempPoints.rates = [-0.5, 0.5]; 
         tempPoints.threshLow = 16.5;
         tempPoints.threshHigh = 25.5;   
+    case 'linear_ramp_M_25-17'
+        tempPoints.hold = [2056 18085;...
+                           29578 44032;...
+                           55420 69845];
+        tempPoints.down = [18086 23830;...
+                           44033 49853;...
+                           69846 75633];
+        tempPoints.up =   [23831 29577;...
+                           49854 55419;...
+                           75634 81411];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = [-0.25, 0.25]; 
+        tempPoints.threshLow = 16.5;
+        tempPoints.threshHigh = 25.5; 
     case 'linear_ramp_XS_25-17'
         tempPoints.hold = [3864 18180; 63980 78830];
         tempPoints.down = [18181 41450; 78831 101900];
         tempPoints.up =   [41451 36979; 101901 124799];
         tempPoints.nRates = 2; 
-        tempPoints.rates = [-0.061, 0.061]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
+        tempPoints.rates = [-0.061, 0.061]; 
         tempPoints.threshLow = 16.5;
         tempPoints.threshHigh = 25.5;   
    
