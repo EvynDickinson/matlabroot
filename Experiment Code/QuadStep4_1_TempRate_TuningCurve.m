@@ -61,14 +61,15 @@ initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir
 initial_vars = unique(initial_vars);
 grouped = struct;
 
+% UPDATE THIS TO BETTER AUTOSELECT COLORS & ORDERS
 % Color selections
-if strcmp(expGroup,'WT linear recovery caviar')
+if strcmp(expGroup,'WT linear recovery caviar') ||  strcmp(expGroup,'WT linear recovery no food')
     expOrder = [];
-    expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'};
+    expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
 %     expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi','Zimbabwe'};
     colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
     for ii = 1:num.exp
-        expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
+        expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar'])); %TODO : update this to work with 
 %         grouped(expOrder(ii)).color = Color(colors{(ii)});
     end
 elseif strcmp(expGroup,'All linear recovery ramp')
