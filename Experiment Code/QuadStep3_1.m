@@ -1040,129 +1040,6 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % end
 clearvars('-except',vars{:})
 
-%% FIGURE: Temp hysteresis across different foods and summed for all rates
-
-foodCat = unique(T.foodCat);
-n_food = length(foodCat);
-
-% Find the total number and id of temp rates:
-allRates=[];
-for trial = 1:ntrials
-    allRates = [allRates,G(trial).TR.rates];
-end
-tRates = sort(unique(allRates));
-nRates = length(tRates);
-nTemps = G(1).TR.nTemps; %these should all be the same since they're held constant above
-abs_rates = unique(abs(tRates));
-
-%allocate empty data structure & set params
-HM = struct;
-for ii = 1:n_food % rotate through food types
-    % Group the data for each temp rate & food type:
-    tempData = nan(nRates,nTemps,1);
-    loc = 0;
-    for trial = 1:ntrials
-        % is this trial within the food bin?
-        if strcmp(foodCat{ii},T.foodCat{trial})
-            loc = loc + 1;
-            for rr = 1:nRates
-                idx = find(G(trial).TR.rates==tRates(rr));
-                if isempty(idx)
-                    continue
-                end
-                tempData(rr,:,loc) = G(trial).TR.heatmap(idx,:);
-            end
-        end
-    end
-    % Find the mean and err of each temp bin for this food:
-    HM(ii).all = tempData;
-    HM(ii).avg = mean(tempData,3,'omitnan');
-    HM(ii).err = std(tempData,0,3,'omitnan')./sqrt(loc);
-    HM(ii).name = foodCat{ii};
-end
-
-% Find the hysteresis index for each food type:
-
-
-
-% FIGURE: same temp rates compared across foods:
-LS = {':','-.','-'}; %cooling|stationary|heating
-x = G(trial).TR.temps;
-LW = 2; 
-buff = 0.3;
-for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
-  % FIGURE FOR EACH TEMPERATURE RATE    
-  rateList = find(abs(tRates)==abs_rates(rr));
-  row = 1; col = 3; 
-  sb(1).idx = 1:2;
-  sb(2).idx = 3;
-  fig = figure; 
-  set(fig, 'pos', [57 55 1120 642]);
-  % line graph:
-  subplot(row,col,sb(1).idx)
-  hold on; 
-    idx = 1; str = [];
-    for ii = 1:n_food % cycle through each food group
-        for jj = rateList
-            plotRate = tRates(jj);
-            if plotRate>0
-                lstyle = LS{3};
-                str_tag = 'heating';
-            elseif plotRate<0
-                lstyle = LS{1};
-                str_tag = 'cooling';
-            elseif plotRate==0
-                lstyle = LS{2};
-                str_tag = 'holding';
-            end
-            kolor = pullFoodColor(foodCat{ii});
-            y = HM(ii).avg(jj,:);
-            y_err = HM(ii).err(jj,:);
-            plot(x,y,'color', kolor, 'linewidth', LW, 'linestyle', lstyle);
-            str{idx} = [foodCat{ii} ' ' str_tag]; idx = idx+1;
-        end
-    end
-    % legends, labels, keys
-    title(['\pm' num2str(abs_rates(rr)) '\circC/min temp ramps'])
-    ylabel('Distance to food (mm)')
-    xlabel('Temperature (\circC)')
-    legend(str,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 10)
-    
-    %  Hysteresis index numbers
-    subplot(row,col,sb(2).idx)
-    hold on; 
-    for ii = 1:n_food
-        kolor = pullFoodColor(foodCat{ii});
-        hys_idx = [];
-        for trial = 1:size(HM(ii).all,3)
-            % calculate hysteresis index
-            up = HM(ii).all(1,:,trial);
-            down = HM(ii).all(2,:,trial);
-            hys_idx(trial) = sum(up-down,'omitnan');
-        end
-        % plot
-   
-        x = shuffle_data(linspace(ii-buff,ii+buff,length(hys_idx)));
-        scatter(x,hys_idx,75,kolor,'filled')
-        plot([ii-(buff*1.25),ii+(buff*1.25)],[mean(hys_idx),mean(hys_idx)],'color',kolor,'linewidth',LW)
-    end
-    % labels, legends, etc
-    ax = gca;
-    set(ax,'XTick',1:n_food,'XTickLabels',foodCat,'XTickLabelRotation',20)
-    ylabel('distance hysteresis (mm)')
-    formatFig(fig, true,[row,col],sb);
-    
-    subplot(row,col,sb(1).idx)
-    set(gca, 'fontsize', 18)
-    subplot(row,col,sb(2).idx)
-    set(gca, 'fontsize', 18)
-%Save figure
-% save_figure(fig, ['temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
-save_figure(fig, [figDir 'temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
-end
-
-clearvars('-except',vars{:})
-
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp
 % use the temperatures : 8:2:22 for key points to check location of flies
 clearvars('-except',vars{:})
@@ -1386,7 +1263,7 @@ shaded_Err = true;
 tempRegimes = unique(T.TempProtocol);
 n = size(tempRegimes,1);
 % CList = Color('black','green', n);
-CList = Color('cyan','purple', n);
+CList = Color('grey','purple', n);
 LW = 1;
 sSpan = 180;
 row = 5;
@@ -1457,6 +1334,33 @@ save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
+%% Save Processed Data (if wanted)
+
+clearvars('-except',vars{:})
+
+if questdlg('Save processed data?')
+    save([figDir ExpGroup ' post 3.1 data.mat'],'-v7.3')
+end
+fprintf('Data saved\n')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% LESS FREQUENTLY USED:
 %% FIGURE: time course comparison across genotypes
 clearvars('-except',vars{:})
 
@@ -1745,6 +1649,7 @@ save_figure(fig, [figDir inputVar ' tuning overlay'], '-png');
 %% Compare hysteresis across different genotypes -- UNFINISHED
 
 
+
 clearvars('-except',vars{:}) 
 dataType =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
 
@@ -1910,26 +1815,126 @@ set(gca,'fontsize', 18)
 save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo'], '-png');
 % 
 
-%% Save Processed Data (if wanted)
+%% FIGURE: Temp hysteresis across different foods and summed for all rates
+
+foodCat = unique(T.foodCat);
+n_food = length(foodCat);
+
+% Find the total number and id of temp rates:
+allRates=[];
+for trial = 1:ntrials
+    allRates = [allRates,G(trial).TR.rates];
+end
+tRates = sort(unique(allRates));
+nRates = length(tRates);
+nTemps = G(1).TR.nTemps; %these should all be the same since they're held constant above
+abs_rates = unique(abs(tRates));
+
+%allocate empty data structure & set params
+HM = struct;
+for ii = 1:n_food % rotate through food types
+    % Group the data for each temp rate & food type:
+    tempData = nan(nRates,nTemps,1);
+    loc = 0;
+    for trial = 1:ntrials
+        % is this trial within the food bin?
+        if strcmp(foodCat{ii},T.foodCat{trial})
+            loc = loc + 1;
+            for rr = 1:nRates
+                idx = find(G(trial).TR.rates==tRates(rr));
+                if isempty(idx)
+                    continue
+                end
+                tempData(rr,:,loc) = G(trial).TR.heatmap(idx,:);
+            end
+        end
+    end
+    % Find the mean and err of each temp bin for this food:
+    HM(ii).all = tempData;
+    HM(ii).avg = mean(tempData,3,'omitnan');
+    HM(ii).err = std(tempData,0,3,'omitnan')./sqrt(loc);
+    HM(ii).name = foodCat{ii};
+end
+
+% Find the hysteresis index for each food type:
+
+
+
+% FIGURE: same temp rates compared across foods:
+LS = {':','-.','-'}; %cooling|stationary|heating
+x = G(trial).TR.temps;
+LW = 2; 
+buff = 0.3;
+for rr = 1:length(abs_rates) % Absolute rate of change (to cmp heat v cool)
+  % FIGURE FOR EACH TEMPERATURE RATE    
+  rateList = find(abs(tRates)==abs_rates(rr));
+  row = 1; col = 3; 
+  sb(1).idx = 1:2;
+  sb(2).idx = 3;
+  fig = figure; 
+  set(fig, 'pos', [57 55 1120 642]);
+  % line graph:
+  subplot(row,col,sb(1).idx)
+  hold on; 
+    idx = 1; str = [];
+    for ii = 1:n_food % cycle through each food group
+        for jj = rateList
+            plotRate = tRates(jj);
+            if plotRate>0
+                lstyle = LS{3};
+                str_tag = 'heating';
+            elseif plotRate<0
+                lstyle = LS{1};
+                str_tag = 'cooling';
+            elseif plotRate==0
+                lstyle = LS{2};
+                str_tag = 'holding';
+            end
+            kolor = pullFoodColor(foodCat{ii});
+            y = HM(ii).avg(jj,:);
+            y_err = HM(ii).err(jj,:);
+            plot(x,y,'color', kolor, 'linewidth', LW, 'linestyle', lstyle);
+            str{idx} = [foodCat{ii} ' ' str_tag]; idx = idx+1;
+        end
+    end
+    % legends, labels, keys
+    title(['\pm' num2str(abs_rates(rr)) '\circC/min temp ramps'])
+    ylabel('Distance to food (mm)')
+    xlabel('Temperature (\circC)')
+    legend(str,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 10)
+    
+    %  Hysteresis index numbers
+    subplot(row,col,sb(2).idx)
+    hold on; 
+    for ii = 1:n_food
+        kolor = pullFoodColor(foodCat{ii});
+        hys_idx = [];
+        for trial = 1:size(HM(ii).all,3)
+            % calculate hysteresis index
+            up = HM(ii).all(1,:,trial);
+            down = HM(ii).all(2,:,trial);
+            hys_idx(trial) = sum(up-down,'omitnan');
+        end
+        % plot
+   
+        x = shuffle_data(linspace(ii-buff,ii+buff,length(hys_idx)));
+        scatter(x,hys_idx,75,kolor,'filled')
+        plot([ii-(buff*1.25),ii+(buff*1.25)],[mean(hys_idx),mean(hys_idx)],'color',kolor,'linewidth',LW)
+    end
+    % labels, legends, etc
+    ax = gca;
+    set(ax,'XTick',1:n_food,'XTickLabels',foodCat,'XTickLabelRotation',20)
+    ylabel('distance hysteresis (mm)')
+    formatFig(fig, true,[row,col],sb);
+    
+    subplot(row,col,sb(1).idx)
+    set(gca, 'fontsize', 18)
+    subplot(row,col,sb(2).idx)
+    set(gca, 'fontsize', 18)
+%Save figure
+% save_figure(fig, ['temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
+save_figure(fig, [figDir 'temp hysteresis ' foodCat{ii} ' food ' num2str(abs_rates(rr))], '-png');
+end
 
 clearvars('-except',vars{:})
-
-if questdlg('Save processed data?')
-    save([figDir ExpGroup ' post 3.1 data.mat'],'-v7.3')
-end
-fprintf('Data saved\n')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

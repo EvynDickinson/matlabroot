@@ -2,11 +2,9 @@
 % Temp-rate distance tuning curve for a single genotype or across genotypes
 % Show how a single genotypes compares in food attraction:temperature for
 % different rates of temperature change
-
-% THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE
-% PROTOCOLS
-% DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP
-% RATE
+% CAVEATS:
+% ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
+% *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
 %% Select data groups to compare
 
@@ -34,7 +32,7 @@ initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir
 initial_vars = unique(initial_vars);
 
 % Save data / make new grouped data folder
-switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure');
+switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
     case 'new structure'
         expGroup = char(inputdlg('Structure name:'));
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
@@ -3398,7 +3396,8 @@ end
 
 clearvars('-except',initial_vars{:})
 
-exp = 1; 
+exp = 6;
+
 all_data = grouped(exp).video.all_data;
 ntemps = length(grouped(exp).video.temperatures)-1;
 
@@ -3416,9 +3415,6 @@ for ii = ntemps-1:-1:2
     img = all_data(tt,ii).N;
     imageStack(:,:,idx) = rot90((img./tot)*100);
     n(idx) = max(imageStack(:,:,idx),[],'all');
-    time(idx) = 
-    timeStep = median(abs(diff(dist(:,3))))/abs(tp.rates(1)); %temp step/exp temp rate
-
     idx = idx+1;
 end
 % increasing temp data next
@@ -3461,8 +3457,8 @@ end; clear idx tt ii
 
 
 % Determine plot limits
-% colorLim = [0,max(n)];
-colorLim = [0,5];
+colorLim = [0,ceil(max(n))];
+% colorLim = [0,5];
 nFrames = size(imageStack,3);
 tp = getTempTurnPoints(data(exp).T.TempProtocol{1});
 tempLim = [tp.threshLow,tp.threshHigh];
@@ -3470,10 +3466,7 @@ distLim = [floor(min(dist(:,1)-dist(:,2))), ceil(max(dist(:,1)+dist(:,2)))];
 rateShift = find(diff(dist(:,4))>1);
 
 timeStep = median(abs(diff(dist(:,3))))/abs(tp.rates(1)); %temp step/exp temp rate
-
-
-
-time = 0:timeStep:(ntemps-2)*2
+time = [0;cumsum(abs(diff(dist(:,3)))./abs(tp.rates(1)))];
 
 
 % Video formatting
@@ -3504,7 +3497,8 @@ subplot(r,c,sb(1).idx)
     cla
     set(gca,'box','off','color','k','xcolor','w','ycolor','w','Linewidth',LW); hold on
     ROI = 1:i;
-    x = (ROI-1)*2;
+%     x = (ROI-1)*2;
+    x = time(ROI);
     y = dist(ROI,3); % temperature data
     plot(x,y,'linewidth',LW,'color',Color('dodgerblue'))
     if i > rateShift
@@ -3583,25 +3577,175 @@ close(v) %close the movie writer object
 close(fig)
 
  
+%% FIGURE: surface map of distance-temp tuning curve 
+clearvars('-except',initial_vars{:})
+
+blkbgd = true;
+
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+    gridalpha = 0.3;
+else %white background
+    foreColor = 'k';
+    backColor = 'w';
+    gridalpha = 0.5;
+%     gridColor = [0.15 0.15 0.15];
+end
+
+x_limits = [0,num.exp+1];
+y_limits = [14, 23]; % TODO: update this auto
+z_limits = [14,28]; % TODO: update this auto
+
+
+% get strain names
+strain_label = [];
+for exp = 1:num.exp
+    i = expOrder(exp);
+    temp = strsplit(expNames{i},' ');
+    strain_label{exp} = temp{1};
+end
+
+buff = 0.3;
+
+fig = figure; set(fig,'color',backColor,"Position",[1934 468 1061 590])
+
+for exp = 1:num.exp
+    i = expOrder(exp);
+
+%     temp = strsplit(expNames{i},' ');
+%     strain_label{exp} = temp{1};
+
+
+    z = grouped(i).dist.distavgbytemp(:,2); % distance
+    loc = isnan(z); %no-data areas (temp bins outside perview of this exp)
+    y = grouped(i).dist.distavgbytemp(:,1); % temperature
+    % remove nans
+    z(loc) = [];
+    y(loc) = [];
+    
+    % Adjust temp and distance vectors for a surface plot
+    Y = repmat(y,[1,2]);
+    Z = repmat(z,[1,2]);
+    
+    % Build x-location map for this experiment group
+    x = [exp-buff,exp+buff];
+    X = repmat(x,[length(y),1]);
+
+    surf(X,Y,Z,'edgecolor','none','facecolor','interp');
+    hold on
+end
+% FORMATTING
+colormap(flipud(parula))
+set(gca,'zdir','reverse')        
+% xlabel('Strain')
+ylabel('temperature (\circC)')
+zlabel('proximity to food (mm)')
+set(gca,'color',backColor,'xcolor',foreColor,'ycolor',foreColor,'zcolor',foreColor)
+set(gca,'gridAlpha',gridalpha,'CLim',z_limits)
+set(gca,'linewidth',2,'fontsize',12,'fontname','arial')
+
+xlim(x_limits)
+ylim(y_limits)
+zlim(z_limits)
+set(gca,'XTick',1:num.exp,'xticklabel',strain_label)
+
+% ROTATE THE OBJECT...
+% for i = 1:36
+%    camorbit(10,0,'data',[0 1 0])
+%    drawnow
+%    pause(0.1)
+% end
+
+% % save figure
+% save_figure(fig,[saveDir expGroup ' distance tuning curve surf map_1'],'-png',true,false);
+
+
+%%
+% data visualization techniques
+gca
+
+
+% Single angle view
+CameraPosition = [63.8311 18.4141 9.1428];
+CameraPositionMode = 'manual';
+CameraTarget = [3.5000 18.5000 21];
+CameraTargetMode = 'manual';
+CameraUpVector = [0 0 -1];
+CameraUpVectorMode = 'manual';
+CameraViewAngle = 7.2224;
+CameraViewAngleMode = 'manual';
+DataAspectRatio = [1 1.2857 2];
+DataAspectRatioMode = 'manual';
+
+% Turn on manual camera views: 
+set(gca,...
+     'CameraPositionMode',CameraPositionMode,...
+     'CameraTargetMode', CameraTargetMode,...
+     'CameraUpVectorMode', CameraUpVectorMode,...
+     'CameraViewAngleMode', CameraViewAngleMode,...
+     'DataAspectRatioMode', DataAspectRatioMode)
+set(gca,...
+    'CameraPosition',CameraPosition,...
+     'CameraTarget', CameraTarget,...
+     'CameraUpVector', CameraUpVector,...
+     'CameraViewAngle', CameraViewAngle,...
+     'DataAspectRatio', DataAspectRatio)
+
+
+% set(gca,'xdir','reverse')
 
 
 
-   
-
-
-
-
- 
-
-  
-
-
-
+% 'Standard' view angle
+CameraPosition = [-28.4600 -35.0514 -39.6218];
+CameraTarget = [3.5000 18.5000 21];
+CameraUpVector = [0 0 -1];
+CameraViewAngle = 10.3396;
+DataAspectRatio = [1 1.2857 2];
 
 
 
 
 
+%%
+%baseline
+
+
+
+
+% Only camera position needs to change
+
+% Set specific views
+set(gca,'CameraPosition',CameraPosition)
+
+
+
+
+% VIEW 1: Temperature and strain ONLY
+CameraPosition = [3.5000 18.5000 -100.2440];
+
+
+
+
+
+% VIEW 2:
+CameraPosition = [-15.3232   -32.3499 -62.8209]; 
+
+
+% View 3
+CameraPosition = [-50.6576     -14.0863      1.03992]; 
+
+
+% View 4
+CameraPosition = [-56.848  15.6422 10.3794]; 
+
+
+% 
+% % Get current view positions:
+% fprintf(['\nCameraPosition = [' num2str(ax.CameraPosition) ']; \n'])
+
+ax = gca;
 
 
 
@@ -3611,7 +3755,6 @@ close(fig)
 
 
 
-
-
+save_figure(fig,[saveDir expGroup ' distance tuning curve surf map_2'],'-png',true,false);
 
 
