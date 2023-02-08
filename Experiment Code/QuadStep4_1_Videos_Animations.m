@@ -144,7 +144,7 @@ end
 %% MAKE VIDEO OF POSITIONS OVER TEMP CHANGES
 clearvars('-except',initial_vars{:})
 
-exp = 6;
+exp = 1;
 
 all_data = grouped(exp).video.all_data;
 ntemps = length(grouped(exp).video.temperatures)-1;

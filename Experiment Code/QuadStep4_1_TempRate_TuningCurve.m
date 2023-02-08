@@ -61,51 +61,92 @@ initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir
 initial_vars = unique(initial_vars);
 grouped = struct;
 
-% UPDATE THIS TO BETTER AUTOSELECT COLORS & ORDERS
 % Color selections
-if strcmp(expGroup,'WT linear recovery caviar') ||  strcmp(expGroup,'WT linear recovery no food')
-    expOrder = [];
-    expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
-%     expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi','Zimbabwe'};
-    colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-    for ii = 1:num.exp
-        expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar'])); %TODO : update this to work with 
-%         grouped(expOrder(ii)).color = Color(colors{(ii)});
-    end
-elseif strcmp(expGroup,'All linear recovery ramp')
-    expOrder = [];
-    expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
-    colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
-    for ii = 1:num.exp
-        expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-%         grouped(expOrder(ii)).color = Color(colors{(ii)});
-    end
-else
-    expOrder = 1:num.exp;
-    
-%     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
-
-% === Temperature shift experiments ===
-%     expOrder = [3, 1, 2]; %lowest to highest
-%     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
-
-% === food no-food comp ===
-    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
-%     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
-%     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
-%     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
-%     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
-%     colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
-%=== UAS linecomparisons ===
-%     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'};
-%     expOrder = [1,3,2]; %lowest to highest
-%     colors = {'Blue','DeepSkyBlue','White'};
-%     expOrder = [1,2,3]; %lowest to highest
-%     colors = {'Blue','CadetBlue','LightGrey'};
-%     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
-% === sex comparison colors ===
-%     colors = {'White','magenta','dodgerblue','Orange'}; 
+switch expGroup
+    case 'WT linear recovery caviar'
+        expOrder = [];
+        expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+        % expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi', 'Zimbabwe'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar'])); 
+        end
+    case 'WT linear recovery no food'
+        expOrder = [];
+        expList = {'Berlin WT', 'CantonS ', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; 
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp no food'])); 
+        end
+    case 'All linear recovery ramp'
+        expOrder = [];
+        expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
+        end       
+    case 'Zimbabwe sex comparison'
+        expOrder = 1:num.exp;
+        colors = {'White','magenta','dodgerblue','Orange'};
+    case 'Berlin sex comparison'
+        expOrder = 1:num.exp;
+        colors = {'White','magenta','dodgerblue','Orange'}; 
+    case 'Swedish LRR temp shift caviar'
+        expOrder = [1,2,3]; %lowest to highest temp
+        colors = {'dodgerblue','red','yellow'};
+    case 'Berlin LRR temprate comp'
+        expOrder = 1:4; % fast to slow   
+        colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
 end
+
+if ~exist('colors','var')
+    expOrder = 1:num.exp;
+    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
+end
+
+% if strcmp(expGroup,'WT linear recovery caviar') ||  strcmp(expGroup,'WT linear recovery no food')
+%     expOrder = [];
+%     expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+% %     expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi','Zimbabwe'};
+%     colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+%     for ii = 1:num.exp
+%         expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar'])); %TODO : update this to work with 
+% %         grouped(expOrder(ii)).color = Color(colors{(ii)});
+%     end
+% elseif strcmp(expGroup,'All linear recovery ramp')
+%     expOrder = [];
+%     expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
+%     colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
+%     for ii = 1:num.exp
+%         expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
+% %         grouped(expOrder(ii)).color = Color(colors{(ii)});
+%     end
+% else
+%     expOrder = 1:num.exp;
+%     
+% %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
+% 
+% % === Temperature shift experiments ===
+% %     expOrder = [3, 1, 2]; %lowest to highest
+% %     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
+% 
+% % === food no-food comp ===
+%     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
+% %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
+% %     colors = {'white','LightSalmon','DeepPink','turquoise','Gold','pink','Orange'};
+% %     colors = {'Blue','lightskyblue','white','turquoise','pink','Orange'};
+% %     colors = {'red','yellow','dodgerblue','Gold','pink','Orange'};
+% %     colors = {'Teal','white','gold', 'magenta','dodgerblue','Orange'};
+% %=== UAS linecomparisons ===
+% %     colors = {'Grey','DeepSkyBlue','Blue', 'White','DeepPink'};
+% %     expOrder = [1,3,2]; %lowest to highest
+% %     colors = {'Blue','DeepSkyBlue','White'};
+% %     expOrder = [1,2,3]; %lowest to highest
+% %     colors = {'Blue','CadetBlue','LightGrey'};
+% %     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
+% % === sex comparison colors ===
+% %     colors = {'White','magenta','dodgerblue','Orange'}; 
+% end
 
 for i = 1:num.exp % FOR EACH DATA GROUP 
     % GENERAL
@@ -2847,251 +2888,6 @@ save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
 
 % % 
     
-%% FIGURE: (WT) latutide organized 
-clearvars('-except',initial_vars{:})
-corr_coef = [];
-buff = 0.2;
-
-lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
-latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];
-
-% get correlation data
-for i = 1:num.exp
-    pooledData = [];
-    % get speed / distance information
-    for trial = 1:num.trial(i)
-        x = data(i).data(trial).occupancy.temp;
-        y = grouped(i).dist.all(:,trial);
-        temp = [];
-        temp = autoCat(temp,x,false);%temp for each trial within the exp.
-        temp = autoCat(temp,y,false);%dist for each trial within the exp
-        loc = any(isnan(temp),2);
-        temp(loc,:) = [];
-        % speed-distance correlation
-        rho = corr(temp); 
-        corr_coef(i).all(trial) = rho(1,2);
-        % save data for pooled comparison
-        pooledData = [pooledData; temp];
-    end
-    % Pooled speed-distance correlation
-    rho = corr(pooledData); 
-    corr_coef(i).group = rho(1,2);
-end
-
-
-% correlation coefficients
-fig = figure; set(fig,'color','w',"Position",[2108 475 453 590]); hold on
-hold on
- for ii = 1:num.exp
-   i = find(contains(expNames,lat_list(ii)));
-     
-   kolor = grouped(i).color;
-   lat = latitudes(ii);
-   xlow = lat-2;
-   xhigh = lat+2;
-%    x = shuffle_data(linspace(lat-buff,lat+buff,num.trial(i)));
-   x = lat*ones(1,num.trial(i));
-   y = corr_coef(i).all;
-   y_avg = mean(corr_coef(i).all);
-   scatter(x,y,50,kolor,'filled')
-%    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
-%    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
- end
- xlim([-30,70])       
- ylabel('temperature-distance correlation')
- h_line(0,'w',':',1)    
- formatFig(fig,true);    
- set(gca,'xcolor','w')
- xlabel('latitude (\circ)')
-% save figure
-save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],'-png');  
-
-%% FIGURE: Ramp to ramp comparisons of food proximity
-% Q: do we need a fourth ramp??
-clearvars('-except',initial_vars{:})
-CList = {'BlueViolet','MediumPurple','Plum','Thistle'};
-buff = 0.2;
-SZ = 50;
-
-for i = 1:num.exp %experimental group
-
-    % Pull data for this experimental group
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
-    ROIs = [tp.down(:,1),tp.up(:,2)];
-    nRamps = size(ROIs,1);
-    [avg_dist,avg_dist_err,dist_range,TD_corr] = deal([]);
-    for ramp = 1:nRamps
-        idx = ROIs(ramp,1):ROIs(ramp,2);
-        temp = grouped(i).dist.all(idx,:);
-        % avg distance
-        avg_dist = autoCat(avg_dist,mean(temp,2,'omitnan'),false);
-        avg_dist_err = autoCat(avg_dist_err,std(temp,0,2,'omitnan'),false);
-        % temp range
-        dist_range(:,ramp) = range(temp)';
-        % temp_correlation
-        temperature = grouped(i).temp(idx);
-        TD_corr(:,ramp) = corr(temperature,temp)';
-    end
-
-
-    
-
-    fig = figure; set(fig, 'pos',[116 189 1274 622]); 
-    % Plot the ramp overlays:
-    subplot(1,3,1); hold on
-        for ramp = 1:nRamps
-
-            y = avg_dist(:,ramp);
-            y_err = avg_dist_err(:,ramp);
-            x = 1:length(y); x = x./(3*60); %convert to minutes (fps*sec/min)
-
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, Color(CList{ramp}), 'EdgeColor','none');
-            set(h, 'facealpha', 0.2)
-            plot(x,y,'linewidth',1,'color',Color(CList{ramp}))
-        end
-        set(gca,'YDir','reverse')
-        ylabel('Proximity to food (mm)')
-        xlabel('Time (min)')
-
-    % Plot the ramp range:
-    subplot(1,3,2); hold on
-        for ramp = 1:nRamps
-            x = shuffle_data(linspace(ramp-buff,ramp+buff,num.trial(i)));
-            y = dist_range(:,ramp);
-            scatter(x,y,SZ,Color(CList{ramp}),'filled')
-            plot([ramp-buff,ramp+buff],[mean(y),mean(y)],'linewidth',1.5,'color', Color(CList{ramp}))
-        end
-        xlim([1-(buff*3),nRamps+(buff*3)])
-        ylabel('Range traveled (mm)')
-        set(gca,'xtick',1:nRamps)
-        xlabel('Ramp')
-    % Plot the temp-distance correlation:
-    subplot(1,3,3); hold on
-        for ramp = 1:nRamps
-            x = shuffle_data(linspace(ramp-buff,ramp+buff,num.trial(i)));
-            y = TD_corr(:,ramp);
-            scatter(x,y,SZ,Color(CList{ramp}),'filled')
-            plot([ramp-buff,ramp+buff],[mean(y),mean(y)],'linewidth',1.5,'color', Color(CList{ramp}))
-        end
-        xlim([1-(buff*3),nRamps+(buff*3)])
-        ylabel('Temp-distance correlation')
-        set(gca,'xtick',1:nRamps)
-        xlabel('Ramp')
-
-    formatFig(fig,true,[1,3]);
-
-    save_figure(fig,[saveDir expNames{i} ' ramp-by-ramp overlay'],'-png',true);
-
-end
-
-%% FIGURE: is ramp 4 neccessary??
-% How does the data with ramps 1-3 compare to with ramps 1-4??
-clearvars('-except',initial_vars{:})
-
-for i = 1:num.exp %experimental group
-
-    % Pull data for this experimental group
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
-    ROIs = [tp.down(:,1),tp.up(:,2)];
-    nRamps = size(ROIs,1);
-    [avg_dist,avg_dist_err,dist_range,TD_corr] = deal([]);
-    bins = tp.threshLow:0.5:tp.threshHigh;
-    plotData = [];
-    for g = 1:2 % Groups: 1-3 and full 1-4 ramps
-        switch g
-            case 1
-                rampIdx = 1:4; 
-                plotData(g).color = 'cyan';
-            case 2
-                rampIdx = 1:3;
-                plotData(g).color = 'gold';
-        end              
-        for trial = 1:num.trial(i)
-            temp = []; ramp_range = [];
-            for ramp = rampIdx
-                idx = ROIs(ramp,1):ROIs(ramp,2);
-                y = data(i).G(trial).TR.data(idx,:);
-                temp = autoCat(temp, y, true); % add all ramp data to other ramps
-                ramp_range(ramp) = range(y(:,3)); % get the ramp-specific distance range
-            end
-            % find the avg temp, distance relationship for each trial:
-            % [ignores heating and cooling differences]
-            proximity = [];
-            for bb = 1:length(bins)-1
-                loc = temp(:,1)>=bins(bb) & temp(:,1)<bins(bb+1);
-                proximity(bb) = mean(temp(loc,3),'omitnan');
-            end
-            % distance-temp avg
-            plotData(g).prox(:,trial) = proximity;
-            % correlation
-            plotData(g).corr(trial) = corr(temp(:,1),temp(:,3));
-            % range
-            plotData(g).range(trial) = mean(ramp_range);
-        end
-    end
-
-    % Overlay figure
-    SZ = 50;
-    LW = 2;
-
-    fig = figure; 
-    set(fig,'pos',[116 189 1274 622]); 
-    % Average distance per temp bin
-    subplot(1,3,1); hold on
-        x = bins(1:end-1);
-        for g = 1:2
-            kolor = Color(plotData(g).color);
-            y = mean(plotData(g).prox,2,'omitnan');
-            y_err = std(plotData(g).prox,0,2,'omitnan');
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.3)
-            plot(x,y,'linewidth',LW,'color',kolor)
-        end       
-        xlabel('Temperature (\circC)')
-        ylabel('Food proximity (mm)')
-        set(gca,'ydir', 'reverse')
-    % Distance range over ramps
-    subplot(1,3,2); hold on
-        x = [1,2];
-        for trial = 1:num.trial(i)
-            y = [plotData(1).range(trial),plotData(2).range(trial)];
-            plot(x,y,'linewidth',LW,'Color','w')
-        end
-        for g = 1:2
-            x = g*ones(1,num.trial(i));
-            y = plotData(g).range;
-            scatter(x,y,SZ,Color(plotData(g).color),'filled')
-        end
-        xlim([0.8,2.2])
-        ylabel('range (mm)')
-   % Distance range over ramps
-    subplot(1,3,3); hold on
-    x = [1,2];
-        for trial = 1:num.trial(i)
-            y = [plotData(1).corr(trial),plotData(2).corr(trial)];
-            plot(x,y,'linewidth',LW,'Color','w')
-        end
-        for g = 1:2
-            x = g*ones(1,num.trial(i));
-            y = plotData(g).corr;
-            scatter(x,y,SZ,Color(plotData(g).color),'filled')
-        end
-        ylabel('temp-distance correlation')
-        xlim([0.8,2.2])
-
-    formatFig(fig,true, [1,3]);
-    subplot(1,3,2)
-    set(gca,'xtick',[1,2],'xticklabel',{'full','reduced'})
-    subplot(1,3,3)
-    set(gca,'xtick',[1,2],'xticklabel',{'full','reduced'})
-
-    save_figure(fig,[saveDir expNames{i} ' temp-prox ramp comparison'],'-png',true);
-
-end
-
-
 %% FIGURE: [temp shift experiments] align distance by events not temp
 % TODO: do this for combined and separated heating/cooling distances
 
@@ -3192,9 +2988,150 @@ formatFig(fig,blkbgd,[r,c]);
 % save figure
 save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],'-png');
 
+%% FIGURE: [WT comp only] latutide organized 
+clearvars('-except',initial_vars{:})
+corr_coef = [];
+buff = 0.2;
+
+lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
+latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];
+
+% get correlation data
+for i = 1:num.exp
+    pooledData = [];
+    % get speed / distance information
+    for trial = 1:num.trial(i)
+        x = data(i).data(trial).occupancy.temp;
+        y = grouped(i).dist.all(:,trial);
+        temp = [];
+        temp = autoCat(temp,x,false);%temp for each trial within the exp.
+        temp = autoCat(temp,y,false);%dist for each trial within the exp
+        loc = any(isnan(temp),2);
+        temp(loc,:) = [];
+        % speed-distance correlation
+        rho = corr(temp); 
+        corr_coef(i).all(trial) = rho(1,2);
+        % save data for pooled comparison
+        pooledData = [pooledData; temp];
+    end
+    % Pooled speed-distance correlation
+    rho = corr(pooledData); 
+    corr_coef(i).group = rho(1,2);
+end
 
 
+% correlation coefficients
+fig = figure; set(fig,'color','w',"Position",[2108 475 453 590]); hold on
+hold on
+ for ii = 1:num.exp
+   i = find(contains(expNames,lat_list(ii)));
+     
+   kolor = grouped(i).color;
+   lat = latitudes(ii);
+   xlow = lat-2;
+   xhigh = lat+2;
+%    x = shuffle_data(linspace(lat-buff,lat+buff,num.trial(i)));
+   x = lat*ones(1,num.trial(i));
+   y = corr_coef(i).all;
+   y_avg = mean(corr_coef(i).all);
+   scatter(x,y,50,kolor,'filled')
+%    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
+%    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
+ end
+ xlim([-30,70])       
+ ylabel('temperature-distance correlation')
+ h_line(0,'w',':',1)    
+ formatFig(fig,true);    
+ set(gca,'xcolor','w')
+ xlabel('latitude (\circ)')
+% save figure
+save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],'-png');  
 
+
+%% FIGURE: surface map of distance-temp tuning curve 
+clearvars('-except',initial_vars{:})
+
+blkbgd = true;
+
+if blkbgd
+    foreColor = 'w';
+    backColor = 'k';
+    gridalpha = 0.3;
+else %white background
+    foreColor = 'k';
+    backColor = 'w';
+    gridalpha = 0.5;
+%     gridColor = [0.15 0.15 0.15];
+end
+
+x_limits = [0,num.exp+1];
+y_limits = [14, 23]; % TODO: update this auto
+z_limits = [14,28]; % TODO: update this auto
+colorLimits = [15.7617 26.2390];
+
+% get strain names
+strain_label = [];
+for exp = 1:num.exp
+    i = expOrder(exp);
+    temp = strsplit(expNames{i},' ');
+    strain_label{exp} = temp{1};
+end
+
+buff = 0.3;
+
+fig = figure; set(fig,'color',backColor,"Position",[1934 222 1061 836]);%[1934 468 1061 590])
+
+for exp = 1:num.exp
+
+    i = expOrder(exp);
+
+%     temp = strsplit(expNames{i},' ');
+%     strain_label{exp} = temp{1};
+
+
+    z = grouped(i).dist.distavgbytemp(:,2); % distance
+    loc = isnan(z); %no-data areas (temp bins outside perview of this exp)
+    y = grouped(i).dist.distavgbytemp(:,1); % temperature
+    % remove nans
+    z(loc) = [];
+    y(loc) = [];
+    
+    % Adjust temp and distance vectors for a surface plot
+    Y = repmat(y,[1,2]);
+    Z = repmat(z,[1,2]);
+    
+    % Build x-location map for this experiment group
+    x = [exp-buff,exp+buff];
+    X = repmat(x,[length(y),1]);
+
+    surf(X,Y,Z,'edgecolor','none','facecolor','interp');
+    
+    % save the surf shape into a new folder...
+    plotData = [];
+    plotData.X = X; plotData.Y = Y; plotData.Z = Z;
+    save([saveDir expNames{i} ' distance tuning curve surf map data.mat'],'plotData','-mat');
+
+    % next experimental group
+    hold on
+end
+% FORMATTING
+colormap(flipud(parula))
+set(gca,'zdir','reverse')        
+% xlabel('Strain')
+ylabel('temperature (\circC)')
+zlabel('proximity to food (mm)')
+set(gca,'color',backColor,'xcolor',foreColor,'ycolor',foreColor,'zcolor',foreColor)
+set(gca,'gridAlpha',gridalpha,'CLim',colorLimits)
+set(gca,'linewidth',2,'fontsize',12,'fontname','arial')
+
+xlim(x_limits)
+ylim(y_limits)
+zlim(z_limits)
+set(gca,'XTick',1:num.exp,'xticklabel',strain_label)
+
+
+% % save figure
+save_figure(fig,[saveDir expGroup ' distance tuning curve surf map'],'-png',true,false);
 
 
 
