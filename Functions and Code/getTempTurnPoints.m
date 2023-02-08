@@ -45,7 +45,7 @@ switch TempProtocolString
     case 'linear_ramp_XS_25-17'
         tempPoints.hold = [3864 18180; 63980 78830];
         tempPoints.down = [18181 41450; 78831 101900];
-        tempPoints.up =   [41451 36979; 101901 124799];
+        tempPoints.up =   [41451 63979; 101901 124799];
         tempPoints.nRates = 2; 
         tempPoints.rates = [-0.061, 0.061]; 
         tempPoints.threshLow = 16.5;

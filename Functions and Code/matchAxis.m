@@ -19,7 +19,7 @@ if nargin==2 && independent==true
         figAxes(ii).XLim = [min(min(x_lim)),max(max(x_lim))];
         figAxes(ii).YLim = [min(min(y_lim)),max(max(y_lim))];
     end
-else
+else % all axes uniform
     % find min and max:
     low = min(min([x_lim; y_lim]));
     high = max(max([x_lim; y_lim]));

@@ -41,12 +41,6 @@ if nargin > 1
     end
 end
 
-
-
-
-
-
-
 % % HOW THE COLORS ARE UPDATED|CREATED:
 % xlFile = 'G:\My Drive\Data\FicTrac Raw Data\Color Palette.xlsx';      
 % %load excel sheet data
