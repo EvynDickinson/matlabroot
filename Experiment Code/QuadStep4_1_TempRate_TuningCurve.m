@@ -56,9 +56,10 @@ end
 
 %% ANALYSIS: organize data for each group
 disp(expNames')
-fig_type = '-png';
 clearvars('-except',initial_vars{:})
-initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm'];
+fig_type = '-png';
+blkbgd = true;
+initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 f2m = 3*60; %fps*min = number of frames in a minute
 pix2mm = 12.8; % pixels per mm of real space
@@ -97,6 +98,9 @@ switch expGroup
     case 'Swedish LRR temp shift caviar'
         expOrder = [1,2,3]; %lowest to highest temp
         colors = {'dodgerblue','red','yellow'};
+    case 'Malawi LRR temp shift caviar'
+        expOrder = [1,2,3]; %lowest to highest temp
+        colors = {'dodgerblue','red','yellow'};
     case 'Berlin LRR temprate comp'
         expOrder = 1:4; % fast to slow   
         colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
@@ -107,32 +111,9 @@ if ~exist('colors','var')
     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
 end
 
-% if strcmp(expGroup,'WT linear recovery caviar') ||  strcmp(expGroup,'WT linear recovery no food')
-%     expOrder = [];
-%     expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
-% %     expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi','Zimbabwe'};
-%     colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-%     for ii = 1:num.exp
-%         expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar'])); %TODO : update this to work with 
-% %         grouped(expOrder(ii)).color = Color(colors{(ii)});
-%     end
-% elseif strcmp(expGroup,'All linear recovery ramp')
-%     expOrder = [];
-%     expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
-%     colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
-%     for ii = 1:num.exp
-%         expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-% %         grouped(expOrder(ii)).color = Color(colors{(ii)});
-%     end
-% else
-%     expOrder = 1:num.exp;
-%     
-% %     colors = {'BlueViolet','red','white','Turquoise','Gold','pink','Orange'};
-% 
 % % === Temperature shift experiments ===
 % %     expOrder = [3, 1, 2]; %lowest to highest
 % %     colors = {'dodgerblue','red','yellow','Gold','pink','Orange'};
-% 
 % % === food no-food comp ===
 %     colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
 % %     colors = {'white','BlueViolet','turquoise','Gold','pink','Orange'};
@@ -149,7 +130,6 @@ end
 % %     colors = {'BlueViolet','deeppink','orange', 'magenta','dodgerblue','Orange'};
 % % === sex comparison colors ===
 % %     colors = {'White','magenta','dodgerblue','Orange'}; 
-% end
 
 for i = 1:num.exp % FOR EACH DATA GROUP 
     % GENERAL
@@ -1940,7 +1920,7 @@ save_figure(fig,[saveDir expGroup ' temp NearestNeighbor correlation'],fig_type)
 %% FIGURE: 3D temperature modulation of behavior
 clearvars('-except',initial_vars{:})
 blkbgd = true;
-[foreColor,backColor] = formattingColors(blkbgd);
+[foreColor,~] = formattingColors(blkbgd);
 
 %for each trial -- plot it in 3D space based on: 
 % X) distance range
@@ -1973,7 +1953,7 @@ save_figure(fig,[saveDir expGroup ' 3D space modulation by temperature'],fig_typ
 clearvars('-except',initial_vars{:})
 blkbgd = true;
 autoSave = true;
-[foreColor,backColor] = formattingColors(blkbgd);
+[foreColor,~] = formattingColors(blkbgd);
 
 % Simple histogram of speed across full experiment
 bins = 0:0.5:15;
@@ -2124,8 +2104,13 @@ end
 
 %% FIGURE: cumulative distribution function of speed
 clearvars('-except',initial_vars{:})
-LW = 1;
-xlimit = [0,10];
+blkbgd = true;
+autoSave = true;
+autoLim = false;
+xlimit = [0,15];
+
+LW = 1.5;
+
 % xlimit = [0,20];
 
 fig = figure; hold on
@@ -2137,27 +2122,33 @@ for i = 1:num.exp
     h = cdfplot(temp);
     set(h,'color',grouped(i).color,'linewidth',LW)
 end
-xlim(xlimit)
+if ~autoLim
+    xlim(xlimit)
+end
 xlabel('Speed (mm/s)')
 ylabel('Empirical CDF')
 title('')
-formatFig(fig, true);   
+formatFig(fig, blkbgd);   
 set(gca,'xgrid','off','ygrid','off')
 set(gca,'ytick',0:0.2:1)
-save_figure(fig,[saveDir expGroup ' speed CDF'],'-png',true);
+save_figure(fig,[saveDir expGroup ' speed CDF'],fig_type,autoSave);
     
 %% FIGURE & STATS: speed hysteresis across groups
 clearvars('-except',initial_vars{:})
+blkbgd = true;
 plotSig = true;
-LW = 0.75;
+LW = 1;
 buff = 0.2;
+alpha = 0.05;
+[foreColor,backColor] = formattingColors(blkbgd);
+
 SZ = 50;
 r = 1; %rows
 c = 3; %columns
 
 [groupName, stats] = deal([]);
 
-fig = figure; set(fig,'color','w','pos',[1932 481 1268 647])%[1932 517 1050 611]
+fig = figure; set(fig,'pos',[1932 481 1268 647])%[1932 517 1050 611]
 for ii = 1:num.exp
     i = expOrder(ii);
     kolor = grouped(i).color;
@@ -2214,19 +2205,19 @@ for ii = 1:num.exp
 end
     
 %formatting and labels
-formatFig(fig,true,[r,c]);    
+formatFig(fig,blkbgd,[r,c]);    
 subplot(r,c,1)
     xlabel('Temp (\circC)')
     ylabel('Speed (mm/s)')
 subplot(r,c,2)
     xlabel('Temp (\circC)')
     ylabel('Speed diff (cool-heat)')
-    h_line(0,'w',':',1)
+    h_line(0,foreColor,':',1)
 subplot(r,c,3)
     xlim([0.5,num.exp+.5])
-    h_line(0,'w',':',1)
+    h_line(0,foreColor,':',1)
     ylabel('Cumulative speed difference')
-    set(gca,'xcolor','k')
+    set(gca,'xcolor',backColor)
     
    
 % SIG HYSTERESIS STATS: are the means of any groups different from zero?
@@ -2235,7 +2226,6 @@ for ii = 1:num.exp
     [~,p(ii)] = ttest(stats(ii,:)); 
 end
 %Bonferonni correction: 
-alpha = 0.05;
 m = num.exp;
 p_limit = alpha/m;
 h = p<=p_limit;
@@ -2248,7 +2238,7 @@ if plotSig
     subplot(r,c,3); hold on
     for ii = 1:num.exp
         if h(ii)
-            scatter(ii,y_pos,100,'w','*')
+            scatter(ii,y_pos,100,foreColor,'*')
         end
     end
 end   
@@ -2271,7 +2261,6 @@ else
 end
 
 % bonferonni multiple comparisons correction
-alpha = 0.05; %significance level
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
 %find p-values that fall under the threshold
@@ -2296,33 +2285,26 @@ end
 
 
 % save figure
-save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],'-png');  
+save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],fig_type);  
 
 %% FIGURE: difference between a 'control' and 'test' group (i.e. food | no food)
-
 clearvars('-except',initial_vars{:})
+blkbgd = true;
+[foreColor,backColor] = formattingColors(blkbgd);
+LW = 0.75;
+sSpan = 180;
+plot_err = true;
+autoLim = true;
+yLimits = [0,35];
 
 if ~(num.exp==2)
     warndlg('Need to input paired exp numbers')
     return
 end
-plot_err = true;
-blkbgd = true;
 
-
-LW = 0.75;
-sSpan = 180;
-
-if blkbgd
-    foreColor = 'w';
-    backColor = 'k';
-else
-    foreColor = 'k';
-    backColor = 'w';
-end
 compareY = [];
 % FIGURE:
-fig = figure; set(fig,'color','w',"Position",[2414 500 397 590])
+fig = figure; set(fig,"Position",[2414 500 397 590])
 hold on
 for i = 1:num.exp
     x = grouped(i).time;
@@ -2353,23 +2335,31 @@ formatFig(fig,blkbgd);
 % temp-distance relationship 
 ylabel('distance (mm)')
 xlabel('temp (\circC)')
-ylim([0,35])
-% 
+ylim(yLimits)
+if ~autoLim
+    ylim(yLimits)
+end 
 legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' distance difference between groups'],'-png');
+save_figure(fig,[saveDir expGroup ' distance difference between groups'],fig_type);
 
 %% FIGURE: Speed - distance correlation
 clearvars('-except',initial_vars{:})
+blkbgd = true;
 plot_err = true;
 corr_coef = [];
 num_points = 300;
 buff = 0.2;
+speedLim = [0,15];
+SZ = 50;
+LW = 1.5;
+[foreColor,backColor] = formattingColors(blkbgd);
 r = 1;
 c = 3;
 sb(1).idx = 1:2;
 sb(2).idx = 3;
+
 
 % get correlation data
 for i = 1:num.exp
@@ -2390,7 +2380,7 @@ for i = 1:num.exp
  end
      
 % PLOT FIGURE
-fig = figure; set(fig,'pos',[201 528 1070 618])
+fig = getfig('',true,[1070 618]);
 % linear fit of speed-distance to food|source
 subplot(r,c,sb(1).idx); hold on
     for i = 1:num.exp
@@ -2427,7 +2417,7 @@ subplot(r,c,sb(1).idx); hold on
             plot(fitX,y_fit-2*delta,'color',kolor,'linestyle','--','linewidth',1)
         end
     end
-    xlim([0,15])
+    xlim(speedLim)
     xlabel('Speed (mm/s)')
     ylabel('Distance from source (mm)')
     
@@ -2441,101 +2431,28 @@ subplot(r,c,sb(2).idx); hold on
        x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
        y = corr_coef(i).all;
        y_avg = mean(corr_coef(i).all);
-       scatter(x,y,50,kolor,'filled')
-       plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
-       plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
+       scatter(x,y,SZ,kolor,'filled')
+       plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
+       plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',LW)
      end
      xlim([0.5,num.exp+.5])       
      ylabel('correlation coefficient')
-     h_line(0,'w',':',1)
-formatFig(fig,true,[r,c],sb);
+     h_line(0,foreColor,':',1)
+formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(2).idx)
-set(gca,'xcolor','k')
+set(gca,'xcolor',backColor)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' speed distance correlation'],'-png');  
-
-
-
-
-
-
-
-% 
-% % Save correlation coefficient?
-% switch questdlg('Save correlation coefficient?')
-%     case 'Yes'
-% %         save()
-% end
-
-
-%    
-% % SIG HYSTERESIS STATS: are the means of any groups different from zero?
-% p = [];
-% for ii = 1:num.exp
-%     [~,p(ii)] = ttest(stats(ii,:)); 
-% end
-% %Bonferonni correction: 
-% alpha = 0.05;
-% m = num.exp;
-% p_limit = alpha/m;
-% h = p<=p_limit;
-% stats_tbl = table(groupName',h',p','VariableNames',{'group','significant','p value'});
-% disp(stats_tbl)
-% 
-% % add significance stars to the figure:
-% if plotSig
-%     y_pos = rangeLine(fig,10,false);
-%     subplot(r,c,3); hold on
-%     for ii = 1:num.exp
-%         if h(ii)
-%             scatter(ii,y_pos,100,'w','*')
-%         end
-%     end
-% end   
-%     
-% % SIG DIFF BETWEEN GROUPS STATS:
-% %format for anova
-% stats_id = repmat((1:num.exp)',[1,size(stats,2)]);
-% stats_id = reshape(stats_id,[numel(stats),1]);
-% x = reshape(stats,[numel(stats),1]);
-% loc = isnan(x);
-% stats_id(loc) = [];
-% x(loc) = [];
-% 
-% % determine which groups differ from each other
-% [~,~,data_stats] = anova1(x,stats_id,'off');
-% [c,~,~,~] = multcompare(data_stats,[],'off');
-% 
-% % bonferonni multiple comparisons correction
-% alpha = 0.05; %significance level
-% m = size(c,1); %number of hypotheses
-% sigThreshold = alpha/m;
-% %find p-values that fall under the threshold
-% significantHypotheses = c(:,6)<=sigThreshold;
-% fprintf('\n\nSpeed hysteresis comparison statistics:\n\n')
-% [Group1,Group2,P_Value] = deal([]);
-% idx = 0;
-% if any(significantHypotheses)
-%     for i = 1:length(significantHypotheses)
-%         if significantHypotheses(i)
-%             idx = idx+1;
-%             Group1{idx,1} = groupName{c(i,1)};
-%             Group2{idx,1} = groupName{c(i,2)};
-%             P_Value(idx,1) = c(i,6);
-%         end
-%     end
-%     sig_comp = table(Group1,Group2,P_Value);
-%     disp(sig_comp)
-% else
-%     disp('no significant differences between groups')
-% end
-% 
+save_figure(fig,[saveDir expGroup ' speed distance correlation'],fig_type);  
 
 %% FIGURE: Temperature - distance correlation
 clearvars('-except',initial_vars{:})
+blkbgd = true;
+[foreColor,backColor] = formattingColors(blkbgd);
 corr_coef = [];
 buff = 0.2;
+SZ = 50;
+LW = 1.5;
 
 % get correlation data
 for i = 1:num.exp
@@ -2560,9 +2477,8 @@ for i = 1:num.exp
     corr_coef(i).group = rho(1,2);
 end
 
-
 % correlation coefficients
-fig = figure; set(fig,'color','w',"Position",[2108 475 453 590]); hold on
+fig = getfig('',true,[453 590]); 
 hold on
  for ii = 1:num.exp
    i = expOrder(ii);
@@ -2572,20 +2488,22 @@ hold on
    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
    y = corr_coef(i).all;
    y_avg = mean(corr_coef(i).all);
-   scatter(x,y,50,kolor,'filled')
-   plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
-   plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
+   scatter(x,y,SZ,kolor,'filled')
+   plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
+   plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',LW)
  end
  xlim([0.5,num.exp+.5])       
  ylabel('temp-distance corr. coef.')
- h_line(0,'w',':',1)    
- formatFig(fig,true);    
- set(gca,'xcolor','k')
+ h_line(0,foreColor,':',1)    
+ formatFig(fig,blkbgd);    
+ set(gca,'xcolor',backColor)
  
 % save figure
-save_figure(fig,[saveDir expGroup ' temp distance correlation'],'-png');  
+save_figure(fig,[saveDir expGroup ' temp distance correlation'],fig_type);  
 
 %% FIGURE: avg distance between wells using the pix2mm conversion
+blkbgd = true;
+[foreColor,backColor] = formattingColors(blkbgd);
 
 d = [];
 for i = 1:num.exp 
@@ -2604,31 +2522,33 @@ end
 well_distance = d./pix2mm;
 % mean(well_distance)
 
-fig = figure; set(fig, 'pos',[2319 619 390 573]);
+fig = getfig('',true,[390 573]);
 violin(well_distance,'xlabel',{''},'facecolor',...
-       Color('teal'),'edgecolor','w','alp',1,...
-       'bw',0.35,'mc','w','medc','r--')
+       Color('teal'),'edgecolor',foreColor,'alp',1,...
+       'bw',0.35,'mc',foreColor,'medc','r--')
 ylabel('well distance (mm)','FontSize',14)
-formatFig(fig,true);
+formatFig(fig,blkbgd);
 h_line(36.2,'gold','--',1.5)
 ylim([35,40])
-set(gca,'xcolor','k','ytick',35:1:40)
-save_figure(fig,[saveDir expGroup ' physcial well distance selection'],'-png'); 
+set(gca,'xcolor',backColor,'ytick',35:1:40)
+save_figure(fig,[saveDir expGroup ' physcial well distance selection'],fig_type); 
 
 %% FIGURE & STATS: Hysteresis within a specific time range
 clearvars('-except',initial_vars{:})
-LW = 0.75;
-buff = 0.2;
-SZ = 50;
-r = 1; %rows
-c = 3; %columns
+ROI = [16,18]; % hysteresis range %TODO: add autochoices here
+blkbgd = true;
 plot_err = false;
 plotSig = true; %plot significance stars
-
-ROI = [14,18];
+[foreColor,backColor] = formattingColors(blkbgd);
+LW = 1;
+buff = 0.2;
+SZ = 50;
+alpha = 0.05;
+r = 1; %rows
+c = 3; %columns
 
 % FIGURE:
-fig = figure; set(fig,'color','w',"Position",[1932 517 1050 611])
+fig = getfig('',true);
 % Hystersis
 subplot(r,c,1)
 hold on
@@ -2665,7 +2585,8 @@ for i = 1:num.exp
     dataString{i} = grouped(i).name;
 end
 subplot(r,c,1) 
-ylabel('distance (mm)')
+set(gca,'ydir','reverse')
+ylabel('proximity to food (mm)')
 xlabel('temp (\circC)')
 xlim([ROI(1),ROI(2)])
 
@@ -2679,7 +2600,7 @@ for i = 1:num.exp
 %     plot(x,y,'color',kolor,'LineWidth',LW); 
     plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',2)
 end
-h_line(0,'w',':',1)
+h_line(0,foreColor,':',1)
 xlim([ROI(1),ROI(2)])
 xlabel('temp (\circC)')
 ylabel('distance difference (mm)')
@@ -2687,9 +2608,7 @@ ylabel('distance difference (mm)')
 % Cumulative difference in proximity
 subplot(r,c,3)
 hold on
-
-%TODO: update for smaller range or range that doesn't match exactly the
-%temperature bins
+%TODO: update for smaller range or range that doesn't match exactly the temperature bins
 for ii = 1:num.exp
     i = expOrder(ii);
     kolor = grouped(i).color;
@@ -2703,15 +2622,15 @@ for ii = 1:num.exp
     plotY = sum(y,1,'omitnan');
     x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i))); 
     scatter(x,plotY,SZ,kolor,"filled","o")
-    plot([ii-buff,ii+buff],[mean(plotY),mean(plotY)],'color','w','LineWidth',2)
+    plot([ii-buff,ii+buff],[mean(plotY),mean(plotY)],'color',foreColor,'LineWidth',2)
 end
 xlim([0.5,num.exp+0.5])
-h_line(0,'w',':',1)
+h_line(0,foreColor,':',1)
 ylabel('cumulatice difference (mm)')
 
 formatFig(fig,true,[r,c]);
-set(gca,'XTick',[],'xcolor','k')
-xlabel('Group','color','w')
+set(gca,'XTick',[],'xcolor',backColor)
+xlabel('Group','color',foreColor)
 
 % STATS: are the means of any groups different from zero?
 [p, mlt, id] = deal([]); 
@@ -2731,7 +2650,6 @@ for ii = 1:num.exp
     id = autoCat(id,i*ones(length(plotY),1),false);
 end
 %Bonferonni correction: 
-alpha = 0.05;
 m = num.exp;
 p_limit = alpha/m;
 h = p<=p_limit;
@@ -2744,7 +2662,7 @@ if plotSig
     subplot(r,c,3); hold on
     for ii = 1:num.exp
         if h(ii)
-            scatter(ii,y_pos,100,'w','*')
+            scatter(ii,y_pos,100,foreColor,'*')
         end
     end
 end
@@ -2754,12 +2672,11 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(mlt(:),id(:),'off');
 if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,.05,'off');
+    [c,~,~,~] = multcompare(stats,alpha,'off');
 else
     [c,~,~,~] = multcompare(stats,[],'off');
 end
 % bonferonni multiple comparisons correction
-alpha = 0.05; %significance level
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
 %find p-values that fall under the threshold
@@ -2779,10 +2696,11 @@ sig_comp = table(Group1,Group2,P_Value);
 disp(sig_comp)
 
 % save figure
-save_figure(fig,[saveDir 'Hysteresis summary ' num2str(ROI(1)) ' to ' num2str(ROI(2)) ' deg'],'-png');
+save_figure(fig,[saveDir 'Hysteresis summary ' num2str(ROI(1)) ' to ' num2str(ROI(2)) ' deg'],fig_type);
 
 %% FIGURE: Event aligned with preceding data before event
-
+% TODO -- update this to work with multiple lengths of temperature ramps --
+% like the version in the top of the script....
 clearvars('-except',initial_vars{:})
 switch questdlg('Short or long display range?','','Short (15 min)','Long (50 min)','Cancel','Short (15 min)')
     case 'Short (15 min)'
@@ -2919,31 +2837,18 @@ save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
     
 %% FIGURE: [temp shift experiments] align distance by events not temp
 % TODO: do this for combined and separated heating/cooling distances
-
 clearvars('-except',initial_vars{:})
 plot_err = true;
 blkbgd = true;
-% Y limit ranges
-speed_lim = [0,10]; %speed
-dist_lim = [5, 30]; %distance
-% dt_lim = [14, 28];      %distance-temp
-dt_lim = [10, 30];        %distance-temp
-nMax =  num.exp;%
-
-% set up figure aligments
+equalLim = true;
 LW = 1.5;
 r = 1;
 c = 2;
-if blkbgd
-    foreColor = 'w';
-    backColor = 'k';
-else
-    foreColor = 'k';
-    backColor = 'w';
-end
+nMax = num.exp;
+xmax = [];
 
 % FIGURE:
-fig = figure; %set(fig,'color','w',"Position",[1934 468 1061 590])
+fig = getfig('Temp Shift Event Aligned',true); %set(fig,'color','w',"Position",[1934 468 1061 590])
 subplot(r,c,1)
 hold on
 for i = 1:nMax
@@ -2964,8 +2869,9 @@ for i = 1:nMax
         set(h, 'facealpha', 0.2)
     end
     dataString{i} = grouped(i).name;
+    xmax = autoCat(xmax,x(end));
 end
-xmax = x(end);
+xmax = max(xmax);
 xlim([0,xmax+1])
 set(gca,'xtick',[1,xmax],'xticklabels',{'Min','Max'},'ydir', 'reverse')
 xlabel('Temperature')
@@ -2973,16 +2879,15 @@ ylabel('proxiity to food (mm)')
 
 subplot(r,c,2)
 hold on
+xmax = [];
 for i = 1:nMax
-    kolor = grouped(i).color;
-    
+    kolor = grouped(i).color;    
     %increasing 
     y = grouped(i).increasing.avg;
     x = 1:length(y);
     y_err = grouped(i).increasing.err;
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
-
     if plot_err
         fill_data = error_fill(x, y, y_err);
         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
@@ -3005,22 +2910,30 @@ for i = 1:nMax
 
     % Names and Colors of included data
     dataString{i} = grouped(i).name;
+    xmax = autoCat(xmax,x(end));
 end
-xmax = x(end);
+xmax = max(xmax);
 xlim([0,xmax+1])
 set(gca,'xtick',[1,xmax],'xticklabels',{'Min','Max'},'ydir', 'reverse')
 xlabel('Temperature')
 ylabel('proxiity to food (mm)')
 % FORMATING AND LABELS
 formatFig(fig,blkbgd,[r,c]);
+if equalLim
+    fig = matchAxis(fig,true);
+end
 
 % save figure
-save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],'-png');
+save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],fig_type);
 
 %% FIGURE: [WT comp only] latutide organized 
 clearvars('-except',initial_vars{:})
+blkbgd = true;
+[foreColor,backColor] = formattingColors(blkbgd);
 corr_coef = [];
 buff = 0.2;
+SZ = 50;
+LW = 1.5;
 
 lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
 latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];
@@ -3050,11 +2963,10 @@ end
 
 
 % correlation coefficients
-fig = figure; set(fig,'color','w',"Position",[2108 475 453 590]); hold on
+fig = getfig('',true,[453 590]); hold on
 hold on
  for ii = 1:num.exp
    i = find(contains(expNames,lat_list(ii)));
-     
    kolor = grouped(i).color;
    lat = latitudes(ii);
    xlow = lat-2;
@@ -3063,61 +2975,54 @@ hold on
    x = lat*ones(1,num.trial(i));
    y = corr_coef(i).all;
    y_avg = mean(corr_coef(i).all);
-   scatter(x,y,50,kolor,'filled')
-%    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',1.5)
+   scatter(x,y,SZ,kolor,'filled')
+%    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
 %    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
  end
  xlim([-30,70])       
  ylabel('temperature-distance correlation')
- h_line(0,'w',':',1)    
- formatFig(fig,true);    
- set(gca,'xcolor','w')
+ h_line(0,foreColor,':',1)    
+ formatFig(fig,blkbgd);    
+ set(gca,'xcolor',foreColor)
  xlabel('latitude (\circ)')
 % save figure
-save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],'-png');  
+save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],fig_type);  
 
 
 %% FIGURE: surface map of distance-temp tuning curve 
 clearvars('-except',initial_vars{:})
-
 blkbgd = true;
-
+[foreColor,backColor] = formattingColors(blkbgd);
+blkbgd = true;
+autoDist = true; % automatically determine distance axis limits
+autoColor = true; % automatically determine color limits for z (distance) axis
+autoTemp = true; % automatically set temperature limits
+buff = 0.3;
 if blkbgd
-    foreColor = 'w';
-    backColor = 'k';
     gridalpha = 0.3;
-else %white background
-    foreColor = 'k';
-    backColor = 'w';
+else 
     gridalpha = 0.5;
-%     gridColor = [0.15 0.15 0.15];
 end
 
 x_limits = [0,num.exp+1];
-y_limits = [14, 23]; % TODO: update this auto
-z_limits = [14,28]; % TODO: update this auto
-colorLimits = [15.7617 26.2390];
+y_limits = [14, 23]; % Temperature limits
+z_limits = [14, 28];  % Distance limits
 
 % get strain names
-strain_label = [];
+strain_label = cell([1,num.exp]);
 for exp = 1:num.exp
     i = expOrder(exp);
     temp = strsplit(expNames{i},' ');
     strain_label{exp} = temp{1};
 end
 
-buff = 0.3;
-
-fig = figure; set(fig,'color',backColor,"Position",[1934 222 1061 836]);%[1934 468 1061 590])
-
+fig = getfig('',true); 
+set(fig,'color',backColor);
+colorLimits = [];
 for exp = 1:num.exp
-
     i = expOrder(exp);
-
 %     temp = strsplit(expNames{i},' ');
 %     strain_label{exp} = temp{1};
-
-
     z = grouped(i).dist.distavgbytemp(:,2); % distance
     loc = isnan(z); %no-data areas (temp bins outside perview of this exp)
     y = grouped(i).dist.distavgbytemp(:,1); % temperature
@@ -3141,8 +3046,10 @@ for exp = 1:num.exp
     save([saveDir expNames{i} ' distance tuning curve surf map data.mat'],'plotData','-mat');
 
     % next experimental group
+    colorLimits = autoCat(colorLimits,[min(z) max(z)]);
     hold on
 end
+
 % FORMATTING
 colormap(flipud(parula))
 set(gca,'zdir','reverse')        
@@ -3150,27 +3057,109 @@ set(gca,'zdir','reverse')
 ylabel('temperature (\circC)')
 zlabel('proximity to food (mm)')
 set(gca,'color',backColor,'xcolor',foreColor,'ycolor',foreColor,'zcolor',foreColor)
-set(gca,'gridAlpha',gridalpha,'CLim',colorLimits)
+set(gca,'gridAlpha',gridalpha)
 set(gca,'linewidth',2,'fontsize',12,'fontname','arial')
 
+colorLimits = [min(min(colorLimits)),max(max(colorLimits))];
+if autoColor
+    set(gca,'CLim',colorLimits)
+end
+if ~autoDist
+    zlim(z_limits)
+end
+if ~autoTemp
+    ylim(y_limits)
+end
 xlim(x_limits)
-ylim(y_limits)
-zlim(z_limits)
 set(gca,'XTick',1:num.exp,'xticklabel',strain_label)
 
 
 % % save figure
-save_figure(fig,[saveDir expGroup ' distance tuning curve surf map'],'-png',true,false);
+save_figure(fig,[saveDir expGroup ' distance tuning curve surf map'],fig_type,true);
+
+%% FIGURE: [temperature rate experiments only] surf plot tuning curve
+clearvars('-except',initial_vars{:})
+blkbgd = true;
+[foreColor,backColor] = formattingColors(blkbgd);
+blkbgd = true;
+autoDist = true; % automatically determine distance axis limits
+autoColor = true; % automatically determine color limits for z (distance) axis
+autoTemp = true; % automatically set temperature limits
+buff = 0.3;
+LW = 1.5;
+
+if blkbgd
+    gridalpha = 0.3;
+else 
+    gridalpha = 0.5;
+end
+
+x_limits = [0,num.exp+1];
+y_limits = [14, 23]; % Temperature limits
+z_limits = [14, 28];  % Distance limits
+
+% get data to form 3-d mesh grid...
+strain_label = cell([1,num.exp]);
+[X,Y,Z,plotData] = deal([]);
+for exp = 1:num.exp
+    i = expOrder(exp);
+    z = grouped(i).dist.distavgbytemp(:,2); % distance
+    loc = isnan(z); %no-data areas (temp bins outside perview of this exp)
+    y = grouped(i).dist.distavgbytemp(:,1); % temperature
+    % remove nans
+    z(loc) = [];
+    y(loc) = [];
+    % get temp-rate data
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tempRates = tp.rates;
+    if any(tempRates(tempRates==0))   
+        tempRates(tempRates==0) = [];
+    end
+    if ~any(diff(abs(tempRates))==0)
+        warndlg('Cannot run this with different rate protocols')
+        return
+    end
+    TR = abs(tempRates(1));
+    x = TR*ones(size(y));
+    % Build plotting surface mesh
+    X = autoCat(X,x,false);
+    Y = autoCat(Y,y,false);
+    Z = autoCat(Z,z,false);
+    plotData = autoCat(plotData,[x,y,z]);
+end
+
+% Plot figure:
+fig = getfig('',true); 
+set(fig,'color',backColor);
+colorLimits = [];
+surf(X,Y,Z,'edgecolor','none','facecolor','interp');
+
+% FORMATTING
+colormap(flipud(parula))
+set(gca,'zdir','reverse')        
+xlabel('Temp rate (\circC/min)')
+ylabel('temperature (\circC)')
+zlabel('proximity to food (mm)')
+set(gca,'color',backColor,'xcolor',foreColor,'ycolor',foreColor,'zcolor',foreColor)
+set(gca,'gridAlpha',gridalpha)
+set(gca,'linewidth',2,'fontsize',12,'fontname','arial')
+
+% % save figure
+save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve'],fig_type,true);
 
 
+% add actual plot lines
+hold on 
+for i = 1:num.exp
+    plot3(X(:,i),Y(:,i),Z(:,i),'color',foreColor,'linewidth',LW)
+end
 
+c = colorbar;
+c.FontSize = 12;
+c.Color = foreColor;
+c.Label.String = 'Proximity to food (mm)';
 
-
-
-
-
-
-
+save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,true);
 
 
 

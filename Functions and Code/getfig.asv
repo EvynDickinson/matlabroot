@@ -4,7 +4,7 @@ function fig = getfig(name,secondscreen,new_size)
 
 primary_pos = [50,50]; %position from left, position from bottom
 primary_size = [1450, 900];
-second_size = [1064 680];
+second_size = [1019 680];
 
 % defaults
 fig_pos = primary_pos; %hold over from previous verions
