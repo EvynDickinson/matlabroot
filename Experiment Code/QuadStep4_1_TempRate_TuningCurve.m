@@ -9,50 +9,65 @@
 %% Select data groups to compare
 
 clear; close all; clc
-
-% Select processed data structures to compare:
 baseFolder = getCloudPath;  
-structFolder = [baseFolder 'Data structures\'];
-list_dirs = dir(structFolder);
-list_dirs = {list_dirs(:).name};
-list_dirs(1:2) = [];
-expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
-expNames = list_dirs(expIdx); %name of experiment groups selected
-num.exp = length(expIdx);  %number of groups selected
 
-% Load selected experiment data groups:plotData
-for i = 1:num.exp
-    data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-end
-
-clear list_dirs expIdx dirIdx
-% Set up base variables
-initial_vars = who;
-initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
-initial_vars = unique(initial_vars);
-
-% Save data / make new grouped data folder
-switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
-    case 'new structure'
-        expGroup = char(inputdlg('Structure name:'));
-        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        if ~exist(saveDir,'dir')
-            mkdir(saveDir);
-        end
-        save([saveDir expGroup ' data.mat'],'-v7.3');
-        disp([expGroup ' saved'])
-    case 'existing structure'
+switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
+    case 'Cancel'
+        return
+    case 'Yes'
         list_dirs = dir([baseFolder 'Grouped Data Structures\']);
         list_dirs = {list_dirs(:).name};
         list_dirs(1:2) = [];
         dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
         expGroup = list_dirs{dirIdx}; %name of experiment groups selected
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        save([saveDir expGroup ' data.mat'],'-v7.3');
-        disp([expGroup ' saved'])
-    case 'cancel'
-        return
+        load([saveDir expGroup ' data.mat']);
+        disp([expGroup ' loaded'])
+    case 'No'
+        % Select processed data structures to compare:
+        structFolder = [baseFolder 'Data structures\'];
+        list_dirs = dir(structFolder);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+        expNames = list_dirs(expIdx); %name of experiment groups selected
+        num.exp = length(expIdx);  %number of groups selected
+        
+        % Load selected experiment data groups:plotData
+        for i = 1:num.exp
+            data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+        end
+        
+        clear list_dirs expIdx dirIdx
+        % Set up base variables
+        initial_vars = who;
+        initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+        initial_vars = unique(initial_vars);
+        
+        % Save data / make new grouped data folder
+        switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
+            case 'new structure'
+                expGroup = char(inputdlg('Structure name:'));
+                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+                if ~exist(saveDir,'dir')
+                    mkdir(saveDir);
+                end
+                save([saveDir expGroup ' data.mat'],'-v7.3');
+                disp([expGroup ' saved'])
+            case 'existing structure'
+                list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+                list_dirs = {list_dirs(:).name};
+                list_dirs(1:2) = [];
+                dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+                expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+                save([saveDir expGroup ' data.mat'],'-v7.3');
+                disp([expGroup ' saved'])
+            case 'cancel'
+                return
+        end
 end
+
 
 %% ANALYSIS: organize data for each group
 disp(expNames')
@@ -104,6 +119,9 @@ switch expGroup
     case 'Berlin LRR temprate comp'
         expOrder = 1:4; % fast to slow   
         colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
+    case 'Berlin linear recovery ramp food vs no food'
+        expOrder = [2,1];
+        colors = {'white','DarkOrchid'};
 end
 
 if ~exist('colors','var')
@@ -264,7 +282,7 @@ end
 
 disp('Next')
 
-%% FIGURE: Basic over-lap of time-trials and temperature protocols
+%% FIGURE: Basic over-lap of time-trials and temperature protocols w/ SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = true;
@@ -366,6 +384,93 @@ legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off',
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
+
+%% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
+clearvars('-except',initial_vars{:})
+plot_err = true;
+autoLim = false;
+% Y limit ranges
+dist_lim = [10,35];       %distance
+dt_lim = [14, 32];        %distance-temp
+nMax =  1; %num.exp;%
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive? 
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true); 
+for i = 1:nMax
+%     i = expOrder(ii);
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+    
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        y = smooth(grouped(i).dist.avg,'moving',sSpan);
+%         y_err = smooth(grouped(i).dist.err,'moving',sSpan);
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+        x = grouped(i).dist.distavgbytemp(:,1);
+        y = grouped(i).dist.distavgbytemp(:,2);
+        y_err = grouped(i).dist.distavgbytemp_err(:,2);
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
+        dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx) 
+ylabel('\circC')
+set(gca,"XColor",backColor)
+% distance
+subplot(r,c,sb(2).idx) 
+ylabel('proximity to food (mm)')
+set(gca,"XColor",foreColor)
+set(gca,'ydir','reverse')
+% temp-distance relationship 
+subplot(r,c,sb(3).idx) 
+ylabel('proximity to food (mm)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dt_lim)
+end
+h_line(18.1,'grey',':',1) %36.2
+set(gca,'ydir','reverse')
+% 
+legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
 
 %% FIGURE & STATS: cumulative hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
@@ -2303,13 +2408,13 @@ for i = 1:num.exp
         compareY(:,i) = y;
 end
 diffY = compareY(:,2)-compareY(:,1);
-plot(x, diffY,'color',Color('lightpink'),'linewidth',2);
+plot(x, diffY,'color',Color('magenta'),'linewidth',2,'linestyle',':');
 
 % FORMATING AND LABELS
 formatFig(fig,blkbgd);
-
+% set(gca,'ydir','reverse')
 % temp-distance relationship 
-ylabel('distance (mm)')
+ylabel('distance to food (mm)')
 xlabel('temp (\circC)')
 ylim(yLimits)
 if ~autoLim
@@ -3054,7 +3159,6 @@ save_figure(fig,[saveDir expGroup ' distance tuning curve surf map'],fig_type,tr
 %% FIGURE: [temperature rate experiments only] surf plot tuning curve
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
-blkbgd = true;
 autoDist = true; % automatically determine distance axis limits
 autoColor = true; % automatically determine color limits for z (distance) axis
 autoTemp = true; % automatically set temperature limits
@@ -3134,42 +3238,60 @@ c.Label.String = 'Proximity to food (mm)';
 
 save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,true);
 
+%% TODO Flies on food analysis 
+clearvars('-except',initial_vars{:})
+plot_err = true;
+[foreColor,backColor] = formattingColors(blkbgd);
 
+well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
+well_rad = well_radius * pix2mm; %convert mm to pixels
 
+% Calculate nearest neighbor distance for each frame
+plotData = [];
+for i = 1:num.exp
+    N = [];
+    for trial = 1:num.trial(i)
+        onFood = [];
+        well_loc = data(i).T.foodLoc(trial);
+        well_center = data(i).data(trial).data.wellcenters(:,well_loc);
+        x = data(i).data(trial).data.x_loc;
+        y = data(i).data(trial).data.y_loc;
+        for frame = 1:size(x,1)
+            distances = sqrt((x(frame,:)-well_center(1)).^2+((y(frame,:)-well_center(2)).^2));
+            onFood(frame,1) = sum(distances<well_rad);
+        end
+        N = autoCat(N,onFood,false);
+    end  
+    plotData(i).N = N;
+    disp(['Done exp ' num2str(i)])
+end
+disp('All finished')
 
+% PLOT
+sSpan = 180;
+LW = 2;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+fig = getfig('',true);
+hold on
+for i = 1:num.exp
+    
+    kolor = grouped(i).color;
+    x = grouped(i).time;
+    y_err = std(plotData(i).N,0,2,'omitnan');
+    y_err = smooth(y_err,sSpan,'moving');
+    y = mean(plotData(i).N,2,'omitnan');
+    y = smooth(y,sSpan,'moving');
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'color',kolor,'linewidth',LW)
+end
+formatFig(fig,blkbgd);
+ylim([0,3])
+xlabel('time (min)')
+ylabel('Flies on food (#)')
 
 
 

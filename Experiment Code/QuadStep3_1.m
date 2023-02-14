@@ -411,7 +411,7 @@ for trial = 1:ntrials
             y = data(trial).occupancy.IFD';
             x = data(trial).occupancy.temp;
         case 'eccentricity'
-            y = data(trial).occupancy.eccentricity;
+            y = data(trial).occupancy.eccentricity(:,1); %second column is error, first is data
             x = data(trial).occupancy.temp;
     end 
     food.N = [food.N; x(roi),y(roi)];

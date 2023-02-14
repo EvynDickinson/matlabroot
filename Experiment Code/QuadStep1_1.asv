@@ -3,7 +3,6 @@ clear; close all; clc
 autoSave = true;
 essentialfigs = true;
 %% ---------------------Select Date & Experiment to Process ------------------------------
-
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 switch questdlg('Use Excel sheet to select experiment?')
@@ -98,10 +97,10 @@ if ~exist([analysisDir 'well_locations.mat'],'file') || ~exist([analysisDir expN
     % save the arena well locations:
     save([analysisDir expName ' well_locations.mat'], 'wellcenters','arenaIdx','r');
 else
-    try load([analysisDir 'well_locations.mat']);
+    try load([analysisDir expName ' well_locations.mat']);
     catch 
-        [analysisDir expName ' well_locations.mat']
         load([analysisDir 'well_locations.mat']);
+    end
 end
 
 % Find the arena centers and well locations:
@@ -431,12 +430,12 @@ T = movevars(T,'Y','After','X');
 % T = removevars(T,{'flyCount_1','flyCount_A_1','flyCount_C_1','flyCount_D_1','flyCount_B_1'});
 
 %% FIGURES: check on the number of flies per arena
-n = 2; % how many miscounted frames to look at
+n = 1; % how many miscounted frames to look at
 
 
 % Check flycount offset by arena:
 for arena = 1:4
-    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/Over and Under Tracked Images.pdf'];
+    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' over and Under Tracked Images.pdf'];
     offset = flyCount(:,arena)-nflies(arena);
     [~,idx] = sort(offset);
     lowIDX = idx(1:n);          % lowest fly count frame index
@@ -546,7 +545,7 @@ fig = figure; set(fig, 'pos', [99 200 895 635])
     title('Full plate')
     formatFig(fig, true, [nrows,ncols],sb);
 
-save_figure(fig, [analysisDir 'Fly Count Histogram'],'-png');
+save_figure(fig, [analysisDir expName ' Fly Count Histogram'],'-png');
 
 % Tracking with temperature
 sSpan = 360;
@@ -570,7 +569,7 @@ xlabel('Time (min)')
 ylabel('Fly count offset (#)')
 formatFig(fig, true, [nrows, ncols],sb);
 
-save_figure(fig, [analysisDir 'Fly Count over time'],'-png');
+save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png');
 
 clearvars('-except',initial_vars{:})
 
@@ -659,7 +658,7 @@ for arena = 1:4
                          expData.parameters.(['Arena' Alphabet(arena)]).genotype}, '_',' ');
     title(titleName,'color', 'w')
     
-    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/time course overview'];
+    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' time course overview'];
     save_figure(fig, save_loc, '-png',true);
 end
 

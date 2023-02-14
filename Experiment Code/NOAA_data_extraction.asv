@@ -1308,7 +1308,7 @@ tRange = nan(366,nCity);
 city_list = 1:nCity;
 city_list = city_list(I);
 
-for city = city_list
+for cirt = city_list
     if city==87
         continue
     end
@@ -1325,7 +1325,8 @@ for city = city_list
     end
 end
 
-CList = Color('plum','indigo', nCity);
+latitude(I)
+
 
 % FIGURE
 SZ = 10;
@@ -1335,25 +1336,25 @@ hold on; %set(fig,'pos',[-1056 637 1010 496]);
 for city = 1:nCity
     x = city*MT;
     y = tRange(:,city);
-    scatter(x,y,SZ,CList(city,:))% 
+    scatter(x,y,SZ,'w')
 end
 for city = 1:nCity
     x = city*MT;
     y = tRange(:,city);
-    scatter(city,mean(y,'omitnan'),SZ+10,'w','filled')
+    scatter(city,mean(y,'omitnan'),SZ+10,'r','filled')
 end
 
 formatFig(fig,true);
 ylabel('Daily temperature range (\circC)')
-set(gca,'xtick',[],'xcolor','k','tickdir','out')
+set(gca,'xtick',[],'xcolor','k')
 xlabel('2021 US cities','color','white')
 ylim([0,40])
 % optional plot nationwide average
 national_avg = median(median(tRange,1,'omitnan'),'omitnan');
-h_line(national_avg,'w','-',2)
+h_line(national_avg,'lime','-',2)
 
 
-save_figure(fig,[rootdir 'Figures/avg temperature range all cities'],'-pdf');
+save_figure(fig,[rootdir 'Figures/avg temperature range all cities'],'-png');
 
 
 [~,city] = (max(mean(tRange,1,'omitnan')));

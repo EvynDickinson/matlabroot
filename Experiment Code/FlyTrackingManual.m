@@ -191,20 +191,27 @@ sb(2).idx = 2:4;
 
 fig = figure; 
 subplot(rows,cols,sb(1).idx)
-    plot(time, temp,'Color','w','LineWidth',1.5)
+    plot(time, temperature,'Color','w','LineWidth',1.5)
     ylabel('T (\circC)')
 
 subplot(rows,cols,sb(2).idx); hold on
     plot(time,data.occupancy.dist2wells(:,well_loc),'Color','w','linewidth',1)
-    plot(time(loc), avg_dist(loc),'Color',Color('orangered'),'linewidth',1)
+    plot(time(loc), avg_dist(loc),'Color',Color('red'),'linewidth',1)
     ylabel('distance to food (mm)')
     xlabel('time (min)')
 
 formatFig(fig,true,[rows,cols],sb);
+
 subplot(rows,cols,sb(1).idx)
 set(gca,'XColor','k')
+set(gca,'TickDir','out')
 
-save_figure(fig,[figFolder 'manual vs SLEAP distance'],'-png')
+subplot(rows,cols,sb(2).idx)
+set(gca,'TickDir','out','ydir','reverse')
+ylabel('proximity to food (mm)')
+
+
+save_figure(fig,'G:\My Drive\Jeanne Lab\DATA\Manual Tracking\9.19.22 Arena C\manual vs SLEAP','-pdf',true,false)
 
 
 
