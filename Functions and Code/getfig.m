@@ -27,7 +27,7 @@ if nargin>1
             case 'TOGIAK'
                 fig_pos = [-1044 261];
             case 'EVYNPC'
-                fig_pos = [-1044 261 ];
+                fig_pos = [-1070 220];
              case '' %mac laptop
                 fig_pos = [-1044 261];
             case 'ACADIA'

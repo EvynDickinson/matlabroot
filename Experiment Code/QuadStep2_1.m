@@ -22,7 +22,6 @@ fileIdx = listdlg('ListString', FileNames,'ListSize',[300,450]);
 List.date = eligible_files(fileIdx,1);
 List.expID = eligible_files(fileIdx,3); 
 
-
 % get base folder pathway
 finishedFiles = [];
 baseFolder = getCloudPath;
