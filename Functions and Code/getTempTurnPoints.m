@@ -9,7 +9,7 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 % 
 %
 
-
+% disp(TempProtocolString)
 
 % pull the appropriate start|end points:
 switch TempProtocolString
@@ -107,6 +107,24 @@ switch TempProtocolString
         tempPoints.rates = [-0.125, 0.125]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
         tempPoints.threshLow = 18.5;
         tempPoints.threshHigh = 27.5;  
+    case 'linear_ramp_with_recovery_21-13'
+        tempPoints.hold = [1058 10917;...
+                           33841 48388;...
+                           71281 85553;...
+                           108700 123235;...
+                           145828 159935];
+        tempPoints.down = [10918 22513;...
+                           48389 59742;...
+                           85554 97281;...
+                           123236 134476];
+        tempPoints.up =   [22514 33840;...
+                           59743 71280;...
+                           97282 108699;...
+                           134477 145827];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = [-0.125, 0.125]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
+        tempPoints.threshLow = 12.5;
+        tempPoints.threshHigh = 21.5;  
     % =======================================                   
     case 'eaton_cooling_warming_ramp'
         tempPoints.down = [5700,34799];

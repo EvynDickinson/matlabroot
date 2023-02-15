@@ -119,8 +119,14 @@ switch expGroup
     case 'Berlin LRR temprate comp'
         expOrder = 4:-1:1; % fast to slow   
         colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
+    case 'Zimbabwe LRR caviar temprate comparison'
+        expOrder = [2,1];
+        colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
+        colors = {'white','DarkOrchid'};
+    case 'Berlin giant ramp food vs no food'
+        expOrder = [1,2];
         colors = {'white','DarkOrchid'};
 end
 
@@ -394,11 +400,11 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type,true,false);
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = false;
+autoLim = true;
 % Y limit ranges
 dist_lim = [10,35];       %distance
 dt_lim = [14, 32];        %distance-temp
-nMax =  1; %num.exp;%
+nMax =  num.exp;%
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
@@ -461,7 +467,7 @@ set(gca,"XColor",backColor)
 % distance
 subplot(r,c,sb(2).idx) 
 ylabel('proximity to food (mm)')
-set(gca,"XColor",foreColor)
+xlabel('time (min)')
 set(gca,'ydir','reverse')
 % temp-distance relationship 
 subplot(r,c,sb(3).idx) 
@@ -3248,15 +3254,17 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,false,true);
 
 
-%% TODO Flies on food analysis 
+%% FIGURE: Flies on food analysis 
 clearvars('-except',initial_vars{:})
 plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
-
+num_lim = [0,5];
+num_temp_lim = [0,5];
+autoLim = true;
 well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
 well_rad = well_radius * pix2mm; %convert mm to pixels
 
-% Calculate nearest neighbor distance for each frame
+% Calculate number of flies on food for each frame
 plotData = [];
 for i = 1:num.exp
     N = [];
@@ -3275,33 +3283,136 @@ for i = 1:num.exp
     plotData(i).N = N;
     disp(['Done exp ' num2str(i)])
 end
+
+% Cluster the flies on food by temperature?
+for i = 1:num.exp  
+    temps = unique(data(i).G(1).TR.temps);
+    rateIdx = data(i).G(1).TR.rateIdx;
+    tempIdx = data(i).G(1).TR.tempIdx;
+    % find rate index
+    heatRate = find(data(i).G(1).TR.rates>0);
+    coolRate = find(data(i).G(1).TR.rates<0);
+    try 
+        holdRate = find(data(i).G(1).TR.rates==0);
+        ntypes = 3;
+    catch
+        ntypes = 2;
+    end
+    
+    for temp = 1:length(temps)
+        for type = 1:ntypes
+            switch type
+                case 1 %heating
+                    g_name = 'increasing';
+                    idxSex = heatRate;
+                case 2 %cooling
+                    g_name = 'decreasing';
+                    idxSex = coolRate;
+                case 3
+                    g_name = 'holding';
+                    idxSex = holdRate;
+            end
+            % increasing rates:
+            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
+            plotData(i).(g_name)(temp,1) = mean(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan'); %avg 
+            plotData(i).(g_name)(temp,2) = std(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+        end
+        % Clustered by temp (regardless of heating/cooling)
+        loc = tempIdx==temp; %temp align only
+        plotData(i).temp_all(temp,1) = mean(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan'); %avg 
+        plotData(i).temp_all(temp,2) = std(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+    end
+    plotData(i).temps = temps;
+end
 disp('All finished')
 
-% PLOT
-sSpan = 180;
-LW = 2;
 
-fig = getfig('',true);
-hold on
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive? 
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true); 
 for i = 1:num.exp
-    
-    kolor = grouped(i).color;
     x = grouped(i).time;
-    y_err = std(plotData(i).N,0,2,'omitnan');
-    y_err = smooth(y_err,sSpan,'moving');
-    y = mean(plotData(i).N,2,'omitnan');
-    y = smooth(y,sSpan,'moving');
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-        set(h, 'facealpha', 0.2)
-    end
-    plot(x,y,'color',kolor,'linewidth',LW)
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+    
+    %number of flies on food over time
+    subplot(r,c,sb(2).idx); hold on
+        y_err = std(plotData(i).N,0,2,'omitnan');
+        y_err = smooth(y_err,sSpan,'moving');
+        y = mean(plotData(i).N,2,'omitnan');
+        y = smooth(y,sSpan,'moving');
+%         if plot_err
+%             fill_data = error_fill(x, y, y_err);
+%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+%             set(h, 'facealpha', 0.2)
+%         end
+        plot(x,y,'color',kolor,'linewidth',LW)
+        if ~autoLim
+            ylim(num_lim)
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+        x = plotData(i).temps;
+        y = plotData(i).temp_all(:,1);
+        y_err = plotData(i).temp_all(:,2);
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
+        dataString{i} = grouped(i).name;
 end
-formatFig(fig,blkbgd);
-ylim([0,3])
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx) 
+ylabel('\circC')
+set(gca,"XColor",backColor)
+% distance
+subplot(r,c,sb(2).idx) 
+ylabel('# flies on food')
 xlabel('time (min)')
-ylabel('Flies on food (#)')
+set(gca,"XColor",foreColor)
+% temp-distance relationship 
+subplot(r,c,sb(3).idx) 
+ylabel('# flies on food')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(num_temp_lim)
+end
+% 
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+save_figure(fig,[saveDir expGroup ' flies on food'],fig_type);
+
+
+
+
+
+
+
 
 
 
