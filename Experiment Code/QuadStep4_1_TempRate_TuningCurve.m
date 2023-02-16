@@ -120,7 +120,7 @@ switch expGroup
         expOrder = 4:-1:1; % fast to slow   
         colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
     case 'Zimbabwe LRR caviar temprate comparison'
-        expOrder = [2,1];
+        expOrder = [1,2,4,3];
         colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
@@ -128,6 +128,9 @@ switch expGroup
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
+    case 'Swedish LRR tempshift comp cavair full'
+        expOrder = 1:4; %lowest to highest
+        colors = {'dodgerblue','powderblue','peachpuff','tomato'};
 end
 
 if ~exist('colors','var')
@@ -395,11 +398,11 @@ set(gca,'ydir','reverse')
 legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type,true,false);
+save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
-plot_err = true;
+plot_err = false;
 autoLim = true;
 % Y limit ranges
 dist_lim = [10,35];       %distance
@@ -479,7 +482,7 @@ end
 h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
 % 
-legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
@@ -3252,7 +3255,6 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
 
 save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,false,true);
-
 
 %% FIGURE: Flies on food analysis 
 clearvars('-except',initial_vars{:})

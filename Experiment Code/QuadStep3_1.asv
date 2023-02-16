@@ -515,7 +515,7 @@ set(gca, 'fontsize', 20)
 save_figure(fig, [figDir 'Movement histogram'], '-png');
 clearvars('-except',initial_vars{:})
 
-%% ANALYSIS: Get temp rate information from all trials
+ b%% ANALYSIS: Get temp rate information from all trials
 clearvars('-except',initial_vars{:})
 
 G = struct;
@@ -561,9 +561,7 @@ for trial = 1:ntrials
        strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_27-19') || ...
        strcmp(T.TempProtocol{trial},'linear_ramp_F_25-17')|| ...
        strcmp(T.TempProtocol{trial},'linear_ramp_M_25-17')|| ...
-       strcmp(T.TempProtocol{trial},'linear_ramp_XS_25-17')|| ...
-       strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_21-13')
-   
+       strcmp(T.TempProtocol{trial},'linear_ramp_XS_25-17')
         tPoints.rates = [tPoints.rates(1), 0, tPoints.rates(2)];
         tPoints.nRates = 3;
     end
