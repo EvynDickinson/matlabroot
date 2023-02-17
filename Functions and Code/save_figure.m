@@ -1,7 +1,7 @@
 
 function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig)
 % 
-% results = save_figure(fig_handle, figure_name, type, autoSave)
+% results = save_figure(fig_handle, figure_name, type, autoSave, closeFig)
 % 
 % Export the input figure to the given location and name
 % with the following settings: 

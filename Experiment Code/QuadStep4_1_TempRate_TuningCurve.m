@@ -68,7 +68,6 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         end
 end
 
-
 %% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
@@ -2177,8 +2176,6 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp NearestNeighbor correlation'],fig_type);  
 
-
-
 %% FIGURE: speed histogram
 clearvars('-except',initial_vars{:})
 autoSave = true;
@@ -2512,8 +2509,6 @@ end
 % save figure
 save_figure(fig,[saveDir expGroup ' speed hysteresis summary'],fig_type);  
 
-
-
 %% FIGURE: Speed - distance correlation
 clearvars('-except',initial_vars{:})
 plot_err = true;
@@ -2672,12 +2667,6 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation'],fig_type);  
 
-
-
-
-
-
-
 %% FIGURE: surface map of distance-temp tuning curve 
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -2765,7 +2754,6 @@ set(gca,'XTick',1:num.exp,'xticklabel',strain_label)
 
 % % save figure
 save_figure(fig,[saveDir expGroup ' distance tuning curve surf map'],fig_type,autoSave);
-
 
 %% FIGURE: Flies on food analysis 
 clearvars('-except',initial_vars{:})
@@ -2920,36 +2908,6 @@ end
 
 save_figure(fig,[saveDir expGroup ' flies on food'],fig_type);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
 %% FIGURE: 3D temperature modulation of behavior
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd);
@@ -2979,15 +2937,6 @@ zlabel('hysteresis (mm)')
 set(gca,'zcolor',foreColor)
 
 save_figure(fig,[saveDir expGroup ' 3D space modulation by temperature'],fig_type);
-
-
-
-
-
-
-
-
-
 
 %% FIGURE: avg distance between wells using the pix2mm conversion
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -3019,9 +2968,6 @@ h_line(36.2,'gold','--',1.5)
 ylim([35,40])
 set(gca,'xcolor',backColor,'ytick',35:1:40)
 save_figure(fig,[saveDir expGroup ' physcial well distance selection'],fig_type); 
-
-
-
 
 %% FIGURE & STATS: Hysteresis within a specific time range
 clearvars('-except',initial_vars{:})
@@ -3339,8 +3285,6 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],fig_type);  
 
-
-
 %% FIGURE: [temperature rate experiments only] surf plot tuning curve
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -3426,3 +3370,106 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
 
 save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,false,true);
+
+%% FIGURE: Temp-distance correlation ONLY during ramps
+
+clearvars('-except',initial_vars{:})
+
+[foreColor,backColor] = formattingColors(blkbgd);
+corr_coef = [];
+buff = 0.2;
+SZ = 50;
+LW = 1.5;
+
+pixWidth = 60; % additional pixel size for image for each extra experiment group
+figSize = [pixWidth + (pixWidth*num.exp),590];
+
+% get correlation data
+plotData = struct;
+for exp = 1:num.exp
+    i = expOrder(exp);
+    disp(expNames{i})
+    
+    pooled_temp = [];
+    pooled_dist = [];
+    % get speed / distance information
+    for trial = 1:num.trial(i)
+        x = data(i).data(trial).occupancy.temp;
+        y = grouped(i).dist.all(:,trial);
+        pooled_temp = autoCat(pooled_temp,x,false);
+        pooled_dist = autoCat(pooled_dist,y,false);
+    end
+    % screen out control periods (recovery holds and start/end of exp)
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    loc = [tp.UpROI, tp.DownROI];
+    loc = sort(loc);
+     
+    temp = pooled_temp(loc,:);
+    dist = pooled_dist(loc,:);
+    [rho,pval] = corr(temp,dist);
+    
+    plotData(exp).rho = rho(logical(eye(num.trial(i))));
+    plotData(exp).pval = pval(logical(eye(num.trial(i))));
+    plotData(exp).groupName = expNames(i);
+    plotData(exp).color =  grouped(i).color;
+end
+
+% correlation coefficients
+fig = getfig('',true,figSize); 
+hold on
+ for i = 1:num.exp
+   disp(plotData(i).groupName)
+   kolor = plotData(i).color;
+   xlow = i-buff-0.1;
+   xhigh = i+buff+0.1;
+   x = shuffle_data(linspace(i-buff,i+buff,num.trial(i)));
+   y = plotData(i).rho;
+   y_avg = mean(plotData(i).rho);
+   scatter(x,y,SZ,kolor,'filled')
+   plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',LW)
+ end
+ xlim([0.5,num.exp+.5])       
+ ylabel('temp-distance corr. coef.')
+ h_line(0,foreColor,':',1)    
+ formatFig(fig,blkbgd);    
+ set(gca,'xcolor',backColor)
+ 
+% save figure
+save([saveDir expGroup ' temp distance correlation ramps only'],'plotData');
+save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-png',true,false);  
+save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-pdf',true,true);  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
