@@ -103,13 +103,25 @@ switch expGroup
         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
         for ii = 1:num.exp
             expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-        end       
-   
+        end      
+    case 'WT linear recovery caviar 27-19'
+        expOrder = [];
+%         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+%         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
+        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 27-19'])  | ...
+                                strcmp(expNames,[expList{ii} ' linear recovery ramp 27-19 caviar'])); 
+        end
     % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
         colors = {'white','DarkOrchid'};
     case 'Berlin giant ramp food vs no food'
+        expOrder = [1,2];
+        colors = {'white','DarkOrchid'};
+    case 'CantonS LRR food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
 
@@ -2760,8 +2772,8 @@ clearvars('-except',initial_vars{:})
 plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
 num_lim = [0,5];
-num_temp_lim = [0,5];
-autoLim = true;
+num_temp_lim = [0.4 1.8];
+autoLim = false;
 well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
 well_rad = well_radius * pix2mm; %convert mm to pixels
 
@@ -2821,7 +2833,7 @@ for i = 1:num.exp
         % Clustered by temp (regardless of heating/cooling)
         loc = tempIdx==temp; %temp align only
         plotData(i).temp_all(temp,1) = mean(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+        plotData(i).temp_all(temp,2) = std(mean(plotData(i).N(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
     end
     plotData(i).temps = temps;
 end
@@ -3224,7 +3236,7 @@ end
 % save figure
 save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],fig_type);
 
-%% FIGURE: [WT comp only] latutide organized 
+%% FIGURE: [WT comp] latutide organized 
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd);
 corr_coef = [];
@@ -3285,7 +3297,7 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],fig_type);  
 
-%% FIGURE: [temperature rate experiments only] surf plot tuning curve
+%% FIGURE: [temperature rate experiments] surf plot tuning curve
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 blkbgd = true;
@@ -3376,6 +3388,8 @@ save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],f
 clearvars('-except',initial_vars{:})
 
 [foreColor,backColor] = formattingColors(blkbgd);
+ylimits = [-0.8,0.1];
+autoLim = false;
 corr_coef = [];
 buff = 0.2;
 SZ = 50;
@@ -3433,6 +3447,9 @@ hold on
  h_line(0,foreColor,':',1)    
  formatFig(fig,blkbgd);    
  set(gca,'xcolor',backColor)
+ if ~autoLim
+     ylim(ylimits)
+ end
  
 % save figure
 save([saveDir expGroup ' temp distance correlation ramps only'],'plotData');
@@ -3443,6 +3460,8 @@ save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-pdf
 
 
 
+
+%% 
 
 
 

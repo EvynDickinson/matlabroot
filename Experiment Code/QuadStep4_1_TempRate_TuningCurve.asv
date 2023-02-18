@@ -103,13 +103,26 @@ switch expGroup
         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
         for ii = 1:num.exp
             expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-        end       
-   
+        end      
+    case 'WT linear recovery caviar 27-19'
+        expOrder = [];
+%         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+%         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        expList = {'Berlin WT', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 27-19'])  | ...
+                                strcmp(expNames,[expList{ii} ' linear recovery ramp 27-19 caviar']); 
+        end
     % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
         colors = {'white','DarkOrchid'};
     case 'Berlin giant ramp food vs no food'
+        expOrder = [1,2];
+        colors = {'white','DarkOrchid'};
+    case 'CantonS LRR food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
 
@@ -3224,7 +3237,7 @@ end
 % save figure
 save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],fig_type);
 
-%% FIGURE: [WT comp only] latutide organized 
+%% FIGURE: [WT comp] latutide organized 
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd);
 corr_coef = [];
@@ -3285,7 +3298,7 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],fig_type);  
 
-%% FIGURE: [temperature rate experiments only] surf plot tuning curve
+%% FIGURE: [temperature rate experiments] surf plot tuning curve
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 blkbgd = true;
@@ -3376,6 +3389,8 @@ save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],f
 clearvars('-except',initial_vars{:})
 
 [foreColor,backColor] = formattingColors(blkbgd);
+ylimits = [-0.8,0.1];
+autoLim = false;
 corr_coef = [];
 buff = 0.2;
 SZ = 50;
@@ -3408,17 +3423,16 @@ for exp = 1:num.exp
     dist = pooled_dist(loc,:);
     [rho,pval] = corr(temp,dist);
     
-    plotData(i).rho = rho(logical(eye(num.trial(i))));
-    plotData(i).pval = pval(logical(eye(num.trial(i))));
-    plotData(i).groupName = expNames(i);
-    plotData(i).color =  grouped(i).color;
+    plotData(exp).rho = rho(logical(eye(num.trial(i))));
+    plotData(exp).pval = pval(logical(eye(num.trial(i))));
+    plotData(exp).groupName = expNames(i);
+    plotData(exp).color =  grouped(i).color;
 end
 
 % correlation coefficients
 fig = getfig('',true,figSize); 
 hold on
  for i = 1:num.exp
-     
    disp(plotData(i).groupName)
    kolor = plotData(i).color;
    xlow = i-buff-0.1;
@@ -3434,6 +3448,9 @@ hold on
  h_line(0,foreColor,':',1)    
  formatFig(fig,blkbgd);    
  set(gca,'xcolor',backColor)
+ if ~autoLim
+     ylim(ylimits)
+ end
  
 % save figure
 save([saveDir expGroup ' temp distance correlation ramps only'],'plotData');
@@ -3444,6 +3461,8 @@ save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-pdf
 
 
 
+
+%% 
 
 
 
