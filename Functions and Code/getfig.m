@@ -31,7 +31,7 @@ if nargin>1
              case '' %mac laptop
                 fig_pos = [-1044 261];
             case 'ACADIA'
-                fig_pos = [1932 251];
+                fig_pos = [-1074 562];
         end
         figsize = second_size;
     end

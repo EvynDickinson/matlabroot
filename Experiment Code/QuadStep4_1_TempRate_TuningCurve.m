@@ -9,7 +9,7 @@
 %% Select data groups to compare
 
 clear; close all; clc
-baseFolder = getCloudPath;  
+baseFolder = getCloudPath;
 
 switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
     case 'Cancel'
@@ -117,7 +117,7 @@ switch expGroup
  % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
-        colors = {'white','DarkOrchid'}; %
+        colors = {'white','dodgerblue'}; %
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
@@ -416,7 +416,7 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = true;
+autoLim = false;
 % Y limit ranges
 dist_lim = [10,35];       %distance
 dt_lim = [14, 32];        %distance-temp
@@ -469,7 +469,7 @@ for i = 1:nMax
         if plot_err
             fill_data = error_fill(x, y, y_err);
             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
+            set(h, 'facealpha', 0.35)
         end
         dataString{i} = grouped(i).name;
 end
@@ -2165,7 +2165,7 @@ clearvars('-except',initial_vars{:})
 plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
 num_lim = [0,5];
-num_temp_lim = [0.4 1.6];
+num_temp_lim = [0,1.4];
 autoLim = false;
 well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
 well_rad = well_radius * pix2mm; %convert mm to pixels
@@ -2280,12 +2280,12 @@ for i = 1:num.exp
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-
+ 
         plot(x,y,'color',kolor,'linewidth',LW+1)
         if plot_err
             fill_data = error_fill(x, y, y_err);
             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
+            set(h, 'facealpha', 0.35)
         end
         dataString{i} = grouped(i).name;
 end
