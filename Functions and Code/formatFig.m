@@ -29,6 +29,7 @@ if nargin>=2
     set(figHandle, 'color', 'k') 
     labelColor = 'w';
     backColor = 'k';
+    
   else
     set(figHandle, 'color', 'w') 
   end
