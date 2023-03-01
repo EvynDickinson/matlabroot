@@ -19,7 +19,7 @@ txtSize = 16; % text size
 axisLW = 2; % axis line width
 txtFont = 'Arial'; % all fonts
 tickMarkSize = 14;    
-tickDir = 'in'; 
+tickDir = 'out'; 
 
 % SET PLOT BACKGROUND COLOR
 backColor = 'w';
@@ -63,6 +63,7 @@ if nargin >= 3 %subplots
         set(gca,'fontsize',tickMarkSize,'FontWeight','normal')
         labelHandles = findall(ax, 'type', 'text', 'handlevisibility', 'off');
         set(labelHandles,'FontSize', txtSize, 'color', labelColor)
+        set(ax,'tickdir',tickDir)
     end    
 else    % single plot
    % get plot handles

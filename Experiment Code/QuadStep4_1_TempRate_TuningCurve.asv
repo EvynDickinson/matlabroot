@@ -420,7 +420,7 @@ autoLim = false;
 % Y limit ranges
 dist_lim = [10,35];       %distance
 dt_lim = [14, 32];        %distance-temp
-nMax =  1;%num.exp;%
+nMax =  num.exp;%
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
@@ -2166,7 +2166,7 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
 num_lim = [0,5];
 num_temp_lim = [0,1.4];
-autoLim = false;
+autoLim = true;
 well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
 well_rad = well_radius * pix2mm; %convert mm to pixels
 
@@ -2232,6 +2232,16 @@ for i = 1:num.exp
 end
 disp('All finished')
 
+% Correlation between flies on food and distance: 
+for i = 1:num.exp
+    N = plotData(i).N;
+    dist = grouped(i).dist.all;
+    % filter for only ramps?
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    loc = [tp.UpROI,tp.DownROI];
+    loc = sort(loc');
+    N(loc,:)
+
 
 % set up figure aligments
 r = 5; %rows
@@ -2280,12 +2290,12 @@ for i = 1:num.exp
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-
+ 
         plot(x,y,'color',kolor,'linewidth',LW+1)
         if plot_err
             fill_data = error_fill(x, y, y_err);
             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
+            set(h, 'facealpha', 0.35)
         end
         dataString{i} = grouped(i).name;
 end
@@ -2341,7 +2351,7 @@ for i = 1:nMax
     if plot_err
         fill_data = error_fill(x, y, y_err);
         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
+        set(h, 'facealpha', 0.35)
     end
 end
 xlabel('Temperature (\circC)')
@@ -2387,6 +2397,10 @@ end
 
 % save figure
 save_figure(fig,[saveDir 'Flies on food heating and cooling'],fig_type);
+
+
+% Correlation between flies on food and distance to food:
+
 
 %% !SLOW! ANALYSIS: Nearest neighbor analysis
 % WARNING: TAKES A MINUTE OR TWO (COMPUTATION HEAVY)
@@ -3530,7 +3544,7 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,false,true);
 
 
-%% 
+%%  
 
 
 

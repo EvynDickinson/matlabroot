@@ -71,8 +71,8 @@ end
 %% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
-fig_type = '-png';
-blkbgd = true;
+fig_type = '-pdf';
+blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 f2m = 3*60; %fps*min = number of frames in a minute
@@ -344,7 +344,7 @@ for i = 1:nMax
     %temp
     subplot(r,c,sb(1).idx); hold on
         y = grouped(i).temp;
-        plot(x,y,'LineWidth',LW,'Color',kolor)
+        plot(x,y,'LineWidth',1,'Color',kolor)
     
     %distance
     subplot(r,c,sb(2).idx); hold on
@@ -416,7 +416,7 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = false;
+autoLim = true;
 % Y limit ranges
 dist_lim = [10,35];       %distance
 dt_lim = [14, 32];        %distance-temp
@@ -761,7 +761,7 @@ for i = 1:num.exp
     if ~autoLim
         ylim(ylimits)
     end
-    formatFig(fig,true);
+    formatFig(fig,blkbgd);
     title([grouped(i).name],'Color',foreColor,'FontSize',12,'FontName','times')
     
     save_figure(fig,[saveDir grouped(i).name...
@@ -1696,12 +1696,12 @@ for ii = 1:num.exp
 end
 %labels and formatting
 formatFig(fig,blkbgd,[r,c]);
-for ii = 1:4
+for ii = 1:4 
     subplot(r,c,ii)
-    set(gca,'xcolor', backColor)
+    set(gca,'xcolor', backColor,'ydir','reverse')
     xlim([0,num.exp+1])
     ylim(y_limits)
-    ylabel('food distance (mm)')
+    ylabel('food proximity (mm)')
     switch ii
         case 1 
             title('Min | Heating','color',foreColor)
@@ -2166,7 +2166,7 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
 num_lim = [0,5];
 num_temp_lim = [0,1.4];
-autoLim = false;
+autoLim = true;
 well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
 well_rad = well_radius * pix2mm; %convert mm to pixels
 
@@ -2232,6 +2232,25 @@ for i = 1:num.exp
 end
 disp('All finished')
 
+% % Correlation between flies on food and distance: 
+% for i = 1:num.exp
+%     N = plotData(i).N;
+%     dist = grouped(i).dist.all;
+%     % filter for only ramps?
+%     tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+%     loc = [tp.UpROI,tp.DownROI];
+%     loc = sort(loc');
+%     N(~loc,:) = [];
+%     dist(~loc,:) = [];
+%     loc2 = any(isnan(N),2) | any(isnan(dist),2);
+%     N(loc2,:) = [];
+%     dist(loc2,:) = [];
+%     
+%     
+%     for trial = 1:num.trial(i)
+%         rho(trial) = corr(N(:,trial),dist(:,trial));
+%     end
+% end
 
 % set up figure aligments
 r = 5; %rows
@@ -2341,7 +2360,7 @@ for i = 1:nMax
     if plot_err
         fill_data = error_fill(x, y, y_err);
         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
+        set(h, 'facealpha', 0.35)
     end
 end
 xlabel('Temperature (\circC)')
@@ -2387,6 +2406,9 @@ end
 
 % save figure
 save_figure(fig,[saveDir 'Flies on food heating and cooling'],fig_type);
+
+
+% Correlation between flies on food and distance to food:
 
 %% !SLOW! ANALYSIS: Nearest neighbor analysis
 % WARNING: TAKES A MINUTE OR TWO (COMPUTATION HEAVY)
@@ -2565,7 +2587,7 @@ for i = 1:num.exp
 end
 ylabel('Nearest neighbor distance (mm)')
 xlabel('Distance to food (mm)')
-formatFig(fig, true);
+formatFig(fig, blkbgd);
 
 save_figure(fig,[saveDir expGroup ' nearest neighbor vs food distance'],fig_type);
 
@@ -3527,10 +3549,9 @@ c.Label.String = 'Proximity to food (mm)';
 set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
 
-save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve flat map'],fig_type,false,true);
+ 
 
-
-%% 
+%%  
 
 
 
