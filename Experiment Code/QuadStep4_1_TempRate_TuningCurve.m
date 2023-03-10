@@ -3304,7 +3304,7 @@ disp(sig_comp)
 
 % save figure
 save_figure(fig,[saveDir 'Hysteresis summary ' num2str(ROI(1)) ' to ' num2str(ROI(2)) ' deg'],fig_type);
-
+ 
 %% FIGURE: [temp shift experiments] align distance by events not temp
 % TODO: do this for combined and separated heating/cooling distances
 clearvars('-except',initial_vars{:})
