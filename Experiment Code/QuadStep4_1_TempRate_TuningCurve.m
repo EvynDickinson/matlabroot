@@ -117,7 +117,7 @@ switch expGroup
  % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
-        colors = {'white','dodgerblue'}; %
+        colors = {'black','dodgerblue'}; %
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
@@ -3304,7 +3304,7 @@ disp(sig_comp)
 
 % save figure
 save_figure(fig,[saveDir 'Hysteresis summary ' num2str(ROI(1)) ' to ' num2str(ROI(2)) ' deg'],fig_type);
-
+ 
 %% FIGURE: [temp shift experiments] align distance by events not temp
 % TODO: do this for combined and separated heating/cooling distances
 clearvars('-except',initial_vars{:})
