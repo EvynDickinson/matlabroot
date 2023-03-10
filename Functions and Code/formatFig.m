@@ -19,7 +19,7 @@ txtSize = 16; % text size
 axisLW = 2; % axis line width
 txtFont = 'Arial'; % all fonts
 tickMarkSize = 14;    
-tickDir = 'out'; 
+tickDir = 'in'; 
 
 % SET PLOT BACKGROUND COLOR
 backColor = 'w';

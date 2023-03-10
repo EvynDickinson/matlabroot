@@ -117,7 +117,7 @@ switch expGroup
  % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
-        colors = {'white','dodgerblue'}; %
+        colors = {'black','dodgerblue'}; %
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
