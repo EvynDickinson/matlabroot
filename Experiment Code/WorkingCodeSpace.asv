@@ -1420,12 +1420,14 @@ for zz=1:length(h)
     patch(get(h(zz),'XData'),get(h(zz),'YData'),colorsforboxplot(zz,:),'FaceAlpha',.5);
 end
 hold on
-
+%use boxchart in line 130 if you want to plot the
+% plot(Mmean_df_F_perodor,'-o')
 ylabel('normalized max df/f')
 xlabel('odor')
 set(gca,'XTickLabel',odorCombos)
+saveas (gcf, 'all normalized maxF data for all odors_EA6MA6_nodelay all flies.tif')
+saveas (gcf, 'all normalized maxF data for all odors_EA6MA6_nodelay all flies .eps')
 
-formatFig(fig4,false,[1,1]);
 
 
 
