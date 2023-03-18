@@ -71,8 +71,8 @@ end
 %% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
-fig_type = '-pdf';
-blkbgd = false;
+fig_type = '-png';
+blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 f2m = 3*60; %fps*min = number of frames in a minute
@@ -135,12 +135,12 @@ switch expGroup
 
 % ---- TEMP RATE COMPARISONS ----
     case 'Berlin LRR temprate comp'
-        expOrder = 4:-1:1; % fast to slow   
+        expOrder = 4:-1:1; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
         
     case 'Zimbabwe LRR caviar temprate comparison'
-        expOrder = [1,2,4,3];
-        colors = {'DodgerBlue','MediumSpringGreen','DeepPink','Gold'};
+        expOrder = [3,4,2,1];
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
     
     % ---- TEMP SHIFT COMPARISONS ----
     case 'Swedish LRR tempshift comp cavair full'
@@ -683,7 +683,7 @@ save_figure(fig,[saveDir expGroup ' ramp by ramp cumulative hysteresis'],fig_typ
 %% ANALYSIS AND FIGURES: Event-aligned comparisons
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
-autoLim = false;
+autoLim = true;
 autoSave = true;
 ylimits = [-20,15]; %for manual y-limit selection
 sSpan = 180;
@@ -856,7 +856,8 @@ end
 for ss = 1:length(sections) 
     subplot(r,c,sb(ss+3).idx) 
     ylim(ylimits)
-    ylim([-15, 14])
+%     ylim([-15, 14])
+%     ylim([-5, 5])
 %     xlim([0 150])
 %     subplot(r,c,sb(ss).idx) 
 %     xlim([0 150])
