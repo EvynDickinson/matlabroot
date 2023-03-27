@@ -2,29 +2,37 @@
 
 clear
 close all
-load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+
+% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+
+load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat');
+
+
 T = data.T;
-% ramp timing for this experiment
-tempPoints.hold = [1058 10917;...
-               33841 48388;...
-               71281 85553;...
-               108700 123235;...
-               145828 159935];
-tempPoints.down = [10918 22513;...
-               48389 59742;...
-               85554 97281;...
-               123236 134476];
-tempPoints.up =   [22514 33840;...
-               59743 71280;...
-               97282 108699;...
-               134477 145827];
+
+tempPoints = getTempTurnPoints(expData.parameters.protocol);
+
+% % ramp timing for this experiment
+% tempPoints.hold = [1058 10917;...
+%                33841 48388;...
+%                71281 85553;...
+%                108700 123235;...
+%                145828 159935];
+% tempPoints.down = [10918 22513;...
+%                48389 59742;...
+%                85554 97281;...
+%                123236 134476];
+% tempPoints.up =   [22514 33840;...
+%                59743 71280;...
+%                97282 108699;...
+%                134477 145827];
 
 % Get timing starts for ramp
 rampDurations = [(tempPoints.down(:,1))/180, (tempPoints.up(:,2))/180]; %in minutes
 
 % parameters
 ramp = 2;
-buffer = 40; % how many minutes before the start of the ramp do we want to use?
+buffer = 20; % how many minutes before the start of the ramp do we want to use?
 x_speed = 300; % how many times faster than the fps to write the video (e.g. 20x)
 
 
@@ -82,7 +90,7 @@ vid_frame = T.vidFrame(startVid.loc);
 videoPath = [vidDir num2str(oldVid) '.avi'];
 movieInfo = VideoReader(videoPath); %read in video
 
-fig = figure; set(fig,'pos',[-1030 279 772 1009],'color','k','Visible','Off');
+fig = figure; set(fig,'pos',[-1030 279 772 1009],'color','k'); %'Visible','Off'
 for frame = startVid.loc:skipSize:endVid.loc
     vid = T.vidNums(frame);
     vid_frame = T.vidFrame(frame);
@@ -124,7 +132,7 @@ disp('Done')
 disp(datetime)
 
 close(v) %close the movie writer object
-% close(fig) %close the figure
+close(fig) %close the figure
 
 
 

@@ -3552,7 +3552,11 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
  
 
-%%  
+%%  SLEEP analysis: when are flies doing it? 
+% look for periods of inactivity longer than 5 minutes...
+
+
+
 
 
 

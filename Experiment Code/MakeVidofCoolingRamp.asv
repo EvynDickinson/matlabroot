@@ -2,8 +2,15 @@
 
 clear
 close all
-load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+
+% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+
+load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat');
+
+
 T = data.T;
+
+
 % ramp timing for this experiment
 tempPoints.hold = [1058 10917;...
                33841 48388;...
