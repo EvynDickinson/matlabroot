@@ -128,7 +128,7 @@ switch expGroup
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
         colors = {'gold','DarkOrchid'};
-% ---- SEX COMPARISONS ----
+    % ---- SEX COMPARISONS ----
     case 'Zimbabwe sex comparison'
         expOrder = 1:num.exp;
         colors = {'White','magenta','dodgerblue','Orange'};
@@ -136,7 +136,7 @@ switch expGroup
         expOrder = 1:num.exp;
         colors = {'White','magenta','dodgerblue','Orange'}; 
 
-% ---- TEMP RATE COMPARISONS ----
+    % ---- TEMP RATE COMPARISONS ----
     case 'Berlin LRR temprate comp'
         expOrder = 4:-1:1; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
