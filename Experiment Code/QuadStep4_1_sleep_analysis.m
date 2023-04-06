@@ -1,8 +1,5 @@
 
 % Find 'sleep' points in data
-
-
-
 %% (DONT RUN) visualize grid spacing & single trial visualization
 % nbins = 50;
 % i = 1;
@@ -112,7 +109,104 @@
 %      xlabel('time (min)')
 % 
 % formatFig(fig,true,[r,c],sb);
+%% (dont run) SLEEP METHODS
 
+% % ---- Vectorize the data (find the flies that are sleeping....) -----
+% 
+% % find food well location for distance capture later
+% foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
+% c1 = foodWellLoc(1);
+% c2 = foodWellLoc(2);
+% 
+% % create empty matrixes for the x and y positions of the sleeping flies
+% sleeping = struct;
+% [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data(i).T.NumFlies(trial)));
+% sleeping.sleepNum = zeros(trial_length,1);
+% [sleeping.dist_avg, sleeping.dist_err] = deal(nan(trial_length,1));
+% % assign data by frame
+% for frame = 1:trial_length
+%     frame_data = sleepLoc(:,:,frame);
+%     binLoc = find(frame_data>0);
+%     
+%     % Find the coordinates of the sleeping flies bins from the discretized data
+%     y_row = ceil(binLoc/nbins);
+%     x_row = rem(binLoc-1,nbins)+1;
+%     x_position = (xedge(x_row) + xedge(x_row+1))/2;
+%     y_position = (yedge(y_row) + yedge(y_row+1))/2;
+%     
+%     % add position data to the matrix:
+%     if ~isempty(binLoc)
+%         % number of flies sleeping
+%         sleepNum = length(x_position);
+%         sleeping.sleepNum(frame) = sleepNum;
+%         % location of sleeping flies
+%         sleeping.X(frame,1:sleepNum) = x_position;
+%         sleeping.Y(frame,1:sleepNum) = y_position;
+%         % distance to food...
+%         temp_dist = sqrt((x_position-c1).^2 + (y_position-c2).^2)./pix2mm;
+%         sleeping.all_distance(frame,1:sleepNum) = temp_dist;
+%         % average distance:
+%         sleeping.dist_avg(frame) = mean(temp_dist);
+%         sleeping.dist_err(frame) = std(temp_dist);
+%     end
+% end
+% 
+% % Vectorize the data (find the flies that are sleeping....)
+% % find x & y of flies that are sleeping...
+% for frame = 1:trial_length
+%     frame_data = sleepLoc(:,:,frame);
+%     sleeping = find(frame_data>0);
+% 
+%     % Find the coordinates of the sleeping flies bins from the discretized data
+%     y_row = ceil(sleeping/nbins);
+%     x_row = rem(sleeping-1,nbins)+1;
+%     x_position = (xedge(x_row) + xedge(x_row+1))/2;
+%     y_position = (yedge(y_row) + yedge(y_row+1))/2;
+% 
+% end
+% 
+% 
+% % Visualize the 'sleeping flies'
+% vid = data(i).data(trial).data.T.vidNums(frame);
+% vidFrame = data(i).data(trial).data.T.vidFrame(frame);
+% 
+% % pull info for the first trial:
+% dataDate = data(i).T.Date{trial};
+% vid_name = data(i).T.ExperimentID{trial};
+% vidDir = [baseFolder dataDate '/' vid_name '_'];
+% videoPath = [vidDir num2str(vid) '.avi'];
+% movieInfo = VideoReader(videoPath); %read in video
+% 
+% % Set axis limits for the selected arena
+% x = data(i).data(trial).data.centre(1);
+% y = data(i).data(trial).data.centre(2);
+% r = data(i).data(trial).data.r;
+% xlimit = [x-(r+50),x+(r+50)];
+% ylimit = [y-(r+50),y+50+r];
+% 
+% % Plot image of video frame
+% fig = figure; set(fig,'pos',[-1030 279 772 1009],'color','k');
+% currentImg = rgb2gray(read(movieInfo,vidFrame));
+% imshow(currentImg)
+% xlim(xlimit); ylim(ylimit);  
+% 
+% 
+% 
+% % find the 'auto bin' lines
+% xedge = linspace(xlimit(1),xlimit(2),nbins+1);
+% yedge = linspace(ylimit(1),ylimit(2),nbins+1);
+% 
+% % Plot the bin outline edges:
+% h_line(yedge,'yellow','-',0.25) 
+% v_line(xedge,'yellow','-',0.25)
+% 
+% 
+% x_points = [xedge(x_row); xedge(x_row+1);  xedge(x_row+1); xedge(x_row)];
+% y_points = [yedge(y_row); yedge(y_row); yedge(y_row+1); yedge(y_row+1)];
+% 
+% patch(x_points,y_points,Color('gold'),'FaceAlpha',.5,'EdgeColor','none');
+% 
+% 
 %% ANALYSIS: run and save the sleep quanitification
 clearvars('-except',initial_vars{:})
 % How long does a fly need to be still to count as 'sleep'
@@ -212,7 +306,7 @@ for i = 1:num.exp
 end
 clearvars('-except',initial_vars{:})
 
-%% Load previously created sleep data files:
+%% ANALYSIS: Load previously created sleep data files and process data:
 
 sleep = struct;
 for i = 1:num.exp
@@ -233,115 +327,23 @@ disp('Loaded all sleep data')
 
 % Process and prep the data for further analysis
 for i = 1:num.exp
-    sleep(i).num = zeros(length(grouped(i).temp),num.trial(i));
+    [sleep(i).num, sleep(i).fract_sleep] = deal(zeros(length(grouped(i).temp),num.trial(i)));
     sleep(i).distance = nan(length(grouped(i).temp),num.trial(i));
     for trial = 1:num.trial(i)
         %number of sleeping flies
-        inputdata = sleep(i).trial.sleepNum;
+        inputdata = sleep(i).trial(trial).sleepNum;
         sleep(i).num(1:length(inputdata),trial) = inputdata;
+        sleep(i).fract_sleep(1:length(inputdata),trial) = inputdata/data(i).T.NumFlies(trial);
         %distance to food for sleeping flies
-        inputdata = sleep(i).trial.dist_avg;
+        inputdata = sleep(i).trial(trial).dist_avg;
         sleep(i).distance(1:length(inputdata),trial) = inputdata;
     end
+    sleep(i).sleepfract_avg = mean(sleep(i).fract_sleep,2,'omitnan');
+    sleep(i).sleepfract_err = std(sleep(i).fract_sleep,0,2,'omitnan');
 end
 
 initial_vars{end+1} = 'sleep';
 clearvars('-except',initial_vars{:})
-
-%% ANALYSIS: run and save the sleep quanitification
-
-% Create sleep data for unprocessed files:
-for i = 1:num.exp
-    sleep_file = [baseFolder,'Data structures\',expNames{i},...
-               '\',expNames{i},' sleeping.mat'];
-    if ~exist(sleep_file,"file")
-        sleepData = struct;
-        for trial = 1:num.trial(i)
-            %preallocate for speed and space
-            [N,preallocate,frameCount,sleepingCount,sleepLoc] = deal(nan(nbins,nbins,trial_length));
-
-            % Set axis limits for the selected arena
-            x = data(i).data(trial).data.centre(1);
-            y = data(i).data(trial).data.centre(2);
-            r = data(i).data(trial).data.r;
-            xlimit = [x-(r+50),x+(r+50)];
-            ylimit = [y-(r+50),y+50+r];
-        
-            % find the 'auto bin' lines
-            xedge = linspace(xlimit(1),xlimit(2),nbins+1);
-            yedge = linspace(ylimit(1),ylimit(2),nbins+1);
-            
-            % pull the fly locations during the trial
-            x_loc = data(i).data(trial).data.x_loc;
-            y_loc = data(i).data(trial).data.y_loc;
-            trial_length = size(y_loc,1);
-            
-%             N = nan(length(xedge),length(yedge),trial_length);
-            for frame = 1:trial_length
-                X = x_loc(frame,:); X(isnan(X)) = [];
-                Y = y_loc(frame,:); Y(isnan(Y)) = [];
-                N(:,:,frame) = histcounts2(X,Y,xedge,yedge);
-            end
-            
-            % find grid space that have continuous occupation for more than min_duration
-%             frameCount = nan(length(xedge),length(yedge),trial_length);
-            frameCount(:,:,1) = N(:,:,1);
-            for frame = 2:trial_length
-                currFrame = N(:,:,frame); % current frame locations
-                resetLoc = currFrame==0; % locations that do not have flies and thus need a count reset
-                
-                tempCount = frameCount(:,:,frame-1)+currFrame; % add current frames to list
-                tempCount(resetLoc) = 0; % reset counts for spots with no flies
-                
-                frameCount(:,:,frame) = tempCount; % add current count into the saving structure
-            end
-            
-            % Find instances of 'sleep'?
-            
-            for frame = 1:trial_length
-                sleepLoc(:,:,frame) = frameCount(:,:,frame) > min_duration;
-                sleepingCount(frame) = sum(sum(sleepLoc(:,:,frame)));
-            end
-        
-            % Save into group structures
-            sleepData.frameCount = frameCount;
-            sleepData.sleepLoc = sleepLoc;
-            sleepData.sleepingCount = sleepingCount;
-            disp(['Done exp ' num2str(i) ' trial ' num2str(trial)])
-        end
-        save(sleep_file,'sleepData','-v7.3'); clear sleepData
-    end
-    disp(['Done exp ' expNames{i}])
-end
-clearvars('-except',initial_vars{:})
-
-% Load previously created sleep data files:
-for i = 1:num.exp
-    sleep_file = [baseFolder,'Data structures\',expNames{i},...
-               '\',expNames{i},' sleeping.mat'];
-    if exist(sleep_file,"file")
-        grouped(i).sleep.all = load(sleep_file,'sleepData');
-    else
-        h = warndlg(['Warning: missing sleep data for ' expNames{i}]);
-        uiwait(h)
-    end
-end
-disp('Loaded all sleep data')
-
-%% ANALYSIS: find average sleep values
-
-for i = 1:num.exp
-    all_sleep = [];
-    for trial = 1:num.trial(i)
-        sleepData = grouped(i).sleep.all;
-        sleepCount = sleepData(trial).sleepingCount./data(i).T.NumFlies(trial);
-        all_sleep = autoCat(all_sleep,sleepCount,true);
-    end
-    grouped(i).sleep.sleep_avg = mean(all_sleep,1,'omitnan');
-    grouped(i).sleep.sleep_err = std(all_sleep,0,1,'omitnan');
-    grouped(i).sleep.all_sleep = all_sleep;
-end
-
 
 %% FIGURE: sleeping over time
 plot_err = true;
@@ -363,15 +365,15 @@ for i = 1:num.exp
         plot(time, temp, 'color',kolor, 'linewidth', LW)
         ylabel('temp (\circC)')
     subplot(r,c,sb(2).idx); hold on
-        y = smooth(grouped(i).sleep.sleep_avg,sSpan,'moving');
-        y_err = smooth(grouped(i).sleep.sleep_err,sSpan,'moving');
+        y = smooth(sleep(i).sleepfract_avg,sSpan,'moving');
+        y_err = smooth(sleep(i).sleepfract_err,sSpan,'moving');
         if plot_err
             fill_data = error_fill(time, y, y_err);
             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
             set(h, 'facealpha', 0.4)
         end
         plot(time,y,'color',kolor,'linewidth',LW)
-        ylabel('fraction flies sleeping')
+        ylabel('fraction of flies sleeping')
         xlabel('time (min)')
 end
 
@@ -381,8 +383,7 @@ set(gca,'xcolor',backColor)
 
 save_figure(fig,[saveDir expGroup ' sleep timecourse'],fig_type);
 
-
-%% ANALYSIS & FIGURE: sleeping tuning curve...
+%% FIGURES: sleeping tuning curve...
 clearvars('-except',initial_vars{:})
 plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
@@ -418,13 +419,13 @@ for i = 1:num.exp
             end
             % increasing rates:
             loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            plotData(i).(g_name)(temp,1) = mean(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan'); %avg 
-            plotData(i).(g_name)(temp,2) = std(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan');%./num.trial(i); %err
+            plotData(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+            plotData(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
         end
         % Clustered by temp (regardless of heating/cooling)
         loc = tempIdx==temp; %temp align only
-        plotData(i).temp_all(temp,1) = mean(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan')./num.trial(i);% %err
+        plotData(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+        plotData(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
     end
     plotData(i).temps = temps;
 end
@@ -455,8 +456,8 @@ for i = 1:num.exp
     
     %number of flies sleeping over time
     subplot(r,c,sb(2).idx); hold on
-         y = smooth(grouped(i).sleep.sleep_avg,sSpan,'moving');
-        y_err = smooth(grouped(i).sleep.sleep_err,sSpan,'moving');
+        y = smooth(sleep(i).sleepfract_avg,sSpan,'moving');
+        y_err = smooth(sleep(i).sleepfract_err,sSpan,'moving');
         if plot_err
             fill_data = error_fill(x, y, y_err);
             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
@@ -585,8 +586,6 @@ end
 % save figure
 save_figure(fig,[saveDir 'Flies sleeping during heating and cooling'],fig_type);
 
-
-
 %% FIGURE: distance and sleep over time
 % Set params:
 
@@ -630,22 +629,21 @@ for i = 1:num.exp
                     g_name = 'holding';
                     idxSex = holdRate;
             end
-            % increasing rates:
+             % increasing rates:
             loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            plotData(i).(g_name)(temp,1) = mean(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan'); %avg 
-            plotData(i).(g_name)(temp,2) = std(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan');%./num.trial(i); %err
+            plotData(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+            plotData(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
         end
         % Clustered by temp (regardless of heating/cooling)
         loc = tempIdx==temp; %temp align only
-        plotData(i).temp_all(temp,1) = mean(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan')./num.trial(i);% %err
+        plotData(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+        plotData(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
     end
     plotData(i).temps = temps;
 end
 
 
 % Build figure:
-
 fig = getfig('',true); 
 for i = 1:num.exp
 kolor = grouped(i).color;
@@ -660,8 +658,25 @@ kolor = grouped(i).color;
         end
     
         % COOLING
-        yyaxis left
+        yyaxis left %Distance Data
         subplot(r,c,type);   hold on
+        x = grouped(i).(section_type).temps;
+        y = grouped(i).(section_type).avg;
+        y_err = grouped(i).(section_type).err;
+        loc = isnan(y) | isnan(y_err);% remove nans 
+        y(loc) = []; x(loc) = []; y_err(loc) = [];
+    
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
+        plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle','-','Marker','none')
+        set(gca,'ydir','reverse')
+        
+  
+         
+        yyaxis right
         % Sleeping Data
         x = plotData(i).temps;
         y = plotData(i).(section_type)(:,1);
@@ -676,23 +691,7 @@ kolor = grouped(i).color;
             set(h, 'facealpha', 0.2)
         end
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',':','Marker','.','MarkerSize',10)
-        
-       
-        %Distance Data 
-        yyaxis right
-        x = grouped(i).(section_type).temps;
-        y = grouped(i).(section_type).avg;
-        y_err = grouped(i).(section_type).err;
-        loc = isnan(y) | isnan(y_err);% remove nans 
-        y(loc) = []; x(loc) = []; y_err(loc) = [];
-    
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
-        plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle','-','Marker','none')
-        set(gca,'ydir','reverse')
+
     end
 end
 
@@ -704,11 +703,12 @@ for type = 1:2
     yyaxis left
         set(gca,'xcolor',foreColor, 'YColor',foreColor)
         yleft(:,type) = ylim;
-        ylabel('fraction of sleeping flies')
+        ylabel('food proximity (mm)')
+        
     yyaxis right
         set(gca,'YColor',foreColor)
         yright(:,type) = ylim;
-        ylabel('food proximity (mm)')
+        ylabel('fraction of sleeping flies')
     xlabel('temp (\circC)')
 end
 
@@ -724,7 +724,6 @@ end
 
 % save figure
 save_figure(fig,[saveDir 'sleep and distance during heating and cooling'],fig_type);
-
 
 %% FIGURES: experiment separated overlay of distance to food and sleeping flies
 
@@ -770,15 +769,15 @@ for i = 1:num.exp
                     g_name = 'holding';
                     idxSex = holdRate;
             end
-            % increasing rates:
+             % increasing rates:
             loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            plotData(i).(g_name)(temp,1) = mean(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan'); %avg 
-            plotData(i).(g_name)(temp,2) = std(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan');%./num.trial(i); %err
+            plotData(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+            plotData(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
         end
         % Clustered by temp (regardless of heating/cooling)
         loc = tempIdx==temp; %temp align only
-        plotData(i).temp_all(temp,1) = mean(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(grouped(i).sleep.all_sleep(:,loc),2,'omitnan'),'omitnan')./num.trial(i);% %err
+        plotData(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+        plotData(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
     end
     plotData(i).temps = temps;
 end
@@ -802,6 +801,22 @@ for i = 1:num.exp
             % COOLING
             yyaxis left
             subplot(r,c,type);   hold on
+            %Distance Data 
+            x = grouped(i).(section_type).temps;
+            y = grouped(i).(section_type).avg;
+            y_err = grouped(i).(section_type).err;
+            loc = isnan(y) | isnan(y_err);% remove nans 
+            y(loc) = []; x(loc) = []; y_err(loc) = [];
+        
+            if plot_err
+                fill_data = error_fill(x, y, y_err);
+                h = fill(fill_data.X, fill_data.Y, distColor, 'EdgeColor','none','HandleVisibility','off');
+                set(h, 'facealpha', 0.2)
+            end
+            plot(x,y,'color',distColor,'linewidth',LW+1,'linestyle','-','Marker','none')
+            set(gca,'ydir','reverse')
+            
+            yyaxis right
             % Sleeping Data
             x = plotData(i).temps;
             y = plotData(i).(section_type)(:,1);
@@ -816,22 +831,6 @@ for i = 1:num.exp
                 set(h, 'facealpha', 0.2)
             end
             plot(x,y,'color',sleepColor,'linewidth',LW+1,'linestyle',':','Marker','.','MarkerSize',10)
-            
-            %Distance Data 
-            yyaxis right
-            x = grouped(i).(section_type).temps;
-            y = grouped(i).(section_type).avg;
-            y_err = grouped(i).(section_type).err;
-            loc = isnan(y) | isnan(y_err);% remove nans 
-            y(loc) = []; x(loc) = []; y_err(loc) = [];
-        
-            if plot_err
-                fill_data = error_fill(x, y, y_err);
-                h = fill(fill_data.X, fill_data.Y, distColor, 'EdgeColor','none','HandleVisibility','off');
-                set(h, 'facealpha', 0.2)
-            end
-            plot(x,y,'color',distColor,'linewidth',LW+1,'linestyle','-','Marker','none')
-            set(gca,'ydir','reverse')
         end
     
         % FORMATING AND LABELS
@@ -842,9 +841,10 @@ for i = 1:num.exp
         title('Cooling','Color',foreColor)
         set(gca,'XDir','reverse'); % flip temp direction to match temporal sequence
         yyaxis left
-        set(gca,'xcolor',foreColor, 'YColor',sleepColor,'TickDir','out')
+        set(gca,'xcolor',foreColor, 'YColor',distColor,'TickDir','out')
         yleft(:,1) = ylim;
-        ylabel('fraction of flies sleeping')
+        ylabel('proximity to food (mm)')
+        
         xlabel('temp (\circC)')
         yyaxis right
         set(gca,'YColor',backColor)
@@ -856,8 +856,9 @@ for i = 1:num.exp
         set(gca,'YColor',backColor,'xcolor',foreColor, 'TickDir','out')
         yleft(:,2) = ylim;
         yyaxis right
-        set(gca,'YColor',distColor)
-        ylabel('proximity to food (mm)')
+        set(gca,'YColor',sleepColor)
+        ylabel('fraction of flies sleeping')
+        
         xlabel('temp (\circC)')
         yright(:,2) = ylim;
 
@@ -878,112 +879,9 @@ end
 
 %% 
 
+% Can we easily predict behavior based on a simple cold-exposure metric?
 
 
-%% NEW SLEEP METHODS
-
-
-
-
-% ---- Vectorize the data (find the flies that are sleeping....) -----
-
-% find food well location for distance capture later
-foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
-c1 = foodWellLoc(1);
-c2 = foodWellLoc(2);
-
-% create empty matrixes for the x and y positions of the sleeping flies
-sleeping = struct;
-[sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data(i).T.NumFlies(trial)));
-sleeping.sleepNum = zeros(trial_length,1);
-[sleeping.dist_avg, sleeping.dist_err] = deal(nan(trial_length,1));
-% assign data by frame
-for frame = 1:trial_length
-    frame_data = sleepLoc(:,:,frame);
-    binLoc = find(frame_data>0);
-    
-    % Find the coordinates of the sleeping flies bins from the discretized data
-    y_row = ceil(binLoc/nbins);
-    x_row = rem(binLoc-1,nbins)+1;
-    x_position = (xedge(x_row) + xedge(x_row+1))/2;
-    y_position = (yedge(y_row) + yedge(y_row+1))/2;
-    
-    % add position data to the matrix:
-    if ~isempty(binLoc)
-        % number of flies sleeping
-        sleepNum = length(x_position);
-        sleeping.sleepNum(frame) = sleepNum;
-        % location of sleeping flies
-        sleeping.X(frame,1:sleepNum) = x_position;
-        sleeping.Y(frame,1:sleepNum) = y_position;
-        % distance to food...
-        temp_dist = sqrt((x_position-c1).^2 + (y_position-c2).^2)./pix2mm;
-        sleeping.all_distance(frame,1:sleepNum) = temp_dist;
-        % average distance:
-        sleeping.dist_avg(frame) = mean(temp_dist);
-        sleeping.dist_err(frame) = std(temp_dist);
-    end
-end
-
-
-
-
-
-
-% Vectorize the data (find the flies that are sleeping....)
-% find x & y of flies that are sleeping...
-for frame = 1:trial_length
-    frame_data = sleepLoc(:,:,frame);
-    sleeping = find(frame_data>0);
-
-    % Find the coordinates of the sleeping flies bins from the discretized data
-    y_row = ceil(sleeping/nbins);
-    x_row = rem(sleeping-1,nbins)+1;
-    x_position = (xedge(x_row) + xedge(x_row+1))/2;
-    y_position = (yedge(y_row) + yedge(y_row+1))/2;
-
-end
-
-
-% Visualize the 'sleeping flies'
-vid = data(i).data(trial).data.T.vidNums(frame);
-vidFrame = data(i).data(trial).data.T.vidFrame(frame);
-
-% pull info for the first trial:
-dataDate = data(i).T.Date{trial};
-vid_name = data(i).T.ExperimentID{trial};
-vidDir = [baseFolder dataDate '/' vid_name '_'];
-videoPath = [vidDir num2str(vid) '.avi'];
-movieInfo = VideoReader(videoPath); %read in video
-
-% Set axis limits for the selected arena
-x = data(i).data(trial).data.centre(1);
-y = data(i).data(trial).data.centre(2);
-r = data(i).data(trial).data.r;
-xlimit = [x-(r+50),x+(r+50)];
-ylimit = [y-(r+50),y+50+r];
-
-% Plot image of video frame
-fig = figure; set(fig,'pos',[-1030 279 772 1009],'color','k');
-currentImg = rgb2gray(read(movieInfo,vidFrame));
-imshow(currentImg)
-xlim(xlimit); ylim(ylimit);  
-
-
-
-% find the 'auto bin' lines
-xedge = linspace(xlimit(1),xlimit(2),nbins+1);
-yedge = linspace(ylimit(1),ylimit(2),nbins+1);
-
-% Plot the bin outline edges:
-h_line(yedge,'yellow','-',0.25) 
-v_line(xedge,'yellow','-',0.25)
-
-
-x_points = [xedge(x_row); xedge(x_row+1);  xedge(x_row+1); xedge(x_row)];
-y_points = [yedge(y_row); yedge(y_row); yedge(y_row+1); yedge(y_row+1)];
-
-patch(x_points,y_points,Color('gold'),'FaceAlpha',.5,'EdgeColor','none');
 
 
 
