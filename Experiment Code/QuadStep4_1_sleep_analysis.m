@@ -1,5 +1,5 @@
 
-% Find 'sleep' points in data
+% Find 'sleeping' points in data
 %% (DONT RUN) visualize grid spacing & single trial visualization
 % nbins = 50;
 % i = 1;
@@ -109,7 +109,7 @@
 %      xlabel('time (min)')
 % 
 % formatFig(fig,true,[r,c],sb);
-%% (dont run) SLEEP METHODS
+%% (DONT RUN) SLEEP METHODS
 
 % % ---- Vectorize the data (find the flies that are sleeping....) -----
 % 
@@ -207,7 +207,7 @@
 % patch(x_points,y_points,Color('gold'),'FaceAlpha',.5,'EdgeColor','none');
 % 
 % 
-%% ANALYSIS: run and save the sleep quanitification
+%% ANALYSIS: Generate and save the sleep quanitification
 clearvars('-except',initial_vars{:})
 % How long does a fly need to be still to count as 'sleep'
 min_duration = 5*3*60; % 5 mins * 3fps*60sec = data point number that must be met 'unmoving'
@@ -342,11 +342,140 @@ for i = 1:num.exp
     sleep(i).sleepfract_err = std(sleep(i).fract_sleep,0,2,'omitnan');
 end
 
+% Cluster the sleeping flies by temperature
+for i = 1:num.exp  
+    temps = unique(data(i).G(1).TR.temps);
+    rateIdx = data(i).G(1).TR.rateIdx;
+    tempIdx = data(i).G(1).TR.tempIdx;
+    % find rate index
+    heatRate = find(data(i).G(1).TR.rates>0);
+    coolRate = find(data(i).G(1).TR.rates<0);
+    try 
+        holdRate = find(data(i).G(1).TR.rates==0);
+        ntypes = 3;
+    catch
+        ntypes = 2;
+    end
+    
+    for temp = 1:length(temps)
+        for type = 1:ntypes
+            switch type
+                case 1 %heating
+                    g_name = 'increasing';
+                    idxSex = heatRate;
+                case 2 %cooling
+                    g_name = 'decreasing';
+                    idxSex = coolRate;
+                case 3 %holding
+                    g_name = 'holding';
+                    idxSex = holdRate;
+            end
+            % increasing rates:
+            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
+            sleep(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+            sleep(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+        end
+        % Clustered by temp (regardless of heating/cooling)
+        loc = tempIdx==temp; %temp align only
+        sleep(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+        sleep(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
+    end
+    sleep(i).temps = temps;
+end
+disp('All finished')
+
+
+
+% Thermal threat quantifcation
+fps = 3;
+% Thermal threat quantification and avg sleep quantity
+for i = 1:num.exp
+    tPoints = getTempTurnPoints(data(i).T.TempProtocol{1});
+    demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2);
+    
+    % Thermal threat
+    temp_ramp = grouped(i).temp(demoRamp_idx);
+    thermalThreat = (sum(25-temp_ramp)/fps)/1000;
+    
+    % Sleep duration
+    nFlies = zeros(1,num.trial(i));
+    nRamps = size(tPoints.up,1);
+    for ramp = 1:nRamps
+        rampROI = tPoints.down(ramp,1):tPoints.up(ramp,2);
+        nFlies = nFlies + sum(sleep(i).num(rampROI,:),1);
+    end
+    avg_sleepDuration = ((nFlies/nRamps)./(data(i).T.NumFlies'))./fps; % avg fly sleep duration (in sec) during a single temp ramp
+    % save data to sleep structure
+    sleep(i).avg_quant = avg_sleepDuration;
+    sleep(i).thermalThreat = thermalThreat;
+end
+
 initial_vars{end+1} = 'sleep';
+initial_vars{end+1} = 'fps';
 clearvars('-except',initial_vars{:})
 
-%% FIGURE: sleeping over time
-plot_err = true;
+%% ANALYSIS: Sleep duration & start and stop of sleep
+% Avg sleep duration
+for i = 1:num.exp
+    timing = struct;
+    [sleepON,sleepOFF,sleepLength] = deal([]);
+    for trial = 1:num.trial(i)
+        dist_avg = sleep(i).trial(trial).all_distance;
+        loc = diff(dist_avg)==0;
+        duration_matrix = zeros(size(loc));
+        duration_matrix = [zeros(1,size(loc,2)); duration_matrix]; %account for the first step where there is no sleep
+        old_row = loc(1,:);
+        for frame = 2:size(loc,1)
+            curr_row = loc(frame,:);
+            addLoc = ~(curr_row==0);
+            duration_matrix(frame,addLoc) = old_row(addLoc) + curr_row(addLoc);
+            old_row = duration_matrix(frame,:);
+        end
+        
+        sleepDurationMatrix = duration_matrix./(fps*60); %sleep duration in minutes
+        timing(trial).sleepduration = sleepDurationMatrix;
+        % what is the max sleep length for these segments? 
+        sleepDurationMatrix(sleepDurationMatrix==0)=nan;
+%         fig = getfig('',1);
+%         hold on
+%         time = data(i).data(trial).occupancy.time;
+%         for trial = 1:num.trial(i)
+%             scatter(time, sleepDurationMatrix(:,trial),10)
+%         end
+%         xlabel('time (min)')
+%         ylabel('sleep duration (min)')
+%         formatFig(fig,true);
+%         title(expNames{i},'color','w')
+%         xlim([0,1000])
+
+        % Find the 'end' of sleep duration and stop location (time)
+        startLoc = (diff(diff(duration_matrix)))<0; % Find the start of sleep (time)
+        stopLoc = (diff(duration_matrix))<0;
+        total_duration = duration_matrix(stopLoc)/(fps*60); %duration in minutes
+        [sleepStoppedFrame, sleepStartFrame] = deal([]); %when in time (frame) did the end of sleep occur?
+        for fly = 1:size(stopLoc,2)
+              sleepStoppedFrame = autoCat(sleepStoppedFrame,find(stopLoc(:,fly)));
+              sleepStartFrame = autoCat(sleepStartFrame,find(startLoc(:,fly)));
+        end
+        % save trial information into larger matrix
+        sleepON = autoCat(sleepON,sleepStartFrame,false);
+        sleepOFF = autoCat(sleepOFF,sleepStoppedFrame,false);
+        sleepLength = autoCat(sleepLength,total_duration,false);
+        
+    end
+    
+    % save into sleep structure
+    sleep(i).sleepON = sleepON;
+    sleep(i).sleepOFF = sleepOFF;
+    sleep(i).sleepLength = sleepLength;
+    sleep(i).durationMatrix = timing;
+
+end
+
+clearvars('-except',initial_vars{:})
+
+%% FIGURE: Sleeping over time
+plot_err = false;
 [~,backColor] = formattingColors(blkbgd); %get background colors
 LW = 1.5;
 sb(1).idx = 1;
@@ -383,54 +512,10 @@ set(gca,'xcolor',backColor)
 
 save_figure(fig,[saveDir expGroup ' sleep timecourse'],fig_type);
 
-%% FIGURES: sleeping tuning curve...
+%% FIGURES: Sleeping over time with sleep temp tuning curve
 clearvars('-except',initial_vars{:})
-plot_err = true;
+plot_err = false;
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
-
-% Cluster the sleeping flies by temperature
-plotData = struct;
-for i = 1:num.exp  
-    temps = unique(data(i).G(1).TR.temps);
-    rateIdx = data(i).G(1).TR.rateIdx;
-    tempIdx = data(i).G(1).TR.tempIdx;
-    % find rate index
-    heatRate = find(data(i).G(1).TR.rates>0);
-    coolRate = find(data(i).G(1).TR.rates<0);
-    try 
-        holdRate = find(data(i).G(1).TR.rates==0);
-        ntypes = 3;
-    catch
-        ntypes = 2;
-    end
-    
-    for temp = 1:length(temps)
-        for type = 1:ntypes
-            switch type
-                case 1 %heating
-                    g_name = 'increasing';
-                    idxSex = heatRate;
-                case 2 %cooling
-                    g_name = 'decreasing';
-                    idxSex = coolRate;
-                case 3 %holding
-                    g_name = 'holding';
-                    idxSex = holdRate;
-            end
-            % increasing rates:
-            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            plotData(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-            plotData(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
-        end
-        % Clustered by temp (regardless of heating/cooling)
-        loc = tempIdx==temp; %temp align only
-        plotData(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
-    end
-    plotData(i).temps = temps;
-end
-disp('All finished')
-
 
 % set up figure aligments
 r = 5; %rows
@@ -472,9 +557,9 @@ for i = 1:num.exp
 
     %temp dependent distance
     subplot(r,c,sb(3).idx); hold on
-        x = plotData(i).temps;
-        y = plotData(i).temp_all(:,1);
-        y_err = plotData(i).temp_all(:,2);
+        x = sleep(i).temps;
+        y = sleep(i).temp_all(:,1);
+        y_err = sleep(i).temp_all(:,2);
         loc = isnan(y)|isnan(y_err);
         x(loc) = [];
         y(loc) = [];
@@ -512,8 +597,8 @@ xlabel('temp (\circC)')
 
 save_figure(fig,[saveDir expGroup ' sleeping flies summary'],fig_type);
 
-
-% FIGURE: Flies sleeping divided by heating / cooling
+%% FIGURE: Flies sleeping divided by heating / cooling
+plot_err = true;
 equalLim = true;
 LW = 1.5;
 r = 1;
@@ -527,9 +612,9 @@ subplot(r,c,1)
 hold on
 for i = 1:nMax
     kolor = grouped(i).color;
-    x = plotData(i).temps;
-    y = plotData(i).temp_all(:,1);
-    y_err = plotData(i).temp_all(:,2);
+    x = sleep(i).temps;
+    y = sleep(i).temp_all(:,1);
+    y_err = sleep(i).temp_all(:,2);
     loc = isnan(y)|isnan(y_err);
     x(loc) = [];
     y(loc) = [];
@@ -558,9 +643,9 @@ for i = 1:nMax
                 section_type = 'decreasing';
                 l_style = '--';
         end
-        x = plotData(i).temps;
-        y = plotData(i).(section_type)(:,1);
-        y_err = plotData(i).(section_type)(:,2);
+        x = sleep(i).temps;
+        y = sleep(i).(section_type)(:,1);
+        y_err = sleep(i).(section_type)(:,2);
         loc = isnan(y)|isnan(y_err);
         x(loc) = [];
         y(loc) = [];
@@ -586,62 +671,15 @@ end
 % save figure
 save_figure(fig,[saveDir 'Flies sleeping during heating and cooling'],fig_type);
 
-%% FIGURE: distance and sleep over time
-% Set params:
-
+%% FIGURE: Distance and sleep overlaid tuning curves
 clearvars('-except',initial_vars{:})
-
+% Set params:
 LW = 1;
 r = 1; %rows
 c = 2; %columns
-plot_err = true;
+plot_err = false;
 [foreColor,~] = formattingColors(blkbgd);
 equalLim = true;
-
-% Organize data
-
-% Cluster the sleeping flies by temperature?
-plotData = struct;
-for i = 1:num.exp  
-    temps = unique(data(i).G(1).TR.temps);
-    rateIdx = data(i).G(1).TR.rateIdx;
-    tempIdx = data(i).G(1).TR.tempIdx;
-    % find rate index
-    heatRate = find(data(i).G(1).TR.rates>0);
-    coolRate = find(data(i).G(1).TR.rates<0);
-    try 
-        holdRate = find(data(i).G(1).TR.rates==0);
-        ntypes = 3;
-    catch
-        ntypes = 2;
-    end
-    
-    for temp = 1:length(temps)
-        for type = 1:ntypes
-            switch type
-                case 1 %heating
-                    g_name = 'increasing';
-                    idxSex = heatRate;
-                case 2 %cooling
-                    g_name = 'decreasing';
-                    idxSex = coolRate;
-                case 3 %holding
-                    g_name = 'holding';
-                    idxSex = holdRate;
-            end
-             % increasing rates:
-            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            plotData(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-            plotData(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
-        end
-        % Clustered by temp (regardless of heating/cooling)
-        loc = tempIdx==temp; %temp align only
-        plotData(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
-    end
-    plotData(i).temps = temps;
-end
-
 
 % Build figure:
 fig = getfig('',true); 
@@ -678,9 +716,9 @@ kolor = grouped(i).color;
          
         yyaxis right
         % Sleeping Data
-        x = plotData(i).temps;
-        y = plotData(i).(section_type)(:,1);
-        y_err = plotData(i).(section_type)(:,2);
+        x = sleep(i).temps;
+        y = sleep(i).(section_type)(:,1);
+        y_err = sleep(i).(section_type)(:,2);
         loc = isnan(y)|isnan(y_err);
         x(loc) = [];
         y(loc) = [];
@@ -725,8 +763,7 @@ end
 % save figure
 save_figure(fig,[saveDir 'sleep and distance during heating and cooling'],fig_type);
 
-%% FIGURES: experiment separated overlay of distance to food and sleeping flies
-
+%% FIGURES: Experiment separated overlay of distance to food and sleeping flies
 clearvars('-except',initial_vars{:})
 sleepColor = Color('cyan');
 distColor = Color('orange');
@@ -739,49 +776,6 @@ equalLim = true;
 
 % Organize data
 sSpan = 180; %1 minute smoothing
-plotData = struct;
-
-% Cluster the sleeping flies by temperature?
-for i = 1:num.exp  
-    temps = unique(data(i).G(1).TR.temps);
-    rateIdx = data(i).G(1).TR.rateIdx;
-    tempIdx = data(i).G(1).TR.tempIdx;
-    % find rate index
-    heatRate = find(data(i).G(1).TR.rates>0);
-    coolRate = find(data(i).G(1).TR.rates<0);
-    try 
-        holdRate = find(data(i).G(1).TR.rates==0);
-        ntypes = 3;
-    catch
-        ntypes = 2;
-    end
-    
-    for temp = 1:length(temps)
-        for type = 1:ntypes
-            switch type
-                case 1 %heating
-                    g_name = 'increasing';
-                    idxSex = heatRate;
-                case 2 %cooling
-                    g_name = 'decreasing';
-                    idxSex = coolRate;
-                case 3 %holding
-                    g_name = 'holding';
-                    idxSex = holdRate;
-            end
-             % increasing rates:
-            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            plotData(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-            plotData(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
-        end
-        % Clustered by temp (regardless of heating/cooling)
-        loc = tempIdx==temp; %temp align only
-        plotData(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-        plotData(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
-    end
-    plotData(i).temps = temps;
-end
-
 
 % Build figures:
 for i = 1:num.exp
@@ -818,9 +812,9 @@ for i = 1:num.exp
             
             yyaxis right
             % Sleeping Data
-            x = plotData(i).temps;
-            y = plotData(i).(section_type)(:,1);
-            y_err = plotData(i).(section_type)(:,2);
+            x = sleep(i).temps;
+            y = sleep(i).(section_type)(:,1);
+            y_err = sleep(i).(section_type)(:,2);
             loc = isnan(y)|isnan(y_err);
             x(loc) = [];
             y(loc) = [];
@@ -877,9 +871,138 @@ for i = 1:num.exp
 
 end
 
-%% 
+
+%% FIGURE: Sleep vs thermal threat
+% Can we easily predict behavior based on a simple cold-exposure metric?
+clearvars('-except',initial_vars{:})
+% quantify the cold exposure during a single ramp as sum of difference in
+% temp from preferred temp: (might need to make it exponential????)
+fps = 3;
+
+% Pull data
+[sleepDuration, thermalThreat] = deal([]);
+for i = 1:num.exp
+    thermalThreat(i) = sleep(i).thermalThreat;
+    sleepDuration = autoCat(sleepDuration,sleep(i).avg_quant',false);
+end
+
+
+% FIGURE:
+SZ = 60;
+buff = 2;
+fig = getfig('',1,[600 680]); hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    y = sleepDuration(:,i);
+    y(isnan(y)) = [];
+    y_avg = mean(y);
+    x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
+%     x = ones(1,length(y))*thermalThreat(i));
+    scatter(x,y,SZ,kolor,"filled","o")
+    plot([thermalThreat(i)-buff,thermalThreat(i)+buff],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+end
+
+xlabel('Thermal Stress')
+ylabel('Sleep duration per fly (sec)')
+xlim([0,70])
+formatFig(fig,true);
+
+save_figure(fig,[saveDir 'Sleep duration by thermal stress'],fig_type);
+
+%% FIGURE: Avg quantity of sleep per fly
 
 % Can we easily predict behavior based on a simple cold-exposure metric?
+clearvars('-except',initial_vars{:})
+% quantify the cold exposure during a single ramp as sum of difference in
+% temp from preferred temp: (might need to make it exponential????)
+fps = 3;
+
+sleepDuration = [];
+for i = 1:num.exp
+    % Thermal threat
+    tPoints = getTempTurnPoints(data(i).T.TempProtocol{1});
+    demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2);
+
+    temp_ramp = grouped(i).temp(demoRamp_idx);
+    thermalThreat(i) = sum(25-temp_ramp)/(fps*rampDur);
+    
+    % Sleep duration
+    nFlies = zeros(1,num.trial(i));
+    nRamps = size(tPoints.up,1);
+    for ramp = 1:nRamps
+        rampROI = tPoints.down(ramp,1):tPoints.up(ramp,2);
+        nFlies = nFlies + sum(sleep(i).num(rampROI,:),1);
+    end
+    avg_sleepDuration = ((nFlies/nRamps)./(data(i).T.NumFlies'))./fps; % avg fly sleep duration (in sec) during a single temp ramp
+    sleepDuration = autoCat(sleepDuration,avg_sleepDuration',false);
+
+end
+
+
+% FIGURE:
+SZ = 60;
+buff = 0.05;
+fig = getfig('',1,[600 680]); hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    y = sleepDuration(:,i);
+    y(isnan(y)) = [];
+    y_avg = mean(y);
+    x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
+%     x = ones(1,length(y))*thermalThreat(i));
+    scatter(x,y,SZ,kolor,"filled","o")
+    plot([thermalThreat(i)-buff,thermalThreat(i)+buff],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+end
+
+xlabel('Thermal Stress Rate')
+ylabel('Sleep duration per fly (sec)')
+xlim([0,3])
+formatFig(fig,true);
+
+save_figure(fig,[saveDir 'Sleep duration by thermal stress rate'],fig_type);
+
+
+
+%% Sleep location? Where do flies choose to sleep?
+
+%% Sleep duration and statistics across groups
+[foreColor,backColor] = formattingColors(blkbgd);
+
+% How does the avg duration of sleep change across fly groups? 
+[y, kolor,gLabel] = deal([]);
+for idx = 1:num.exp
+    i = expOrder(idx);
+    kolor(idx,:) = grouped(i).color;
+    temp = sleep(i).sleepLength(:);
+    temp(isnan(temp)) = [];
+    y = autoCat(y,sleep(i).sleepLength(:),false);
+%     gLabel{idx} = expNames{i};
+end
+
+fig = getfig('',1);
+[h,L,MX,MED,bw] = violin(y,'xlabel',{''},'facecolor',kolor,'edgecolor',foreColor,'alp',1,...
+       'bw',0.35,'mc',foreColor,'medc','r--');
+
+ylabel('sleep duration (min)','FontSize',18)
+% set(gca,'xcolor',backColor)
+set(L, 'TextColor',foreColor);
+formatFig(fig, true);
+
+ylim([-2,12])
+
+save_figure(fig,[saveDir 'Sleep duration across groups violin plot'],fig_type);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
