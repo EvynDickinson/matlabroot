@@ -121,8 +121,8 @@ switch expGroup
         expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
         colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
         for ii = 1:num.exp
-            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 25-17'])  | ...
-                                strcmp(expNames,[expList{ii} ' linear recovery ramp 25-17 caviar'])); 
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 27-19'])  | ...
+                                strcmp(expNames,[expList{ii} ' linear recovery ramp 27-19 caviar'])); 
         end
  % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'

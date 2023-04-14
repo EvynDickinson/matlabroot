@@ -370,15 +370,21 @@ for i = 1:num.exp
                     g_name = 'holding';
                     idxSex = holdRate;
             end
-            % increasing rates:
+            %fraction of flies sleeping
             loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
             sleep(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
             sleep(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+            %distance of sleeping flies
+            sleep(i).([g_name '_dist'])(temp,1) = mean(mean(sleep(i).distance(loc,:),2,'omitnan'),'omitnan');
+            sleep(i).([g_name '_dist'])(temp,2) = std(mean(sleep(i).distance(loc,:),1,'omitnan'),'omitnan');
         end
         % Clustered by temp (regardless of heating/cooling)
         loc = tempIdx==temp; %temp align only
         sleep(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
         sleep(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
+        %distance
+        sleep(i).tempBinDist(temp,1) = mean(mean(sleep(i).distance(loc,:),2,'omitnan'),'omitnan');
+        sleep(i).tempBinDist(temp,2) = std(mean(sleep(i).distance(loc,:),1,'omitnan'),'omitnan')./num.trial(i);
     end
     sleep(i).temps = temps;
 end
@@ -414,7 +420,7 @@ initial_vars{end+1} = 'sleep';
 initial_vars{end+1} = 'fps';
 clearvars('-except',initial_vars{:})
 
-%% ANALYSIS: Sleep duration & start and stop of sleep
+%ANALYSIS: Sleep duration & start and stop of sleep
 % Avg sleep duration
 for i = 1:num.exp
     timing = struct;
@@ -904,7 +910,8 @@ end
 
 xlabel('Thermal Stress')
 ylabel('Sleep duration per fly (sec)')
-xlim([0,70])
+xlim([0, 70])
+ylim([0, 2500])
 formatFig(fig,true);
 
 save_figure(fig,[saveDir 'Sleep duration by thermal stress'],fig_type);
@@ -964,6 +971,76 @@ save_figure(fig,[saveDir 'Sleep duration by thermal stress rate'],fig_type);
 
 
 %% Sleep location? Where do flies choose to sleep?
+clearvars('-except',initial_vars{:})
+LW = 2;
+r = 1; %rows
+c = 2; %columns
+plot_err = true;
+[foreColor,backColor] = formattingColors(blkbgd);
+equalLim = true;
+
+
+% where are the flies choosing to sleep? Distance from food? --> bin by temp
+yLimits = [];
+fig = getfig('',1); 
+for tt = 1:2 %increasing | decreasing 
+    switch tt
+        case 2
+            section_type = 'increasing';
+            axis_dir = 'normal';
+        case 1
+            section_type = 'decreasing';
+            axis_dir = 'reverse';
+    end
+    subplot(r,c,tt); hold on
+    for i = 1:num.exp
+        kolor = grouped(i).color;
+        x = sleep(i).temps;
+        y = sleep(i).([section_type '_dist'])(:,1);
+        y_err = sleep(i).([section_type '_dist'])(:,2);
+        
+        loc = isnan(y) | isnan(y_err); % remove nans 
+        y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+        % plot data
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
+        plot(x,y,'color',kolor,'linewidth',LW,'linestyle','-','Marker','none')
+        
+    end
+    % formatting and labeling
+    set(gca,'ydir','reverse','xdir',axis_dir)
+    xlabel('temp (\circC)')
+    yLimits(:,tt) = ylim;
+    title(section_type)
+end
+% FORMATING AND LABELS
+formatFig(fig,true,[r,c]);
+subplot(r,c,1)
+ylabel('distance to well (mm)')
+if equalLim
+    ylim([min(min(yLimits)), max(max(yLimits))])
+end
+subplot(r,c,2)
+if equalLim
+    ylim([min(min(yLimits)), max(max(yLimits))])
+end
+set(gca,'YColor',foreColor)
+
+
+% save figure
+save_figure(fig,[saveDir 'sleeping distance to food'],fig_type);
+
+
+
+
+
+
+
+
 
 %% Sleep duration and statistics across groups
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -997,6 +1074,7 @@ save_figure(fig,[saveDir 'Sleep duration across groups violin plot'],fig_type);
 
 
 
+ 
 
 
 
@@ -1009,13 +1087,52 @@ save_figure(fig,[saveDir 'Sleep duration across groups violin plot'],fig_type);
 
 
 
+%% FIGURE: Sleep vs thermal threat by genotype
+% Can we easily predict behavior based on a simple cold-exposure metric?
+clearvars('-except',initial_vars{:})
+% quantify the cold exposure during a single ramp as sum of difference in
+% temp from preferred temp: (might need to make it exponential????)
+
+% expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+% colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+kolor = Color('White');
+
+fps = 3;
+
+% Pull data
+[sleepDuration, thermalThreat] = deal([]);
+for i = 1:num.exp
+    thermalThreat(i) = sleep(i).thermalThreat;
+    sleepDuration = autoCat(sleepDuration,sleep(i).avg_quant',false);
+end
 
 
+% FIGURE:
+SZ = 60;
+buff = 2;
+fig = getfig('',1,[600 680]); hold on
+for i = 1:num.exp
+%     kolor = grouped(i).color;
+    y = sleepDuration(:,i);
+    y(isnan(y)) = [];
+    y_avg = mean(y);
+    x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
+%     x = ones(1,length(y))*thermalThreat(i));
+    scatter(x,y,SZ,kolor,"filled","o")
+    plot([thermalThreat(i)-buff,thermalThreat(i)+buff],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+end
 
+xlabel('Thermal Stress')
+ylabel('Sleep duration per fly (sec)')
+xlim([0, 70])
+ylim([0, 2500])
+formatFig(fig,true);
 
+save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes'],fig_type);
 
+% save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes short'],fig_type);
 
-
+% 
 
 
 
