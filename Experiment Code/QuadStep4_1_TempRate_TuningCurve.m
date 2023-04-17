@@ -1062,7 +1062,6 @@ color_bin = 0.25;   % how many degrees (C) for a color bin
 % 3) add the avg vector line for binned temperatures
 % 4) figure out how to rotate the arena or overlay vectors to collapse
 % across trials within an experimental group e.g. berlin 
-
  
 switch questdlg('Save trial by trial figures?','','yes','no','cancel','no')
     case 'yes' 
