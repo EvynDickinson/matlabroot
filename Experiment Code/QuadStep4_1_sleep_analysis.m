@@ -980,7 +980,7 @@ save_figure(fig,[saveDir 'Sleep duration by thermal stress rate'],fig_type);
 
 
 
-%% Sleep location? Where do flies choose to sleep?
+%% FIGURE: Sleeping distance to food across during cooling and warming
 clearvars('-except',initial_vars{:})
 LW = 2;
 r = 1; %rows
@@ -988,7 +988,6 @@ c = 2; %columns
 plot_err = true;
 [foreColor,~] = formattingColors(blkbgd);
 equalLim = true;
-
 
 % where are the flies choosing to sleep? Distance from food? --> bin by temp
 yLimits = [];
@@ -1048,13 +1047,7 @@ save_figure(fig,[saveDir 'sleeping distance to food'],fig_type);
 
 %% FIGURE: Histogram of sleep proximity to food
 clearvars('-except',initial_vars{:})
-LW = 2;
-r = 1; %rows
-c = 2; %columns
-plot_err = true;
-[foreColor,~] = formattingColors(blkbgd);
-equalLim = true;
-% 
+
 % TODO: make these each their own plots on the same figure? (no overlaid?)
 % or some min num is overlaid only?
 fig = getfig('',1); hold on
@@ -1075,7 +1068,7 @@ set(gca,'TickDir','out')
 % save figure
 save_figure(fig,[saveDir 'sleeping distance to food histogram'],fig_type);
 
-%% FIGURE: fly sleeping positions in the arena
+%% ANALYSIS: fly sleeping locations in the arena (oriented to same heading)
 clearvars('-except',initial_vars{:})
 % HAVENT SCREENED FOR ONLY RAMPSSSSSSSS!!! 
 % TODO : 
@@ -1144,16 +1137,9 @@ for i = 1:num.exp
     sleep(i).location.wells = WELLS;
 end
 
-
-% Determine the color choices
-temp_limits = [nan nan];
-for i = 1:num.exp
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
-    temp_limits = [min([tp.threshLow, temp_limits(1)]), max([tp.threshHigh, temp_limits(2)])];
-end
-nColors = floor(temp_limits(1)):1:ceil(temp_limits(2));
-cMap = turbo(length(nColors));
-
+%% FIGURES: fly sleeping positions in the arena
+clearvars('-except',initial_vars{:})
+% HAVENT SCREENED FOR ONLY RAMPSSSSSSSS!!! 
 % TODO HERE...
     
 % Plot scatter point figure:
@@ -1161,20 +1147,12 @@ for i = 1:num.exp
     all_data = sleep(i).location.all_data;
     kolor = grouped(i).color;
     
-    % fancy color
-    temp = sleep(i).location.all_data(:,3);
-    color_loc = discretize(temp,nColors);
-    
-    all_data(:,5) = color_loc;
-
-    find(isnan(color_loc))
-
     fig = getfig('',1); hold on
   
     % PLOT
     scatter(sleep(i).location.wells(1:4,1),sleep(i).location.wells(1:4,2),SZ+20,Color('grey'),'filled')
     scatter(0,0,SZ+20,'green','filled')
-    scatter(sleep(i).location.all_data(:,1),sleep(i).location.all_data(:,2),15,kolor,'filled')
+    scatter(all_data(:,1),all_data(:,2),15,kolor,'filled')
    
     viscircles([sleep(i).location.arenaCenter(1),sleep(i).location.arenaCenter(2)],sleep(i).location.r,'Color',grouped(i).color);
     axis square; axis equal;  
@@ -1185,13 +1163,10 @@ for i = 1:num.exp
 end
 
 
-% Plot heatmap figure?
+% FIGURE: Sleeping position heatmap
 nBins = 15;
 
 for i = 1:num.exp
-
-%     kolor = grouped(i).color;
-    
     c1 = sleep(i).location.arenaCenter(1);
     c2 = sleep(i).location.arenaCenter(2);
     r = sleep(i).location.r;
@@ -1231,70 +1206,120 @@ for i = 1:num.exp
 
 end
 
+%% FIGURE: histogram of sleeping position by temperature...
+clearvars('-except',initial_vars{:})
+LW = 2;
+r = 1; %rows
+c = 2; %columns
+plot_err = true;
+[foreColor,~] = formattingColors(blkbgd);
+equalLim = true;
+
+temp_limits = [nan nan];
+for i = 1:num.exp
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    temp_limits = [min([tp.threshLow, temp_limits(1)]), max([tp.threshHigh, temp_limits(2)])];
+end
+nColors = floor(temp_limits(1)):1:ceil(temp_limits(2));
+nReds = floor(length(nColors)/2);
+nBlues = length(nColors) - nReds + 1;
+cBlues = Color('DodgerBlue', 'white',nBlues);
+cReds = Color('white', 'coral', nReds);
+cMap = [cBlues(1:nBlues-1,:);cReds];
+cMap(cMap==1) = 1;
 
 
 
-
-%%
-
-% where are the flies choosing to sleep? Distance from food? --> bin by temp
-yLimits = [];
-fig = getfig('',1); 
-for tt = 1:2 %increasing | decreasing 
-    switch tt
-        case 2
-            section_type = 'increasing';
-            axis_dir = 'normal';
-        case 1
-            section_type = 'decreasing';
-            axis_dir = 'reverse';
-    end
-    subplot(r,c,tt); hold on
-    for i = 1:num.exp
-        kolor = grouped(i).color;
-        x = sleep(i).temps;
-        y = sleep(i).([section_type '_dist'])(:,1);
-        y_err = sleep(i).([section_type '_dist'])(:,2);
-        
-        loc = isnan(y) | isnan(y_err); % remove nans 
-        y(loc) = []; x(loc) = []; y_err(loc) = [];
-
-        % plot data
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
+% Need to make a stacked histogram....
+distance_bins = 0:3:51;
+for i = 1:num.exp
+    all_data = sleep(i).location.all_data;
+    all_data(:,5) = sqrt((all_data(:,1)).^2 + (all_data(:,2).^2))./pix2mm; %distance to food for sleeping flies
+    all_data(:,6) = discretize(all_data(:,3),nColors); % temp bins for each data point
+    nanLoc = isnan(all_data(:,6));
+    all_data(nanLoc,:) = []; %remove data outside the temp constraints
+    all_data(:,7) = discretize(all_data(:,5),distance_bins); % distance bins
+    
+    % Sort instances into distance then temp bins
+    plotData = nan(length(distance_bins),length(nColors));
+    for d = 1:length(distance_bins)
+        for t = 1:length(nColors)
+            plotData(d,t) = sum(all_data(:,6)==t & all_data(:,7)==d);
         end
-        plot(x,y,'color',kolor,'linewidth',LW,'linestyle','-','Marker','none')
-        
     end
-    % formatting and labeling
-    set(gca,'ydir','reverse','xdir',axis_dir)
-    xlabel('temp (\circC)')
-    yLimits(:,tt) = ylim;
-    title(section_type)
-%     axis tight
-end
-% FORMATING AND LABELS
-formatFig(fig,true,[r,c]);
-subplot(r,c,1)
-ylabel('distance to well (mm)')
-if equalLim
-    ylim([min(min(yLimits)), max(max(yLimits))])
-end
-subplot(r,c,2)
-if equalLim
-    ylim([min(min(yLimits)), max(max(yLimits))])
-end
-set(gca,'YColor',foreColor)
+    
+    x = distance_bins(1:end-1) + median(diff(distance_bins)/2);
 
+    
+    fig = getfig('',1); hold on
+    h = bar(distance_bins,plotData,'stacked');
+    for k = 1:length(nColors)
+        try
+            h(k).FaceColor = cMap(k,:);%grouped(i).color; %
+        catch 
+            h(k).FaceColor = 'r';
+        end
+        h(k).FaceAlpha = 1;
+        h(k).EdgeColor = 'none';
+    end
+    % formats and labels
+    formatFig(fig,true);
+    xlabel('distance to well (mm)','FontSize',20)
+    ylabel('sleeping flies (#)','FontSize',20)
+    set(gca,'TickDir','out')
+    % colorbar formatting
+    colormap(cMap);
+    c = colorbar; 
+    c.Color = foreColor;
+    clim([nColors(1), nColors(end)])
+    c.Label.String = 'Temperature (\circC)';
+
+    % normalized:
+    ylim([0,800])
 
 % save figure
-save_figure(fig,[saveDir 'sleeping distance to food'],fig_type);
+save_figure(fig,[saveDir expNames{i} ' sleeping distance to food histogram temp colored normalized'],fig_type);
+% save_figure(fig,[saveDir expNames{i} ' sleeping distance to food histogram group colored normalized'],fig_type);
 
 
+end
 
+colormap('default'); %return map to normal
 
+%% FIGURE: sleeping distance (binned warming and cooling)
+clearvars('-except',initial_vars{:})
+LW = 2;
+plot_err = true;
+
+% where are the flies choosing to sleep? Distance from food? --> bin by temp
+fig = getfig('',1); hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    x = sleep(i).temps;
+    y = sleep(i).tempBinDist(:,1);
+    y_err = sleep(i).tempBinDist(:,2);
+    
+    loc = isnan(y) | isnan(y_err); % remove nans 
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    % plot data
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.2)
+    end
+    plot(x,y,'color',kolor,'linewidth',LW,'linestyle','-','Marker','none')
+end
+% formatting and labeling
+set(gca,'ydir','reverse','TickDir','out')
+xlabel('temp (\circC)')
+ylabel('distance to well (mm)')
+
+% FORMATING AND LABELS
+formatFig(fig,true);
+
+% save figure
+save_figure(fig,[saveDir 'avg sleeping distance to food'],fig_type);
 
 
 
@@ -1321,27 +1346,24 @@ ylabel('sleep duration (min)','FontSize',18)
 set(L, 'TextColor',foreColor);
 formatFig(fig, true);
 
-ylim([-2,12])
+ylim([-2,20])
 
 save_figure(fig,[saveDir 'Sleep duration across groups violin plot'],fig_type);
 
+% Histogram version...
+fig = getfig('',1); hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    histogram(sleep(i).sleepLength(:),'FaceColor',kolor)
+end
+formatFig(fig,true);
+xlabel('sleep duration (min)')
+ylabel('count')
 
+% Could make this a sleep PDF?
 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
+median(sleep(1).sleepLength(:),'omitnan')
+median(sleep(2).sleepLength(:),'omitnan')
 
 
 %% FIGURE: Sleep vs thermal threat by genotype
