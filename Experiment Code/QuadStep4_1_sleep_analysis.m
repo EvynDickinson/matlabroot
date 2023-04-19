@@ -893,7 +893,6 @@ end
 clearvars('-except',initial_vars{:})
 % quantify the cold exposure during a single ramp as sum of difference in
 % temp from preferred temp: (might need to make it exponential????)
-fps = 3;
 
 % Pull data
 [sleepDuration, thermalThreat] = deal([]);
@@ -926,7 +925,43 @@ formatFig(fig,true);
 
 save_figure(fig,[saveDir 'Sleep duration by thermal stress'],fig_type);
 
-%% FIGURE: Avg quantity of sleep per fly
+%% FIGURE: single group sleep duration per fly
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+
+% Pull data
+[sleepDuration, thermalThreat] = deal([]);
+for i = 1:num.exp
+    thermalThreat(i) = sleep(i).thermalThreat;
+    sleepDuration = autoCat(sleepDuration,sleep(i).avg_quant',false);
+end
+
+% Single figures of the sleep duration per fly
+SZ = 60;
+buff = 0.3;
+
+for i = 1:num.exp
+    fig = getfig('',1,[386 680]); hold on
+        kolor = grouped(i).color;
+        y = sleepDuration(:,i);
+        y(isnan(y)) = [];
+        y_avg = mean(y);
+        x = shuffle_data(linspace(1-buff,1+buff,length(y)));
+        scatter(x,y,SZ,kolor,"filled","o")
+        plot([1-buff,1+buff],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+        % Labels and formatting
+        xlim([0,2])
+        ylim([0, 2500])
+        ylabel('Sleep duration per fly (sec)')
+        ylim([0, 2500])
+        formatFig(fig,true);
+        set(gca,'XColor',backColor)
+        xlabel(expNames{i},'Color',foreColor,'FontSize',12)
+        save_figure(fig,[saveDir expNames{i} ' Sleep duration per fly'],fig_type);
+end
+
+    
+%% FIGURE: FIX THIS! Avg quantity of sleep per fly
 
 % Can we easily predict behavior based on a simple cold-exposure metric?
 clearvars('-except',initial_vars{:})
@@ -1047,26 +1082,36 @@ save_figure(fig,[saveDir 'sleeping distance to food'],fig_type);
 
 %% FIGURE: Histogram of sleep proximity to food
 clearvars('-except',initial_vars{:})
-
-% TODO: make these each their own plots on the same figure? (no overlaid?)
-% or some min num is overlaid only?
-fig = getfig('',1); hold on
-for i = 1:num.exp
-    plotData = [];
-    for trial = 1:num.trial(i)
-        loc = sleep(i).trial(trial).sleepLoc;
-        test = sleep(i).trial(trial).all_distance(loc);
-        plotData = [plotData; test];
-    end
-    h(i) = histogram(plotData,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
+fig_dir = [saveDir 'sleeping histograms overlay\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
 end
-formatFig(fig,true);
-xlabel('distance to well (mm)','FontSize',20)
-ylabel('sleeping flies (#)','FontSize',20)
-set(gca,'TickDir','out')
+binedges = 0:3:51;
+% ylimits = [-50 500]; % [-50,1400] 15-23 WT
+ylimits = [-50 800];
 
-% save figure
-save_figure(fig,[saveDir 'sleeping distance to food histogram'],fig_type);
+for idx = 1:num.exp 
+    fig = getfig('',1); hold on
+    for ii = 1:idx
+        i = expOrder(ii);
+        plotData = [];
+        for trial = 1:num.trial(i)
+            loc = sleep(i).trial(trial).sleepLoc;
+            test = sleep(i).trial(trial).all_distance(loc);
+            plotData = [plotData; test];
+        end
+        h(i) = histogram(plotData,binedges,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
+    end
+    formatFig(fig,true);
+    xlabel('distance to well (mm)','FontSize',20)
+    ylabel('sleeping flies (#)','FontSize',20)
+    set(gca,'TickDir','out')
+    xlim([-1.5000   51.5000])
+    ylim(ylimits)
+    
+    % save figure
+    save_figure(fig,[fig_dir 'sleeping distance to food histogram ' num2str(idx)],fig_type);
+end
 
 %% ANALYSIS: fly sleeping locations in the arena (oriented to same heading)
 clearvars('-except',initial_vars{:})
@@ -1075,8 +1120,7 @@ clearvars('-except',initial_vars{:})
 % change the orientation/rotation to match across trials
 % color code the dot to indicate the temperature for each sleeping fly
 % location
-[foreColor,backColor] = formattingColors(blkbgd);
-SZ = 40;
+
 
 for i = 1:num.exp
     all_data = [];
@@ -1141,7 +1185,13 @@ end
 clearvars('-except',initial_vars{:})
 % HAVENT SCREENED FOR ONLY RAMPSSSSSSSS!!! 
 % TODO HERE...
-    
+fig_dir = [saveDir 'sleeping locations\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end
+
+[foreColor,backColor] = formattingColors(blkbgd);
+SZ = 40;
 % Plot scatter point figure:
 for i = 1:num.exp
     all_data = sleep(i).location.all_data;
@@ -1158,7 +1208,7 @@ for i = 1:num.exp
     axis square; axis equal;  
     formatFig(fig,blkbgd);
     set(gca,'XColor',backColor,'YColor',backColor);
-    save_figure(fig,[saveDir grouped(i).name ' sleeping positions in arena'],fig_type);
+    save_figure(fig,[fig_dir grouped(i).name ' sleeping positions in arena'],fig_type);
 
 end
 
@@ -1202,7 +1252,7 @@ for i = 1:num.exp
         c.Label.String = '# Flies';
         c.Label.Color = foreColor;
         c.Label.FontSize = 20;
-        save_figure(fig,[saveDir grouped(i).name ' sleeping positions in arena heatmap'],fig_type);
+        save_figure(fig,[fig_dir grouped(i).name ' sleeping positions in arena heatmap'],fig_type);
 
 end
 
@@ -1281,10 +1331,11 @@ for i = 1:num.exp
 save_figure(fig,[saveDir expNames{i} ' sleeping distance to food histogram temp colored normalized'],fig_type);
 % save_figure(fig,[saveDir expNames{i} ' sleeping distance to food histogram group colored normalized'],fig_type);
 
-
 end
 
+fig = figure;
 colormap('default'); %return map to normal
+close(fig)
 
 %% FIGURE: sleeping distance (binned warming and cooling)
 clearvars('-except',initial_vars{:})
@@ -1350,20 +1401,47 @@ ylim([-2,20])
 
 save_figure(fig,[saveDir 'Sleep duration across groups violin plot'],fig_type);
 
-% Histogram version...
+
+% FIGURE: cumulative distribution function of sleep
+% clearvars('-except',initial_vars{:})
+% autoSave = true;
+autoLim = false;
+xlimit = [0,20];
+LW = 2;
+
 fig = getfig('',1); hold on
 for i = 1:num.exp
-    kolor = grouped(i).color;
-    histogram(sleep(i).sleepLength(:),'FaceColor',kolor)
+    h = cdfplot(y(:,i));
+    set(h,'color',grouped(i).color,'linewidth',LW)
 end
-formatFig(fig,true);
-xlabel('sleep duration (min)')
-ylabel('count')
 
-% Could make this a sleep PDF?
+xlabel('Sleep duration (min)')
+ylabel('Empirical CDF')
+title('')
+formatFig(fig, blkbgd);   
+set(gca,'xgrid','off','ygrid','off')
+set(gca,'ytick',0:0.2:1)
+if ~autoLim
+    xlim(xlimit)
+end
+save_figure(fig,[saveDir expGroup ' sleep CDF'],fig_type);
 
-median(sleep(1).sleepLength(:),'omitnan')
-median(sleep(2).sleepLength(:),'omitnan')
+
+
+% % Histogram version...
+% fig = getfig('',1); hold on
+% for i = 1:num.exp
+%     kolor = grouped(i).color;
+%     histogram(sleep(i).sleepLength(:),'FaceColor',kolor)
+% end
+% formatFig(fig,true);
+% xlabel('sleep duration (min)')
+% ylabel('count')
+% 
+% % Could make this a sleep PDF?
+% 
+% median(sleep(1).sleepLength(:),'omitnan')
+% median(sleep(2).sleepLength(:),'omitnan')
 
 
 %% FIGURE: Sleep vs thermal threat by genotype
@@ -1412,6 +1490,219 @@ save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes'],fig_type)
 % save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes short'],fig_type);
 
 % 
+
+
+%% FIGURE: portion of sleep during warming cooling and hold
+clearvars('-except',initial_vars{:})
+buffer = 0.15;
+[foreColor,~] = formattingColors(blkbgd);
+
+plotData = [];
+fps = 3;
+SZ = 50;
+
+for i = 1:num.exp
+    fig = getfig('',1,[481 680]); hold on
+    tPoints = getTempTurnPoints(data(i).T.TempProtocol{1});
+    TOTALSLEEP = sum(sleep(i).num);
+    for type = 1:3
+        switch type
+            case 1 %decreasing
+                roi = tPoints.DownROI;
+                kolor = Color('dodgerblue');
+            case 2 % increasing
+                roi = tPoints.UpROI;
+                kolor = Color('red');
+            case 3 % holding
+                roi = tPoints.HoldROI;
+                kolor = Color('grey');
+        end
+
+        sleepCount = sleep(i).num(roi,:);
+        
+        % normalize sleep to TOTAL sleep
+        frames_of_sleep = sum(sleepCount);
+        sleepPortion = (frames_of_sleep./TOTALSLEEP)*100;
+        sleepPortion(isnan(sleepPortion)) = [];
+
+        % Plot data
+        %average
+        bar(type, mean(sleepPortion),'FaceColor',kolor,'FaceAlpha',1,'EdgeColor',foreColor)
+        %scatterpoints
+        x = shuffle_data(linspace(type-buffer,type+buffer,length(sleepPortion)));
+        scatter(x,sleepPortion,SZ,foreColor,"filled")
+    end
+    % formatting and labels
+    set(gca,'XTick',1:3,'XTickLabel',{'cooling','heating','hold'})
+    ylabel('Portion of total sleep (%)')
+    xlim([0,4]) 
+    ylim([0,100])
+    formatFig(fig,blkbgd);
+    
+    % Save figure
+    save_figure(fig,[saveDir expNames{i} ' sleeping by temp type'],fig_type);
+end
+
+%% FIGURE: Onset of sleep raster plot
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+
+% parameters
+spike_H = 2;    %height of each raster
+trial_space = 1;    %gap between trial lines
+spike_W = 0.5;    % raster line width
+
+fig_height = 50 + num.exp * 100;
+fig = getfig('',1,[1064 fig_height]); hold on
+
+y_base = 1;
+for i = 1:num.exp
+    time = grouped(i).time;
+    kolor = grouped(i).color;
+    
+    for trial = 1:num.trial(i)
+        plotdata = sleep(i).sleepON(:,trial);
+        plotdata(isnan(plotdata)) = []; %remove dummy spaces
+        plotdata = sort(plotdata);
+        % remove any simultaneous starts (shift one point left or right)
+        idx = 0;
+        while any(diff(plotdata)==0)
+            loc = find(diff(plotdata)==0);
+            plotdata(loc+1) = plotdata(loc)+1;
+            idx = idx+1;
+            if idx>(fps*10)
+                warndlg('Points shifting more than 10 seconds')
+                return 
+            end
+        end
+        % get time for each sleep start
+        plotdata(plotdata>length(time)) = []; %remove those outside the universal time
+        x = time(plotdata);
+        X = [x';x'];
+        % get y bin slot locations
+        Y = repmat([y_base;y_base+spike_H],[1,size(X,2)]);
+
+        % PLOT SPIKES
+        plot(X,Y,'color',kolor,'linewidth',spike_W)
+        
+        % Update y-offset
+        y_base = y_base+spike_H+trial_space;
+    end
+    % plot ramp times...
+    y_base = y_base+trial_space;
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    y = [y_base+(spike_H/2);y_base+(spike_H/2)];
+    
+    if i == num.exp
+        plot(time(tp.down)',repmat(y,[1,tp.nDown]),'color',Color('dodgerblue'),'linewidth',spike_H*2) %decreasing
+        plot(time(tp.up)',repmat(y,[1,tp.nUp]),'color',Color('red'),'linewidth',spike_H*2) %increasing
+        plot(time(tp.hold)',repmat(y,[1,tp.nHold]),'color',Color('grey'),'linewidth',spike_H*2) %decreasing
+    end
+    y_base = y(2)+(2+trial_space);
+end
+
+% Plot 
+ylim([-10,y_base+3])
+formatFig(fig,blkbgd);
+set(gca,'TickDir','out')
+xlabel('time (min)')
+set(gca,'ycolor',backColor)
+
+% Save figure
+save_figure(fig,[saveDir 'sleeping onset raster'],fig_type);    
+
+%% FIGURE: onset to sleeping after warming start
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+LW = 1.5;
+autoSave = true;
+fig_dir = [saveDir 'Sleep Onset Frequency\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end
+
+for idx = 1:num.exp
+
+    fig = getfig('',1,[1064, 305]); hold on
+    for ii = 1:idx
+        i = expOrder(ii);
+        time = grouped(i).time;
+        kolor = grouped(i).color;
+        tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+        
+        plotdata = sleep(i).sleepON(:);
+        plotdata(isnan(plotdata)) = [];
+        x = sort(time(plotdata));
+        binedges = 0:ceil(time(end));
+    
+        N = discretize(x,binedges);
+        freq = zeros(length(binedges),1);
+        for t = 1:length(binedges)
+            freq(t) = sum(N==t);
+        end
+        freq = freq./sum(data(i).T.NumFlies(:));
+        plot(binedges,freq,'color',kolor,'linewidth',LW)
+    end
+    formatFig(fig,blkbgd);
+    xlabel('time (min)')
+    ylabel('sleep frequency (fly/min)')
+    set(gca,'TickDir','out')
+    
+    
+    % Save figure
+    save_figure(fig,[fig_dir 'sleeping onset frequency ' num2str(idx)],fig_type,autoSave);   
+
+end
+
+
+
+
+
+%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
