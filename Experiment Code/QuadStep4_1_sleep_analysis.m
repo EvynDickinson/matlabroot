@@ -808,7 +808,6 @@ for i = 1:num.exp
     %                 l_style = '--';
             end
         
-            % COOLING
             yyaxis left
             subplot(r,c,type);   hold on
             %Distance Data 
@@ -876,14 +875,17 @@ for i = 1:num.exp
             for type = 1:2
                 subplot(r,c,type); 
                 yyaxis left
-                ylim([min(yleft(1,:)), max(yleft(2,:))])
+%                 ylim([min(yleft(1,:)), max(yleft(2,:))])
+                ylim([12 28])
                 yyaxis right
-                ylim([min(yright(1,:)), max(yright(2,:))])
+%                 ylim([min(yright(1,:)), max(yright(2,:))])
+                ylim([-.05 .4])
             end
         end
         
     % save figure
     save_figure(fig,[saveDir expNames{i} ' sleep and distance during heating and cooling'],fig_type);
+%         save_figure(fig,[saveDir expNames{i} ' sleep and distance during heating and cooling NO SLEEP'],fig_type);
 
 end
 
@@ -1367,8 +1369,8 @@ formatFig(fig,true);
 % save figure
 save_figure(fig,[saveDir 'avg sleeping distance to food'],fig_type);
 
-%% Sleep duration and statistics across groups
-[foreColor,backColor] = formattingColors(blkbgd);
+%% FIGURE: Sleep duration and statistics across groups
+[foreColor,~] = formattingColors(blkbgd);
 
 % How does the avg duration of sleep change across fly groups? 
 [y, kolor,gLabel] = deal([]);
@@ -1604,7 +1606,7 @@ save_figure(fig,[saveDir 'sleeping onset raster'],fig_type);
 
 %% FIGURE: onset to sleeping after warming start
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd);
+% [foreColor,backColor] = formattingColors(blkbgd);
 LW = 1.5;
 autoSave = true;
 fig_dir = [saveDir 'Sleep Onset Frequency\'];
@@ -1646,7 +1648,104 @@ for idx = 1:num.exp
 end
 
 
-%%
+%% FIGURE: event-aligned sleep onset
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+fig_height = 249*num.exp;
+timeBins = 0:3:150; % 3 minute bins
+
+% Pull data together
+y = struct;
+for i = 1:num.exp
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    rampDur = min(tp.up(:,2)-tp.up(:,1)); %shortest ramp duration for overlay
+    plotdata = [];
+    sleepData = sleep(i).sleepON;
+    % Heating onset focus
+    for n = 1:tp.nUp
+        loc = (sleepData>=tp.up(n,1)) & (sleepData<=tp.up(n,2));
+        sleepStarts = (sleepData(loc)-tp.up(n,1)); %frame offset from heating event
+        plotdata = [plotdata; sleepStarts];
+    end
+    plotdata = plotdata/(fps*60); %time in minutes
+    y(i).data = plotdata;
+    y(i).rampDur = rampDur/(fps*60);
+end
+
+
+% FIGURE 1 Plot histogram distribution
+fig = getfig('',1,[1064 fig_height]); 
+for ii = 1:num.exp
+    subplot(num.exp,1,ii)
+    i = expOrder(ii);
+    histogram(y(i).data,timeBins, 'FaceColor',grouped(i).color,'FaceAlpha',1,'EdgeColor',backColor)
+    v_line(5,foreColor)
+end
+formatFig(fig,blkbgd,[num.exp,1]);
+for i = 1:num.exp-1
+    subplot(num.exp,1,i)
+    set(gca,'XColor',foreColor,'xtick',[])
+    ylimits = ylim;
+    ylim([-5,ylimits(2)])
+    ylabel('sleep onset count')
+end
+subplot(num.exp,1,num.exp)
+ylimits = ylim;
+ylim([-5,ylimits(2)])
+xlabel('time since heating onset (min)')
+save_figure(fig,[saveDir expGroup ' sleep onset distribution'],fig_type);
+
+% FIGURE 2 Plot cumulative distribution function
+fig = getfig('',1); hold on
+for i = 1:num.exp
+    h = cdfplot(y(i).data);
+    set(h,'color',grouped(i).color,'linewidth',2)
+end
+
+xlabel('Sleep duration (min)')
+ylabel('Empirical CDF')
+title('')
+formatFig(fig, blkbgd);   
+set(gca,'xgrid','off','ygrid','off')
+set(gca,'ytick',0:0.2:1)
+
+save_figure(fig,[saveDir expGroup ' sleep onset CDF'],fig_type);
+
+
+%% FIGURE: avg sleep per fly during FULL experiment (not just ramps)
+
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+buffer = 0.25;
+SZ = 50;
+LW = 2;
+
+fig_H = 220 + (100*num.exp);
+
+fig = getfig('',1,[fig_H,680]); hold on
+for ii = 1:num.exp
+    i = expOrder(ii);
+    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    roi = [tp.DownROI, tp.UpROI, tp.HoldROI];
+    y = sum(sleep(i).num(roi,:));
+    y = (y * fps) / length(roi); %get number of flies sleeping per second
+    y = y ./ data(i).T.NumFlies'; % get seconds of sleep per fly
+    y = y * (60); % minutes of sleep per fly
+    y_avg = mean(y,'omitnan');
+    x = shuffle_data(linspace(ii-buffer,ii+buffer,num.trial(i)));
+
+    % plot data
+    scatter(x,y,SZ,grouped(i).color,'filled')
+    plot([ii-buffer,ii+buffer],[y_avg,y_avg],'color',grouped(i).color,'linewidth',LW)
+end
+
+% formats and labels
+ylabel('Sleep per fly (min)')
+formatFig(fig,blkbgd);
+set(gca,'xcolor',backColor,'XTick',[],'XTickLabel',[])
+
+save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
+save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
 
 
 
@@ -1698,11 +1797,4 @@ end
 
 
 
-
-
-
-
-
-
-
-
+    
