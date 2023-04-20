@@ -887,7 +887,6 @@ for i = 1:num.exp
 
 end
 
-
 %% FIGURE: Sleep vs thermal threat
 % Can we easily predict behavior based on a simple cold-exposure metric?
 clearvars('-except',initial_vars{:})
@@ -960,7 +959,6 @@ for i = 1:num.exp
         save_figure(fig,[saveDir expNames{i} ' Sleep duration per fly'],fig_type);
 end
 
-    
 %% FIGURE: FIX THIS! Avg quantity of sleep per fly
 
 % Can we easily predict behavior based on a simple cold-exposure metric?
@@ -1012,8 +1010,6 @@ xlim([0,3])
 formatFig(fig,true);
 
 save_figure(fig,[saveDir 'Sleep duration by thermal stress rate'],fig_type);
-
-
 
 %% FIGURE: Sleeping distance to food across during cooling and warming
 clearvars('-except',initial_vars{:})
@@ -1078,7 +1074,6 @@ set(gca,'YColor',foreColor)
 
 % save figure
 save_figure(fig,[saveDir 'sleeping distance to food'],fig_type);
-
 
 %% FIGURE: Histogram of sleep proximity to food
 clearvars('-except',initial_vars{:})
@@ -1372,8 +1367,6 @@ formatFig(fig,true);
 % save figure
 save_figure(fig,[saveDir 'avg sleeping distance to food'],fig_type);
 
-
-
 %% Sleep duration and statistics across groups
 [foreColor,backColor] = formattingColors(blkbgd);
 
@@ -1443,7 +1436,6 @@ save_figure(fig,[saveDir expGroup ' sleep CDF'],fig_type);
 % median(sleep(1).sleepLength(:),'omitnan')
 % median(sleep(2).sleepLength(:),'omitnan')
 
-
 %% FIGURE: Sleep vs thermal threat by genotype
 % Can we easily predict behavior based on a simple cold-exposure metric?
 clearvars('-except',initial_vars{:})
@@ -1490,7 +1482,6 @@ save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes'],fig_type)
 % save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes short'],fig_type);
 
 % 
-
 
 %% FIGURE: portion of sleep during warming cooling and hold
 clearvars('-except',initial_vars{:})
@@ -1653,9 +1644,6 @@ for idx = 1:num.exp
     save_figure(fig,[fig_dir 'sleeping onset frequency ' num2str(idx)],fig_type,autoSave);   
 
 end
-
-
-
 
 
 %%
