@@ -1713,7 +1713,6 @@ save_figure(fig,[saveDir expGroup ' sleep onset CDF'],fig_type);
 
 
 %% FIGURE: avg sleep per fly during FULL experiment (not just ramps)
-
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 buffer = 0.25;
@@ -1744,20 +1743,84 @@ ylabel('Sleep per fly (min)')
 formatFig(fig,blkbgd);
 set(gca,'xcolor',backColor,'XTick',[],'XTickLabel',[])
 
-save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf');
+save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
+save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
 
 
 
 
+%% Null distribution of fly distances to food:
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+
+nbins = 50;
+pixel_buffer = 50; % edge of arena pixel buffer
+i = 1;
+trial = 1;
+vid = 1;
+
+% Set axis limits for the selected arena
+c1 = data(i).data(trial).data.centre(1);
+c2 = data(i).data(trial).data.centre(2);
+r = data(i).data(trial).data.r;
+xlimit = [x-(r+pixel_buffer),x+(r+pixel_buffer)];
+ylimit = [y-(r+pixel_buffer),y+pixel_buffer+r];
+
+% find the 'auto bin' lines
+xedge = linspace(xlimit(1),xlimit(2),nbins+1);
+yedge = linspace(ylimit(1),ylimit(2),nbins+1);
+X = []; Y = [];
+idx = 1;
+for y_loc = 1:nbins
+    for x_loc = 1:nbins
+        X(idx) = xedge(x_loc);
+        Y(idx) = yedge(y_loc);
+        idx = idx + 1;
+    end
+end
+% screen out the units outside the arena circle
+temp_dist = sqrt((X-c1).^2 + (Y-c2).^2);
+loc = temp_dist>r;
+X(loc) = [];
+Y(loc) = [];
+
+% find food well location for distance capture later
+foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
+c1 = foodWellLoc(1);
+c2 = foodWellLoc(2);
+null_distance = sqrt((X-c1).^2 + (Y-c2).^2)./pix2mm;
 
 
+% PLOT NULL DISTRIBUTION:
+fig_dir = [saveDir 'sleeping histograms overlay\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end
+binedges = 0:3:51;
+% ylimits = [-50 500]; % [-50,1400] 15-23 WT
+% ylimits = [-50 800];
 
+for i = 1:num.exp 
+    fig = getfig('',1); hold on
+    plotData = [];
+    for trial = 1:num.trial(i)
+        loc = sleep(i).trial(trial).sleepLoc;
+        test = sleep(i).trial(trial).all_distance(loc);
+        plotData = [plotData; test];
+    end
+    h(i) = histogram(plotData,binedges,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
 
-
-
-
-
-
+    end
+    formatFig(fig,true);
+    xlabel('distance to well (mm)','FontSize',20)
+    ylabel('sleeping flies (#)','FontSize',20)
+    set(gca,'TickDir','out')
+    xlim([-1.5000   51.5000])
+    ylim(ylimits)
+    
+    % save figure
+    save_figure(fig,[fig_dir 'sleeping distance to food histogram ' num2str(idx)],fig_type);
+end
 
 
 
