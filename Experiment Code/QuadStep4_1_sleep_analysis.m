@@ -1746,10 +1746,8 @@ set(gca,'xcolor',backColor,'XTick',[],'XTickLabel',[])
 save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
 save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
 
-
-
-
 %% Null distribution of fly distances to food:
+
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 
@@ -1828,10 +1826,14 @@ end
 save_figure(fig,[fig_dir 'Null sleeping distance distribution'],fig_type);
 
 
+%% Null distribution stats:
+
+% https://towardsdatascience.com/how-to-compare-two-distributions-in-practice-8c676904a285
 
 
-
-
+% 1) Bin the distances
+% 2) Find the frequency of each bin (normalization)
+% 3) 
 
 
 
