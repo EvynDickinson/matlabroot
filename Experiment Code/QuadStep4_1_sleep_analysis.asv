@@ -1883,10 +1883,78 @@ disp(['Avg mean null position ' num2str(mean(null_distance)) 'mm'])
 % 2) Find the frequency of each bin (normalization)
 % 3) 
 
-evcdf
+evcdf 
 
 
 ecdf(null_distance,'Bounds','on')
+
+%% Find probability of occupancy for each distance
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+
+% PLOT NULL DISTRIBUTION:
+fig_dir = [saveDir 'sleeping histograms overlay\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end 
+
+
+binSpacing = 1; %mm spacing for bins
+binedges = 0:binSpacing:55; 
+sSpan = 5;
+LW = 2;
+
+% find probability of occupancy for each bin from the null distribution
+N = discretize(null_distance,binedges);
+N_tot = length(null_distance);
+prob = zeros(length(binedges),1);
+for i = 1:length(binedges)
+    prob(i) = (sum(N==i))/N_tot;
+end
+
+fig = getfig('',1); hold on
+yyaxis left
+histogram(null_distance,binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
+ylabel('count')
+yyaxis right
+plot(binedges,prob,'color', foreColor,'linewidth',LW,'linestyle','-')
+plot(binedges,smooth(prob,sSpan,'moving'),'color', Color('cyan'),'linewidth',LW+2,'linestyle','-')
+formatFig(fig,blkbgd);
+xlabel('distance to well (mm)')
+ylabel('occupancy probability')
+yyaxis left
+set(gca,'Ycolor',foreColor)
+
+% Save null distribution probability
+save_figure(fig,[fig_dir  'Distance probabilty null distribution'],fig_type);
+
+% Try weighing the distance respsonses by the probability of occupancy?
+for i = 1:num.exp
+    y = grouped(i).dist.avg;
+    
+    x = 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

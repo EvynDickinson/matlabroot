@@ -1829,7 +1829,7 @@ end
 
 %% FIGURE: Cumulative distribution of sleeping distances to food
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd);
+% [foreColor,backColor] = formattingColors(blkbgd);
 LW = 2;
 
 % PLOT NULL DISTRIBUTION:
@@ -1887,6 +1887,143 @@ evcdf
 
 
 ecdf(null_distance,'Bounds','on')
+
+%% Find probability of occupancy for each distance
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+
+% PLOT NULL DISTRIBUTION:
+fig_dir = [saveDir 'sleeping histograms overlay\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end 
+
+
+binSpacing = 1; %mm spacing for bins
+binedges = 0:binSpacing:55; 
+sSpan = 5;
+LW = 2;
+
+% find probability of occupancy for each bin from the null distribution
+N = discretize(null_distance,binedges);
+N_tot = length(null_distance);
+prob = zeros(length(binedges),1);
+for i = 1:length(binedges)
+    prob(i) = (sum(N==i))/N_tot;
+end
+
+fig = getfig('',1); hold on
+yyaxis left
+histogram(null_distance,binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
+ylabel('count')
+yyaxis right
+plot(binedges,prob,'color', foreColor,'linewidth',LW,'linestyle','-')
+plot(binedges,smooth(prob,sSpan,'moving'),'color', Color('cyan'),'linewidth',LW+2,'linestyle','-')
+formatFig(fig,blkbgd);
+xlabel('distance to well (mm)')
+ylabel('occupancy probability')
+yyaxis left
+set(gca,'Ycolor',foreColor)
+
+% Save null distribution probability
+save_figure(fig,[fig_dir  'Distance probabilty null distribution'],fig_type);
+
+% % Try weighing the distance respsonses by the probability of occupancy?
+% for i = 1:num.exp
+%     y = grouped(i).dist.avg;
+% 
+%     x = 
+
+
+
+
+%% Near inifinite place null distribution
+
+% NULL DISTRIBUTION (this should be identical for all trials/experiments in the same arena)
+% Generate the null distribution of distances to the food well:
+nbins = 200; %This is same as used for determining sleep positions
+pixel_buffer = 50; % edge of arena pixel buffer
+i = 1;
+trial = 1;
+% Set axis limits for the selected arena
+c1 = data(i).data(trial).data.centre(1);
+c2 = data(i).data(trial).data.centre(2);
+r = data(i).data(trial).data.r;
+xlimit = [c1-(r+pixel_buffer),c1+(r+pixel_buffer)];
+ylimit = [c2-(r+pixel_buffer),c2+pixel_buffer+r];
+
+% find the 'auto bin' lines
+xedge = linspace(xlimit(1),xlimit(2),nbins+1);
+yedge = linspace(ylimit(1),ylimit(2),nbins+1);
+X = []; Y = [];
+idx = 1;
+for y_loc = 1:nbins
+    for x_loc = 1:nbins
+        X(idx) = xedge(x_loc);
+        Y(idx) = yedge(y_loc);
+        idx = idx + 1;
+    end
+end
+% screen out the units outside the arena circle
+temp_dist = sqrt((X-c1).^2 + (Y-c2).^2);
+loc = temp_dist>r;
+X(loc) = [];
+Y(loc) = [];
+
+% find food well location for distance capture later 
+%  the specific well does not matter for the null distribution because the arena is
+%  symmetrical
+foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
+c1 = foodWellLoc(1);
+c2 = foodWellLoc(2);
+null_distribution = sqrt((X-c1).^2 + (Y-c2).^2)./pix2mm;
+
+
+
+[foreColor,backColor] = formattingColors(blkbgd);
+
+
+
+binSpacing = 1; %mm spacing for bins
+binedges = 0:binSpacing:55; 
+sSpan = 5;
+LW = 2;
+
+% find probability of occupancy for each bin from the null distribution
+N = discretize(null_distance,binedges);
+N_tot = length(null_distance);
+prob = zeros(length(binedges),1);
+for i = 1:length(binedges)
+    prob(i) = (sum(N==i))/N_tot;
+end
+
+fig = getfig('',1); hold on
+yyaxis left
+histogram(null_distance,binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
+ylabel('count')
+yyaxis right
+plot(binedges,prob,'color', foreColor,'linewidth',LW,'linestyle','-')
+plot(binedges,smooth(prob,sSpan,'moving'),'color', Color('cyan'),'linewidth',LW+2,'linestyle','-')
+formatFig(fig,blkbgd);
+xlabel('distance to well (mm)')
+ylabel('occupancy probability')
+yyaxis left
+set(gca,'Ycolor',foreColor)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

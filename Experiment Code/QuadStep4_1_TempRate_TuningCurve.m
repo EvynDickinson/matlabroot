@@ -8,7 +8,7 @@
 
 %% Select data groups to compare
 % add matlabroot folder to the directory path
-addpath(genpath('C:\matlabroot'));
+% addpath(genpath('C:\matlabroot'));
 
 clear; close all; clc
 baseFolder = getCloudPath;
@@ -35,7 +35,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         expNames = list_dirs(expIdx); %name of experiment groups selected
         num.exp = length(expIdx);  %number of groups selected
         
-        % Load selected experiment data groups:plotData
+        % Load selected experiment data groups
         for i = 1:num.exp
             data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
         end
@@ -69,6 +69,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 return
         end
 end
+
 
 %% ANALYSIS: organize data for each group
 disp(expNames')
