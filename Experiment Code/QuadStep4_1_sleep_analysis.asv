@@ -1178,6 +1178,47 @@ for i = 1:num.exp
     sleep(i).location.wells = WELLS;
 end
 
+% NULL DISTRIBUTION (this should be identical for all trials/experiments in the same arena)
+% Generate the null distribution of distances to the food well:
+nbins = 50; %This is same as used for determining sleep positions
+pixel_buffer = 50; % edge of arena pixel buffer
+i = 1;
+% Set axis limits for the selected arena
+c1 = data(i).data(trial).data.centre(1);
+c2 = data(i).data(trial).data.centre(2);
+r = data(i).data(trial).data.r;
+xlimit = [c1-(r+pixel_buffer),c1+(r+pixel_buffer)];
+ylimit = [c2-(r+pixel_buffer),c2+pixel_buffer+r];
+
+% find the 'auto bin' lines
+xedge = linspace(xlimit(1),xlimit(2),nbins+1);
+yedge = linspace(ylimit(1),ylimit(2),nbins+1);
+X = []; Y = [];
+idx = 1;
+for y_loc = 1:nbins
+    for x_loc = 1:nbins
+        X(idx) = xedge(x_loc);
+        Y(idx) = yedge(y_loc);
+        idx = idx + 1;
+    end
+end
+% screen out the units outside the arena circle
+temp_dist = sqrt((X-c1).^2 + (Y-c2).^2);
+loc = temp_dist>r;
+X(loc) = [];
+Y(loc) = [];
+
+% find food well location for distance capture later 
+%  the specific well does not matter for the null distribution because the arena is
+%  symmetrical
+foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
+c1 = foodWellLoc(1);
+c2 = foodWellLoc(2);
+null_distance = sqrt((X-c1).^2 + (Y-c2).^2)./pix2mm;
+
+initial_vars{end+1}  = 'null_distance';
+clearvars('-except',initial_vars{:})
+
 %% FIGURES: fly sleeping positions in the arena
 clearvars('-except',initial_vars{:})
 % HAVENT SCREENED FOR ONLY RAMPSSSSSSSS!!! 
@@ -1746,50 +1787,9 @@ set(gca,'xcolor',backColor,'XTick',[],'XTickLabel',[])
 save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
 save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
 
-
-
-
-%% Null distribution of fly distances to food:
+%% FIGURE: Null distribution of fly distances to food:
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd);
-
-nbins = 50;
-pixel_buffer = 50; % edge of arena pixel buffer
-i = 1;
-trial = 1;
-vid = 1;
-
-% Set axis limits for the selected arena
-c1 = data(i).data(trial).data.centre(1);
-c2 = data(i).data(trial).data.centre(2);
-r = data(i).data(trial).data.r;
-xlimit = [x-(r+pixel_buffer),x+(r+pixel_buffer)];
-ylimit = [y-(r+pixel_buffer),y+pixel_buffer+r];
-
-% find the 'auto bin' lines
-xedge = linspace(xlimit(1),xlimit(2),nbins+1);
-yedge = linspace(ylimit(1),ylimit(2),nbins+1);
-X = []; Y = [];
-idx = 1;
-for y_loc = 1:nbins
-    for x_loc = 1:nbins
-        X(idx) = xedge(x_loc);
-        Y(idx) = yedge(y_loc);
-        idx = idx + 1;
-    end
-end
-% screen out the units outside the arena circle
-temp_dist = sqrt((X-c1).^2 + (Y-c2).^2);
-loc = temp_dist>r;
-X(loc) = [];
-Y(loc) = [];
-
-% find food well location for distance capture later
-foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
-c1 = foodWellLoc(1);
-c2 = foodWellLoc(2);
-null_distance = sqrt((X-c1).^2 + (Y-c2).^2)./pix2mm;
-
+% [foreColor,backColor] = formattingColors(blkbgd);
 
 % PLOT NULL DISTRIBUTION:
 fig_dir = [saveDir 'sleeping histograms overlay\'];
@@ -1808,28 +1808,85 @@ for i = 1:num.exp
         test = sleep(i).trial(trial).all_distance(loc);
         plotData = [plotData; test];
     end
+    % Exp Data
     h(i) = histogram(plotData,binedges,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
 
-    end
-    formatFig(fig,true);
+    % NULL DISTRIBUTION: 
+    null_h = histogram(null_distance,binedges,'FaceColor',Color('grey'),'FaceAlpha',0.7);
+
+    formatFig(fig,blkbgd);
     xlabel('distance to well (mm)','FontSize',20)
     ylabel('sleeping flies (#)','FontSize',20)
     set(gca,'TickDir','out')
     xlim([-1.5000   51.5000])
-    ylim(ylimits)
+%     ylim(ylimits)
     
     % save figure
-    save_figure(fig,[fig_dir 'sleeping distance to food histogram ' num2str(idx)],fig_type);
+    save_figure(fig,[fig_dir expNames{i} ' sleeping distance null histogram'],fig_type);
 end
 
+% save_figure(fig,[fig_dir 'Null sleeping distance distribution'],fig_type);
+
+%% FIGURE: Cumulative distribution of sleeping distances to food
+clearvars('-except',initial_vars{:})
+[foreColor,backColor] = formattingColors(blkbgd);
+LW = 2;
+
+% PLOT NULL DISTRIBUTION:
+fig_dir = [saveDir 'sleeping histograms overlay\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end 
+
+% FIGURE:
+fig = getfig('',1);  
+hold on
+
+% NULL DISTRIBUTION:
+null_CDF = cdfplot(null_distance);
+null_CDF.Color = Color('grey');
+null_CDF.LineWidth = LW; 
+
+for i = 1:num.exp 
+    % Exp Data
+    plotData = [];
+    for trial = 1:num.trial(i)
+        loc = sleep(i).trial(trial).sleepLoc;
+        test = sleep(i).trial(trial).all_distance(loc);
+        plotData = [plotData; test];
+    end
+    data_CDF = cdfplot(plotData);
+    data_CDF.Color = grouped(i).color;
+    data_CDF.LineWidth = LW; 
+end
+
+formatFig(fig,blkbgd);
+xlabel('distance to well (mm)','FontSize',20)
+ylabel('Empirical Cumulative Distribution','FontSize',20)
+set(gca,'TickDir','out')
 
 
+% save figure
+save_figure(fig,[fig_dir  'Sleeping distance CDF with null distribution'],fig_type);
 
 
+%% Null distribution stats:
+clearvars('-except',initial_vars{:})
+
+% avg distance to a food well across the null distribution:
+disp(['Avg mean null position ' num2str(mean(null_distance)) 'mm'])
+
+% https://towardsdatascience.com/how-to-compare-two-distributions-in-practice-8c676904a285
 
 
+% 1) Bin the distances
+% 2) Find the frequency of each bin (normalization)
+% 3) 
+
+evcdf
 
 
+ecdf(null_distance,'Bounds','on')
 
 
 
