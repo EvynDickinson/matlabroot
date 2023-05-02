@@ -3567,11 +3567,131 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
  
 
-%%  SLEEP analysis: when are flies doing it? 
-% look for periods of inactivity longer than 5 minutes...
-
+%% FIGURES: eccentricity across time
 clearvars('-except',initial_vars{:})
 
+% Pull data together
+for i = 1:num.exp
+    ecent = [];
+    for trial = 1:num.trial(i)
+        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
+        ecent = autoCat(ecent,y,false);
+    end
+    grouped(i).ecent.all = ecent;
+end
+
+% Cluster the sleeping flies by temperature
+for i = 1:num.exp  
+    temps = unique(data(i).G(1).TR.temps);
+    rateIdx = data(i).G(1).TR.rateIdx;
+    tempIdx = data(i).G(1).TR.tempIdx;
+    % find rate index
+    heatRate = find(data(i).G(1).TR.rates>0);
+    coolRate = find(data(i).G(1).TR.rates<0);
+    try 
+        holdRate = find(data(i).G(1).TR.rates==0);
+        ntypes = 3;
+    catch
+        ntypes = 2;
+    end
+    for temp = 1:length(temps)
+        for type = 1:ntypes
+            switch type
+                case 1 %heating
+                    g_name = 'increasing';
+                    idxSex = heatRate;
+                case 2 %cooling
+                    g_name = 'decreasing';
+                    idxSex = coolRate;
+                case 3 %holding
+                    g_name = 'holding';
+                    idxSex = holdRate;
+            end
+            % Divided by heating / cooling
+            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
+            grouped(i).ecent.(g_name)(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg 
+            grouped(i).ecent.(g_name)(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err  
+        end
+        % Clustered by temp (regardless of heating/cooling)
+        loc = tempIdx==temp; %temp align only
+        grouped(i).ecent.temp_all(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg 
+        grouped(i).ecent.temp_all(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
+    end
+    grouped(i).ecent.temps = temps;
+end
+
+plot_err = false;
+equalLim = true;
+LW = 1.5;
+r = 1;
+c = 2;
+nMax = num.exp;
+
+% FIGURE:
+fig = getfig('',true); 
+% AVG
+subplot(r,c,1)
+hold on
+for i = 1:nMax
+    kolor = grouped(i).color;
+    x = grouped(i).ecent.temps;
+    y = grouped(i).ecent.temp_all(:,1);
+    y_err = grouped(i).ecent.temp_all(:,2);
+    loc = isnan(y)|isnan(y_err);
+    x(loc) = [];
+    y(loc) = [];
+    y_err(loc) = [];
+
+    plot(x,y,'color',kolor,'linewidth',LW+1)
+    if plot_err
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', 0.35)
+    end
+end
+xlabel('Temperature (\circC)')
+ylabel('eccentricity (mm)')
+% SEP HEAT / COOL
+subplot(r,c,2)
+hold on
+for i = 1:nMax
+    kolor = grouped(i).color;   
+    for type = 1:2 %increasing | decreasing 
+        switch type
+            case 1
+                section_type = 'increasing';
+                l_style = '-';
+            case 2
+                section_type = 'decreasing';
+                l_style = '--';
+        end
+        x = grouped(i).ecent.temps;
+        y = grouped(i).ecent.(section_type)(:,1);
+        y_err = grouped(i).ecent.(section_type)(:,2);
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
+        plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
+    end
+end
+xlabel('Temperature (\circC)')
+ylabel('eccentricity (mm)')
+    
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c]);
+if equalLim
+    fig = matchAxis(fig,true);
+end
+% ylim(num_temp_lim)
+
+% save figure
+save_figure(fig,[saveDir  'Eccentricity by temp'],fig_type);
 
 
 
