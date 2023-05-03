@@ -20,8 +20,12 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         list_dirs = dir([baseFolder 'Grouped Data Structures\']);
         list_dirs = {list_dirs(:).name};
         list_dirs(1:2) = [];
-        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
+        
+        try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        catch disp('No ')
+            return
+        end
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
         load([saveDir expGroup ' data.mat']);
         disp([expGroup ' loaded'])
@@ -3620,7 +3624,7 @@ for i = 1:num.exp
     grouped(i).ecent.temps = temps;
 end
 
-plot_err = true;
+plot_err = false;
 equalLim = true;
 LW = 1.5;
 r = 1;
@@ -3649,7 +3653,6 @@ for i = 1:nMax
         set(h, 'facealpha', 0.35)
     end
 end
-set(gca, 'ydir', 'reverse')
 xlabel('Temperature (\circC)')
 ylabel('eccentricity (mm)')
 % SEP HEAT / COOL
@@ -3673,17 +3676,16 @@ for i = 1:nMax
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.2)
-%         end
+        if plot_err
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        end
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
     end
 end
-set(gca, 'ydir', 'reverse')
 xlabel('Temperature (\circC)')
-ylabel('weighted proximity to well')
+ylabel('eccentricity (mm)')
     
 % FORMATING AND LABELS
 formatFig(fig,blkbgd,[r,c]);
@@ -3693,7 +3695,7 @@ end
 % ylim(num_temp_lim)
 
 % save figure
-save_figure(fig,[fig_dir  'Wieghted proximity by temp'],fig_type);
+save_figure(fig,[saveDir  'Eccentricity by temp'],fig_type);
 
 
 

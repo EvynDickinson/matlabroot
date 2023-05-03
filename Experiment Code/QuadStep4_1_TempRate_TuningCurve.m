@@ -20,8 +20,13 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         list_dirs = dir([baseFolder 'Grouped Data Structures\']);
         list_dirs = {list_dirs(:).name};
         list_dirs(1:2) = [];
-        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
+        
+        try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        catch 
+            disp('No group selected')
+            return
+        end
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
         load([saveDir expGroup ' data.mat']);
         disp([expGroup ' loaded'])
@@ -3687,13 +3692,19 @@ ylabel('eccentricity (mm)')
 formatFig(fig,blkbgd,[r,c]);
 if equalLim
     fig = matchAxis(fig,true);
+else
+    subplot(r,c,1)
+    ylim([16 30])
+    subplot(r,c,2)
+    ylim([16 30])
 end
+% 
+
 % ylim(num_temp_lim)
+
 
 % save figure
 save_figure(fig,[saveDir  'Eccentricity by temp'],fig_type);
-
-
 
 
 

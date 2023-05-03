@@ -1487,7 +1487,7 @@ clearvars('-except',initial_vars{:})
 
 % expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
 % colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-kolor = Color('White');
+% kolor = Color('White');
 
 fps = 3;
 
@@ -1504,7 +1504,7 @@ SZ = 60;
 buff = 2;
 fig = getfig('',1,[600 680]); hold on
 for i = 1:num.exp
-%     kolor = grouped(i).color;
+    kolor = grouped(i).color;
     y = sleepDuration(:,i);
     y(isnan(y)) = [];
     y_avg = mean(y);
