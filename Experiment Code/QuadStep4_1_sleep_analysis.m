@@ -500,7 +500,6 @@ r = 3;
 c = 1;
 sSpan = 180; %1 minute smoothing
 
-
 fig = getfig('',1);
 for i = 1:num.exp
     subplot(r,c,sb(1).idx); hold on
@@ -512,17 +511,13 @@ for i = 1:num.exp
     subplot(r,c,sb(2).idx); hold on
         y = smooth(sleep(i).sleepfract_avg,sSpan,'moving');
         y_err = smooth(sleep(i).sleepfract_err,sSpan,'moving');
-        if plot_err
-            fill_data = error_fill(time, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.4)
-        end
+        plot_error_fills(plot_err, time, y, y_err, kolor,  fig_type, 0.4);
         plot(time,y,'color',kolor,'linewidth',LW)
         ylabel('fraction of flies sleeping')
         xlabel('time (min)')
 end
 
-formatFig(fig,true,[r,c],sb);
+formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx);
 set(gca,'xcolor',backColor) 
 
@@ -559,11 +554,7 @@ for i = 1:num.exp
     subplot(r,c,sb(2).idx); hold on
         y = smooth(sleep(i).sleepfract_avg,sSpan,'moving');
         y_err = smooth(sleep(i).sleepfract_err,sSpan,'moving');
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h, 'facealpha', 0.4)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
         plot(x,y,'color',kolor,'linewidth',LW)
         ylabel('fraction flies sleeping')
         xlabel('time (min)')
@@ -582,11 +573,7 @@ for i = 1:num.exp
         y_err(loc) = [];
  
         plot(x,y,'color',kolor,'linewidth',LW+1)
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.35)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
         dataString{i} = grouped(i).name;
 end
 
@@ -637,11 +624,7 @@ for i = 1:nMax
     y_err(loc) = [];
 
     plot(x,y,'color',kolor,'linewidth',LW+1)
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.35)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
 end
 xlabel('Temperature (\circC)')
 ylabel('fraction of flies sleeping')
@@ -666,11 +649,7 @@ for i = 1:nMax
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.2)
-%         end
+        % plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
     end
 end
@@ -720,11 +699,7 @@ kolor = grouped(i).color;
         loc = isnan(y) | isnan(y_err);% remove nans 
         y(loc) = []; x(loc) = []; y_err(loc) = [];
     
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle','-','Marker','none')
         set(gca,'ydir','reverse')
         
@@ -739,11 +714,7 @@ kolor = grouped(i).color;
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',':','Marker','.','MarkerSize',10)
 
     end
@@ -816,12 +787,7 @@ for i = 1:num.exp
             y_err = grouped(i).(section_type).err;
             loc = isnan(y) | isnan(y_err);% remove nans 
             y(loc) = []; x(loc) = []; y_err(loc) = [];
-        
-            if plot_err
-                fill_data = error_fill(x, y, y_err);
-                h = fill(fill_data.X, fill_data.Y, distColor, 'EdgeColor','none','HandleVisibility','off');
-                set(h, 'facealpha', 0.2)
-            end
+            plot_error_fills(plot_err, x, y, y_err, distColor,  fig_type, 0.2);     
             plot(x,y,'color',distColor,'linewidth',LW+1,'linestyle','-','Marker','none')
             set(gca,'ydir','reverse')
             
@@ -834,11 +800,7 @@ for i = 1:num.exp
             x(loc) = [];
             y(loc) = [];
             y_err(loc) = [];
-            if plot_err
-                fill_data = error_fill(x, y, y_err);
-                h = fill(fill_data.X, fill_data.Y, sleepColor, 'EdgeColor','none','HandleVisibility','off');
-                set(h, 'facealpha', 0.2)
-            end
+            plot_error_fills(plot_err, x, y, y_err, sleepColor,  fig_type, 0.2);
             plot(x,y,'color',sleepColor,'linewidth',LW+1,'linestyle',':','Marker','.','MarkerSize',10)
         end
     
@@ -922,7 +884,7 @@ xlabel('Thermal Stress')
 ylabel('Sleep duration per fly (sec)')
 xlim([0, 70])
 ylim([0, 2500])
-formatFig(fig,true);
+formatFig(fig,blkbgd);
 
 save_figure(fig,[saveDir 'Sleep duration by thermal stress'],fig_type);
 
@@ -955,7 +917,7 @@ for i = 1:num.exp
         ylim([0, 2500])
         ylabel('Sleep duration per fly (sec)')
         ylim([0, 2500])
-        formatFig(fig,true);
+        formatFig(fig,blkbgd);
         set(gca,'XColor',backColor)
         xlabel(expNames{i},'Color',foreColor,'FontSize',12)
         save_figure(fig,[saveDir expNames{i} ' Sleep duration per fly'],fig_type);
@@ -1009,7 +971,7 @@ end
 xlabel('Thermal Stress Rate')
 ylabel('Sleep duration per fly (sec)')
 xlim([0,3])
-formatFig(fig,true);
+formatFig(fig,blkbgd);
 
 save_figure(fig,[saveDir 'Sleep duration by thermal stress rate'],fig_type);
 
@@ -1045,11 +1007,7 @@ for tt = 1:2 %increasing | decreasing
         y(loc) = []; x(loc) = []; y_err(loc) = [];
 
         % plot data
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'color',kolor,'linewidth',LW,'linestyle','-','Marker','none')
         
     end
@@ -1061,7 +1019,7 @@ for tt = 1:2 %increasing | decreasing
 %     axis tight
 end
 % FORMATING AND LABELS
-formatFig(fig,true,[r,c]);
+formatFig(fig,blkbgd,[r,c]);
 subplot(r,c,1)
 ylabel('distance to well (mm)')
 if equalLim
@@ -1099,7 +1057,7 @@ for idx = 1:num.exp
         end
         h(i) = histogram(plotData,binedges,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
     end
-    formatFig(fig,true);
+    formatFig(fig,blkbgd);
     xlabel('distance to well (mm)','FontSize',20)
     ylabel('sleeping flies (#)','FontSize',20)
     set(gca,'TickDir','out')
@@ -1253,7 +1211,6 @@ end
 
 % FIGURE: Sleeping position heatmap
 nBins = 15;
-
 for i = 1:num.exp
     c1 = sleep(i).location.arenaCenter(1);
     c2 = sleep(i).location.arenaCenter(2);
@@ -1284,7 +1241,7 @@ for i = 1:num.exp
         viscircles([sleep(i).location.arenaCenter(1),sleep(i).location.arenaCenter(2)],sleep(i).location.r,'Color',grouped(i).color);
         axis square; axis equal;  
         c = colorbar;
-        formatFig(fig,true);
+        formatFig(fig,blkbgd);
         c.Color = foreColor;
         set(gca,'xcolor',backColor,'ycolor',backColor)
         c.Label.String = '# Flies';
@@ -1311,8 +1268,9 @@ end
 nColors = floor(temp_limits(1)):1:ceil(temp_limits(2));
 nReds = floor(length(nColors)/2);
 nBlues = length(nColors) - nReds + 1;
-cBlues = Color('DodgerBlue', 'white',nBlues);
-cReds = Color('white', 'coral', nReds);
+
+cBlues = Color('DodgerBlue', 'lightyellow',nBlues);
+cReds = Color('lightyellow', 'coral', nReds);
 cMap = [cBlues(1:nBlues-1,:);cReds];
 cMap(cMap==1) = 1;
 
@@ -1338,7 +1296,6 @@ for i = 1:num.exp
     
     x = distance_bins(1:end-1) + median(diff(distance_bins)/2);
 
-    
     fig = getfig('',1); hold on
     h = bar(distance_bins,plotData,'stacked');
     for k = 1:length(nColors)
@@ -1351,7 +1308,7 @@ for i = 1:num.exp
         h(k).EdgeColor = 'none';
     end
     % formats and labels
-    formatFig(fig,true);
+    formatFig(fig,blkbgd);
     xlabel('distance to well (mm)','FontSize',20)
     ylabel('sleeping flies (#)','FontSize',20)
     set(gca,'TickDir','out')
@@ -1392,11 +1349,7 @@ for i = 1:num.exp
     y(loc) = []; x(loc) = []; y_err(loc) = [];
 
     % plot data
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
     plot(x,y,'color',kolor,'linewidth',LW,'linestyle','-','Marker','none')
 end
 % formatting and labeling
@@ -1405,7 +1358,7 @@ xlabel('temp (\circC)')
 ylabel('distance to well (mm)')
 
 % FORMATING AND LABELS
-formatFig(fig,true);
+formatFig(fig,blkbgd);
 
 % save figure
 save_figure(fig,[saveDir 'avg sleeping distance to food'],fig_type);
@@ -1431,12 +1384,11 @@ fig = getfig('',1);
 ylabel('sleep duration (min)','FontSize',18)
 % set(gca,'xcolor',backColor)
 set(L, 'TextColor',foreColor);
-formatFig(fig, true);
+formatFig(fig, blkbgd);
 
 ylim([-2,20])
 
 save_figure(fig,[saveDir 'Sleep duration across groups violin plot'],fig_type);
-
 
 % FIGURE: cumulative distribution function of sleep
 % clearvars('-except',initial_vars{:})
@@ -1461,8 +1413,6 @@ if ~autoLim
     xlim(xlimit)
 end
 save_figure(fig,[saveDir expGroup ' sleep CDF'],fig_type);
-
-
 
 % % Histogram version...
 % fig = getfig('',1); hold on
@@ -1518,7 +1468,7 @@ xlabel('Thermal Stress')
 ylabel('Sleep duration per fly (sec)')
 xlim([0, 70])
 ylim([0, 2500])
-formatFig(fig,true);
+formatFig(fig,blkbgd);
 
 save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes'],fig_type);
 

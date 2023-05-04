@@ -79,8 +79,8 @@ end
 %% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
-fig_type = '-png';
-blkbgd = true;
+fig_type = '-pdf';
+blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 f2m = 3*60; %fps*min = number of frames in a minute
@@ -135,7 +135,7 @@ switch expGroup
  % ---- FOOD VS NO FOOD CONTROLS ----
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
-        colors = {'white','dodgerblue'}; %
+        colors = {'black','dodgerblue'}; %
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
@@ -396,11 +396,7 @@ for i = 1:nMax
         y_err(loc) = [];
 
         plot(x,y,'color',kolor,'linewidth',LW+1)
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         dataString{i} = grouped(i).name;
 end
 
@@ -487,11 +483,7 @@ for i = 1:nMax
         y_err(loc) = [];
 
         plot(x,y,'color',kolor,'linewidth',LW+1)
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.35)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
         dataString{i} = grouped(i).name;
 end
 
@@ -545,12 +537,7 @@ for i = 1:num.exp
     y_err = grouped(i).increasing.err;
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
-
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
     plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
     %decreasing 
     x = grouped(i).decreasing.temps;
@@ -559,11 +546,7 @@ for i = 1:num.exp
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
     plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
 
     % Names and Colors of included data
@@ -708,6 +691,7 @@ autoLim = true;
 autoSave = true;
 ylimits = [-20,15]; %for manual y-limit selection
 sSpan = 180;
+plot_err = true;
 
 temp_limits = [nan,nan];
 for i = 1:num.exp
@@ -770,10 +754,7 @@ for i = 1:num.exp
         
         y = smooth(y,sSpan,'moving');
         y_err = smooth(y_err, sSpan,'moving');
-        
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, Color(s_color{ss}), 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.4)
+        plot_error_fills(plot_err, x, y, y_err, Color(s_color{ss}),  fig_type, 0.4);
         plot(x, y,'color',Color(s_color{ss}),'LineWidth',LW)
     end
     xlabel('time (min)')
@@ -840,12 +821,8 @@ for i = 1:num.exp
     % -- proximity --
         subplot(r,c,sb(ss+3).idx); hold on
         y = grouped(i).aligned.([sections{ss} '_MEAN'])(ROI); 
-        if SEM_shading
-            y_err = grouped(i).aligned.([sections{ss} '_SEM'])(ROI);
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.4)
-        end
+        y_err = grouped(i).aligned.([sections{ss} '_SEM'])(ROI);
+        plot_error_fills(SEM_shading, x, y, y_err, grouped(i).color,  fig_type, 0.4);
         plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
     end
 end
@@ -906,12 +883,7 @@ save_figure(fig,[saveDir expGroup ' event aligned distance - smoothed ' ...
 %     subplot(r,c,ss); hold on
 %     for i = 1:num.exp
 %         y = grouped(i).aligned.([sections{ss} '_MEAN'])(1:duration+1); 
-%         if SEM_shading
-%             y_err = grouped(i).aligned.([sections{ss} '_SEM'])(1:duration+1);
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.4)
-%         end
+%         plot_error_fills(SEM_shading, x, y, y_err, grouped(i).color,  fig_type, 0.4);
 %         plot(x, smooth(y,'moving',sSpan),'color',grouped(i).color,'LineWidth',LW)
 %     end
 %     xlabel('time (min)')
@@ -1032,12 +1004,7 @@ for ss = 1:length(sections) %
     subplot(r,c,sb(ss+3).idx); hold on
     for i = 1:num.exp
         y = grouped(i).ext_aligned.([sections{ss} '_MEAN'])(1:length(x)); 
-        if SEM_shading
-            y_err = grouped(i).ext_aligned.([sections{ss} '_SEM'])(1:length(x));
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y,grouped(i).color, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.4)
-        end
+        plot_error_fills(SEM_shading, x, y, y_err, grouped(i).color,  fig_type, 0.4);
         plot(x, smooth(y,sSpan,'moving'),'color',grouped(i).color,'LineWidth',LW)
     end
     xlabel('time (min)')
@@ -1048,7 +1015,7 @@ for ss = 1:length(sections) %
     v_line(0,foreColor,':',1)
     xlim(xlimit)
 end
-formatFig(fig,true,[r,c],sb);
+formatFig(fig,blkbgd,[r,c],sb);
 for ss = 1:length(sections) %
     subplot(r,c,sb(ss).idx)
     set(gca,'xcolor',backColor)
@@ -1436,11 +1403,7 @@ for i = 1:num.exp
     subplot(r,c,sb(2).idx); hold on
         y = smooth(grouped(i).dist.zscore.avg,'moving',sSpan);
 %         y_err = smooth(grouped(i).speed.err,'moving',sSpan);
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-%             set(h, 'facealpha', 0.2)
-%         end
+%         plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'LineWidth',LW,'Color',kolor)
 
     %cooling dependent distance
@@ -1453,11 +1416,7 @@ for i = 1:num.exp
         loc = isnan(y) | isnan(y_err);% remove nans 
         y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','--','HandleVisibility','off');
     
     if sep_h_c
@@ -1472,11 +1431,7 @@ for i = 1:num.exp
         loc = isnan(y) | isnan(y_err);% remove nans 
         y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'LineWidth',LW,'Color',kolor,'linestyle','-')
 
         % Names and Colors of included data
@@ -1530,11 +1485,7 @@ for i = 1:num.exp
         y_err = grouped(i).decreasing.err;
         loc = isnan(y) | isnan(y_err);% remove nans 
         y(loc) = []; x(loc) = []; y_err(loc) = [];
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'LineWidth',LW,'Color',kolor,'HandleVisibility','off');
         title('Cooling')
         xlabel('Temperature (\circC)')
@@ -1548,11 +1499,7 @@ for i = 1:num.exp
         loc = isnan(y) | isnan(y_err);% remove nans 
         y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'LineWidth',LW,'Color',kolor)       
         title('Heating')
         xlabel('Temperature (\circC)')
@@ -2097,7 +2044,6 @@ save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-pdf
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 autoSave = false;
-blkbgd = true;
 autoDist = true; % automatically determine distance axis limits
 autoColor = true; % automatically determine color limits for z (distance) axis
 autoTemp = true; % automatically set temperature limits
@@ -2301,11 +2247,7 @@ for i = 1:num.exp
         y_err = smooth(y_err,sSpan,'moving');
         y = mean(plotData(i).N,2,'omitnan');
         y = smooth(y,sSpan,'moving');
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-%             set(h, 'facealpha', 0.2)
-%         end
+        % plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
         plot(x,y,'color',kolor,'linewidth',LW)
         if ~autoLim
             ylim(num_lim)
@@ -2322,11 +2264,7 @@ for i = 1:num.exp
         y_err(loc) = [];
  
         plot(x,y,'color',kolor,'linewidth',LW+1)
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.35)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
         dataString{i} = grouped(i).name;
 end
 
@@ -2378,11 +2316,7 @@ for i = 1:nMax
     y_err(loc) = [];
 
     plot(x,y,'color',kolor,'linewidth',LW+1)
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.35)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
 end
 xlabel('Temperature (\circC)')
 ylabel('flies on food (#)')
@@ -2407,11 +2341,7 @@ for i = 1:nMax
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-%         if plot_err
-%             fill_data = error_fill(x, y, y_err);
-%             h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%             set(h, 'facealpha', 0.2)
-%         end
+        % plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
     end
 end
@@ -2698,7 +2628,7 @@ for ii = 1:num.exp
     end
     % histogram for each group
     subplot(nrows,ncols,ii)
-    histogram(temp,bins,'FaceColor',grouped(i).color,'facealpha',1)
+    histogram(temp,bins,'FaceColor',grouped(i).color,'facealpha',1,'EdgeColor',foreColor)
     v_line(mean(temp,'omitnan'),foreColor,'--',1.5)
 %     title(grouped(i).name)
     xlabel('speed (mm/s)')
@@ -2745,11 +2675,8 @@ subplot(r,c,sb(1).idx); hold on
         x = temp(loc,i);
         y = speed(loc,i);
         y_err = speed_err(loc,i);
-        if plot_err
-           fill_data = error_fill(x, y, y_err);
-          h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-          set(h, 'facealpha', 0.3)
-        end
+        
+       plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
         plot(x,y,'color',kolor,'linewidth', LW)
     end
     xlabel('Temperature (\circC)')
@@ -2770,7 +2697,7 @@ for ii = 1:num.exp
 end
 xlim([0,num.exp+(buff*2)])
 ylabel('avg speed (mm/s)')
-formatFig(fig,true,[r,c],sb);
+formatFig(fig,blkbgd,[r,c],sb);
 set(gca,'xcolor',backColor)
 save_figure(fig,[saveDir expGroup ' avg speed'],fig_type,autoSave);
 
@@ -3101,6 +3028,139 @@ set(gca,'xcolor',backColor)
 % save figure
 save_figure(fig,[saveDir expGroup ' speed distance correlation'],fig_type);  
 
+%% FIGURES: eccentricity across time
+clearvars('-except',initial_vars{:})
+
+% Pull data together
+for i = 1:num.exp
+    ecent = [];
+    for trial = 1:num.trial(i)
+        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
+        ecent = autoCat(ecent,y,false);
+    end
+    grouped(i).ecent.all = ecent;
+end
+
+% Cluster the sleeping flies by temperature
+for i = 1:num.exp  
+    temps = unique(data(i).G(1).TR.temps);
+    rateIdx = data(i).G(1).TR.rateIdx;
+    tempIdx = data(i).G(1).TR.tempIdx;
+    % find rate index
+    heatRate = find(data(i).G(1).TR.rates>0);
+    coolRate = find(data(i).G(1).TR.rates<0);
+    try 
+        holdRate = find(data(i).G(1).TR.rates==0);
+        ntypes = 3;
+    catch
+        ntypes = 2;
+    end
+    for temp = 1:length(temps)
+        for type = 1:ntypes
+            switch type
+                case 1 %heating
+                    g_name = 'increasing';
+                    idxSex = heatRate;
+                case 2 %cooling
+                    g_name = 'decreasing';
+                    idxSex = coolRate;
+                case 3 %holding
+                    g_name = 'holding';
+                    idxSex = holdRate;
+            end
+            % Divided by heating / cooling
+            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
+            grouped(i).ecent.(g_name)(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg 
+            grouped(i).ecent.(g_name)(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err  
+        end
+        % Clustered by temp (regardless of heating/cooling)
+        loc = tempIdx==temp; %temp align only
+        grouped(i).ecent.temp_all(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg 
+        grouped(i).ecent.temp_all(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
+    end
+    grouped(i).ecent.temps = temps;
+end
+
+plot_err = false;
+equalLim = true;
+LW = 1.5;
+r = 1;
+c = 2;
+nMax = num.exp;
+
+% FIGURE:
+fig = getfig('',true); 
+% AVG
+subplot(r,c,1)
+hold on
+for i = 1:nMax
+    kolor = grouped(i).color;
+    x = grouped(i).ecent.temps;
+    y = grouped(i).ecent.temp_all(:,1);
+    y_err = grouped(i).ecent.temp_all(:,2);
+    loc = isnan(y)|isnan(y_err);
+    x(loc) = [];
+    y(loc) = [];
+    y_err(loc) = [];
+
+    plot(x,y,'color',kolor,'linewidth',LW+1)
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+end
+xlabel('Temperature (\circC)')
+ylabel('eccentricity (mm)')
+% SEP HEAT / COOL
+subplot(r,c,2)
+hold on
+for i = 1:nMax
+    kolor = grouped(i).color;   
+    for type = 1:2 %increasing | decreasing 
+        switch type
+            case 1
+                section_type = 'increasing';
+                l_style = '-';
+            case 2
+                section_type = 'decreasing';
+                l_style = '--';
+        end
+        x = grouped(i).ecent.temps;
+        y = grouped(i).ecent.(section_type)(:,1);
+        y_err = grouped(i).ecent.(section_type)(:,2);
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+        if plot_err && ~strcmpi(fig_type,'-pdf')
+            fill_data = error_fill(x, y, y_err);
+            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+            set(h, 'facealpha', 0.2)
+        elseif plot_err && strcmpi(fig_type,'-pdf')
+                plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
+                plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
+        end
+        plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
+    end
+end
+xlabel('Temperature (\circC)')
+ylabel('eccentricity (mm)')
+    
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c]);
+if equalLim
+    fig = matchAxis(fig,true);
+else
+    subplot(r,c,1)
+    ylim([16 30])
+    subplot(r,c,2)
+    ylim([16 30])
+end
+% 
+
+% ylim(num_temp_lim)
+
+
+% save figure
+save_figure(fig,[saveDir  'Eccentricity by temp'],fig_type);
+
 %% FIGURE: 3D temperature modulation of behavior
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd);
@@ -3189,11 +3249,7 @@ for i = 1:num.exp
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
     plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
     %decreasing 
     x = grouped(i).decreasing.temps;
@@ -3202,11 +3258,7 @@ for i = 1:num.exp
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
     plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
 
     % Names and Colors of included data
@@ -3356,11 +3408,7 @@ for i = 1:nMax
     y_err(loc) = [];
 
     plot(x,y,'color',kolor,'linewidth',LW+1)
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.2)
-    end
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
     dataString{i} = grouped(i).name;
     xmax = autoCat(xmax,x(end));
 end
@@ -3381,11 +3429,7 @@ for i = 1:nMax
     y_err = grouped(i).increasing.err;
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
-%     if plot_err
-%         fill_data = error_fill(x, y, y_err);
-%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%         set(h, 'facealpha', 0.2)
-%     end
+    % plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
     plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
     %decreasing 
     y = grouped(i).decreasing.avg;
@@ -3394,11 +3438,7 @@ for i = 1:nMax
     loc = isnan(y) | isnan(y_err);% remove nans 
     y(loc) = []; x(loc) = []; y_err(loc) = [];
 
-%     if plot_err
-%         fill_data = error_fill(x, y, y_err);
-%         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-%         set(h, 'facealpha', 0.2)
-%     end
+    % plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
     plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
 
     % Names and Colors of included data
@@ -3571,141 +3611,6 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
 
  
-
-%% FIGURES: eccentricity across time
-clearvars('-except',initial_vars{:})
-
-% Pull data together
-for i = 1:num.exp
-    ecent = [];
-    for trial = 1:num.trial(i)
-        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
-        ecent = autoCat(ecent,y,false);
-    end
-    grouped(i).ecent.all = ecent;
-end
-
-% Cluster the sleeping flies by temperature
-for i = 1:num.exp  
-    temps = unique(data(i).G(1).TR.temps);
-    rateIdx = data(i).G(1).TR.rateIdx;
-    tempIdx = data(i).G(1).TR.tempIdx;
-    % find rate index
-    heatRate = find(data(i).G(1).TR.rates>0);
-    coolRate = find(data(i).G(1).TR.rates<0);
-    try 
-        holdRate = find(data(i).G(1).TR.rates==0);
-        ntypes = 3;
-    catch
-        ntypes = 2;
-    end
-    for temp = 1:length(temps)
-        for type = 1:ntypes
-            switch type
-                case 1 %heating
-                    g_name = 'increasing';
-                    idxSex = heatRate;
-                case 2 %cooling
-                    g_name = 'decreasing';
-                    idxSex = coolRate;
-                case 3 %holding
-                    g_name = 'holding';
-                    idxSex = holdRate;
-            end
-            % Divided by heating / cooling
-            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            grouped(i).ecent.(g_name)(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg 
-            grouped(i).ecent.(g_name)(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err  
-        end
-        % Clustered by temp (regardless of heating/cooling)
-        loc = tempIdx==temp; %temp align only
-        grouped(i).ecent.temp_all(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg 
-        grouped(i).ecent.temp_all(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
-    end
-    grouped(i).ecent.temps = temps;
-end
-
-plot_err = false;
-equalLim = true;
-LW = 1.5;
-r = 1;
-c = 2;
-nMax = num.exp;
-
-% FIGURE:
-fig = getfig('',true); 
-% AVG
-subplot(r,c,1)
-hold on
-for i = 1:nMax
-    kolor = grouped(i).color;
-    x = grouped(i).ecent.temps;
-    y = grouped(i).ecent.temp_all(:,1);
-    y_err = grouped(i).ecent.temp_all(:,2);
-    loc = isnan(y)|isnan(y_err);
-    x(loc) = [];
-    y(loc) = [];
-    y_err(loc) = [];
-
-    plot(x,y,'color',kolor,'linewidth',LW+1)
-    if plot_err
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', 0.35)
-    end
-end
-xlabel('Temperature (\circC)')
-ylabel('eccentricity (mm)')
-% SEP HEAT / COOL
-subplot(r,c,2)
-hold on
-for i = 1:nMax
-    kolor = grouped(i).color;   
-    for type = 1:2 %increasing | decreasing 
-        switch type
-            case 1
-                section_type = 'increasing';
-                l_style = '-';
-            case 2
-                section_type = 'decreasing';
-                l_style = '--';
-        end
-        x = grouped(i).ecent.temps;
-        y = grouped(i).ecent.(section_type)(:,1);
-        y_err = grouped(i).ecent.(section_type)(:,2);
-        loc = isnan(y)|isnan(y_err);
-        x(loc) = [];
-        y(loc) = [];
-        y_err(loc) = [];
-        if plot_err
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        end
-        plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
-    end
-end
-xlabel('Temperature (\circC)')
-ylabel('eccentricity (mm)')
-    
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c]);
-if equalLim
-    fig = matchAxis(fig,true);
-else
-    subplot(r,c,1)
-    ylim([16 30])
-    subplot(r,c,2)
-    ylim([16 30])
-end
-% 
-
-% ylim(num_temp_lim)
-
-
-% save figure
-save_figure(fig,[saveDir  'Eccentricity by temp'],fig_type);
-
 
 
 

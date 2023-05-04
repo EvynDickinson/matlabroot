@@ -1,0 +1,29 @@
+
+function h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA)
+% h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+% h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type);
+%
+% ==== INPUTS ====
+% plot_err = true | false
+% x = vector
+% y = vector
+% y_err = vector
+% kolor = color of line
+% fig_type = '-pdf' or '-png'
+% FA = 0.2 (default shading alpha)
+%
+% ES Dickinson, Yale University 2023
+
+% Defaults
+if nargin <= 6
+    FA = 0.2; % FaceAlpha
+end
+
+if plot_err && ~strcmpi(fig_type,'-pdf')
+        fill_data = error_fill(x, y, y_err);
+        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+        set(h, 'facealpha', FA)
+    elseif plot_err && strcmpi(fig_type,'-pdf')
+            plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
+            plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
+end
