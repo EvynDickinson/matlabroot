@@ -79,8 +79,8 @@ end
 %% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
-fig_type = '-pdf';
-blkbgd = false;
+fig_type = '-png';
+blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 f2m = 3*60; %fps*min = number of frames in a minute
@@ -185,6 +185,9 @@ switch expGroup
     case 'Berlin WT mechanical manipulation linear recovery ramp caviar'
         expOrder = [1,2]; %lowest to highest
         colors = {'dodgerblue','peachpuff'};
+    case 'W1118 genetic background comp'
+        expOrder = [1,2,3]; %lowest to highest
+        colors = {'deeppink','dodgerblue','greenyellow'};
 end
 
 if ~exist('colors','var')
@@ -394,9 +397,9 @@ for i = 1:nMax
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-
-        plot(x,y,'color',kolor,'linewidth',LW+1)
         plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        
         dataString{i} = grouped(i).name;
 end
 
@@ -553,7 +556,7 @@ for i = 1:num.exp
     dataString{i} = grouped(i).name;
 end
 subplot(r,c,1) 
-ylabel('proxiity to food (mm)')
+ylabel('proximity to food (mm)')
 xlabel('temp (\circC)')
 set(gca, 'ydir', 'reverse')
 
@@ -586,7 +589,7 @@ for ii = 1:num.exp
 end
 xlim([0.5,num.exp+0.5])
 h_line(0,foreColor,':',1)
-ylabel('cumulatice difference (mm)')
+ylabel('cumulative difference (mm)')
 
 formatFig(fig,blkbgd,[r,c]);
 set(gca,'XTick',[],'xcolor',backColor)
