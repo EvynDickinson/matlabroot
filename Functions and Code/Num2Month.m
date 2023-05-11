@@ -6,6 +6,8 @@
 
 function Folder_date = Num2Month(vid_folder)
 
+% vid_folder = char(datetime('today'));
+
 Month_matrix = {'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'};
 
 Day = num2str(str2double(vid_folder(1:2)));

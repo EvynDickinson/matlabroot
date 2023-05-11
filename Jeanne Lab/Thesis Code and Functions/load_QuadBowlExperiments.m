@@ -10,20 +10,8 @@ function [excelfile, Excel, xlFile] = load_QuadBowlExperiments
 % ES Dickinson, University of Washington, Dec 2018
 % updated Yale Universitty, Aug 2021
 
-
-%get base folder pathway
-switch getenv('COMPUTERNAME')
-    case 'DENALI'
-        baseFolder = 'G:\My Drive\Jeanne Lab\';
-    case 'ACADIA'
-        baseFolder = 'G:\My Drive\Jeanne Lab\';
-    case 'TOGIAK'
-        baseFolder = 'G:\My Drive\Jeanne Lab\';
-    case 'EVYNPC'
-        baseFolder = 'G:\My Drive\Jeanne Lab\';
-    case ''
-        baseFolder = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/';
-end
+basePath = getCloudPath;
+baseFolder = basePath(1:end-5); % path to just the '/jeanne lab/' folder
 
 % [baseName, folder] = uigetfile('*xlsx', 'Select the Fly Summary 2 file');
 % xlFile = fullfile(folder, baseName);
@@ -43,6 +31,7 @@ Excel.arena = find(strcmpi('Arena',Excel.headers) == 1);
 Excel.processed = find(strcmpi('Processed',Excel.headers) == 1);
 Excel.structure = find(strcmpi('Structure', Excel.headers)==1);
 Excel.structurenum = find(strcmpi('Exp Num',Excel.headers) == 1);
+Excel.backUp = find(strcmpi('Backed Up',Excel.headers) == 1);
 
 Excel.genotype = find(strcmpi('Genotype',Excel.headers) == 1);
 Excel.numflies = find(strcmpi('Num Flies',Excel.headers) == 1);
@@ -52,9 +41,8 @@ Excel.well_3 = find(strcmpi('Well 3', Excel.headers)==1);
 Excel.well_4 = find(strcmpi('Well 4', Excel.headers)==1);
 Excel.sex = find(strcmpi('Sex', Excel.headers)==1);
 Excel.starved_hours = find(strcmpi('Starved Hours', Excel.headers)==1);
-% mostly unneccesary:
-Excel.tracked = find(strcmpi('Tracked', Excel.headers)==1);
 
+Excel.tracked = find(strcmpi('Tracked', Excel.headers)==1);
 
 end
 

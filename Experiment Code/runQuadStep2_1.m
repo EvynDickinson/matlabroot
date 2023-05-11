@@ -18,7 +18,11 @@ figDir = [baseFolder folder '/'];
 for arena = 1:nArenas
     arenaData(arena).figDir = [figDir arenaData(arena).name '/'];
 end
-tPoints = getTempTurnPoints(expData.parameters.protocol);
+try tPoints = getTempTurnPoints(expData.parameters.protocol);
+catch
+    warndlg('No temperature protocol data available')
+    return
+end
 threshHigh = tPoints.threshHigh;
 threshLow = tPoints.threshLow;
 binSpace = 1; %temp degree bin widths
@@ -639,8 +643,13 @@ disp('next')
 %% FIGURE: Temperature dependence of distance to food
 LS = {'--','-.','-'}; %cooling|stationary|heating
 for arena = 1:nArenas
-    if arenaData(arena).foodwell==0
+    if arenaData(arena).foodwell==0 
         continue
+    end
+    % Skip if no temp change regions matter
+    tPoints = getTempTurnPoints(expData.parameters.protocol); 
+    if tPoints.nDown==0 || tPoints.nUp==0
+        continue;
     end
     title_str = [folder ' ' expName ' ' arenaData(arena).genotype];
     fig_file = [arenaData(arena).figDir expName ' fly count hysteresis'];

@@ -2,7 +2,7 @@
 
 %% Move videos from computer drive to google drive
 clear
-%raw data folder: 
+% raw data folder: 
 h = warndlg('Turn off IR lights on rig');
 uiwait(h)
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');

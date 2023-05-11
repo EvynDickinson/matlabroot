@@ -150,38 +150,9 @@ save_figure(fig,[rootdir 'Figures/Genotype locations with evyn locations'],'-png
 save_figure(fig,[rootdir 'Figures/Genotype locations'],'-png');
 
 %% 
-rand_sel = shuffle_data(linspace(-0.15,0.15,length(stocks)));
-
-fig = figure; set(fig, 'pos',[-843 481 292 584]); hold on
-% x = shuffle_data(linspace(1,2,length(stocks)));
-for i = 1:length(stocks)
-    % if i<=curr_stocks
-    %     x = 1;
-    % else
-    %     x = 2;
-    % end
-    x = 1;
-    scatter(x+rand_sel(i), stocks(i).coor(1),50,stocks(i).color,'filled')
-end
-xlim([0.5,1.5])
-
-% % for fun
-% scatter(3*ones([1,length(evyn)]),evyn(:,1),50,Color('gold'),'filled')
-% xlim([0.5,3.5])
-
-ylabel('Latitude (\circ)')
-formatFig(fig,true);
-set(gca,'xcolor', 'k')
-
-save_figure(fig,[rootdir 'Figures/Genotype latitudes overlay'],'-png');
-
-
-
-
-%% 
 rand_sel = shuffle_data(linspace(-0.2,0.2,length(stocks)));
 
-fig = figure; set(fig, 'pos',[-843 481 775 292]); hold on
+fig = figure; set(fig, 'pos',[-843 481 292 584]); hold on
 % x = shuffle_data(linspace(1,2,length(stocks)));
 for i = 1:length(stocks)
     if i<=curr_stocks
@@ -189,7 +160,7 @@ for i = 1:length(stocks)
     else
         x = 2;
     end
-    scatter(stocks(i).coor(2), x+rand_sel(i), 50, stocks(i).color, 'filled')
+    scatter(x, stocks(i).coor(1),50,stocks(i).color,'filled')
 end
 xlim([0.5,2.5])
 
@@ -197,11 +168,21 @@ xlim([0.5,2.5])
 % scatter(3*ones([1,length(evyn)]),evyn(:,1),50,Color('gold'),'filled')
 % xlim([0.5,3.5])
 
-xlabel('Longitude (\circ)')
-formatFig(fig,true);
-set(gca,'ycolor', 'k')
+% % serious to consider
+% idx = curr_stocks+[1,4,5,6,11];
+% for i = idx
+%     scatter(2, stocks(i).coor(1), 75, 'w')
+% end
 
-save_figure(fig,[rootdir 'Figures/Genotype Longitude'],'-png');
+ylabel('Latitude (\circ)')
+formatFig(fig,true);
+set(gca,'xcolor', 'k')
+save_figure(fig,[rootdir 'Figures/Genotype latitudes'],'-png');
+
+
+
+
+
 
 
 

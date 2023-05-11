@@ -51,7 +51,6 @@ switch TempProtocolString
         tempPoints.threshLow = 16.5;
         tempPoints.threshHigh = 25.5;   
    
-   
     % ========================================
     case {'linear_ramp_with_recovery_23-15','linear_ramp_with_recovery_23-15 '}
         tempPoints.hold = [1058 10917;...
@@ -125,6 +124,16 @@ switch TempProtocolString
         tempPoints.rates = [-0.125, 0.125]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
         tempPoints.threshLow = 12.5;
         tempPoints.threshHigh = 21.5;  
+     % =======================================
+    case 'Hold25C'
+        tempPoints.hold = [10, 64275];
+         tempPoints.down = [];
+         tempPoints.up = [];
+         tempPoints.nRates = 1; 
+        tempPoints.rates = 0;
+        tempPoints.threshLow = 24.5;
+        tempPoints.threshHigh = 25.5;  
+
     % =======================================                   
     case 'eaton_cooling_warming_ramp'
         tempPoints.down = [5700,34799];
