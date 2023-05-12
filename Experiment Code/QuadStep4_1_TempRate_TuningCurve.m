@@ -136,6 +136,9 @@ switch expGroup
     case 'Berlin linear recovery ramp food vs no food'
         expOrder = [2,1];
         colors = {'black','dodgerblue'}; %
+    case 'Berlin LRR 25-17 food vs no food'
+        expOrder = [1,2];
+        colors = {'white', 'gold'};
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
@@ -3614,7 +3617,7 @@ set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
 
  
-
+%% 
 
 
 
