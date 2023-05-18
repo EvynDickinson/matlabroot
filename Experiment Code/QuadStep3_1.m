@@ -440,7 +440,7 @@ end
 % FIGURE: plot the avg. temp vs. distance data
 kolor = Color('Teal');
 
-fig = figure; set(fig,'pos', [67 82 675 692]);
+fig = getfig('',1,[675 692]);
 hold on
 x = t_roi(1:end-1);
 y = food.avg(1:end-1); % y = y./pix2mm;
@@ -748,7 +748,7 @@ t_roi = G(trial).TR.temps;
 title_str = [ExpGroup ' (n = ' num2str(ntrials) ')'];
 
 % ========= HeatMap of dT/dt vs T =============
-fig = figure; set(fig, 'pos', [560 127 983 417]);
+fig = getfig('',1,[983 417]);
     hold on
     imAlpha=ones(size(heatMapData));
     imAlpha(isnan(heatMapData))=0;
@@ -819,8 +819,7 @@ save_figure(fig, [figDir 'Temp_rate ' dataType ' heatmap'], '-png');
 % 
 % ========== Line plots of each rate comparison ==============
 LS = {'--','-.','-'}; %cooling|stationary|heating
-
-fig = figure;
+fig = getfig('',1,[560 420]);
 hold on
 idx = 0; str = [];
 for rr = 1:nRates
