@@ -6,7 +6,7 @@ clear; clc
 loc = cellfun(@isnan,excelfile(2:end,Excel.processed));
 loc = ~loc;
 rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.backUp]);
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID,  Excel.backUp]);
 loc1 = cellfun(@isnan,eligible_files(:,4));
 c = cellfun(@string,eligible_files);
 c(loc1,4) = ' ';
@@ -43,4 +43,4 @@ for ii = 1:length(fileIdx)
 disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
-
+disp('Fullly uploaded');

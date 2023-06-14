@@ -21,11 +21,11 @@ finishedFiles = [];
 baseFolder = getCloudPath;
 for ii = 1:length(fileIdx)
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
-        % % COPY DATA TO SVALBARD
-        % from_folder = [baseFolder List.date{ii} '\'];
-        % to_folder = ['S:\Evyn\DATA\' List.date{ii} '\'];
-        % disp(['Backing up  ' List.date{ii}])
-        % copyfile(from_folder, to_folder) % Move folders to google drive:
+        % COPY DATA TO SVALBARD
+        from_folder = [baseFolder List.date{ii} '\'];
+        to_folder = ['S:\Evyn\DATA\' List.date{ii} '\'];
+        disp(['Backing up  ' List.date{ii}])
+        copyfile(from_folder, to_folder) % Move folders to google drive:
     end
     finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
     % Write finished files to the excel master spreadsheet
@@ -43,4 +43,4 @@ for ii = 1:length(fileIdx)
 disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
-
+p

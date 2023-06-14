@@ -1335,7 +1335,7 @@ save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
-%% Save Processed Data (if wanted)
+%% Save Processed Data 
 
 clearvars('-except',vars{:})
 

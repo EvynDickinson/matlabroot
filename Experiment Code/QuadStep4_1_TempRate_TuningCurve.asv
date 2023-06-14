@@ -3678,7 +3678,7 @@ dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true); 
-for i = 3:-1:2
+for i = 2:3
     x = grouped(i).time;
     kolor = grouped(i).color;
 
@@ -3691,6 +3691,7 @@ for i = 3:-1:2
     subplot(r,c,sb(2).idx); hold on
         for trial = 1:num.trial(i)
             y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
+            % y = smooth(grouped(i).dist.avg,'moving',sSpan);
             plot(x,y,'LineWidth',LW,'Color',kolor)
             if ~autoLim
                 ylim(dist_lim)
@@ -3701,11 +3702,18 @@ for i = 3:-1:2
     subplot(r,c,sb(3).idx); hold on
         for trial = 1:num.trial(i)
             x = grouped(i).dist.tempList(trial,:);
-            y = grouped(i).dist.tempBinned(trial,:);
-            loc = isnan(y);
-            x(loc) = [];  y(loc) = [];
-            plot(x,y,'color',kolor,'linewidth',LW+1)
-        end
+            y = 
+
+            x = grouped(i).dist.distavgbytemp(:,1);
+        y = grouped(i).dist.distavgbytemp(:,2);
+        y_err = grouped(i).dist.distavgbytemp_err(:,2);
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
         dataString{i} = grouped(i).name;
 end
 
@@ -3729,11 +3737,11 @@ if ~autoLim
 end
 h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
-
+% 
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);
+save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
 
 
 
