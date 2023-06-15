@@ -6,7 +6,7 @@
 % ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
 % *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
-%% Select data groups to compare
+%% Select data groups to  compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
 
@@ -646,11 +646,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(mlt(:),id(:),'off');
 alpha = 0.05; %significance level
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
@@ -1585,11 +1581,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(datastats.all,datastats.id,'off');
 alpha = 0.05; %significance level
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
@@ -1726,12 +1718,7 @@ for ll = 1:2
         % % determine which groups differ from each other
         [~,~,stats] = anova1(datastats.all,datastats.id,'off'); close all
         alpha = 0.05; %significance level
-        if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-            [c,~,~,~] = multcompare(stats,alpha,'off');
-        else
-            [c,~,~,~] = multcompare(stats,[],'off');
-        end
-        
+        [c,~,~,~] = multcompare(stats,alpha,'off');
         % bonferonni multiple comparisons correction
         m = size(c,1); %number of hypotheses
         sigThreshold = alpha/m;
@@ -2733,11 +2720,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(datastats.all,datastats.id,'off');
 alpha = 0.05; %significance level
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
@@ -2912,11 +2895,7 @@ x(loc) = [];
 
 % determine which groups differ from each other
 [~,~,data_stats] = anova1(x,stats_id,'off');
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(data_stats,"Display",'off');
-else
-    [c,~,~,~] = multcompare(data_stats,[],'off');
-end
+[c,~,~,~] = multcompare(data_stats,"Display",'off');
 
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
@@ -3368,11 +3347,7 @@ end
 % STATS:
 % determine which groups differ from each other
 [~,~,stats] = anova1(mlt(:),id(:),'off');
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
@@ -3523,7 +3498,7 @@ hold on
  for ii = 1:num.exp
    i = find(contains(expNames,lat_list(ii)));
    kolor = grouped(i).color;
-   lat = latitudes(ii);
+   lat = abs(latitudes(ii));
    xlow = lat-2;
    xhigh = lat+2;
 %    x = shuffle_data(linspace(lat-buff,lat+buff,num.trial(i)));
@@ -3534,7 +3509,7 @@ hold on
 %    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
 %    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
  end
- xlim([-30,70])       
+ xlim([-5,65])       
  ylabel('temperature-distance correlation')
  h_line(0,foreColor,':',1)    
  formatFig(fig,blkbgd);    
