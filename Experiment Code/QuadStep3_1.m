@@ -311,7 +311,7 @@ end
 CList = Color('deepskyblue', 'magenta', nfoods); %steelblue
 CList(nfoods+1,:) = Color('White');
 
-fig = figure; set(fig,'pos', [67 82 675 692]);
+fig = getfig('',1,[675 692]);
 hold on
 for ii = 1:nfoods+1
     kolor = CList(ii,:);

@@ -155,6 +155,12 @@ switch expGroup
     case 'Berlin S LRR 23-15 caviar'
         expOrder = [1,3,2];
         colors = {'white','gold', 'DarkOrchid'};
+    case 'Berlin S LRR 25-17 caviar'
+        expOrder = [1,3,2]; % combined, old, new
+        colors = {'white','gold', 'DarkOrchid'};
+     case 'Berlin S LRR 27-19 caviar'
+        expOrder = [1,3,2]; % combined, old, new
+        colors = {'white','gold', 'DarkOrchid'};
     % ---- SEX COMPARISONS ----
     case 'Zimbabwe sex comparison'
         expOrder = 1:num.exp;
@@ -190,6 +196,9 @@ switch expGroup
     case 'Berlin temp shifted comp linear recovery ramp caviar'
         expOrder = [3,1,2]; %lowest to highest
         colors = {'dodgerblue','gold','red'};
+    case 'Berlin S LRR temp shift'
+        expOrder = [1,2,3]; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
     case 'Berlin LRR tempshift no food'
         expOrder = [3 1 2];
         colors = {'dodgerblue','gold','red'};
@@ -202,6 +211,9 @@ switch expGroup
     case 'W1118 genetic background comp'
         expOrder = [1,2,3]; %lowest to highest
         colors = {'deeppink','dodgerblue','greenyellow'};
+    case 'R60H12-gal4 S LRR 25-17 food vs no food'
+        expOrder = 1:2;
+        colors = {'white', 'dodgerblue'};
 end
 
 if ~exist('colors','var')
