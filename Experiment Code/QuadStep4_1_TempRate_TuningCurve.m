@@ -6,7 +6,7 @@
 % ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
 % *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
-%% Select data groups to  compare
+%% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
 
@@ -152,6 +152,12 @@ switch expGroup
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
         colors = {'gold','DarkOrchid'};
+    case 'Berlin S LRR 23-15 food raised comparison'
+        expOrder = [1,2];
+        colors = {'gold','Dodgerblue'};
+    case 'Berlin S LRR 25-17 food raised comparison'
+        expOrder = [1,2];
+        colors = {'gold','Dodgerblue'};
     case 'Berlin S LRR 23-15 caviar'
         expOrder = [1,3,2];
         colors = {'white','gold', 'DarkOrchid'};
@@ -214,6 +220,9 @@ switch expGroup
     case 'R60H12-gal4 S LRR 25-17 food vs no food'
         expOrder = 1:2;
         colors = {'white', 'dodgerblue'};
+    case 'Berlin vs UAS-Chrimson-TM2 S LRR 25-17 caviar'
+        expOrder  = 1:2;
+        colors  = {'dodgerblue', 'yellow'};
 end
 
 if ~exist('colors','var')
@@ -1982,7 +1991,8 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation'],fig_type);  
 
-%% FIGURE: Temp-distance correlation ONLY during ramps
+%% FIGURE: Temp-distance
+% correlation ONLY during ramps
 
 clearvars('-except',initial_vars{:})
 
@@ -3665,7 +3675,7 @@ dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true); 
-for i = 3:-1:2
+for i = num.exp:-1:1
     x = grouped(i).time;
     kolor = grouped(i).color;
 

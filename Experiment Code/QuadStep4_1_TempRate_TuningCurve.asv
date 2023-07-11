@@ -152,8 +152,19 @@ switch expGroup
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
         colors = {'gold','DarkOrchid'};
+    case ' case 'Berlin LRR 25-17 different food comp'
+        expOrder = [1,2];
+        colors = {'gold','DarkOrchid'};'
+        expOrder = [1,2];
+        colors = {'gold','Dodgerblue'};
     case 'Berlin S LRR 23-15 caviar'
         expOrder = [1,3,2];
+        colors = {'white','gold', 'DarkOrchid'};
+    case 'Berlin S LRR 25-17 caviar'
+        expOrder = [1,3,2]; % combined, old, new
+        colors = {'white','gold', 'DarkOrchid'};
+     case 'Berlin S LRR 27-19 caviar'
+        expOrder = [1,3,2]; % combined, old, new
         colors = {'white','gold', 'DarkOrchid'};
     % ---- SEX COMPARISONS ----
     case 'Zimbabwe sex comparison'
@@ -190,6 +201,9 @@ switch expGroup
     case 'Berlin temp shifted comp linear recovery ramp caviar'
         expOrder = [3,1,2]; %lowest to highest
         colors = {'dodgerblue','gold','red'};
+    case 'Berlin S LRR temp shift'
+        expOrder = [1,2,3]; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
     case 'Berlin LRR tempshift no food'
         expOrder = [3 1 2];
         colors = {'dodgerblue','gold','red'};
@@ -202,6 +216,12 @@ switch expGroup
     case 'W1118 genetic background comp'
         expOrder = [1,2,3]; %lowest to highest
         colors = {'deeppink','dodgerblue','greenyellow'};
+    case 'R60H12-gal4 S LRR 25-17 food vs no food'
+        expOrder = 1:2;
+        colors = {'white', 'dodgerblue'};
+    case 'Berlin vs UAS-Chrimson-TM2 S LRR 25-17 caviar'
+        expOrder  = 1:2;
+        colors  = {'dodgerblue', 'yellow'};
 end
 
 if ~exist('colors','var')
@@ -646,11 +666,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(mlt(:),id(:),'off');
 alpha = 0.05; %significance level
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
@@ -1585,11 +1601,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(datastats.all,datastats.id,'off');
 alpha = 0.05; %significance level
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
@@ -1726,12 +1738,7 @@ for ll = 1:2
         % % determine which groups differ from each other
         [~,~,stats] = anova1(datastats.all,datastats.id,'off'); close all
         alpha = 0.05; %significance level
-        if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-            [c,~,~,~] = multcompare(stats,alpha,'off');
-        else
-            [c,~,~,~] = multcompare(stats,[],'off');
-        end
-        
+        [c,~,~,~] = multcompare(stats,alpha,'off');
         % bonferonni multiple comparisons correction
         m = size(c,1); %number of hypotheses
         sigThreshold = alpha/m;
@@ -2733,11 +2740,7 @@ end
 % determine which groups differ from each other
 [~,~,stats] = anova1(datastats.all,datastats.id,'off');
 alpha = 0.05; %significance level
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
@@ -2912,11 +2915,7 @@ x(loc) = [];
 
 % determine which groups differ from each other
 [~,~,data_stats] = anova1(x,stats_id,'off');
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(data_stats,"Display",'off');
-else
-    [c,~,~,~] = multcompare(data_stats,[],'off');
-end
+[c,~,~,~] = multcompare(data_stats,"Display",'off');
 
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
@@ -3368,11 +3367,7 @@ end
 % STATS:
 % determine which groups differ from each other
 [~,~,stats] = anova1(mlt(:),id(:),'off');
-if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-    [c,~,~,~] = multcompare(stats,alpha,'off');
-else
-    [c,~,~,~] = multcompare(stats,[],'off');
-end
+[c,~,~,~] = multcompare(stats,alpha,'off');
 % bonferonni multiple comparisons correction
 m = size(c,1); %number of hypotheses
 sigThreshold = alpha/m;
@@ -3523,7 +3518,7 @@ hold on
  for ii = 1:num.exp
    i = find(contains(expNames,lat_list(ii)));
    kolor = grouped(i).color;
-   lat = abs(latitudes(ii);
+   lat = abs(latitudes(ii));
    xlow = lat-2;
    xhigh = lat+2;
 %    x = shuffle_data(linspace(lat-buff,lat+buff,num.trial(i)));
@@ -3534,7 +3529,7 @@ hold on
 %    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
 %    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
  end
- xlim([-30,70])       
+ xlim([-5,65])       
  ylabel('temperature-distance correlation')
  h_line(0,foreColor,':',1)    
  formatFig(fig,blkbgd);    
