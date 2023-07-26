@@ -3,9 +3,9 @@
 clear
 close all
 
-% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat'); %arena C, slow, ramp 2?
 
-load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat');
+% load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat'); %ramp 2, Fast, Arena B
 
 
 T = data.T;
@@ -135,20 +135,37 @@ close(v) %close the movie writer object
 close(fig) %close the figure
 
 
+%% Make figure of the whole data set and then the selected time frames
+
+r = 3; c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:3;
+
+fig = getfig('',1,[866 796]);
+subplot(r,c,sb(1).idx)
+    plot(T.time,T.temperature,'color','w', 'LineWidth',2)
+    ylabel('temp (\circC)')
+subplot(r,c,sb(2).idx)
+
+    plot(T.time,T.dist2wells(:,1),'color','w', 'LineWidth',1)
+    % plot(T.time,T.dist2food,'color','w', 'LineWidth',1)
+
+    ylabel('proximity to food (mm)')
+    xlabel('time (min)')
+    set(gca, 'ydir', 'reverse')
+    % h_line(18.1,'grey',':',1) %36.2
+formatFig(fig,true,[r,c], sb);
+
+% plot the video range
+subplot(r,c,sb(1).idx); hold on
+y = rangeLine(fig,0);
+timeROI = [T.time(startVid.loc), T.time(endVid.loc)];
+plot(timeROI, [y,y], 'color','y')
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+% Save figure
+save_figure(fig, [dataDir, expData.parameters.date ' ' expName ' distance during video'],'-png')
 
 
 

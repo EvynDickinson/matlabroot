@@ -164,7 +164,7 @@ switch expGroup
     case 'Berlin S LRR 25-17 caviar'
         expOrder = [1,3,2]; % combined, old, new
         colors = {'white','gold', 'DarkOrchid'};
-     case 'Berlin S LRR 27-19 caviar'
+    case 'Berlin S LRR 27-19 caviar'
         expOrder = [1,3,2]; % combined, old, new
         colors = {'white','gold', 'DarkOrchid'};
     % ---- SEX COMPARISONS ----
@@ -227,7 +227,7 @@ end
 
 if ~exist('colors','var')
     expOrder = 1:num.exp;
-    colors = {'BlueViolet','white','turquoise','Gold','pink','Orange'}; 
+    colors = {'DarkOrchid','white','turquoise','Gold','pink','Orange'}; 
 end
 % Display the experiment 'order'
 disp('Experiment order:')
@@ -432,7 +432,7 @@ for i = 1:nMax
         x(loc) = [];
         y(loc) = [];
         y_err(loc) = [];
-        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
         plot(x,y,'color',kolor,'linewidth',LW+1)
         
         dataString{i} = grouped(i).name;

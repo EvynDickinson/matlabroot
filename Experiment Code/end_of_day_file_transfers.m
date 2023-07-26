@@ -1,24 +1,24 @@
 
 
 %% Move videos from computer drive to google drive
-clear
-% raw data folder: 
+clear  
+%raw data folder: 
 h = warndlg('Turn off IR lights on rig');
+
 uiwait(h)
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
-start_dir = 'C:\Users\jeannelab\Documents\Evyn\DATA\';
+start_dir = 'F:\Evyn\DATA\'; %'C:\Users\jeannelab\Documents\Evyn\DATA\';
 
 %get base folder pathway  
 switch getenv('COMPUTERNAME')
     case 'DENALI'
         baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
     case 'TOGIAK'
-        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
-    case 'ACADIA'
-        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';
+        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';  
 end
 
 %select folder date   
+%TODO update this to iterate through multiple folders if need be
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
     folderNames{i-2} = list_dirs(i).name;
@@ -53,6 +53,17 @@ if ~isfolder(videosDirD); mkdir(videosDirD); end
 % Copy tracking models over to new folder: 
 trackingDir = [baseFolder 'Tracking'];
 copyfile(trackingDir, targetDir)
+
+% Add second & third batch processing folder
+batch2Dir = [targetDir '\Batch 2\'];
+if ~isfolder(batch2Dir); mkdir(batch2Dir); end
+copyfile(trackingDir, batch2Dir)
+
+% Add second & third batch processing folder
+batch3Dir = [targetDir '\Batch 3\'];
+if ~isfolder(batch3Dir); mkdir(batch3Dir); end
+copyfile(trackingDir, batch3Dir)
+
 
 fprintf('done')
 

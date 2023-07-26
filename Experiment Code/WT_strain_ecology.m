@@ -161,7 +161,7 @@ for i = 1:length(stocks)
     %     x = 2;
     % end
     x = 1;
-    scatter(x+rand_sel(i), stocks(i).coor(1),50,stocks(i).color,'filled')
+    scatter(x+rand_sel(i), abs(stocks(i).coor(1)),50,stocks(i).color,'filled')
 end
 xlim([0.5,1.5])
 
@@ -169,11 +169,11 @@ xlim([0.5,1.5])
 % scatter(3*ones([1,length(evyn)]),evyn(:,1),50,Color('gold'),'filled')
 % xlim([0.5,3.5])
 
-ylabel('Latitude (\circ)')
+ylabel('|Latitude (\circ)|')
 formatFig(fig,true);
 set(gca,'xcolor', 'k')
 
-save_figure(fig,[rootdir 'Figures/Genotype latitudes overlay'],'-png');
+save_figure(fig,[rootdir 'Figures/Genotype absolute latitudes overlay'],'-png');
 
 
 
