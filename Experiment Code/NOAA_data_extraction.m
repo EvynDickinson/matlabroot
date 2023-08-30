@@ -255,10 +255,13 @@ save_figure(fig,[rootdir 'Figures/Sample locations purple'],fig_type);
 %% FIGURE: temp rate PDFs for all NOAA stations
 
 % Plot the distribution functions overlaid
-fig = figure; hold on; %set(fig,'pos',[-655 564 442 662]); hold on
+
+
+% fig = figure; hold on; %set(fig,'pos',[-655 564 442 662]); hold on
+fig = getfig('', 1); hold on
     temp = data1(:,5:end)';
     for ii = size(temp,2):-1:1
-        plot(X, temp(:,ii),'color', CList(ii,:),'linewidth',0.5) %CList(ii,:) ; Color('grey')
+        plot(X, temp(:,ii),'color', Color('grey'),'linewidth',0.5) %CList(ii,:) ; Color('grey')
     end
     xlabel('\DeltaT (\circC/min)')
     ylabel('PDF')
@@ -270,7 +273,10 @@ fig = figure; hold on; %set(fig,'pos',[-655 564 442 662]); hold on
 %     v_line([-0.5,0.5],'orange',':',1)
 %     v_line([-0.25,0.25],'darkviolet',':',1)
 %     v_line([-0.1,0.1],'turquoise',':',1)
-% xlim([-0.35,0.35])
+
+xlim([-1,1])
+
+save_figure(fig,[rootdir 'Figures/All locations temp-rate zoomed in'],'-png'); % rate lines
 
 save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-pdf'); % rate lines
 
