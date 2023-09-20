@@ -2,6 +2,7 @@
 clear; close all; clc
 autoSave = true;
 essentialfigs = true;
+
 %% ---------------------Select Date & Experiment to Process ------------------------------
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
@@ -47,7 +48,7 @@ XLrow = find(strcmpi(excelfile(:,Excel.date), folder) & ...
 
 % Load relevant data files (.mat, .csv, .h5)
 warning off 
-expData = load([baseFolder folder '/' expName ' dataMat.mat']);
+expData = load([baseFolder folder '/' expName ' dataMat.mat']);/
 tempLog = readmatrix([baseFolder folder '/' expName '_RampLog']);
 nvids = expData.parameters.numVids;
 
@@ -278,9 +279,6 @@ for vid = 1:nvids
     vidFrame = [vidFrame; (1:nframes)'];
     % total frame count
     frame = [frame; (occupancy.frameROI(vid,1):occupancy.frameROI(vid,2))'];
-
-
-    diff(expData.tempLogStart(:,3))
     % temperature log
     logROI(1) = find(tempLog(:,1)==expData.tempLogStart(vid,3));
     logROI(2) = find(tempLog(:,1)==expData.tempLogEnd(vid,3));

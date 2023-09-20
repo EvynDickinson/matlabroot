@@ -1,0 +1,121 @@
+
+
+%% Pixel distance between wells in the new and old camera / lens setups:
+
+% open image and measure distance between points...
+clear
+
+% Select video
+path = uigetdir;
+vid_opt = dir([path '\*.avi']);
+vid_opt = {vid_opt(:).name};
+idx = listdlg('ListString', vid_opt,'ListSize', [250, 400]);
+video_path = [path '\' vid_opt{idx}];
+
+% Load frame 1
+movieInfo = VideoReader(video_path); 
+demoImg = rgb2gray(read(movieInfo,1));
+
+% Click the inside points of the top right image wells, repeat 3x for
+% 'accuracy'
+% Zoom in?
+[W12, W3, W6, W9] = deal([]);
+for i = 1:4
+    wellcenters = readPoints(demoImg,4); % get locations of the wells from the image
+    W12(i,:) = wellcenters(:,1)';
+    W3(i,:) = wellcenters(:,2)';
+    W6(i,:) = wellcenters(:,3)';
+    W9(i,:) = wellcenters(:,4)';
+end
+
+% Find the average pixel distance between the 4 wells
+Vertical_avg = sqrt((mean(W12(:,1))-mean(W6(:,1)))^2 + (mean(W12(:,2))-mean(W6(:,2)))^2);
+Horizontal_avg = sqrt((mean(W3(:,1))-mean(W9(:,1)))^2 + (mean(W3(:,2))-mean(W9(:,2)))^2);
+
+D = [];
+D(1) = sqrt((mean(W12(:,1))-mean(W3(:,1)))^2 + (mean(W12(:,2))-mean(W3(:,2)))^2);
+D(2) = sqrt((mean(W3(:,1))-mean(W6(:,1)))^2 + (mean(W3(:,2))-mean(W6(:,2)))^2);
+D(3) = sqrt((mean(W6(:,1))-mean(W9(:,1)))^2 + (mean(W6(:,2))-mean(W9(:,2)))^2);
+D(4) = sqrt((mean(W9(:,1))-mean(W12(:,1)))^2 + (mean(W9(:,2))-mean(W12(:,2)))^2);
+
+
+disp(vid_opt{idx})
+disp(['Mean inter-well distance: ' num2str(mean(D)) ' +/- ' num2str(std(D))  ' pixels'])
+disp('   ')
+
+% blue: 291.5144 2.6718
+% purp: 292.7555  2.2574
+% older: 290.4455 0.45493
+
+% Plot graph of the inter-well distance across setups for Jaime
+
+fig = getfig('',1,[422 680]); hold on
+kolor1 = Color('dodgerblue');
+errorbar(1, 291.5144, 2.6718,'Color', kolor1, 'linewidth', 1.5,'Marker','o', 'MarkerFaceColor',kolor1);
+kolor2 = Color('mediumpurple');
+errorbar(2, 292.7555,2.2574,'Color', kolor2, 'linewidth', 1.5,'Marker','o', 'MarkerFaceColor',kolor2);
+kolor3 = Color('white');
+errorbar(3, 290.4455,0.45493,'Color', kolor3, 'linewidth', 1.5,'Marker','o', 'MarkerFaceColor',kolor3);
+xlim([0,4]); ylim([0,300])
+ylabel('Distance (pixels)')
+formatFig(fig,true);
+set(gca, 'xcolor', 'k')
+
+%% Video save timing
+
+% open image and measure distance between points...
+clear
+
+% Get blue camera data:
+[file, path] = uigetfile; 
+BM = load([path, file]);
+
+% Pull video information: 
+dummy = strsplit(file, ' ');
+movieInfo = VideoReader([path, dummy{1} '_1.avi']); 
+disp(movieInfo)
+
+% Get purple camera data:
+file = uigetfile([path '\*dataMat.mat']); 
+PM = load([path, file]);
+
+% Load temperature log
+file = uigetfile([path '\*RampLog.csv']);
+tempLog = readmatrix([path, file]);
+
+
+
+% Check for differences in start/stop of purple & blue cameras
+
+% TIMEPOINT BASED:
+startDiff = PM.tempLogStart(:,3)-BM.tempLogStart(:,3);
+stopDiff = PM.tempLogEnd(:,3)-BM.tempLogEnd(:,3);
+T = [(1:BM.parameters.numVids)', startDiff, stopDiff];
+% Display information about loss/etc
+disp(['Frame rate: ' num2str(BM.parameters.FPS)])
+disp(['Vid length: ' num2str(BM.parameters.video_length)])
+disp(['Number of videos: ' num2str(BM.parameters.numVids)])
+table(T);
+disp(T)
+
+
+% INDEX BASED:
+startDiff = PM.tempLogStart(:,2)-BM.tempLogStart(:,2);
+stopDiff = PM.tempLogEnd(:,2)-BM.tempLogEnd(:,2);
+T = [(1:BM.parameters.numVids)', startDiff, stopDiff];
+% Display information about loss/etc
+% disp(['Frame rate: ' num2str(BM.parameters.FPS)])
+table(T);
+disp(T)
+
+
+
+
+
+
+
+
+
+
+
+
