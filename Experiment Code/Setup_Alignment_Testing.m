@@ -67,22 +67,27 @@ set(gca, 'xcolor', 'k')
 clear
 
 % Get blue camera data:
+disp('Select blue video data mat')
 [file, path] = uigetfile; 
 BM = load([path, file]);
-
 % Pull video information: 
 dummy = strsplit(file, ' ');
-movieInfo = VideoReader([path, dummy{1} '_1.avi']); 
+Blue_root = dummy{1};
+movieInfo = VideoReader([path, Blue_root '_1.avi']); 
 disp(movieInfo)
 
 % Get purple camera data:
+disp('Select purple video data mat')
 file = uigetfile([path '\*dataMat.mat']); 
 PM = load([path, file]);
+% Pull video information: 
+dummy = strsplit(file, ' ');
+Purple_root = dummy{1};
 
 % Load temperature log
+disp('select temperature log')
 file = uigetfile([path '\*RampLog.csv']);
 tempLog = readmatrix([path, file]);
-
 
 
 % Check for differences in start/stop of purple & blue cameras
@@ -107,6 +112,51 @@ T = [(1:BM.parameters.numVids)', startDiff, stopDiff];
 % disp(['Frame rate: ' num2str(BM.parameters.FPS)])
 table(T);
 disp(T)
+
+%%
+
+% How many frames are in each of the videos? ie are they saving the same
+% duration?
+[FramesPerSec, FrameCount] = deal([]);
+for i = 1:BM.parameters.numVids
+
+    movieInfo = VideoReader([path, Blue_root '_' num2str(i) '.avi']); 
+    FrameCount(i,1) = movieInfo.NumFrames;
+    FramesPerSec(i,1) = movieInfo.FrameRate;
+
+    movieInfo = VideoReader([path, Purple_root '_' num2str(i) '.avi']); 
+    FrameCount(i,2) = movieInfo.NumFrames;
+    FramesPerSec(i,2) = movieInfo.FrameRate;
+
+end
+
+
+FrameCount(:,2)-FrameCount(:,1)
+
+
+BM.parameters.FPS
+
+BM.parameters.FPS
+
+FrameNum = median(FrameCount(:,1));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
