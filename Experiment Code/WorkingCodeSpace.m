@@ -1430,8 +1430,7 @@ formatFig(fig4,false,[1,1]);
 
 %%
 
-
-
+movieInfo = VideoReader("G:\My Drive\Jeanne Lab\DATA\06.28.2023\linear_recovery_23-15-caviar_1.avi"); %read in video
 
 
 

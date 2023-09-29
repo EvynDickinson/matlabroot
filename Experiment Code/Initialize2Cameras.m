@@ -11,7 +11,7 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
         switch cam_sel
             case 1 %  "purple camera 1"
                 vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
-                partial_ROI = [66 44 1920 1940];
+                partial_ROI = [66 44 1920 1920];
                 src = getselectedsource(vid);
                 % camera parameters
                 src.Brightness = 11.127068;
@@ -26,7 +26,7 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
         
             case 2 % "BLUE CAMERA #2"
                 vid = videoinput('pointgrey', 2, 'F7_Raw8_2048x2048_Mode0');
-                partial_ROI = [66 72 1920 1940];
+                partial_ROI = [66 72 1920 1920];
                 src = getselectedsource(vid);
                 % camera parameters
                 src.Brightness = 15;

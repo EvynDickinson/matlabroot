@@ -339,7 +339,7 @@ end
 % Add X and Y to the data table:
 T = addvars(T,X,Y);
 % head(T,5)
-   
+
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
