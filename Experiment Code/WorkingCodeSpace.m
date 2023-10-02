@@ -1429,9 +1429,9 @@ formatFig(fig4,false,[1,1]);
 
 
 %%
-
-movieInfo = VideoReader("G:\My Drive\Jeanne Lab\DATA\06.28.2023\linear_recovery_23-15-caviar_1.avi"); %read in video
-
+vidPath = "G:\My Drive\Jeanne Lab\DATA\09.29.2023\blueMovement_1.avi";
+movieInfo = VideoReader(vidPath); %read in video
+disp(['Dimensions: ' num2str(movieInfo.Width) ' x ' num2str(movieInfo.Height)])
 
 
 

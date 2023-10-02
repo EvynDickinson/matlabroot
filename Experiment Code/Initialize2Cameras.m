@@ -40,7 +40,7 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
                 disp('Blue camera initialized')
         end
     
-   
+
        
 %     
 %     % image cropping parameters
