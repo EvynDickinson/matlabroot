@@ -1429,7 +1429,7 @@ formatFig(fig4,false,[1,1]);
 
 
 %%
-vidPath = "G:\My Drive\Jeanne Lab\DATA\09.29.2023\blueMovement_1.avi";
+vidPath = "F:\Evyn\DATA\10.03.2023\C2ExpName_1.avi";
 movieInfo = VideoReader(vidPath); %read in video
 disp(['Dimensions: ' num2str(movieInfo.Width) ' x ' num2str(movieInfo.Height)])
 

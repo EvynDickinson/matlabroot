@@ -14,12 +14,12 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
                 partial_ROI = [66 44 1920 1920];
                 src = getselectedsource(vid);
                 % camera parameters
-                src.Brightness = 11.127068;
+                src.Brightness = 29; %11.127068;
                 src.Exposure  = 2;
                 src.FrameRate = FPS;
-                src.Gain = 6;
-                src.Gamma = 1.502002;
-                src.Shutter = 7.420205;
+                src.Gain = 4.4558; %6;
+                src.Gamma = 1.5338; % 1.502002;
+                src.Shutter = 6; %7.420205;
                 vid.FramesPerTrigger = inf;
                 vid.ROIPosition = partial_ROI;
                 disp('Purple camera initialized')
@@ -29,12 +29,12 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
                 partial_ROI = [66 72 1920 1920];
                 src = getselectedsource(vid);
                 % camera parameters
-                src.Brightness = 15;
+                src.Brightness = 29; %15;
                 src.Exposure  = 2;
                 src.FrameRate = FPS;
-                src.Gain = 6;
-                src.Gamma = 1.502002;
-                src.Shutter = 7.420205;
+                src.Gain = 4.4558; %6;
+                src.Gamma = 1.5338; %1.502002;
+                src.Shutter = 6; %7.420205;
                 vid.FramesPerTrigger = inf;
                 vid.ROIPosition = partial_ROI;
                 disp('Blue camera initialized')
