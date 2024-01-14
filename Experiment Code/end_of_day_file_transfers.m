@@ -17,7 +17,7 @@ switch getenv('COMPUTERNAME')
         baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';  
 end
 
-%select folder date   
+%select folder date    
 %TODO update this to iterate through multiple folders if need be
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
