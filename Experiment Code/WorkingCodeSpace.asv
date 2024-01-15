@@ -1435,21 +1435,47 @@ disp(['Dimensions: ' num2str(movieInfo.Width) ' x ' num2str(movieInfo.Height)])
 
 
 
-%% UPDATE THE NAMES IN FOOD WELLS
+%% 
 
 %Blank all of them
 for i = 1:4
     for ii = 1:4
-        parameters.(['Arena' Alphabet(i)]).(['well_' num2str(ii)]) = 'Empty';
+        parameters.(ArenaA.(['well_' num2str(ii)]) = 'empty';
     end
 end
 
 %Readd the appropriate food labels:
-parameters.ArenaA.well_3 = 'Caviar';
-parameters.ArenaB.well_3 = 'Caviar';
+parameters.ArenaA.well_1 = 'Caviar';
+parameters.ArenaB.well_1 = 'Caviar';
 parameters.ArenaC.well_1 = 'Caviar';
 parameters.ArenaD.well_1 = 'Caviar';
 
-% Clear extra variables:
-clear i ii ans
+
+
+
+
+% PRE STEP 1
+parameters.ArenaA.well_1 = 'Caviar';
+parameters.ArenaB.well_1 = 'Caviar';
+parameters.ArenaC.well_1 = 'Caviar';
+parameters.ArenaD.well_1 = 'Caviar';
+
+% PRE STEP 2
+arenaData(1).wellLabels{1} = 'Caviar';
+arenaData(2).wellLabels{1} = 'Caviar';
+arenaData(3).wellLabels{1} = 'Caviar';
+arenaData(4).wellLabels{1} = 'Caviar';
+
+expData.parameters.ArenaA.well_1 = 'Caviar';
+expData.parameters.ArenaB.well_1 = 'Caviar';
+expData.parameters.ArenaC.well_1 = 'Caviar';
+expData.parameters.ArenaD.well_1 = 'Caviar';
+
+
+% DONT REMEMBER
+data.wellLabels{4} = 'Empty';
+    
+
+
+
 

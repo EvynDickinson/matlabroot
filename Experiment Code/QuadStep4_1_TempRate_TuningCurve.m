@@ -372,12 +372,12 @@ disp('Next')
 %% FIGURE: Basic over-lap of time-trials and temperature protocols w/ SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = true;
+autoLim = false;
 % Y limit ranges
 speed_lim = [0,10]; %speed
 dist_lim = [5, 30]; %distance
-% dt_lim = [14, 28];      %distance-temp
-dt_lim = [10, 30];        %distance-temp
+dt_lim = [12, 34];      %distance-temp
+% dt_lim = [10, 30];        %distance-temp
 nMax =  num.exp;%
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
@@ -455,7 +455,8 @@ ylabel('speed (mm/s)')
 xlabel('time (min)')
 % temp-distance relationship 
 subplot(r,c,sb(4).idx) 
-ylabel('proximity to food (mm)')
+ylabel('proximity to food (mm)') 
+
 xlabel('temp (\circC)')
 if ~autoLim
     ylim(dt_lim)

@@ -16,7 +16,7 @@ switch questdlg('Use Excel sheet to select experiment?')
             warndlg('No available experiments')
             return
         end
-        eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]);
+        eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]); 
         FileNames = join(eligible_files);
         fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);   
         if isempty(fileIdx); return; end
