@@ -107,6 +107,8 @@ end
 % Allocate arena locations and well locations from manually selected locations
 decoder = [11, 12, 9, 10, 15, 16, 13, 14, 7, 8, 5, 6, 3, 4, 1, 2];
 
+
+
 % Find the arena centers and well locations:
 arenaData = struct;
 A = [];
@@ -122,8 +124,9 @@ for arena = 1:4
             arenaData(arena).wellcenters = wellcenters(:,decoder(roi));
    else
             arenaData(arena).wellcenters = wellcenters(:,roi);
-    end
-
+   end
+    
+    
     % Find the center of each arena
     x1 = arenaData(arena).wellcenters(1,1:2:4);
     y1 = arenaData(arena).wellcenters(2,1:2:4);
