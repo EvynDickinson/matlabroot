@@ -1435,46 +1435,146 @@ disp(['Dimensions: ' num2str(movieInfo.Width) ' x ' num2str(movieInfo.Height)])
 
 
 
-%% 
+%% UPDATE THE NAMES IN FOOD WELLS
 
 %Blank all of them
 for i = 1:4
     for ii = 1:4
-        parameters.(ArenaA.(['well_' num2str(ii)]) = 'empty';
+        parameters.(['Arena' Alphabet(i)]).(['well_' num2str(ii)]) = 'Empty';
     end
 end
 
 %Readd the appropriate food labels:
-parameters.ArenaA.well_1 = 'Caviar';
-parameters.ArenaB.well_1 = 'Caviar';
-parameters.ArenaC.well_1 = 'Caviar';
-parameters.ArenaD.well_1 = 'Caviar';
+parameters.ArenaA.well_2 = 'Caviar';
+parameters.ArenaB.well_4 = 'Caviar';
+parameters.ArenaC.well_2 = 'Caviar';
+parameters.ArenaD.well_4 = 'Caviar';
+
+% Clear extra variables:
+clear i ii ans
+
+%% Double templog
+clear 
+
+basefolder = 'G:\My Drive\Jeanne Lab\DATA\01.20.2024';
+
+% 1) get the list of experiments in the date folder
+videoList = dir([basefolder '\*_1.avi']);
+[exp_names, start_times] = deal([]);
+for i = 1:length(videoList)
+    exp_names{i} =  videoList(i).name(1:end-6);
+    exp_start_time{i} = videoList(i).date(end-7:end-3);
+end
+
+% 2) get the list of temperature log files
+tempLogList = dir([basefolder '\*_RampLog.csv']);
+% get experiment names that have a temp log file
+tempLog_names = [];
+for i = 1:length(tempLogList)
+    tempLog_names{i} =  tempLogList(i).name(1:end-12);
+end
+
+% 3) Find the experiments that do not have a temperature log:
+idx = 0;
+for i = 1:length(exp_names)
+    if ~any(strcmp(exp_names{i}, tempLog_names)) %no matches
+       %note the unmatched experiment name
+       idx = idx + 1;
+       no_log_list{idx} = exp_names{i};
+    end
+end
+
+% 4) Find any experiments that match the start time of the missing log experiments:
+for i = 1:idx
+    sel_start_time =  exp_start_time{strcmp(no_log_list{i},exp_names)}; % start time of the selected experiment
+    search_loc = find(~strcmp(no_log_list{i},exp_names)); % index of other experiments
+    for ii = search_loc
+          if str2double(strrep(sel_start_time,':','')) == str2double(strrep(exp_start_time{ii},':','')) % start time match
+                source_file = [basefolder '\' exp_names{ii} '_RampLog.csv'];
+                destination_file = [basefolder '\' no_log_list{i} '_RampLog.csv'];
+                copyStatus = copyfile(source_file, destination_file);
+                if ~copyStatus
+                    h = warndlg([exp_names{ii} ' not copied']);
+                    uiwait(h)
+                end
+                
+          end
+
+                
+                
+                
+                
 
 
 
 
 
-% PRE STEP 1
-parameters.ArenaA.well_1 = 'Caviar';
-parameters.ArenaB.well_1 = 'Caviar';
-parameters.ArenaC.well_1 = 'Caviar';
-parameters.ArenaD.well_1 = 'Caviar';
-
-% PRE STEP 2
-arenaData(1).wellLabels{1} = 'Caviar';
-arenaData(2).wellLabels{1} = 'Caviar';
-arenaData(3).wellLabels{1} = 'Caviar';
-arenaData(4).wellLabels{1} = 'Caviar';
-
-expData.parameters.ArenaA.well_1 = 'Caviar';
-expData.parameters.ArenaB.well_1 = 'Caviar';
-expData.parameters.ArenaC.well_1 = 'Caviar';
-expData.parameters.ArenaD.well_1 = 'Caviar';
+% if the experiments start at the same time, then the temp log can be
+% doubled for the second name
 
 
-% DONT REMEMBER
-data.wellLabels{4} = 'Empty';
-    
+
+
+% make a li
+
+% only compare flies that DO NOT have their own templog to the timestamps
+% of the other experiments
+
+
+
+% check if the times match (within a minute) for start:
+num2str(exp_start_time{1}) 
+
+
+list_dirs = dir([baseFolder folder, '/*dataMat.mat']); %only matlab files
+
+vidNames = {videoList(:).name};
+
+expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
+expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
+expName = expName(1:end-1);clear expNames
+
+
+timestamps = {timestamp1, timestamp2, ...}; % Your cell array of timestamps
+dateVectors = cellfun(@datevec, timestamps, 'UniformOutput', false);
+
+n = length(dateVectors); % Number of timestamps
+sameMinutePairs = {}; % Cell array to store pairs of indices that occur in the same minute
+
+for i = 1:n-1
+    for j = i+1:n
+        if isequal(dateVectors{i}(1:5), dateVectors{j}(1:5))
+            % If year, month, day, hour, and minute are the same, store the indices
+            sameMinutePairs{end+1} = [i, j];
+        end
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

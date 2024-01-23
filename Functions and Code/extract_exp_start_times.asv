@@ -1,0 +1,64 @@
+
+
+%% Extract the start times for previously run experiments
+
+% 1) find the first video in the series
+% 2) find the video save time for the first vid
+% 3) write that into the experiment summary sheet
+
+% 1) find the first video in the series
+
+clear; close all; clc
+
+
+%load excel file:
+[excelfile, Excel, XL] = load_QuadBowlExperiments;
+loc = cellfun(@isnan,excelfile(2:end,Excel.arena));
+loc = ~loc;
+rownums = find(loc)+1; 
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
+loc1 = cellfun(@isnan,eligible_files(:,4));
+c = cellfun(@string,eligible_files);
+c(loc1,4) = ' ';
+FileNames = join(c);
+fileIdx = listdlg('ListString', FileNames,'ListSize',[300,450]);
+%pull the list of dates and arenas to be 
+List.date = eligible_files(fileIdx,1);
+List.expID = eligible_files(fileIdx,3); 
+
+% get base folder pathway
+finishedFiles = [];
+baseFolder = getCloudPath;
+for ii = 1:length(fileIdx)
+    % get file time: 
+    searchPath = [baseFolder List.date{ii} '/' List.expID{ii} '*.avi'];
+    videoList = dir(searchPath);
+    videoStartTime = videoList(1).date(end-7:end);
+    % write the time into the excel sheet
+    XLrow = rownums(fileIdx(ii));
+    try xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+    catch
+        h = warndlg('Close Experiment Summary excel file and then close this warning box');
+        uiwait(h)
+        xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+    end
+end
+
+%%  Add to end of day transfer function
+
+
+
+
+% Add facility to excel write
+% Add first video time
+% duplicate the timesheet 
+
+
+
+
+
+
+
+
+
+

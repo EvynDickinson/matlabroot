@@ -1445,11 +1445,99 @@ for i = 1:4
 end
 
 %Readd the appropriate food labels:
-parameters.ArenaA.well_3 = 'Caviar';
-parameters.ArenaB.well_3 = 'Caviar';
-parameters.ArenaC.well_1 = 'Caviar';
-parameters.ArenaD.well_1 = 'Caviar';
+parameters.ArenaA.well_2 = 'Caviar';
+parameters.ArenaB.well_4 = 'Caviar';
+parameters.ArenaC.well_2 = 'Caviar';
+parameters.ArenaD.well_4 = 'Caviar';
 
 % Clear extra variables:
 clear i ii ans
+
+%% Double templog 
+clear 
+
+basefolder = 'G:\My Drive\Jeanne Lab\DATA\01.15.2024';
+
+% 1) get the list of experiments in the date folder
+videoList = dir([basefolder '\*_1.avi']);
+[exp_names, start_times] = deal([]);
+for i = 1:length(videoList)
+    exp_names{i} =  videoList(i).name(1:end-6);
+    exp_start_time{i} = videoList(i).date(end-7:end-3);
+end
+
+% 2) get the list of temperature log files
+tempLogList = dir([basefolder '\*_RampLog.csv']);
+% get experiment names that have a temp log file
+tempLog_names = [];
+for i = 1:length(tempLogList)
+    tempLog_names{i} =  tempLogList(i).name(1:end-12);
+end
+
+% 3) Find the experiments that do not have a temperature log
+idx = 0;
+for i = 1:length(exp_names)
+    if ~any(strcmp(exp_names{i}, tempLog_names)) %no matches
+       %note the unmatched experiment name
+       idx = idx + 1;
+       no_log_list{idx} = exp_names{i};
+    end
+end
+
+% 4) Find any experiments that match the start time of the missing log experiments:
+if idx > 0
+    for i = 1:idx %for each unmatched experiment
+        sel_start_time =  exp_start_time{strcmp(no_log_list{i},exp_names)}; % start time of the selected experiment
+        search_loc = find(~strcmp(no_log_list{i},exp_names)); % index of other experiments
+        for ii = search_loc
+              if str2double(strrep(sel_start_time,':','')) == str2double(strrep(exp_start_time{ii},':','')) % start time match
+                    source_file = [basefolder '\' exp_names{ii} '_RampLog.csv'];
+                    destination_file = [basefolder '\' no_log_list{i} '_RampLog.csv'];
+                    copyStatus = copyfile(source_file, destination_file);
+                    if ~copyStatus
+                        h = warndlg([exp_names{ii} ' not copied']);
+                        uiwait(h)
+                    end
+                    return
+              end
+        end
+    end
+end
+                 
+
+
+                
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

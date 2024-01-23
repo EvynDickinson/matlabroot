@@ -1,6 +1,6 @@
 
 
-%% SELECT EXPERIMENT TO TRANSFER
+%% 
 clear  
 
 %raw data folder: 
@@ -80,7 +80,9 @@ if idx > 0
     end
 end
                  
-%% Move videos from computer drive to google drive
+%%
+
+% TODO: Add first video time to excel
 
 % Move folders to google drive:
 copyfile(folder, targetDir)

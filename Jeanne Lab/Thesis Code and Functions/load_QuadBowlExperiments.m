@@ -43,6 +43,8 @@ Excel.sex = find(strcmpi('Sex', Excel.headers)==1);
 Excel.starved_hours = find(strcmpi('Starved Hours', Excel.headers)==1);
 
 Excel.tracked = find(strcmpi('Tracked', Excel.headers)==1);
+Excel.starttime = find(strcmpi('Start time', Excel.headers)==1);
+Excel.facility = find(strcmpi('Facility', Excel.headers)==1);
 
 end
 
