@@ -13,7 +13,16 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 
 % pull the appropriate start|end points:
 switch TempProtocolString
-   % =======================================
+    case 'Hold25C'
+        tempPoints.hold = [1000 159935];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 24;
+        tempPoints.threshHigh = 26;  
+    
+    % =======================================
     case 'linear_ramp_F_25-17'
         tempPoints.hold = [2385 18007;...
                            23843 38180;...

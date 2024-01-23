@@ -1456,7 +1456,7 @@ clear i ii ans
 %% Double templog 
 clear 
 
-basefolder = 'G:\My Drive\Jeanne Lab\DATA\01.15.2024';
+basefolder = 'G:\My Drive\Jeanne Lab\DATA\01.21.2024';
 
 % 1) get the list of experiments in the date folder
 videoList = dir([basefolder '\*_1.avi']);
