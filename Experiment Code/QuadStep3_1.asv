@@ -213,8 +213,7 @@ fprintf('Next\n')
 % formatFig(fig, false);
 % save_figure(fig, [figDir 'temperature alignment'], '-pdf');
 
-
-% Generate fictive temperature for 'hold' experiments
+%% Generate fictive temperature for 'hold' experiments
 initial_vars{end+1} = 'temp_protocol';
 initial_vars{end+1} = 'hold_exp';
 
@@ -929,7 +928,7 @@ formatFig(fig, true);
 legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
 set(gca,'fontsize', 14)
 %Save figure
-save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_name], '-png');
+save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_na], '-png');
 % 
 
 % 
@@ -1388,8 +1387,7 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     ylabel('Movement (~mm/s)')
     xlabel('Time (min)')
 
-if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
-    save_figure(fig, [figDir 'temp protocols time course single trial' temp_name], '-png');
+save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
