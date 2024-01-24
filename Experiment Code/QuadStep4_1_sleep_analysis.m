@@ -394,7 +394,7 @@ end
 fps = 3;
 % Thermal threat quantification and avg sleep quantity
 for i = 1:num.exp
-    tPoints = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tPoints = getTempTurnPoints(data(i).temp_protocol); %data(i).T.TempProtocol{1}
     demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2);
     
     % Thermal threat
@@ -934,7 +934,7 @@ fps = 3;
 sleepDuration = [];
 for i = 1:num.exp
     % Thermal threat
-    tPoints = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tPoints = getTempTurnPoints(data(i).temp_protocol);
     demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2);
 
     temp_ramp = grouped(i).temp(demoRamp_idx);
@@ -1487,7 +1487,7 @@ SZ = 50;
 
 for i = 1:num.exp
     fig = getfig('',1,[481 680]); hold on
-    tPoints = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tPoints = getTempTurnPoints(data(i).temp_protocol);
     TOTALSLEEP = sum(sleep(i).num);
     for type = 1:3
         switch type
@@ -1574,7 +1574,7 @@ for i = 1:num.exp
     end
     % plot ramp times...
     y_base = y_base+trial_space;
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tp = getTempTurnPoints(data(i).temp_protocol);
     y = [y_base+(spike_H/2);y_base+(spike_H/2)];
     
     if i == num.exp
@@ -1648,7 +1648,7 @@ timeBins = 0:3:150; % 3 minute bins
 % Pull data together
 y = struct;
 for i = 1:num.exp
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tp = getTempTurnPoints(data(i).temp_protocol);
     rampDur = min(tp.up(:,2)-tp.up(:,1)); %shortest ramp duration for overlay
     plotdata = [];
     sleepData = sleep(i).sleepON;

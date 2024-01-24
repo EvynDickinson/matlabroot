@@ -2045,7 +2045,7 @@ for exp = 1:num.exp
         pooled_dist = autoCat(pooled_dist,y,false);
     end
     % screen out control periods (recovery holds and start/end of exp)
-    tp = getTempTurnPoints(data(i).temp_protocol);
+    tp = getTempTurnPoints(data(i).temp_);
     loc = [tp.UpROI, tp.DownROI];
     loc = sort(loc);
      
