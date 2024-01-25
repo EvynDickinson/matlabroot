@@ -153,6 +153,9 @@ switch expGroup
     case 'Berlin LRR 25-17 new arena vs OG caviar'
         expOrder = [1,2];
         colors = {'teal', 'white'};
+    case 'Berlin F 25-17 food vs no food'
+        expOrder = [1,2];
+        colors = {'blueviolet', 'white'};
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
@@ -243,6 +246,12 @@ switch expGroup
     case 'Berlin S LRR 23-15 all controls'
         expOrder = [2 1 4 3]; %NF-NT; F-NT; NF-T; F-T
         colors = {'lightslategray', 'white', 'lightpink', 'deeppink'};
+    case 'Temp Holds with Caviar'
+        expOrder = 1:3;
+        colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+    case 'Berlin 23C Hold food vs no food'
+        expOrder = [2,1];
+        colors = {'white', 'aquamarine'};
 end
 
 if ~exist('colors','var')
@@ -338,7 +347,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     grouped(i).decreasing.rate = median(tempRates(:,downIdx));
 
 end
-
+ 
 % RAMP-TO-RAMP COMPARISONS
 binWidth = 0.5; %temp bin increment
 mat = struct;
@@ -392,6 +401,7 @@ disp('Next')
 %% FIGURE: Basic over-lap of time-trials and temperature protocols w/ SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
+
 autoLim = false;
 % Y limit ranges
 speed_lim = [0,10]; %speed

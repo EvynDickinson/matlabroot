@@ -1747,6 +1747,10 @@ clearvars('-except',initial_vars{:})
 load([baseFolder 'Fundamentals\Distance_to_well_distribution']);
 initial_vars{end+1} = 'null_dist';
 
+yyaxis right
+plot(null_dist.binedges,null_dist.prob,'color', Color('teal'),'linewidth',3,'linestyle','-')
+
+
 % PLOT NULL DISTRIBUTION:
 fig_dir = [saveDir 'sleeping histograms overlay\'];
 if ~exist(fig_dir,'dir')
@@ -1768,7 +1772,7 @@ for i = 1:num.exp
     h(i) = histogram(plotData,binedges,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
 
     % NULL DISTRIBUTION: 
-    % null_h = histogram(null_dist,binedges,'FaceColor',Color('grey'),'FaceAlpha',0.7);
+    null_h = histogram(null_dist,binedges,'FaceColor',Color('grey'),'FaceAlpha',0.7);
 
     histogram(null_dist.distance,null_dist.binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
     yyaxis right
