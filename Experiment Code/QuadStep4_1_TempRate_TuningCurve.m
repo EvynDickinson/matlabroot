@@ -90,7 +90,7 @@ end
 %% ANALYSIS: organize data for each group
 disp(expNames')
 clearvars('-except',initial_vars{:})
-fig_type = '-png';
+fig_type = '-pdf';
 blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
@@ -149,6 +149,9 @@ switch expGroup
         colors = {'black','dodgerblue'}; %
     case 'Berlin LRR 25-17 food vs no food'
         expOrder = [1,2];
+        colors = {'white', 'gold'};
+    case 'Berlin S LRR 25-17 food vs no food'
+        expOrder = [2,1];
         colors = {'white', 'gold'};
     case 'Berlin LRR 25-17 new arena vs OG caviar'
         expOrder = [1,2];

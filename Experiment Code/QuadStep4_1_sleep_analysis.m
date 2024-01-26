@@ -1557,7 +1557,7 @@ for i = 1:num.exp
             loc = find(diff(plotdata)==0);
             plotdata(loc+1) = plotdata(loc)+1;
             idx = idx+1;
-            if idx>(fps*10)
+            if idx>(fps*12)
                 warndlg('Points shifting more than 10 seconds')
                 return 
             end
@@ -1743,7 +1743,7 @@ save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
 %% FIGURE: Null distribution of fly distances to food:
 clearvars('-except',initial_vars{:})
 % [foreColor,backColor] = formattingColors(blkbgd);
-
+LW = 3;
 load([baseFolder 'Fundamentals\Distance_to_well_distribution']);
 initial_vars{end+1} = 'null_dist';
 
@@ -1770,7 +1770,7 @@ for i = 1:num.exp
     % NULL DISTRIBUTION: 
     % null_h = histogram(null_dist,binedges,'FaceColor',Color('grey'),'FaceAlpha',0.7);
 
-    histogram(null_dist.distance,null_dist.binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
+    % histogram(null_dist.distance,null_dist.binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
     yyaxis right
     plot(null_dist.binedges,null_dist.prob,'color', Color('teal'),'linewidth',LW,'linestyle','-')
 
@@ -1795,7 +1795,7 @@ LW = 2;
 % PLOT NULL DISTRIBUTION:
 fig_dir = [saveDir 'sleeping histograms overlay\'];
 if ~exist(fig_dir,'dir')
-    mkdir(fig_dir)
+    mkdir(fig_dir) 
 end 
 
 % FIGURE:

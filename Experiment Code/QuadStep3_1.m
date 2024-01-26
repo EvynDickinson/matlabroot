@@ -223,7 +223,7 @@ hold_protocols = {'Hold25C', 'Hold23C', 'Hold20C'};
 if any(strcmpi(T.TempProtocol{1},hold_protocols))
         hold_exp = true;
         xlFile = [baseFolder(1:end-5) 'Quad Bowl Experiments.xlsx'];
-        [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols');
+        [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols'); 
         protocolList = excelfile(:,1);
         idx = listdlg('PromptString', {'Select temp protocol for timecourse comparison'}, 'ListString', protocolList,'ListSize', [250, 400]);
         temp_protocol = protocolList{idx};
