@@ -85,12 +85,11 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 return
         end
 end
-
+disp(expNames')
 
 %% ANALYSIS: organize data for each group
-disp(expNames')
 clearvars('-except',initial_vars{:})
-fig_type = '-png';
+fig_type = '-pdf';
 blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
@@ -150,8 +149,8 @@ switch expGroup
     case 'Berlin LRR 25-17 food vs no food'
         expOrder = [1,2];
         colors = {'white', 'gold'};
-    case 'Berlin LRR 25-17 food vs no food'
-        expOrder = [1,2];
+    case 'Berlin S LRR 25-17 food vs no food'
+        expOrder = [2,1];
         colors = {'white', 'gold'};
     case 'Berlin LRR 25-17 new arena vs OG caviar'
         expOrder = [1,2];
@@ -165,6 +164,10 @@ switch expGroup
     case 'CantonS LRR food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
+    case 'Berlin F hold 25C food vs no food'
+        expOrder = 1:2;
+        colors = {'slategrey', 'white'};
+
 % ---- FOOD GROUP COMPARISIONS ----
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
@@ -246,9 +249,13 @@ switch expGroup
     case 'Berlin F LRR caviar Cedar vs College'
         expOrder  = 1:2;
         colors  = {'dodgerblue', 'yellow'};
+    % ===  controls ======
     case 'Berlin S LRR 23-15 all controls'
         expOrder = [2 1 4 3]; %NF-NT; F-NT; NF-T; F-T
         colors = {'lightslategray', 'white', 'lightpink', 'deeppink'};
+    case 'Berlin F LRR 25-17 controls and caviar'
+        expOrder = [4 3 2 1]; %NF-NT; F-NT; NF-T; F-T
+        colors = {'white', 'lightslategray', 'lightpink', 'deeppink'};
     case 'Temp Holds with Caviar'
         expOrder = 1:3;
         colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
@@ -505,12 +512,13 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = true;
+autoLim = false;
 % Y limit ranges
 dist_lim = [10,35];       %distance
-dt_lim = [14, 32];        %distance-temp
+dt_lim = [12, 32];        %distance-temp
+time_lim = [0,400];     %time limit (x-axis)
 nMax =  num.exp;%
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+[~,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
 r = 5; %rows
@@ -565,11 +573,17 @@ formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx) 
 ylabel('\circC')
 set(gca,"XColor",backColor)
+if ~autoLim
+    xlim(time_lim)
+end
 % distance
 subplot(r,c,sb(2).idx) 
 ylabel('proximity to food (mm)')
 xlabel('time (min)')
 set(gca,'ydir','reverse')
+if ~autoLim
+    xlim(time_lim)
+end
 % temp-distance relationship 
 subplot(r,c,sb(3).idx) 
 ylabel('proximity to food (mm)')

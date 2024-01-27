@@ -30,6 +30,15 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
         load([saveDir expGroup ' data.mat']);
         disp([expGroup ' loaded'])
+        %check for temperature protocol assignments (make back-compatible)
+        for i = 1:num.exp
+            if ~isfield(data(i),'temp_protocol') 
+                data(i).temp_protocol = data(i).T.TempProtocol{1};
+            end
+            if isempty(data(i).temp_protocol)
+                data(i).temp_protocol = data(i).T.TempProtocol{1};
+            end
+        end
     case 'No'
         % Select processed data structures to compare:
         structFolder = [baseFolder 'Data structures\'];
@@ -85,10 +94,9 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 return
         end
 end
-
+disp(expNames')
 
 %% ANALYSIS: organize data for each group
-disp(expNames')
 clearvars('-except',initial_vars{:})
 fig_type = '-pdf';
 blkbgd = true;
@@ -165,6 +173,10 @@ switch expGroup
     case 'CantonS LRR food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
+    case 'Berlin F hold 25C food vs no food'
+        expOrder = 1:2;
+        colors = {'slategrey', 'white'};
+
 % ---- FOOD GROUP COMPARISIONS ----
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
@@ -246,12 +258,22 @@ switch expGroup
     case 'Berlin F LRR caviar Cedar vs College'
         expOrder  = 1:2;
         colors  = {'dodgerblue', 'yellow'};
+    % ===  controls ======
     case 'Berlin S LRR 23-15 all controls'
         expOrder = [2 1 4 3]; %NF-NT; F-NT; NF-T; F-T
         colors = {'lightslategray', 'white', 'lightpink', 'deeppink'};
+    case 'Berlin F LRR 25-17 controls and caviar'
+        expOrder = [4 3 2 1]; %NF-NT; F-NT; NF-T; F-T
+        colors = {'white', 'lightslategray', 'lightpink', 'deeppink'};
     case 'Temp Holds with Caviar'
         expOrder = 1:3;
         colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+    case 'Berlin Temp Holds caviar'
+        expOrder = 1:3;
+        colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+    case 'Berlin Temp Holds no food'
+        expOrder = 1:3;
+        colors = { 'deeppink', 'lightpink', 'white'}; %cold to warm
     case 'Berlin 23C Hold food vs no food'
         expOrder = [2,1];
         colors = {'white', 'aquamarine'};
@@ -508,9 +530,11 @@ plot_err = true;
 autoLim = true;
 % Y limit ranges
 dist_lim = [10,35];       %distance
-dt_lim = [14, 32];        %distance-temp
+dt_lim = [12, 32];        %distance-temp
+auto_time = true;      % automated time axis limits
+time_lim = [0,400];     %time limit (x-axis)
 nMax =  num.exp;%
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+[~,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
 r = 5; %rows
@@ -565,11 +589,17 @@ formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx) 
 ylabel('\circC')
 set(gca,"XColor",backColor)
+if ~auto_time
+    xlim(time_lim)
+end
 % distance
 subplot(r,c,sb(2).idx) 
 ylabel('proximity to food (mm)')
 xlabel('time (min)')
 set(gca,'ydir','reverse')
+if ~auto_time
+    xlim(time_lim)
+end
 % temp-distance relationship 
 subplot(r,c,sb(3).idx) 
 ylabel('proximity to food (mm)')
@@ -2194,7 +2224,9 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
 num_lim = [0,5];
 num_temp_lim = [0,1.4];
-autoLim = true;
+autoLim = true; %keep automatically determining the y limits
+xlim_auto = true; % change the time range for the x axis
+time_limits = [50,365]; % time limits if manual control over x-axis range
 well_radius = 3; % 5 mm diameter of the physical well -- give 0.5mm buffer zone outside well
 well_rad = well_radius * pix2mm; %convert mm to pixels
 
@@ -2335,19 +2367,27 @@ formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx) 
 ylabel('\circC')
 set(gca,"XColor",backColor)
-% distance
+
+% flies on food
 subplot(r,c,sb(2).idx) 
 ylabel('# flies on food')
 xlabel('time (min)')
 set(gca,"XColor",foreColor)
-% temp-distance relationship 
+set(gca,'xlim',[50,365])
+% temp-flies on food relationship 
 subplot(r,c,sb(3).idx) 
 ylabel('# flies on food')
 xlabel('temp (\circC)')
 if ~autoLim
     ylim(num_temp_lim)
 end
-% 
+% change x limits
+if ~xlim_auto
+    subplot(r,c,sb(1).idx) 
+    set(gca,'xlim',time_limits)
+    subplot(r,c,sb(2).idx) 
+    set(gca,'xlim',time_limits)
+end
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 save_figure(fig,[saveDir expGroup ' flies on food'],fig_type);
@@ -3694,6 +3734,8 @@ autoLim = true;
 % Y limit ranges
 dist_lim = [10,35];       %distance
 dt_lim = [14, 32];        %distance-temp
+xlim_auto = true; % change the time range for the x axis
+time_limits = [50,365]; % time limits if manual control over x-axis range
 nMax =  num.exp;%
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
@@ -3736,7 +3778,7 @@ for i = num.exp:-1:1
             y = grouped(i).dist.tempBinned(trial,:);
             loc = isnan(y);
             x(loc) = [];  y(loc) = [];
-            plot(x,y,'color',kolor,'linewidth',LW+1)
+            plot(x,y,'color',kolor,'linewidth',1.25)
         end
         dataString{i} = grouped(i).name;
 end
@@ -3761,6 +3803,15 @@ if ~autoLim
 end
 h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
+
+if ~xlim_auto
+    subplot(r,c,sb(1).idx) 
+    set(gca, 'xlim', time_limits)
+    subplot(r,c,sb(2).idx) 
+    set(gca, 'xlim', time_limits)
+end
+
+
 
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
