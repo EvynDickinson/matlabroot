@@ -269,8 +269,8 @@ switch expGroup
         expOrder = 1:3;
         colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
     case 'Berlin Temp Holds caviar'
-        expOrder = 1:3;
-        colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+        expOrder = 1:4;
+        colors = {'Blue', 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
     case 'Berlin Temp Holds no food'
         expOrder = 1:3;
         colors = { 'deeppink', 'lightpink', 'white'}; %cold to warm
