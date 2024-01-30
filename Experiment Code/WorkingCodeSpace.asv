@@ -1453,10 +1453,10 @@ parameters.ArenaD.well_4 = 'Caviar';
 % Clear extra variables:
 clear i ii ans
 
-%% Double templog
+%% Double templog 
 clear 
 
-basefolder = 'G:\My Drive\Jeanne Lab\DATA\01.20.2024';
+basefolder = 'G:\My Drive\Jeanne Lab\DATA\01.21.2024';
 
 % 1) get the list of experiments in the date folder
 videoList = dir([basefolder '\*_1.avi']);
@@ -1474,7 +1474,7 @@ for i = 1:length(tempLogList)
     tempLog_names{i} =  tempLogList(i).name(1:end-12);
 end
 
-% 3) Find the experiments that do not have a temperature log:
+% 3) Find the experiments that do not have a temperature log
 idx = 0;
 for i = 1:length(exp_names)
     if ~any(strcmp(exp_names{i}, tempLog_names)) %no matches
@@ -1485,71 +1485,47 @@ for i = 1:length(exp_names)
 end
 
 % 4) Find any experiments that match the start time of the missing log experiments:
-for i = 1:idx
-    sel_start_time =  exp_start_time{strcmp(no_log_list{i},exp_names)}; % start time of the selected experiment
-    search_loc = find(~strcmp(no_log_list{i},exp_names)); % index of other experiments
-    for ii = search_loc
-          if str2double(strrep(sel_start_time,':','')) == str2double(strrep(exp_start_time{ii},':','')) % start time match
-                source_file = [basefolder '\' exp_names{ii} '_RampLog.csv'];
-                destination_file = [basefolder '\' no_log_list{i} '_RampLog.csv'];
-                copyStatus = copyfile(source_file, destination_file);
-                if ~copyStatus
-                    h = warndlg([exp_names{ii} ' not copied']);
-                    uiwait(h)
-                end
-                
-          end
-
-                
-                
-                
-                
-
-
-
-
-
-% if the experiments start at the same time, then the temp log can be
-% doubled for the second name
-
-
-
-
-% make a li
-
-% only compare flies that DO NOT have their own templog to the timestamps
-% of the other experiments
-
-
-
-% check if the times match (within a minute) for start:
-num2str(exp_start_time{1}) 
-
-
-list_dirs = dir([baseFolder folder, '/*dataMat.mat']); %only matlab files
-
-vidNames = {videoList(:).name};
-
-expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
-expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-expName = expName(1:end-1);clear expNames
-
-
-timestamps = {timestamp1, timestamp2, ...}; % Your cell array of timestamps
-dateVectors = cellfun(@datevec, timestamps, 'UniformOutput', false);
-
-n = length(dateVectors); % Number of timestamps
-sameMinutePairs = {}; % Cell array to store pairs of indices that occur in the same minute
-
-for i = 1:n-1
-    for j = i+1:n
-        if isequal(dateVectors{i}(1:5), dateVectors{j}(1:5))
-            % If year, month, day, hour, and minute are the same, store the indices
-            sameMinutePairs{end+1} = [i, j];
+if idx > 0
+    for i = 1:idx %for each unmatched experiment
+        sel_start_time =  exp_start_time{strcmp(no_log_list{i},exp_names)}; % start time of the selected experiment
+        search_loc = find(~strcmp(no_log_list{i},exp_names)); % index of other experiments
+        for ii = search_loc
+              if str2double(strrep(sel_start_time,':','')) == str2double(strrep(exp_start_time{ii},':','')) % start time match
+                    source_file = [basefolder '\' exp_names{ii} '_RampLog.csv'];
+                    destination_file = [basefolder '\' no_log_list{i} '_RampLog.csv'];
+                    copyStatus = copyfile(source_file, destination_file);
+                    if ~copyStatus
+                        h = warndlg([exp_names{ii} ' not copied']);
+                        uiwait(h)
+                    end
+                    return
+              end
         end
     end
 end
+                 
 
+
+                
+                
+%% Static temperature hold tuning curve
+
+% get the avg distance over the whole experiment
+roi = [1000 159935];
+[dist_mean, dist_err] = deal([]);
+for i = 1:num.exp
+    dist_all = mean(grouped(i).dist.all(roi(1):roi(2),:),1,'omitnan');
+    dist_err(i) = std(dist_all)/length(dist_all);
+    dist_mean(i) = mean(dist_all);
+end
+
+for i = 1:num.exp
+scatter([17,20,23,25], dist)
+
+
+e = errorbar([17,20,23,25],dist_mean,dist_err);
+
+,'o','linecolor', 'r','marker')
 
 
 

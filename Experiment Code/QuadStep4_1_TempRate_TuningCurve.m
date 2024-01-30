@@ -158,6 +158,9 @@ switch expGroup
     case 'Berlin LRR 25-17 food vs no food'
         expOrder = [1,2];
         colors = {'white', 'gold'};
+    case 'Berlin S LRR 25-17 caviar vs no food'
+        expOrder = [2,];
+        colors = {'white', 'gold'};
     case 'Berlin S LRR 25-17 food vs no food'
         expOrder = [2,1];
         colors = {'white', 'gold'};
@@ -205,7 +208,16 @@ switch expGroup
         colors = {'White','magenta','dodgerblue','Orange'}; 
 
     % ---- TEMP RATE COMPARISONS ----
+    case 'Berlln LRR 25-17 temprate comp caviar'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+    case 'Berlin LRR 25-17 temprate caviar'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
     case 'Berlin LRR temprate comp'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+    case 'Berlin LRR temprate comp no food'
         expOrder = 4:-1:1; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
     case 'Zimbabwe LRR caviar temprate comparison'
@@ -265,18 +277,21 @@ switch expGroup
     case 'Berlin F LRR 25-17 controls and caviar'
         expOrder = [4 3 2 1]; %NF-NT; F-NT; NF-T; F-T
         colors = {'white', 'lightslategray', 'lightpink', 'deeppink'};
-    case 'Temp Holds with Caviar'
-        expOrder = 1:3;
-        colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
     case 'Berlin Temp Holds caviar'
-        expOrder = 1:3;
-        colors = { 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+        expOrder = 1:4;
+        colors = { 'Blue','Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
     case 'Berlin Temp Holds no food'
-        expOrder = 1:3;
-        colors = { 'deeppink', 'lightpink', 'white'}; %cold to warm
+        expOrder = 1:4;
+        colors = { 'Blue','Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
     case 'Berlin 23C Hold food vs no food'
         expOrder = [2,1];
         colors = {'white', 'aquamarine'};
+    case 'Berlin S LRR 25-17 caviar vs temp holds'
+        colors = {'gold','lightcyan', 'dodgerblue'};
+        expOrder = 3:-1:1;
+    case 'Berlin S LRR 25-17 no food vs temp holds'
+        colors = {'gold','lightcyan', 'dodgerblue'};
+        expOrder = 3:-1:1;
 end
 
 if ~exist('colors','var')
@@ -527,10 +542,10 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = true;
+autoLim = false;
 % Y limit ranges
-dist_lim = [10,35];       %distance
-dt_lim = [12, 32];        %distance-temp
+dist_lim = [5,35];       %distance
+dt_lim = [10,32];        %distance-temp
 auto_time = true;      % automated time axis limits
 time_lim = [0,400];     %time limit (x-axis)
 nMax =  num.exp;%
@@ -611,6 +626,20 @@ h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
 % 
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% % get the avg distance over the whole experiment
+% roi = [1000 159935];
+% [dist_mean, dist_err] = deal([]);
+% for i = 1:num.exp
+%     dist_all = mean(grouped(i).dist.all(roi(1):roi(2),:),1,'omitnan');
+%     dist_err(i) = std(dist_all);
+%     dist_mean(i) = mean(dist_all);
+% end
+% 
+% e = errorbar([17,20,23,25],dist_mean,dist_err);
+% e.Marker  = 'o';
+% e.Color = 'r';
+% e.MarkerSize = 10;
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
@@ -2742,7 +2771,7 @@ save_figure(fig,[saveDir expGroup ' speed histograms'],fig_type,autoSave);
 %% FIGURE AND STATS: average experiment speed
 % Comparision of avg speed and range across full experiments
 clearvars('-except',initial_vars{:})
-autoSave = true;
+autoSave = false;
 plot_err = true;
 [~,backColor] = formattingColors(blkbgd);
 buff = 0.2;
