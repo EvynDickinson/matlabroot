@@ -1508,9 +1508,21 @@ end
 
                 
                 
+%% Static temperature hold tuning curve
 
+% get the avg distance over the whole experiment
+roi = [1000 159935];
+[dist_mean, dist_err] = deal([]);
+for i = 1:num.exp
+    dist_all = mean(grouped(i).dist.all(roi(1):roi(2),:),1,'omitnan');
+    dist_err(i) = std(dist_all);
+    dist_mean(i) = mean(dist_all);
+end
 
-
+e = errorbar([17,20,23,25],dist_mean,dist_err);
+e.Marker  = 'o';
+e.Color = 'r';
+e.MarkerSize = 10;
 
 
 

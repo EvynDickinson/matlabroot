@@ -74,7 +74,7 @@ if idx > 0
                         h = warndlg([exp_names{ii} ' not copied']);
                         uiwait(h)
                     end
-                    return
+                    continue
               end
         end
     end
