@@ -1,11 +1,22 @@
 
 %    GroupDataGUI_v2
+% TODO : add 'update structure' option to the thing so we don't have to go
+% through as many loading steps...
+
+% newList = load([folder 'fileList'], 'T');
+% 
+% oldList = load(fileName, 'T');
+% 
+% % pull the 'official list'
+% % pull the 'T' from the saved data
+% % compare the two lists for non-overlap, then append that data? 
+% % should be an easy way to check if the data doesn't have all the
+% % information that we think it should...
+
 
 %% LOAD: multiple trials that are grouped into a structure
 clear; warning off
-
 run_ans = questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No');
-
 switch run_ans
     case 'Yes'
         % baseFolder = getCloudPath;
@@ -55,6 +66,11 @@ switch run_ans
         figDir = [folder list_dirs{idx} '/'];
         ExpGroup = list_dirs{idx};
         
+        % Does the data grouping already exist?
+        if exist([figDir ExpGroup ' raw.mat'],'file') == 2 %file exists
+            oldList = 
+
+
         % load the directory list:
         load([figDir 'fileList.mat'])
         
@@ -213,16 +229,17 @@ fprintf('Next\n')
 % formatFig(fig, false);
 % save_figure(fig, [figDir 'temperature alignment'], '-pdf');
 
-%% Generate fictive temperature for 'hold' experiments
+
+% Generate fictive temperature for 'hold' experiments
 initial_vars{end+1} = 'temp_protocol';
 initial_vars{end+1} = 'hold_exp';
 
 % Check if this is a temp hold control and if so, which active profile to compare it to:
-hold_protocols = {'Hold25C', 'Hold23C', 'Hold20C'};
+hold_protocols = {'Hold25C', 'Hold23C', 'Hold20C','Hold17C'};
 if any(strcmpi(T.TempProtocol{1},hold_protocols))
         hold_exp = true;
         xlFile = [baseFolder(1:end-5) 'Quad Bowl Experiments.xlsx'];
-        [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols');
+        [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols'); 
         protocolList = excelfile(:,1);
         idx = listdlg('PromptString', {'Select temp protocol for timecourse comparison'}, 'ListString', protocolList,'ListSize', [250, 400]);
         temp_protocol = protocolList{idx};
@@ -928,7 +945,7 @@ formatFig(fig, true);
 legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
 set(gca,'fontsize', 14)
 %Save figure
-save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_na], '-png');
+save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_name], '-png');
 % 
 
 % 
@@ -1387,7 +1404,8 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     ylabel('Movement (~mm/s)')
     xlabel('Time (min)')
 
-save_figure(fig, [figDir 'temp protocols time course single trial'], '-png');
+if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
+    save_figure(fig, [figDir 'temp protocols time course single trial' temp_name], '-png');
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
