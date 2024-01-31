@@ -33,7 +33,7 @@ folder = fullfile(start_dir, dir_sel);
 targetDir = [baseFolder dir_sel];
 
 
-%% COPY TEMPERATURE LOG FOR SECOND EXPERIMENT FILE
+% COPY TEMPERATURE LOG FOR SECOND EXPERIMENT FILE
 % 1) get the list of experiments in the date folder
 videoList = dir([folder '\*_1.avi']);
 [exp_names, start_times] = deal([]);
