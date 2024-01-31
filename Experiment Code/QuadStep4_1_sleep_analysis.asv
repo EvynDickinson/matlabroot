@@ -329,9 +329,6 @@ disp('Loaded all sleep data')
 for i = 1:num.exp
     [sleep(i).num, sleep(i).fract_sleep] = deal(zeros(length(grouped(i).temp),num.trial(i)));
     sleep(i).distance = nan(length(grouped(i).temp),num.trial(i));
-    %check for temperature protocol assignments
-    if ~isfield(data,'temp_protocol')
-        data(i).temp_protocol = data(i).T.TempProtocol
     for trial = 1:num.trial(i)
         %number of sleeping flies
         inputdata = sleep(i).trial(trial).sleepNum;
@@ -1711,7 +1708,7 @@ save_figure(fig,[saveDir expGroup ' sleep onset CDF'],fig_type);
 
 %% FIGURE: avg sleep per fly during FULL experiment (not just ramps)
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd);
+[~,backColor] = formattingColors(blkbgd);
 buffer = 0.25;
 SZ = 50;
 LW = 2;
@@ -1739,6 +1736,9 @@ end
 ylabel('Sleep per fly (min)')
 formatFig(fig,blkbgd);
 set(gca,'xcolor',backColor,'XTick',[],'XTickLabel',[])
+
+% save point data:
+
 
 save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
 save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);

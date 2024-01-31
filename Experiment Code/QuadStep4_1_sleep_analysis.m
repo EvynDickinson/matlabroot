@@ -1708,17 +1708,17 @@ save_figure(fig,[saveDir expGroup ' sleep onset CDF'],fig_type);
 
 %% FIGURE: avg sleep per fly during FULL experiment (not just ramps)
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd);
+[~,backColor] = formattingColors(blkbgd);
 buffer = 0.25;
 SZ = 50;
 LW = 2;
-
+total_sleep = [];
 fig_H = 220 + (100*num.exp);
 
 fig = getfig('',1,[fig_H,680]); hold on
 for ii = 1:num.exp
     i = expOrder(ii);
-    tp = getTempTurnPoints(data(i).T.TempProtocol{1});
+    tp = getTempTurnPoints(data(i).temp_protocol);
     roi = [tp.DownROI, tp.UpROI, tp.HoldROI];
     y = sum(sleep(i).num(roi,:));
     y = (y * fps) / length(roi); %get number of flies sleeping per second
@@ -1726,7 +1726,11 @@ for ii = 1:num.exp
     y = y * (60); % minutes of sleep per fly
     y_avg = mean(y,'omitnan');
     x = shuffle_data(linspace(ii-buffer,ii+buffer,num.trial(i)));
-
+    % save data into structure for loading later
+    total_sleep(ii).x = x; total_sleep(ii).y = y; total_sleep(ii).y_avg = y_avg;
+    total_sleep(ii).protocol = data(i).temp_protocol; total_sleep(ii).buff = buffer;
+    total_sleep(ii).name = data(i).ExpGroup; total_sleep(ii).color = grouped(i).color;
+        
     % plot data
     scatter(x,y,SZ,grouped(i).color,'filled')
     plot([ii-buffer,ii+buffer],[y_avg,y_avg],'color',grouped(i).color,'linewidth',LW)
@@ -1736,6 +1740,9 @@ end
 ylabel('Sleep per fly (min)')
 formatFig(fig,blkbgd);
 set(gca,'xcolor',backColor,'XTick',[],'XTickLabel',[])
+
+% save point data:
+save([saveDir expGroup ' total sleep.mat'],'total_sleep');
 
 save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
 save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
