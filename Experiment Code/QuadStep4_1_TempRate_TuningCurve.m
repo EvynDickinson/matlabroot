@@ -53,16 +53,17 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         for i = 1:num.exp
             % get field list for loading data: 
             dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-
-            try data(i) = dummy;
-            catch % TODO -- better automate search for missing fields and options
-            % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-                if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
                    dummy.hold_exp = false; % account for new data structures
                    dummy.temp_protocol = dummy.T.TempProtocol{1};
-                end
-                data(i) = dummy;
-            end
+             end
+            data(i) = dummy;                
+            % try data(i) = dummy;
+            % catch % TODO -- better automate search for missing fields and options
+            % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+            % 
+            %     data(i) = dummy;
+            % end
         end
 
         clear list_dirs expIdx dirIdx
@@ -245,6 +246,9 @@ switch expGroup
         colors = {'dodgerblue','gold','red'};
     case 'Berlin S LRR temp shift'
         expOrder = [1,2,3]; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
+    case 'Berlin S LRR TempShift caviar'
+        expOrder = 1:3;
         colors = {'dodgerblue','gold','red'};
     case 'Berlin LRR tempshift no food'
         expOrder = [3 1 2];
