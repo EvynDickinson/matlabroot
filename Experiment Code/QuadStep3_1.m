@@ -1,11 +1,12 @@
 
 %    GroupDataGUI_v2
 
+% TODO 1/31: add 'update structure' option to the thing so we don't have to go
+% through as many loading steps...
+
 %% LOAD: multiple trials that are grouped into a structure
 clear; warning off
-
 run_ans = questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No');
-
 switch run_ans
     case 'Yes'
         % baseFolder = getCloudPath;
@@ -55,6 +56,15 @@ switch run_ans
         figDir = [folder list_dirs{idx} '/'];
         ExpGroup = list_dirs{idx};
         
+        % Does the data grouping already exist?
+        raw_file = [figDir ExpGroup ' raw.mat'];
+        if exist(raw_file,'file') == 2 %file exists
+            oldList =  load(raw_file, 'T');
+            newList = load([figDir 'fileList.mat'],'T');
+            % TODO (1/31) finish the comparison between the files 
+        end
+
+
         % load the directory list:
         load([figDir 'fileList.mat'])
         
@@ -108,7 +118,7 @@ initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'pix2mm'};
 clearvars('-except',initial_vars{:})
 if questdlg('Save loaded data?')
-    save([figDir ExpGroup ' raw'],'-v7.3')
+    save(raw_file,'-v7.3')
 end
 fprintf('Data loaded\n')
 
