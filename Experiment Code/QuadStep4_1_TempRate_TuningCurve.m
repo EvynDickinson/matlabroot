@@ -538,7 +538,7 @@ end
 h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
 %
-legend(dataString,'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize', 5)
+legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
@@ -2581,7 +2581,7 @@ end
 
 %% FIGURE: Nearest neighbor over time and by temp
 clearvars('-except',initial_vars{:})
-[~,backColor] = formattingColors(blkbgd);
+[~,backColor] = formattingColors(blkbgd); 
 
 % ======== TIMECOURSE FIGURE =========
 % set up figure aligments
@@ -2591,7 +2591,7 @@ sb(1).idx = 1:2; %temp timecourse
 sb(2).idx = [4,5,7,8,10,11]; % nearest neighbor
 sb(3).idx = [3,6,9,12]; % nearest neighbor distance by temperature
 LW = 1;
-sSpan = 180;
+sSpan = 180; 
 
 fig = getfig('',true);  hold on
 % TEMP
