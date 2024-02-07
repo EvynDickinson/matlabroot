@@ -46,6 +46,14 @@ switch TempProtocolString
         tempPoints.rates = 0; 
         tempPoints.threshLow = 16;
         tempPoints.threshHigh = 18;
+    case 'Hold15C'
+        tempPoints.hold = [1000 159935];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 14;
+        tempPoints.threshHigh = 16;
     
     % =======================================
     case 'linear_ramp_F_25-17'

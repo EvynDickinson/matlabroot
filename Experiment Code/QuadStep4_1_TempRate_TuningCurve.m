@@ -282,8 +282,8 @@ switch expGroup
         expOrder = [4 3 2 1]; %NF-NT; F-NT; NF-T; F-T
         colors = {'white', 'lightslategray', 'lightpink', 'deeppink'};
     case 'Berlin Temp Holds caviar'
-        expOrder = 1:4;
-        colors = {'Blue', 'Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+        expOrder = 1:5;
+        colors = {'Blue', 'Dodgerblue', 'Cyan', 'lightcyan', 'white'}; %cold to warm
     case 'Berlin Temp Holds no food'
         expOrder = 1:4;
         colors = { 'Blue','Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
@@ -446,7 +446,7 @@ disp('Next')
 clearvars('-except',initial_vars{:})
 plot_err = true;
 
-autoLim = false;
+autoLim = true;
 % Y limit ranges
 speed_lim = [0,10]; %speed
 dist_lim = [5, 30]; %distance
@@ -546,7 +546,7 @@ save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = false;
+autoLim = true;
 % Y limit ranges
 dist_lim = [5,35];       %distance
 dt_lim = [10,32];        %distance-temp

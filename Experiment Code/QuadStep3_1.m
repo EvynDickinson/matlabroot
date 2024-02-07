@@ -229,7 +229,7 @@ initial_vars{end+1} = 'temp_protocol';
 initial_vars{end+1} = 'hold_exp';
 
 % Check if this is a temp hold control and if so, which active profile to compare it to:
-hold_protocols = {'Hold25C', 'Hold23C', 'Hold20C','Hold17C'};
+hold_protocols = {'Hold25C', 'Hold23C', 'Hold20C','Hold17C','Hold15C'};
 if any(strcmpi(T.TempProtocol{1},hold_protocols))
         hold_exp = true;
         xlFile = [baseFolder(1:end-5) 'Quad Bowl Experiments.xlsx'];
@@ -1404,7 +1404,6 @@ if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
 %% Save Processed Data 
-
 clearvars('-except',vars{:})
 
 if questdlg('Save processed data?')
