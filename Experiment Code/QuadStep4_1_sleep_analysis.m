@@ -1748,11 +1748,19 @@ save_figure(fig,[saveDir expGroup ' total sleep'],'-pdf',true,false);
 save_figure(fig,[saveDir expGroup ' total sleep'],fig_type);
 
 %% FIGURE: Null distribution of fly distances to food:
+% TODO : 
+% 1) normalize the histograms to compare between the null and experiment
+% 2) determine the median distance from the food (if flies were normally
+% distributed across the arena
+
+
 clearvars('-except',initial_vars{:})
+
 % [foreColor,backColor] = formattingColors(blkbgd);
 LW = 3;
 load([baseFolder 'Fundamentals\Distance_to_well_distribution']);
 initial_vars{end+1} = 'null_dist';
+
 
 % PLOT NULL DISTRIBUTION:
 fig_dir = [saveDir 'sleeping histograms overlay\'];

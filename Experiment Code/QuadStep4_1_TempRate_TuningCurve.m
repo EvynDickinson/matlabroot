@@ -99,7 +99,7 @@ disp(expNames')
 
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
-fig_type = '-pdf';
+fig_type = '-png';
 blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
@@ -296,6 +296,10 @@ switch expGroup
     case 'Berlin S LRR 25-17 no food vs temp holds'
         colors = {'gold','lightcyan', 'dodgerblue'};
         expOrder = 3:-1:1;
+   % ======  arista and antenna experiments ======
+    case 'Berlin F LRR 25-17 antenna arista intact comparisons'
+        expOrder = 1:4; % empty, no antenna, no arista, intact
+        colors = { 'white','lightslategray', 'lightpink', 'deeppink'};
 end
 
 if ~exist('colors','var')
