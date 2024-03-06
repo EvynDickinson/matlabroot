@@ -876,11 +876,16 @@ if blkbgd==true
 else
     s_color = {'dodgerblue','red','black'};
 end
-dispROI = 15;
-duration = ceil(dispROI*f2m);
-x = linspace(0,dispROI,duration+1);
-LW = 1.5;
+
 for i = 1:num.exp
+    dispROI = 15;
+    if strcmpi(data(i).temp_protocol,'linear_ramp_XF_25-17') %shorter than 15mins
+        dispROI = 7.5;
+    end
+    duration = ceil(dispROI*f2m);
+    x = linspace(0,dispROI,duration+1);
+    LW = 1.5;
+
     fig = getfig('',true,[428 832]);
     hold on
     for ss = 1:length(sections)
@@ -907,7 +912,7 @@ for i = 1:num.exp
 end
 
 % Select duration of time-since-event to plot
-durList = {'5','10','15','20','30','50','all','other'};
+durList = {'all','5','10','15','20','30','50','other'};
 selIdx = listdlg('ListString', durList,'PromptString','Display duration (min)?','ListSize',[150,150]);
 if isempty(selIdx); return; end
 
