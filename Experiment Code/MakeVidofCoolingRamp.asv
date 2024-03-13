@@ -3,9 +3,11 @@
 clear
 close all
 
-% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+load('G:\My Drive\Jeanne Lab\DATA\03.08.2024\Arena A\C2_F_LRR_25-17_caviarA timecourse data.mat'); %arena A fast ramp
 
-load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat'); %ramp 2, Fast, Arena B
+% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat'); %arena C, slow, ramp 2?
+
+% load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat'); %ramp 2, Fast, Arena B
 
 
 T = data.T;
@@ -31,8 +33,8 @@ tempPoints = getTempTurnPoints(expData.parameters.protocol);
 rampDurations = [(tempPoints.down(:,1))/180, (tempPoints.up(:,2))/180]; %in minutes
 
 % parameters
-ramp = 2;
-buffer = 20; % how many minutes before the start of the ramp do we want to use?
+ramp = 3;
+buffer = 15; % how many minutes before the start of the ramp do we want to use?
 x_speed = 300; % how many times faster than the fps to write the video (e.g. 20x)
 
 
@@ -61,8 +63,8 @@ temp_limits = [floor(min(total_temp)),ceil(max(total_temp))];
 disp(datetime)
 baseFolder = getCloudPath;
 vidDir = [baseFolder expData.parameters.date '/' expName '_'];
-dataDir = [baseFolder 'Manual Tracking\FlyRampVideos\'];
-vidName = [dataDir expData.parameters.date ' ' expName ' fly movement.avi'];
+dataDir = [baseFolder 'FlyRampVideos\'];
+vidName = [dataDir expData.parameters.date ' ' expName ' ' data.name  ' fly movement .avi'];
 
 % Set axis limits for the selected arena
 x = data.centre(1);
@@ -146,9 +148,14 @@ subplot(r,c,sb(1).idx)
     plot(T.time,T.temperature,'color','w', 'LineWidth',2)
     ylabel('temp (\circC)')
 subplot(r,c,sb(2).idx)
-    plot(T.time,T.dist2food,'color','w', 'LineWidth',1)
+
+    plot(T.time,T.dist2wells(:,1),'color','w', 'LineWidth',1)
+    % plot(T.time,T.dist2food,'color','w', 'LineWidth',1)
+
     ylabel('proximity to food (mm)')
     xlabel('time (min)')
+    set(gca, 'ydir', 'reverse')
+    % h_line(18.1,'grey',':',1) %36.2
 formatFig(fig,true,[r,c], sb);
 
 % plot the video range
@@ -157,8 +164,10 @@ y = rangeLine(fig,0);
 timeROI = [T.time(startVid.loc), T.time(endVid.loc)];
 plot(timeROI, [y,y], 'color','y')
 
+
+
 % Save figure
-save_figure(fig, [dataDir, ])
+save_figure(fig, [dataDir, expData.parameters.date ' ' expName ' distance during video'],'-png')
 
 
 

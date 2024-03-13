@@ -165,7 +165,7 @@ for arena = 1:4
     A = [A,wellLabels];
 end
 wellLabels = array2table(A,"VariableNames",["Arena A","Arena B","Arena C","Arena D"]);
-disp(wellLabels)
+disp(wellLabels) 
 
 % Visual check of alignment, ID, and well contents
 fig = figure; 

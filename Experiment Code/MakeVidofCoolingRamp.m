@@ -3,40 +3,24 @@
 clear
 close all
 
-load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat'); %arena C, slow, ramp 2?
+load('G:\My Drive\Jeanne Lab\DATA\03.08.2024\Arena C\C2_F_LRR_25-17_caviarC timecourse data.mat'); %arena A fast ramp
 
+% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat'); %arena C, slow, ramp 2?
 % load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat'); %ramp 2, Fast, Arena B
-
-
-T = data.T;
-
-tempPoints = getTempTurnPoints(expData.parameters.protocol);
-
-% % ramp timing for this experiment
-% tempPoints.hold = [1058 10917;...
-%                33841 48388;...
-%                71281 85553;...
-%                108700 123235;...
-%                145828 159935];
-% tempPoints.down = [10918 22513;...
-%                48389 59742;...
-%                85554 97281;...
-%                123236 134476];
-% tempPoints.up =   [22514 33840;...
-%                59743 71280;...
-%                97282 108699;...
-%                134477 145827];
-
-% Get timing starts for ramp
-rampDurations = [(tempPoints.down(:,1))/180, (tempPoints.up(:,2))/180]; %in minutes
 
 % parameters
 ramp = 2;
-buffer = 20; % how many minutes before the start of the ramp do we want to use?
+buffer = 15; % how many minutes before the start of the ramp do we want to use?
 x_speed = 300; % how many times faster than the fps to write the video (e.g. 20x)
 
 
-% which videos do we need to use?
+% Get timing starts for ramp
+T = data.T;
+tempPoints = getTempTurnPoints(expData.parameters.protocol);
+rampDurations = [(tempPoints.down(:,1))/180, (tempPoints.up(:,2))/180]; %in minutes
+
+
+% find the videos that are required to cover the selected ramps
 startVid.loc = tempPoints.down(ramp,1)-(buffer*180);
 startVid.num = T.vidNums(startVid.loc);
 startVid.frame = T.vidFrame(startVid.loc);
@@ -61,8 +45,8 @@ temp_limits = [floor(min(total_temp)),ceil(max(total_temp))];
 disp(datetime)
 baseFolder = getCloudPath;
 vidDir = [baseFolder expData.parameters.date '/' expName '_'];
-dataDir = [baseFolder 'Manual Tracking\FlyRampVideos\'];
-vidName = [dataDir expData.parameters.date ' ' expName ' fly movement.avi'];
+dataDir = [baseFolder 'FlyRampVideos\'];
+vidName = [dataDir expData.parameters.date ' ' expName ' ' data.name  ' Ramp ' num2str(ramp) '.avi'];
 
 % Set axis limits for the selected arena
 x = data.centre(1);
@@ -163,9 +147,8 @@ timeROI = [T.time(startVid.loc), T.time(endVid.loc)];
 plot(timeROI, [y,y], 'color','y')
 
 
-
 % Save figure
-save_figure(fig, [dataDir, expData.parameters.date ' ' expName ' distance during video'],'-png')
+save_figure(fig, [vidName(1:end-4) '.png'],'-png',true,true)
 
 
 
