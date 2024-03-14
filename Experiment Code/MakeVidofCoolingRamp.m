@@ -2,15 +2,15 @@
 
 clear
 close all
-
-load('G:\My Drive\Jeanne Lab\DATA\03.08.2024\Arena C\C2_F_LRR_25-17_caviarC timecourse data.mat'); %arena A fast ramp
+data_path = "G:\My Drive\Jeanne Lab\DATA\03.13.2024\Arena B\C2_F_LRR_25-17B timecourse data.mat";
+load(data_path);
 
 % load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat'); %arena C, slow, ramp 2?
 % load('G:\My Drive\Jeanne Lab\DATA\02.01.2023\Arena B\linear_recovery_F_caviarB timecourse data.mat'); %ramp 2, Fast, Arena B
 
 % parameters
 ramp = 2;
-buffer = 15; % how many minutes before the start of the ramp do we want to use?
+buffer = 10; % how many minutes before the start of the ramp do we want to use?
 x_speed = 300; % how many times faster than the fps to write the video (e.g. 20x)
 
 

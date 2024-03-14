@@ -17,7 +17,7 @@ save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', 
 %% get base folder pathway
 % baseFolder = getCloudPath;
 let = {'A' 'B' 'C' 'D'};
-for i = 1:4
+for i = 1:2
     parameters.(['Arena' let{i}]).well_4 = 'Caviar';
     % parameters.(['Arena' let{i}]).well_2 = 'German';
 end
@@ -1445,10 +1445,10 @@ for i = 1:4
 end
 
 %Readd the appropriate food labels:
-parameters.ArenaA.well_2 = 'Caviar';
-parameters.ArenaB.well_4 = 'Caviar';
-parameters.ArenaC.well_2 = 'Caviar';
-parameters.ArenaD.well_4 = 'Caviar';
+parameters.ArenaA.well_3 = '0.5M_glucose_15%ACV';
+parameters.ArenaB.well_3 = '0.5M_glucose_15%ACV';
+parameters.ArenaC.well_1 = '0.5M_glucose_5%ACV';
+parameters.ArenaD.well_1 = '0.5M_glucose_5%ACV';
 
 % Clear extra variables:
 clear i ii ans
