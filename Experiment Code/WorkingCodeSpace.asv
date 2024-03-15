@@ -1544,7 +1544,7 @@ h = drawpoint('Color','r', 'Selectable', true);
 % Uncomment the following line to see how it works
 % h.PositionConstraintFcn = makeConstrainToRectFcn('impoint',get(gca,'XLim'),get(gca,'YLim'));
 
-% ------------------------------------------------------------- 
+% -------------------------------------------------------------
 % Initial point coordinates
 x = 5;
 y = 5;

@@ -10,7 +10,7 @@ monitorPositions = get(0, 'MonitorPositions');
 if size(monitorPositions, 1) < 2
     single_monitor = true;
 else
-    single_monitor = false;
+    sin
     idx = find(monitorPositions(:,1)<0);
     secondscreen_pos = monitorPositions(idx(1),1:2)+1;
 end
