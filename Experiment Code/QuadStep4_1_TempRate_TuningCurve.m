@@ -160,7 +160,7 @@ switch expGroup
         expOrder = [1,2];
         colors = {'white', 'gold'};
     case 'Berlin S LRR 25-17 caviar vs no food'
-        expOrder = [2,];
+        expOrder = [2,1];
         colors = {'white', 'gold'};
     case 'Berlin S LRR 25-17 food vs no food'
         expOrder = [2,1];
@@ -326,8 +326,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
         temp = autoCat(temp,data(i).data(trial).occupancy.temp,false,true);
         speed = autoCat(speed,data(i).data(trial).speed.avg,false,true);
     % movement = autoCat(speed,data(i).data(trial).speed.avg,false,true);
-        distance = autoCat(distance,data(i).data(trial).dist2wells(:,data(i).T.foodLoc(trial)),...
-                   false,true);
+        distance = autoCat(distance,data(i).data(trial).dist2wells(:,data(i).T.foodLoc(trial)),false,true);
     end
     grouped(i).time = mean(time,2,'omitnan');
     grouped(i).temp = mean(temp,2,'omitnan');

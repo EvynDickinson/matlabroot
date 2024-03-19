@@ -12,7 +12,7 @@ if size(monitorPositions, 1) < 2
 else
     single_monitor = false;
     idx = find(monitorPositions(:,1)<0);
-    secondscreen_pos = monitorPositions(idx(1),1:2)+1;
+    secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
 end
 
 

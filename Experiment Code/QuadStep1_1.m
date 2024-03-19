@@ -224,30 +224,26 @@ if any(isnan(nflies))
     % manual count of flies
     fprintf('\nCount the number of flies in the picture by clicking them\n then hit ENTER\n')
     T = true;
-   while T % get the number of flies in the arena
-       % find the X & Y location for SLEAP tracked points for this video:
-        headData = squeeze(data(1).tracks(:,1,:,:)); %this is ALL points in all arenas for each frame
-        x_loc = squeeze(headData(:,1,:));
-        y_loc = squeeze(headData(:,2,:));
-        calc_flies = nan(1,4);
-        for arena = 1:4
-                centre = arenaData(arena).centre;
-                % find points within each arena sphere
-                fly_loc = (((x_loc-centre(1)).^2 + (y_loc-centre(2)).^2).^0.5)<=r;
-                calc_flies(arena) = median(sum(fly_loc,2));
-                %save the locations for the randomized frame selection
-                X = x_loc(ii,:);   Y = y_loc(ii,:); LOC = fly_loc(ii,:);
-                X(LOC)
-                sum(LOC,2)
-        end 
+   while T % get the number of flies in the arena %TODO: work here for an automated fly count
+       % % find the X & Y location for SLEAP tracked points for this video:
+       %  headData = squeeze(data(1).tracks(:,1,:,:)); %this is ALL points in all arenas for each frame
+       %  x_loc = squeeze(headData(:,1,:));
+       %  y_loc = squeeze(headData(:,2,:));
+       %  calc_flies = nan(1,4);
+       %  for arena = 1:4
+       %          centre = arenaData(arena).centre;
+       %          % find points within each arena sphere
+       %          fly_loc = (((x_loc-centre(1)).^2 + (y_loc-centre(2)).^2).^0.5)<=r;
+       %          calc_flies(arena) = median(sum(fly_loc,2));
+       %          %save the locations for the randomized frame selection
+       %          X = x_loc(ii,:);   Y = y_loc(ii,:); LOC = fly_loc(ii,:);
+       %          X(LOC)
+       %          sum(LOC,2)
+       %  end 
         
         
         for jj = 1:nframes
             demoImg = rgb2gray(read(movieInfo,ii(jj))); %display the arena frame image
-            % find the 
-            
-
-
             PT(jj).frame = readPoints(demoImg);
             for arena = 1:4
                 centre = arenaData(arena).centre;
