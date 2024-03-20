@@ -1,5 +1,5 @@
 
-file_path = 'G:\My Drive\Jeanne Lab\DATA\02.29.2024\Speed_test_2.csv';
+file_path = 'G:\My Drive\Jeanne Lab\DATA\02.29.2024\Speed_test_4.csv';
 tempLog = readmatrix(file_path);
 
 time = tempLog(:,1);

@@ -1,0 +1,85 @@
+
+
+
+scores = [];
+%%
+
+year = scores(:,1);
+principles = scores(:,2);
+foundations_1 = scores(:,3);
+foundations_2 = scores(:,4);
+
+
+%% Plot the data
+buffer = 0.3;
+r = 1;
+c = 3;
+sz = 5;
+kolor = Color('red');
+kolor_2 = Color('white');
+
+fig = getfig('',1);
+hold on
+for i = 1:6 % student year
+    loc = year==i;
+    x = linspace(i-buffer,buffer+i,sum(loc));
+    % principles
+    subplot(r,c,1);hold on
+    y = principles(loc);
+    avg = mean(y,'omitnan');
+    err = std(y,'omitnan')./length(y);
+    bar(i,avg,1,'FaceColor',Color('grey'),'FaceAlpha',0.5)
+    errorbar(i,avg,err,"LineStyle","none",'Color',kolor_2)
+    scatter(x,y,sz,kolor,'filled')
+    
+    % foundations 1
+    subplot(r,c,2);hold on
+    y = foundations_1(loc);
+    avg = mean(y,'omitnan');
+    err = std(y,'omitnan')./length(y);
+    bar(i,avg,1,'FaceColor',Color('grey'),'FaceAlpha',0.5)
+    errorbar(i,avg,err,"LineStyle","none",'Color',kolor_2)
+    scatter(x,y,sz,kolor,'filled')
+    % foundations 2
+    subplot(r,c,3);hold on
+    y = foundations_2(loc);
+    avg = mean(y,'omitnan');
+    err = std(y,'omitnan')./length(y);
+    bar(i,avg,1,'FaceColor',Color('grey'),'FaceAlpha',0.5)
+    errorbar(i,avg,err,"LineStyle","none",'Color',kolor_2)
+    scatter(x,y,sz,kolor,'filled')
+end
+
+% principles
+subplot(r,c,1);hold on
+    set(gca, 'XTick',1:6)
+    xlabel('Student Year')
+    set(gca,'ytick',1:5,'YTickLabel',{'Strongly Agree', 'Agree', 'Not sure', 'Disagree', 'Strongly Disagree'})
+    ylim([0.75,5.25])
+    title('Principles')
+% foundations 1
+subplot(r,c,2);hold on
+    set(gca, 'XTick',1:6)
+    xlabel('Student Year')
+    % set(gca,'ytick',1:5,'YTickLabel',{'Strongly Agree', 'Agree', 'Not sure', 'Disagree', 'Strongly Disagree'})
+    set(gca,'ycolor', 'k','YTickLabel',[])
+    ylim([0.75,5.25])
+    title('Foundations I')
+% foundations 2
+subplot(r,c,3);hold on
+    set(gca, 'XTick',1:6)
+    xlabel('Student Year')
+    % set(gca,'ytick',1:5,'YTickLabel',{'Strongly Agree', 'Agree', 'Not sure', 'Disagree', 'Strongly Disagree'})
+    set(gca,'ycolor', 'k','YTickLabel',[])
+    ylim([0.75,5.25])
+    title('Foundations II')
+
+formatFig(fig,true,[r,c]);
+
+save_figure(fig, 'G:\My Drive\Grad School\Curriculum Committee\Score Summary.png','-png');
+
+
+
+
+
+
