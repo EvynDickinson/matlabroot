@@ -34,13 +34,15 @@ for ii = 1:length(fileIdx)
     videoStartTime = videoList(1).date(end-7:end);
     % write the time into the excel sheet
     XLrow = rownums(fileIdx(ii));
-    try xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
-         xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
+    try writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+        % xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+        writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
+         % xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
     catch
         h = warndlg('Close Experiment Summary excel file and then close this warning box');
         uiwait(h)
-        xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
-        xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
+        writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+        writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
     end
 
     % --------------  Proccess data for files not yet run --------------
@@ -55,7 +57,8 @@ for ii = 1:length(fileIdx)
             XLrow = rownums(fileIdx(ii));
             % write processed 'Y' into the excel sheet
             try
-                xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+                writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)])
+                % xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
             catch
                 h = warndlg('Close Experiment Summary excel file and then close this warning box');
                 uiwait(h)

@@ -54,7 +54,18 @@ switch TempProtocolString
         tempPoints.rates = 0; 
         tempPoints.threshLow = 14;
         tempPoints.threshHigh = 16;
-    
+    % =======================================
+    case 'Large_temp_sweep_15_35'
+        tempPoints.hold = [];
+        tempPoints.up =   [10912, 25191;...
+                           54064, 82722;...
+                           111523, 125430];
+        tempPoints.down =   [25192, 54063;...
+                            82723, 111522];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = [-0.125, 0.125]; 
+        tempPoints.threshLow = 14.5;
+        tempPoints.threshHigh = 35.5;
     % =======================================
     case 'linear_ramp_XF_25-17'
         tempPoints.hold = [1350, 18079; ...

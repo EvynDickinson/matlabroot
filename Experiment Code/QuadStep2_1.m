@@ -34,13 +34,15 @@ for ii = 1:length(fileIdx)
     videoStartTime = videoList(1).date(end-7:end);
     % write the time into the excel sheet
     XLrow = rownums(fileIdx(ii));
-    try xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
-         xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
+    try writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+        % xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+        writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
+         % xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
     catch
         h = warndlg('Close Experiment Summary excel file and then close this warning box');
         uiwait(h)
-        xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
-        xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
+        writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+        writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
     end
 
     % --------------  Proccess data for files not yet run --------------
@@ -55,11 +57,13 @@ for ii = 1:length(fileIdx)
             XLrow = rownums(fileIdx(ii));
             % write processed 'Y' into the excel sheet
             try
-                xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+                writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
+                % xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
             catch
                 h = warndlg('Close Experiment Summary excel file and then close this warning box');
                 uiwait(h)
-                xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+                writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
+                % xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
             end
         end
     end
@@ -67,35 +71,8 @@ for ii = 1:length(fileIdx)
 disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 
-% % -------- Copy data over to back-up drive --------
-% % Check if on the correct computer to run the transfer 
-% if strcmp(getenv('COMPUTERNAME'),'ACADIA')
-%     transfer_dates = unique(List.date);
-%     for ii = 1:length(transfer_dates)
-%         from_folder = [baseFolder transfer_dates{ii} '\'];
-%         to_folder = ['S:\Evyn\DATA\' transfer_dates{ii} '\'];
-%         disp(['Backing up  ' transfer_dates{ii}])
-%         % Move folders to google drive:
-%         copyfile(from_folder, to_folder)
-%     end
-% else % make note if not transfered....
-%     disp('Not connected to Salvard')
-%     % write processed 'NT' into the excel sheet (not transfered)
-%     for ii = 1:length(fileIdx)
-%         XLrow = rownums(fileIdx(ii));
-%         try
-%             xlswrite(XL, {'NT'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
-%         catch
-%             h = warndlg('Close Experiment Summary excel file and then close this warning box');
-%             uiwait(h)
-%             xlswrite(XL, {'NT'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
-%         end
-%     end
-% end
 
 disp('Done with full set')
-
-% return
 
 
 %% Run SPEED ANALYSIS

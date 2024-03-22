@@ -91,7 +91,7 @@ demoImg = rgb2gray(read(movieInfo,1));
 %give well order hint:
 demo_well_label = [];
 for i = 1:16; demo_well_label{i} = num2str(i); end
-demo_well_loc = load([baseFolder(1:end-6) '\demo_well_loc']);
+demo_well_loc = load([baseFolder(1:end-6) '/demo_well_loc']);
 RGB = insertText(demoImg,demo_well_loc.demo_well_loc,demo_well_label,'FontSize', 15);
 
 radii = 165; %well surround regions
@@ -295,13 +295,13 @@ if any(isnan(nflies))
     % write number of flies into the excel sheet
     try
         for arena = 1:4
-            xlswrite(xlFile, {num2str(nflies(arena))}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow(arena))]);
+            writematrix(nflies(arena),xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))]);
         end
     catch
         h = warndlg('Close Experiment Summary excel file and then close this warning box');
         uiwait(h)
         for arena = 1:4
-            xlswrite(xlFile, {num2str(nflies(arena))}, 'Exp List', [Alphabet(Excel.numflies) num2str(XLrow(arena))]);
+            writematrix(nflies(arena),xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))]);
         end
     end
 end

@@ -63,7 +63,7 @@ for vid = 1:nvids
     
     % SEGMENT TRACKS INTO BETWEEN NAN SECTIONS
     % pull image
-    movieInfo = VideoReader([figDir,'\',expName,'_',num2str(vid),'.avi']); 
+    movieInfo = VideoReader([figDir,'/',expName,'_',num2str(vid),'.avi']); 
 %     img = read(movieInfo,1);
     nframes = movieInfo.NumFrames;
     
@@ -382,7 +382,7 @@ if essentialfigs == false
             subplot(row, col, sb(2).idx)
             set(gca,'XColor','k','TickDir','out')
         
-        save_figure(fig, [figDir 'Arena ' Alphabet(arena) '\' expName ' walking vs resting fly numbers' ], '-png',autoSave);
+        save_figure(fig, [figDir 'Arena ' Alphabet(arena) '/' expName ' walking vs resting fly numbers' ], '-png',autoSave);
     
     end
     
@@ -392,14 +392,14 @@ end
 %% SAVE: data stored in each subfolder for arenas
 
 % Save group data into combo folder: 
-save([figDir 'analysis\' expName ' speed data.mat'],'speed', 'trackROI');
+save([figDir 'analysis/' expName ' speed data.mat'],'speed', 'trackROI');
 
 % Save into each group folder:
 SPEED = speed;
 for arena = 1:nArenas
     speed = SPEED(arena);
     speedTracks = trackROI(:,arena);
-    save([figDir 'Arena ' Alphabet(arena) '\' expName ' speed data.mat'],'speed', 'speedTracks');
+    save([figDir 'Arena ' Alphabet(arena) '/' expName ' speed data.mat'],'speed', 'speedTracks');
 end
 
 results = 'Saved Data';

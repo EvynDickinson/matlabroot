@@ -1574,9 +1574,28 @@ function stopDragFcn(fig, event)
 end
 
 
+%% Mac testing
+fig = open('/Users/evyndickinson/Desktop/untitled folder/demofig.fig');
+
+save_loc = '/Users/evyndickinson/Desktop/untitled folder/demofig';
+export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 
 
+%% Write to excel replacement functions
 
+
+xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+
+writematrix(M,'M.xls','Sheet',2,'Range','A3:E8')
+
+testFile = '/Users/evyndickinson/Desktop/Quad Bowl Experiments.xlsx';
+
+writematrix(nflies(arena),testFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))])
+
+
+videoStartTime = 
+
+writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
 
 
 
