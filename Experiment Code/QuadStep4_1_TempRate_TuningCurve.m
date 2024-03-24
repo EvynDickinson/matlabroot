@@ -185,6 +185,9 @@ switch expGroup
         colors = {'slategrey', 'white'};
 
 % ---- FOOD GROUP COMPARISIONS ----
+    case 'Berlin F LRR 25-17 ACV'
+        expOrder = 1:num.exp;
+        colors = {'White','magenta','dodgerblue','Orange','DarkOrchid'};
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
         colors = {'gold','DarkOrchid'};

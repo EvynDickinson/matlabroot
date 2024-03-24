@@ -326,6 +326,8 @@ for i = 1:nMax
 
 end
 
+%% FIGURE: TODO histogram of fly count overlay -- before and after screening
+
 %% FIGURE & STATS: cumulative hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
 LW = 0.75;
