@@ -174,6 +174,9 @@ switch expGroup
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
+    case 'Berlin LTS 15-35 caviar vs empty'
+        expOrder = [2,1];
+        colors = {'white','DarkOrchid'};
     case 'CantonS LRR food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};

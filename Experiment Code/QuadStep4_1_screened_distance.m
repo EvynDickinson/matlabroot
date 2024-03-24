@@ -86,14 +86,20 @@ for i = 1:num.exp
             % take avg distance for each binned temp & rate
             loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
             % distances
-            grouped(i).screen_d.(g_name)(temp,1) = mean(mean(grouped(i).screen_d.all(loc,:),1,'omitnan'),'omitnan'); %avg 
-            grouped(i).screen_d.(g_name)(temp,2) = std(mean(grouped(i).screen_d.all(loc,:),1,'omitnan'),'omitnan'); %err 
+            grouped(i).screen_d.(g_name).avg(temp,1) = mean(mean(grouped(i).screen_d.all(loc,:),1,'omitnan'),'omitnan'); %avg 
+            grouped(i).screen_d.(g_name).avg(temp,2) = std(mean(grouped(i).screen_d.all(loc,:),1,'omitnan'),'omitnan'); %err 
+            grouped(i).screen_d.(g_name).all(temp,:) = mean(grouped(i).screen_d.all(loc,:),1,'omitnan');
+ 
             % full fly count
-            grouped(i).screen_d.FC_all.(g_name)(temp,1) = mean(mean(grouped(i).screen_d.FC_all.all(loc,:),1,'omitnan'),'omitnan'); %avg 
-            grouped(i).screen_d.FC_all.(g_name)(temp,2) = std(mean(grouped(i).screen_d.FC_all.all(loc,:),1,'omitnan'),'omitnan'); %err 
+            grouped(i).screen_d.FC_all.(g_name).avg(temp,1) = mean(mean(grouped(i).screen_d.FC_all.all(loc,:),1,'omitnan'),'omitnan'); %avg 
+            grouped(i).screen_d.FC_all.(g_name).avg(temp,2) = std(mean(grouped(i).screen_d.FC_all.all(loc,:),1,'omitnan'),'omitnan'); %err 
+            grouped(i).screen_d.FC_all.(g_name).all(temp,:) = mean(grouped(i).screen_d.FC_all.all(loc,:),1,'omitnan');
+
             % screened fly count
-            grouped(i).screen_d.FC_screen.(g_name)(temp,1) = mean(mean(grouped(i).screen_d.FC_screen.all(loc,:),1,'omitnan'),'omitnan'); %avg 
-            grouped(i).screen_d.FC_screen.(g_name)(temp,2) = std(mean(grouped(i).screen_d.FC_screen.all(loc,:),1,'omitnan'),'omitnan'); %err 
+            grouped(i).screen_d.FC_screen.(g_name).avg(temp,1) = mean(mean(grouped(i).screen_d.FC_screen.all(loc,:),1,'omitnan'),'omitnan'); %avg 
+            grouped(i).screen_d.FC_screen.(g_name).avg(temp,2) = std(mean(grouped(i).screen_d.FC_screen.all(loc,:),1,'omitnan'),'omitnan'); %err 
+            grouped(i).screen_d.FC_screen.(g_name).all(temp,:) = mean(grouped(i).screen_d.FC_screen.all(loc,:),1,'omitnan');
+
         end
         % Clustered by temp (regardless of heating/cooling)
         loc = tempIdx==temp; %temp align only
@@ -319,6 +325,196 @@ for i = 1:nMax
     save_figure(fig,[comp_saveDir grouped(i).name  ' flycount over time summary'],fig_type);
 
 end
+
+%% FIGURE & STATS: cumulative hysteresis for each genotype / trial
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 50;
+r = 1; %rows
+c = 3; %columns
+plot_err = false;
+plotSig = true; %plot significance stars
+[foreColor,backColor] = formattingColors(blkbgd);
+kolor_1 = Color('white'); % full data
+kolor_2 = Color('dodgerblue'); % screened data
+
+for i = 1:num.exp
+
+    % FIGURE:
+    fig = getfig('',true);
+    
+    % Hystersis
+    subplot(r,c,1)
+        hold on
+        % ----- unscreened -------
+        %increasing
+        x = grouped(i).increasing.temps;
+        y = grouped(i).increasing.avg;
+        y_err = grouped(i).increasing.err;
+        loc = isnan(y) | isnan(y_err);% remove nans
+        y(loc) = []; x(loc) = []; y_err(loc) = [];
+        plot_error_fills(plot_err, x, y, y_err, kolor_1,  fig_type, 0.2);
+        plot(x,y,'LineWidth',LW+0.5,'Color',kolor_1,'linestyle','-')
+        %decreasing
+        x = grouped(i).decreasing.temps;
+        y = grouped(i).decreasing.avg;
+        y_err = grouped(i).decreasing.err;
+        loc = isnan(y) | isnan(y_err);% remove nans
+        y(loc) = []; x(loc) = []; y_err(loc) = [];
+        plot_error_fills(plot_err, x, y, y_err, kolor_1,  fig_type, 0.2);
+        plot(x,y,'LineWidth',LW+.5,'Color',kolor_1,'linestyle','--','HandleVisibility','off');
+        % ----- screened -------
+        %increasing
+        x = grouped(i).screen_d.temps;
+        y = grouped(i).screen_d.increasing.avg(:,1);
+        y_err = grouped(i).screen_d.increasing.avg(:,2);
+        loc = isnan(y) | isnan(y_err);% remove nans
+        y(loc) = []; x(loc) = []; y_err(loc) = [];
+        plot_error_fills(plot_err, x, y, y_err, kolor_2,  fig_type, 0.2);
+        plot(x,y,'LineWidth',LW+0.5,'Color',kolor_2,'linestyle','-')
+        %decreasing
+        x = grouped(i).screen_d.temps;
+        y = grouped(i).screen_d.decreasing.avg(:,1);
+        y_err = grouped(i).screen_d.decreasing.avg(:,2);
+        loc = isnan(y) | isnan(y_err);% remove nans
+        y(loc) = []; x(loc) = []; y_err(loc) = [];
+        plot_error_fills(plot_err, x, y, y_err, kolor_2,  fig_type, 0.2);
+        plot(x,y,'LineWidth',LW+.5,'Color',kolor_2,'linestyle','--','HandleVisibility','off');
+
+        ylabel('proximity to food (mm)')
+        xlabel('temp (\circC)')
+        set(gca, 'ydir', 'reverse')
+
+    % Pull difference in distance heating-cooling
+    subplot(r,c,2)
+        hold on
+        
+        x = repmat(grouped(i).decreasing.temps,[1,num.trial(i)]);
+        y = grouped(i).decreasing.all-grouped(i).increasing.all;
+        plot(mean(x,2),mean(y,2),'color',kolor_1,'LineWidth',2)
+        
+        x = repmat(grouped(i).screen_d.temps',[1,num.trial(i)]);
+        y = grouped(i).screen_d.decreasing.all - grouped(i).screen_d.increasing.all;
+        plot(mean(x,2),mean(y,2),'color',kolor_2,'LineWidth',2)
+
+        h_line(0,foreColor,':',1)
+        xlabel('temp (\circC)')
+        ylabel('distance difference (mm)')
+
+% Cumulative difference in proximity
+    subplot(r,c,3)
+        hold on
+        ii = 1;
+        y = grouped(i).decreasing.all-grouped(i).increasing.all;
+        plotY = sum(y,1,'omitnan');
+        x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+        scatter(x,plotY,SZ,kolor_1,"filled","o")
+        plot([ii-buff,ii+buff],[mean(plotY),mean(plotY)],'color',foreColor,'LineWidth',2)
+        
+        ii = 2;
+        y = grouped(i).screen_d.decreasing.all - grouped(i).screen_d.increasing.all;
+        plotY = sum(y,1,'omitnan');
+        x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+        scatter(x,plotY,SZ,kolor_2,"filled","o")
+        plot([ii-buff,ii+buff],[mean(plotY),mean(plotY)],'color',foreColor,'LineWidth',2)
+
+        xlim([0.5,num.exp+0.5])
+        h_line(0,foreColor,':',1)
+        ylabel('cumulative difference (mm)')
+        
+        formatFig(fig,blkbgd,[r,c]);
+        set(gca,'XTick',[],'xcolor',backColor)
+        xlabel('Group','color',foreColor)
+
+% % STATS: are the means of any groups different from zero?
+% [p, mlt, id] = deal([]);
+% for ii = 1:num.exp
+%     i = expOrder(ii);
+%     y = grouped(i).decreasing.all-grouped(i).increasing.all;
+%     plotY = sum(y,1,'omitnan');
+%     [~,p(ii)] = ttest(plotY);
+%     group_name{ii} = expNames{i};
+%     %multicompare
+%     mlt = autoCat(mlt, plotY',false);
+%     id = autoCat(id,i*ones(length(plotY),1),false);
+% end
+% %Bonferonni correction:
+% alpha = 0.05;
+% m = num.exp;
+% p_limit = alpha/m;
+% h = p<=p_limit;
+% stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+% disp(stats_tbl)
+% 
+% % add significance stars to the figure:
+% if plotSig
+%     y_pos = rangeLine(fig,1);
+%     subplot(r,c,3); hold on
+%     for ii = 1:num.exp
+%         if h(ii)
+%             scatter(ii,y_pos,100,foreColor,'*')
+%         end
+%     end
+% end
+% 
+% % Multicompare across the groups for significance
+% % STATS:
+% % TODO -- update all other stats to reflect this vv
+% % determine which groups differ from each other
+% [~,~,stats] = anova1(mlt(:),id(:),'off');
+% alpha = 0.05; %significance level
+% [c,~,~,~] = multcompare(stats,alpha,'off');
+% % bonferonni multiple comparisons correction
+% m = size(c,1); %number of hypotheses
+% sigThreshold = alpha/m;
+% %find p-values that fall under the threshold
+% significantHypotheses = c(:,6)<=sigThreshold;
+% fprintf('\n\nPosition hysteresis cross group comparison statistics\n\n')
+% [Group1,Group2,P_Value] = deal([]);
+% idx = 0;
+% for i = 1:length(significantHypotheses)
+%     if significantHypotheses(i)
+%         idx = idx+1;
+%         Group1{idx,1} = expNames{c(i,1)};
+%         Group2{idx,1} = expNames{c(i,2)};
+%         P_Value(idx,1) = c(i,6);
+%     end
+% end
+% sig_comp = table(Group1,Group2,P_Value);
+% disp(sig_comp)
+
+% save figure
+    save_figure(fig,[comp_saveDir grouped(i).name  ' hysteresis summary'],fig_type);
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
