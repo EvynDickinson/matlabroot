@@ -203,7 +203,7 @@ if essentialfigs == false
     formatFig(fig,true);
     set(gca, 'XColor', 'k','YColor','k')
     
-    save_figure(fig, [analysisDir expName ' track overlay video' num2str(vid)], '-png', autoSave);
+    save_figure(fig, [analysisDir expName ' track overlay video' num2str(vid)], '-png', autoSave,true,'-r80');
     clearvars('-except',initial_vars{:})
 end
 
@@ -226,7 +226,7 @@ if essentialfigs == false
     xlabel('Video number')
     ylabel('track length (frames)')
     formatFig(fig,true);
-    save_figure(fig, [analysisDir expName ' track length across videos'], '-png', autoSave);
+    save_figure(fig, [analysisDir expName ' track length across videos'], '-png', autoSave,true,'-r80');
     
     clearvars('-except',initial_vars{:})
 end
@@ -307,7 +307,7 @@ fig = figure; set(fig, 'pos', [1941 145 998 601])
     ylabel('speed (mm/s)')
 formatFig(fig, true,[row,col],sb);
 
-save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave);
+save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave,true,'-r80');
 clearvars('-except',initial_vars{:})
 
 %% FIGURE: speed histogram
@@ -346,7 +346,7 @@ if essentialfigs == false
         end
     end
     
-    save_figure(fig, [analysisDir expName ' speed histogram across arenas'], '-png', autoSave);
+    save_figure(fig, [analysisDir expName ' speed histogram across arenas'], '-png', autoSave,true,'-r80');
     clearvars('-except',initial_vars{:})
 end
 
@@ -382,7 +382,7 @@ if essentialfigs == false
             subplot(row, col, sb(2).idx)
             set(gca,'XColor','k','TickDir','out')
         
-        save_figure(fig, [figDir 'Arena ' Alphabet(arena) '/' expName ' walking vs resting fly numbers' ], '-png',autoSave);
+        save_figure(fig, [figDir 'Arena ' Alphabet(arena) '/' expName ' walking vs resting fly numbers' ], '-png',autoSave,true,'-r80');
     
     end
     

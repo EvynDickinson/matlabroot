@@ -1,5 +1,5 @@
 
-function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig)
+function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig,fig_quality)
 % 
 % results = save_figure(fig_handle, figure_name, type, autoSave, closeFig)
 % 
@@ -29,10 +29,13 @@ end
 if nargin<5
     closeFig = true;
 end
+if nargin<6
+    fig_quality = '-r300';
+end
 
 % Save figure:
 if autoSave==true
-    export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', '-r300' , '-painters', '-rgb');
+    export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');
     if closeFig
         close(fig_handle)
     end
@@ -42,7 +45,7 @@ if autoSave==true
 elseif autoSave == false
     switch questdlg('Save Image?', 'Figure', 'Save Figure', 'Close Figure', 'Cancel', 'Save Figure')
         case 'Save Figure'
-            export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', '-r300' , '-painters', '-rgb');
+            export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');
             if closeFig
                 close(fig_handle)
             end

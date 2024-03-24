@@ -108,7 +108,7 @@ for arena = 1:nArenas
             export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
         end
     end  
-    save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' summary figure'], '-png', autoSave,true,'-r80');
+    save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' summary figure'], '-png', autoSave);
 end
 
 clearvars('-except',initial_vars{:})
@@ -496,7 +496,7 @@ for arena = 1:nArenas
             subplot(3,1,3)
             yyaxis left 
             set(gca,'YColor', kolor)
-            save_figure(fig, fig_file, '-png', true,true,'-r80');
+            save_figure(fig, fig_file, '-png', true);
     end
     
     % PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
@@ -531,7 +531,7 @@ for arena = 1:nArenas
             % flip colormap around to make yellow closer to food
             cmap = colormap;
             set(gca, 'colormap', flip(cmap))
-        save_figure(fig, fig_file, '-png', true,true,'-r80');
+        save_figure(fig, fig_file, '-png', true);
     end
     
     % FIGURE: Line plots of each rate comparison 
@@ -603,7 +603,7 @@ for arena = 1:nArenas
         set(gca, 'color', 'k','box', 'off','XColor', 'w', 'YColor',...
                  'w','XTickLabels', TR.temps,...
                  'FontSize', 14)
-        save_figure(fig, fig_file, '-png',true,true,'-r80');
+        save_figure(fig, fig_file, '-png',true);
     end
 
 clearvars('-except',initial_vars{:}) 
@@ -720,7 +720,7 @@ for arena = 1:nArenas
     end
     legend(str,'textcolor','w','box','off','location', 'best')
 
-save_figure(fig,fig_file,'-png',true,true,'-r80');
+save_figure(fig,fig_file,'-png',true);
 end
 clearvars('-except',initial_vars{:}) 
 
