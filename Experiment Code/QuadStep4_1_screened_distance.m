@@ -1,5 +1,5 @@
 
-%% Screen out the area over the food well for comparison of tracking with glare errors
+%% ANALYSIS: Screen out the area over the food well for comparison of tracking with glare errors
 
 % Make folder for saving comparison data:
 comp_saveDir = [ saveDir 'Food screen Comparision\'];
@@ -611,7 +611,6 @@ legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off',
 
 % save figure
 save_figure(fig,[comp_saveDir expGroup ' distance to food over time'],fig_type);
-
 
 
 
