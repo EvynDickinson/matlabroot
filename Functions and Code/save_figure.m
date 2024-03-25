@@ -1,7 +1,7 @@
 
-function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig,fig_quality)
+function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig, fig_quality)
 % 
-% results = save_figure(fig_handle, figure_name, type, autoSave, closeFig)
+% results = save_figure(fig_handle, figure_name, type, autoSave, closeFig, figure_ quality)
 % 
 % Export the input figure to the given location and name
 % with the following settings: 
@@ -13,6 +13,9 @@ function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig
 % 'figure_name' [path and name for saving location of fig]
 % 'type' ['-pdf' or '-png' output type]
 % 'autoSave' [true|false : save fig without user input]
+% 'closeFig' [true|false : close the figure after saving]
+% ''-r300'' pixels per inch figure saving quality -- 80 is a quick save but 300 is
+%             quality and the default]
 %
 % Outputs: 
 % 'results' [logical true|false if figure is saved]

@@ -203,7 +203,7 @@ title({'temperature alignment across experiments';...
       ['N = ' num2str(ntrials)]})
 formatFig(fig, true);
 
-save_figure(fig, [figDir 'temperature alignment'], '-png',0,1,'-r100');
+save_figure(fig, [figDir 'temperature alignment'], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -289,7 +289,7 @@ xlabel('Temp (\circC)')
 title({'Location from food sources by temperature';...
       ['N = ' num2str(ntrials)]})
 formatFig(fig, true);
-save_figure(fig, [figDir ExpGroup ' all temp vs distance' temp_name], '-png',0,1,'-r100');
+save_figure(fig, [figDir ExpGroup ' all temp vs distance' temp_name], '-png');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -524,7 +524,7 @@ ax = gca;
 set(ax, 'FontSize', 18)
 
 if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
-save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace) temp_name], '-png',0,1,'-r150');
+save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace) temp_name], '-png');
 clearvars('-except',initial_vars{:})
 
 % 
@@ -572,7 +572,7 @@ ylabel('Count')
 formatFig(fig,true);
 set(gca, 'fontsize', 20)
 
-save_figure(fig, [figDir 'Movement histogram'], '-png',0,1,'-r100');
+save_figure(fig, [figDir 'Movement histogram'], '-png');
 clearvars('-except',initial_vars{:})
 
 %% ANALYSIS: Get temp rate information from all trials

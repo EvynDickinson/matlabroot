@@ -2,7 +2,7 @@
 %% Screen out the area over the food well for comparison of tracking with glare errors
 
 % Make folder for saving comparison data:
-comp_saveDir = [ saveDir '\Food screen Comparision\'];
+comp_saveDir = [ saveDir 'Food screen Comparision\'];
 if ~exist(comp_saveDir,'dir')
     mkdir(comp_saveDir)
 end
@@ -126,7 +126,7 @@ dt_lim = [10,32];        %distance-temp
 auto_time = true;      % automated time axis limits
 time_lim = [0,400];     %time limit (x-axis)
 nMax =  num.exp;%
-[~,backColor] = formattingColors(blkbgd); %get background colors
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
 r = 5; %rows
@@ -137,13 +137,13 @@ sb(3).idx = 3:c:r*c; %binned distance alignment
 
 LW = 0.75;
 sSpan = 180;
-dataString = cell([1,num.exp]);
+dataString = cell([1,2]);
 
 % FIGURES:
 for i = 1:nMax
     fig = getfig('',true);
     x = grouped(i).time;
-    kolor_1 = Color('white'); % full data
+    kolor_1 = foreColor; % full data
     kolor_2 = Color('dodgerblue'); % screened data
 
     %temp
@@ -214,7 +214,7 @@ for i = 1:nMax
     h_line(18.1,'grey',':',1) %36.2
     set(gca,'ydir','reverse')
     %
-    legend(dataString,'textcolor', 'w', 'location', 'southeast', 'box', 'off','fontsize', 7)
+    legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 7)
     
     % save figure
     save_figure(fig,[comp_saveDir grouped(i).name  ' timecourse summary'],fig_type);
@@ -232,7 +232,7 @@ dt_lim = [10,32];        %distance-temp
 auto_time = true;      % automated time axis limits
 time_lim = [0,400];     %time limit (x-axis)
 nMax =  num.exp;%
-[~,backColor] = formattingColors(blkbgd); %get background colors
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
 r = 5; %rows
@@ -243,13 +243,13 @@ sb(3).idx = 3:c:r*c; %binned distance alignment
 
 LW = 0.75;
 sSpan = 180;
-dataString = cell([1,num.exp]);
+dataString = cell([1,2]);
 
 % FIGURES:
 for i = 1:nMax
     fig = getfig('',true);
     x = grouped(i).time;
-    kolor_1 = Color('white'); % full data
+    kolor_1 = foreColor; % full data
     kolor_2 = Color('dodgerblue'); % screened data
 
     %temp
@@ -319,14 +319,41 @@ for i = 1:nMax
     end
     h_line(15,'grey',':',1) 
     %
-    legend(dataString,'textcolor', 'w', 'location', 'northeast', 'box', 'off','fontsize', 7)
+    legend(dataString,'textcolor',foreColor, 'location', 'northeast', 'box', 'off','fontsize', 7)
     
     % save figure
     save_figure(fig,[comp_saveDir grouped(i).name  ' flycount over time summary'],fig_type);
 
 end
 
-%% FIGURE: TODO histogram of fly count overlay -- before and after screening
+%% FIGURE: Histogram of fly count overlay -- before and after screening
+clearvars('-except',initial_vars{:})
+[foreColor,~] = formattingColors(blkbgd); %get background colors
+kolor_1 = foreColor;
+kolor_2 = Color('dodgerblue');
+
+
+for i = 1:num.exp
+    fig = getfig('', 1);
+
+    histo_data = grouped(i).screen_d.FC_all.all(:);
+    histo_screened = grouped(i).screen_d.FC_screen.all(:);
+
+    h = histogram(histo_data,'FaceColor',kolor_1,'FaceAlpha',0.75) ;
+    hold on
+    histogram(histo_screened,h.BinEdges,'FaceColor',kolor_2,'FaceAlpha',0.75) ;
+    v_line(15,'r','-',2)
+    xlabel('fly count')
+    ylabel('frame count')
+
+    formatFig(fig, blkbgd);
+    legend({'Raw','Screened'},'textcolor', foreColor, 'location', 'northeast', 'box', 'off','fontsize',12)
+    title_str = strrep(grouped(i).name,'_',' ');
+    title(title_str,'color',foreColor)
+    
+    save_figure(fig,[comp_saveDir title_str  ' fly count histogram'],fig_type);
+end
+
 
 %% FIGURE & STATS: cumulative hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
@@ -491,6 +518,99 @@ for i = 1:num.exp
 
 end
 
+%%  
+
+
+%% FIGURE: Distance from food: basic over-lap of time-trials and temperature protocols 
+clearvars('-except',initial_vars{:})
+plot_err = true;
+autoLim = false;
+% Y limit ranges
+dist_lim = [5,35];       %distance
+dt_lim = [10,35];        %distance-temp
+auto_time = true;      % automated time axis limits
+time_lim = [0,400];     %time limit (x-axis)
+nMax =  num.exp;%
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = 1:nMax
+%     i = expOrder(ii);
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        y =smooth(grouped(i).screen_d.avg,'moving',sSpan);
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+        x = grouped(i).screen_d.temps;
+        y = grouped(i).screen_d.temp_all(:,1);
+        y_err = grouped(i).screen_d.temp_all(:,2)./num.trial(i); %flip to SEM like the unscreened data
+        loc = isnan(y)|isnan(y_err);
+        x(loc) = [];
+        y(loc) = [];
+        y_err(loc) = [];
+
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+        dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+if ~auto_time
+    xlim(time_lim)
+end
+% distance
+subplot(r,c,sb(2).idx)
+ylabel('proximity to food (mm)')
+xlabel('time (min)')
+set(gca,'ydir','reverse')
+if ~auto_time
+    xlim(time_lim)
+end
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel('proximity to food (mm)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dt_lim)
+end
+h_line(18.1,'grey',':',1) %36.2
+set(gca,'ydir','reverse')
+%
+legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+
+% save figure
+save_figure(fig,[comp_saveDir expGroup ' distance to food over time'],fig_type);
 
 
 
