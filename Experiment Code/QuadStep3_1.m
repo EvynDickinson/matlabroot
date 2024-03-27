@@ -4,7 +4,7 @@
 % TODO 1/31: add 'update structure' option to the thing so we don't have to go
 % through as many loading steps...
 
-%% LOAD: multiple trials that are grouped into a structure
+%% LOAD: multiple trials that are groupe d into a structure
 clear; warning off
 run_ans = questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No');
 switch run_ans

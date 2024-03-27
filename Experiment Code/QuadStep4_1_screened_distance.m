@@ -613,7 +613,7 @@ legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off',
 save_figure(fig,[comp_saveDir expGroup ' distance to food over time'],fig_type);
 
 
-
+% fig_type = '-pdf';
 
 
 
