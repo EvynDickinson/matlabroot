@@ -167,7 +167,7 @@ end
 
 % group names into 'classes' and extract the food group identities
 [foodName,foodLoc,foodCat] = deal([]);
-bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar','Movement','German'};
+bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water','water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar','Movement','German'};
 for trial = 1:ntrials
     loc = ~strcmp(data(trial).wellLabels,'Empty');
     foodName{trial,1} = data(trial).wellLabels{loc};

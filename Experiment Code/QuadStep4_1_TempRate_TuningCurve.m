@@ -306,8 +306,8 @@ switch expGroup
         colors = {'gold','lightcyan', 'dodgerblue'};
         expOrder = 3:-1:1;
     case 'Berlin F LRR 25-17 food vs odor'
-        colors = {'turquoise','Gold','pink'};
-        expOrder = [3 1 2];
+        expOrder = 1:num.exp;
+        colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','pink','Orange'};
    % ======  arista and antenna experiments ======
     case 'Berlin F LRR 25-17 antenna arista intact comparisons'
         expOrder = 1:4; % empty, no antenna, no arista, intact
@@ -316,7 +316,7 @@ end
 
 if ~exist('colors','var')
     expOrder = 1:num.exp;
-    colors = {'DarkOrchid','white','turquoise','Gold','pink','Orange'};
+    colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','pink','Orange'};
 end
 % Display the experiment 'order'
 disp('Experiment order:')

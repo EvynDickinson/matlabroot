@@ -115,8 +115,10 @@ for i = 1:num.exp
     end
     grouped(i).screen_d.temps = temps;
 end
+clearvars('-except',initial_vars{:})
 
-%% FIGURES: distance to food over time between all and screened data per experiment
+%% FIGURES: distance to 
+% food over time between all and screened data per experiment
 clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = true;
@@ -217,7 +219,7 @@ for i = 1:nMax
     legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 7)
     
     % save figure
-    save_figure(fig,[comp_saveDir grouped(i).name  ' timecourse summary'],fig_type);
+    save_figure(fig,[comp_saveDir grouped(i).name  ' timecourse summary'],fig_type,true,true,'-r80');
 
 end
 
@@ -322,7 +324,7 @@ for i = 1:nMax
     legend(dataString,'textcolor',foreColor, 'location', 'northeast', 'box', 'off','fontsize', 7)
     
     % save figure
-    save_figure(fig,[comp_saveDir grouped(i).name  ' flycount over time summary'],fig_type);
+    save_figure(fig,[comp_saveDir grouped(i).name  ' flycount over time summary'],fig_type,true,true,'-r80');
 
 end
 
@@ -351,7 +353,7 @@ for i = 1:num.exp
     title_str = strrep(grouped(i).name,'_',' ');
     title(title_str,'color',foreColor)
     
-    save_figure(fig,[comp_saveDir title_str  ' fly count histogram'],fig_type);
+    save_figure(fig,[comp_saveDir title_str  ' fly count histogram'],fig_type,true,true,'-r80');
 end
 
 
@@ -514,7 +516,7 @@ for i = 1:num.exp
 % disp(sig_comp)
 
 % save figure
-    save_figure(fig,[comp_saveDir grouped(i).name  ' hysteresis summary'],fig_type);
+    save_figure(fig,[comp_saveDir grouped(i).name  ' hysteresis summary'],fig_type,true,true,'-r80');
 
 end
 
@@ -524,7 +526,7 @@ end
 %% FIGURE: Distance from food: basic over-lap of time-trials and temperature protocols 
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = false;
+autoLim = true;
 % Y limit ranges
 dist_lim = [5,35];       %distance
 dt_lim = [10,35];        %distance-temp
@@ -613,32 +615,109 @@ legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off',
 save_figure(fig,[comp_saveDir expGroup ' distance to food over time'],fig_type);
 
 
-% fig_type = '-pdf';
+% fig_type = '-pdf'; autoLim = false;
+
+
+%% Fig for easy overlay with other data later TODO
+clearvars('-except',initial_vars{:})
+blkbgd = false;
+buff = 0.1;
+sz = 50;
+autoLim = false;
+dist_lim = [10,32];
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+dataString = cell([1,num.exp]);
+
+% Find the max temp and min temp of all the experiments
+temp_min = 16; 
+temp_max = 26;
+temp_bin = 0.5;
+cMapRange = temp_min:temp_bin:temp_max;
+ntemps = length(cMapRange);
+% color map information
+g1 = floor(ntemps/2);
+g2 = ntemps-g1;
+g1_cMap = Color('deepskyblue','grey',g1); %deepskyblue
+g2_cMap = Color('grey','red',g2);
+cMap = [g1_cMap;g2_cMap];
+
+% FIGURE:
+fig = getfig('',true,[565 649]);
+for ii = 1:num.exp
+    hold on
+    i = expOrder(ii);
+    % get x and y values
+    y = grouped(i).screen_d.temp_all(:,1);
+    x = shuffle_data(linspace(i-buff,i+buff, length(y)));
+    % x = i*ones(size(y));
+    loc = isnan(y);
+    x(loc) = [];
+    y(loc) = [];
+    
+
+    % get color map for the temperatures in this experiment
+    CC = grouped(i).screen_d.temps;
+    color_idx = discretize(CC,cMapRange);
+    kolor = cMap(color_idx,:);
+    kolor(loc,:) = [];
+
+    scatter(x,y,sz,kolor,'filled')
+
+    % dataString{ii} = strrep(data(i).foodNames{1},'_',' ');
+    dataString{ii} = strrep(grouped(i).name,'_',' ');
+
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd);
+xlim([0,num.exp+1])
+ax = gca;
+set(ax,'YDir','reverse')
+if ~autoLim
+    ylim(dist_lim)
+end
+h_line(18.1,foreColor)
+ylabel('proximity to food (mm)')
+
+set(ax,'XTick',1:num.exp)%,'XTickLabel',dataString,'XTickLabelRotation',0
+
+% Setup color code map:
+colormap(cMap)
+h = colorbar;
+h.Color = foreColor;
+N = findLargestDivisor(temp_min, temp_max, 5);
+temp_label = (temp_min:N:temp_max);
+h.Ticks  = linspace(0,1,length(temp_label));
+h.TickLabels = temp_label;
+h.Label.String = 'Temp (\circC)';
+h.Label.Color = foreColor;
+
+save_figure(fig,[comp_saveDir expGroup ' distance to food vertical'],fig_type);
 
 
 
 
+% Get current tick positions and labels
+xTicks = ax.XTick;
+xTickLabels = string(ax.XTickLabel); % Convert to string array for easier manipulation
 
+% Hide original tick labels
+ax.XTickLabel = [];
 
+% Colors for each tick label
+colors = {'red', 'green', 'blue', 'magenta', 'cyan', 'yellow', 'black', 'red', 'green', 'blue'};
 
+% Check to ensure we have a color for each label
+if length(colors) ~= length(xTickLabels)
+    error('Number of colors must match number of xTickLabels');
+end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+% Create new tick labels with specified colors
+for i = 1:length(xTicks)
+    text(xTicks(i), ax.YLim(1), xTickLabels(i), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color);
+end
+% TODO: get the colors to update for easy cross- trial comparisions
 
 
 
