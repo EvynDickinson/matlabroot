@@ -521,8 +521,6 @@ for i = 1:num.exp
 end
 
 %%  
-
-
 %% FIGURE: Distance from food: basic over-lap of time-trials and temperature protocols 
 clearvars('-except',initial_vars{:})
 plot_err = true;
@@ -621,6 +619,7 @@ save_figure(fig,[comp_saveDir expGroup ' distance to food over time'],fig_type);
 %% Fig for easy overlay with other data later TODO
 clearvars('-except',initial_vars{:})
 blkbgd = false;
+fig_type = '-pdf'; 
 buff = 0.1;
 sz = 50;
 autoLim = false;
@@ -693,31 +692,152 @@ h.TickLabels = temp_label;
 h.Label.String = 'Temp (\circC)';
 h.Label.Color = foreColor;
 
+% Update group labels to match color scheme 
+xTicks = ax.XTick;% Get current tick positions and labels
+xTickLabels = string(ax.XTickLabel); % Convert to string array for easier manipulation
+ax.XTickLabel = [];% Hide original tick labels
+% Create new tick labels with specified colors
+for ii = 1:length(xTicks)
+    i = expOrder(ii);
+    text(xTicks(i), ax.YLim(2), xTickLabels(i), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color,'FontSize',16);
+end
+ax.XColor = backColor;
 save_figure(fig,[comp_saveDir expGroup ' distance to food vertical'],fig_type);
 
+%% FIGURE: heating and cooling separated vertical temp colored distance to food
 
+clearvars('-except',initial_vars{:})
+% blkbgd = true;  fig_type = '-png'; 
+fig_type = '-pdf'; blkbgd = false;
+buff = 0.1;
+sz = 50;
+autoLim = false;
+dist_lim = [10,32];
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
+dataString = cell([1,num.exp]);
 
-% Get current tick positions and labels
-xTicks = ax.XTick;
+% Find the max temp and min temp of all the experiments
+temp_min = 16; 
+temp_max = 26;
+temp_bin = 0.5;
+cMapRange = temp_min:temp_bin:temp_max;
+ntemps = length(cMapRange);
+% color map information
+g1 = floor(ntemps/2);
+g2 = ntemps-g1;
+g1_cMap = Color('deepskyblue','grey',g1); %deepskyblue
+g2_cMap = Color('grey','red',g2);
+cMap = [g1_cMap;g2_cMap];
+
+% FIGURE:
+fig = getfig('',true,[565 649]);
+for ii = 1:num.exp
+    hold on
+    i = expOrder(ii);
+    % get color map for the temperatures in this experiment
+    CC = grouped(i).screen_d.temps;
+    color_idx = discretize(CC,cMapRange);
+
+    % cooling
+    y = grouped(i).screen_d.decreasing.avg(:,1);
+    x = shuffle_data(linspace(i-buff*1.5,i-buff/2, length(y)))';
+    loc = isnan(y);
+    x(loc) = [];
+    y(loc) = [];
+    kolor = cMap(color_idx,:);
+    kolor(loc,:) = [];
+    scatter(x,y,sz,kolor,'LineWidth',1)
+
+    % warming
+    y = grouped(i).screen_d.increasing.avg(:,1);
+    x = shuffle_data(linspace(i+buff/2,i+buff*1.5, length(y)))';
+    loc = isnan(y);
+    x(loc) = [];
+    y(loc) = [];
+    kolor = cMap(color_idx,:);
+    kolor(loc,:) = [];
+    scatter(x,y,sz,kolor,'filled')
+
+    % dataString{ii} = strrep(data(i).foodNames{1},'_',' ');
+    dataString{ii} = strrep(grouped(i).name,'_',' ');
+
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd);
+xlim([0,num.exp+1])
+ax = gca;
+set(ax,'YDir','reverse')
+if ~autoLim
+    ylim(dist_lim)
+end
+h_line(18.1,foreColor)
+ylabel('proximity to food (mm)')
+
+set(ax,'XTick',1:num.exp)%,'XTickLabel',dataString,'XTickLabelRotation',0
+
+% Setup color code map:
+colormap(cMap)
+h = colorbar;
+h.Color = foreColor;
+N = findLargestDivisor(temp_min, temp_max, 5);
+temp_label = (temp_min:N:temp_max);
+h.Ticks  = linspace(0,1,length(temp_label));
+h.TickLabels = temp_label;
+h.Label.String = 'Temp (\circC)';
+h.Label.Color = foreColor;
+
+% Update group labels to match color scheme 
+xTicks = ax.XTick;% Get current tick positions and labels
 xTickLabels = string(ax.XTickLabel); % Convert to string array for easier manipulation
-
-% Hide original tick labels
-ax.XTickLabel = [];
-
-% Colors for each tick label
-colors = {'red', 'green', 'blue', 'magenta', 'cyan', 'yellow', 'black', 'red', 'green', 'blue'};
-
-% Check to ensure we have a color for each label
-if length(colors) ~= length(xTickLabels)
-    error('Number of colors must match number of xTickLabels');
-end
-
+ax.XTickLabel = [];% Hide original tick labels
 % Create new tick labels with specified colors
-for i = 1:length(xTicks)
-    text(xTicks(i), ax.YLim(1), xTickLabels(i), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color);
+for ii = 1:length(xTicks)
+    i = expOrder(ii);
+    text(xTicks(i), ax.YLim(2), xTickLabels(i), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color,'FontSize',16);
 end
-% TODO: get the colors to update for easy cross- trial comparisions
+ax.XColor = backColor;
+
+save_figure(fig,[comp_saveDir expGroup ' distance to food vertical warm cool split'],fig_type);
+
+%% FIGURE:  choose which groups to compare
+% make the figure in my powerpoint -- that has the vertical and avg data
+% examples
+% could also 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

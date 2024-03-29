@@ -1716,9 +1716,6 @@ fig = figure; set(fig, 'pos', [210 121 977 660])
 save_figure(fig, [figDir inputVar ' tuning overlay'], '-png');
 
 %% Compare hysteresis across different genotypes -- UNFINISHED
-
-
-
 clearvars('-except',vars{:}) 
 dataType =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
 

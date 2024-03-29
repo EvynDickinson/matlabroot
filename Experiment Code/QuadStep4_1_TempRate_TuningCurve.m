@@ -188,9 +188,9 @@ switch expGroup
     case 'Berlin F LRR 25-17 ACV'
         expOrder = 1:num.exp;
         colors = {'White','magenta','dodgerblue','Orange','DarkOrchid'};
-    case 'Berlin F LRR 25-17'
-        expOrder = [6,1,2,3,4,5];
-        colors = {'White','grey','yellow','orange', 'red','dodgerblue'};
+    % case 'Berlin F LRR 25-17'
+    %     expOrder = [6,1,2,3,4,5];
+    %     colors = {'White','grey','yellow','orange', 'red','dodgerblue'};
     case 'Berlin LRR 25-17 different food comp'
         expOrder = [1,2];
         colors = {'gold','DarkOrchid'};
@@ -316,7 +316,12 @@ end
 
 if ~exist('colors','var')
     expOrder = 1:num.exp;
-    colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','pink','Orange'};
+    if num.exp<=7
+        colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','Orange'};
+    else
+        cMap = colormap(turbo(num.exp+2));
+        cMap(1,:) = []; cMap(num.exp+1,:) = []; %remove ends since they are too dark for black background
+    end
 end
 % Display the experiment 'order'
 disp('Experiment order:')
@@ -328,8 +333,11 @@ end
 for i = 1:num.exp % FOR EACH DATA GROUP
     % GENERAL
     grouped(i).name = data(i).ExpGroup;
-    grouped(expOrder(i)).color = Color(colors{(i)});
-
+    if exist('colors','var')
+        grouped(expOrder(i)).color = Color(colors{(i)});
+    else 
+        grouped(expOrder(i)).color = cMap(i,:);
+    end
     % TIME COURSE DATA
     num.trial(i) = data(i).ntrials;
     [time,temp,speed,distance] = deal([]);
