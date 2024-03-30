@@ -213,7 +213,7 @@ fprintf('Next\n')
 %% Get the number of flies in each arena
 % Number of flies:
 nframes = 3;
-nflies = nan(1,4);
+nflies = nan(1,4); 
 for arena = 1:4
     arenaData(arena).nflies = excelfile{XLrow(arena),Excel.numflies};
     nflies(arena) = arenaData(arena).nflies;
