@@ -524,10 +524,10 @@ end
 %% FIGURE: Distance from food: basic over-lap of time-trials and temperature protocols 
 clearvars('-except',initial_vars{:})
 plot_err = true;
-autoLim = true;
+autoLim = false;
 % Y limit ranges
 dist_lim = [5,35];       %distance
-dt_lim = [10,35];        %distance-temp
+dt_lim = [14,32];        %distance-temp
 auto_time = true;      % automated time axis limits
 time_lim = [0,400];     %time limit (x-axis)
 nMax =  num.exp;%
@@ -766,7 +766,7 @@ end
 
 % FORMATING AND LABELS
 formatFig(fig,blkbgd);
-xlim([0,num.exp+1])
+xlim([0,9])
 ax = gca;
 set(ax,'YDir','reverse')
 if ~autoLim
