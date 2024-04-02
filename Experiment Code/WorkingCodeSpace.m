@@ -1597,10 +1597,148 @@ videoStartTime =
 
 writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
 
+%% 
+%% Select data groups to compare
+% add matlabroot folder to the directory path
+% addpath(genpath('C:\matlabroot'));
+
+clear; close all; clc
+baseFolder = getCloudPath;
+structFolder = [baseFolder 'Data structures\'];
+
+switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
+    case 'Cancel'
+        return
+    case 'Yes' % LOAD PRE-EXISTING DATA
+        % find and select list of possible experimental groups:
+        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[400,700]);
+
+        try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        catch
+            disp('No group selected')
+            return
+        end
+        % Find the group name of the existing data to load
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        filePath = [saveDir expGroup ' data.mat'];
+        % TODO:  add here something to load the dataList so we can
+        % test the existence of missing data before spending time loading
+        % the whole structure if we need to update a group set within in
+        temp = load(filePath);
+        % Pull key variables from structure (this prevents overwriting the
+        %local saving path for the current computer)
+        data = temp.data;
+        expNames = temp.expNames;
+        initial_vars = temp.initial_vars;
+        num = temp.num;
+        
+        % load a group list with the names and identities of the existing data in the structure
+        % MAKE DATA LIST if it doesn't exist
+        if ~exist('dataList','var')
+            disp('No data list exists')
+            dataList = struct;
+            for i = 1:length(data)
+                dataList(i).T = data(i).T;
+                dataList(i).name = expNames{i};
+            end
+        end
+
+        % Find the files within each data set and compare to the existing base 
+        % data structure for missing data & then updata any missing data if possible
+        [rebuildFlag, addFlag, extradataFlag] = deal([]);
+        for i = 1:num.exp
+            [rebuildFlag(i), addFlag(i), extradataFlag(i)] = matchDataStructure(structFolder, dataList(i).name, dataList(i).T(:,1:4));
+        end
+        
+
+        % TODO: ask if there are any data groups to keep or delete
+        % TODO: check if any new data groups from the selected list have
+        % missing data and need to be updated before loading into the
+        % larger structure
+        
+
+       
+        
+        
+        
+        temp = load(filePath);
+
+        load(filePath);
+        disp([expGroup ' loaded'])
+        %check for temperature protocol assignments (make back-compatible)
+        for i = 1:num.exp
+            if ~isfield(data(i),'temp_protocol')
+                data(i).temp_protocol = data(i).T.TempProtocol{1};
+            end
+            if isempty(data(i).temp_protocol)
+                data(i).temp_protocol = data(i).T.TempProtocol{1};
+            end
+        end
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    case 'No' % CREATE NEW DATA STRUCTURE
+        % Select processed data structures to compare:
+        list_dirs = dir(structFolder);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+        expNames = list_dirs(expIdx); %name of experiment groups selected
+        num.exp = length(expIdx);  %number of groups selected
+
+        % Load selected experiment data groups
+        for i = 1:num.exp
+            % get field list for loading data:
+            dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+                   dummy.hold_exp = false; % account for new data structures
+                   dummy.temp_protocol = dummy.T.TempProtocol{1};
+             end
+            data(i) = dummy;
+            % try data(i) = dummy;
+            % catch % TODO -- better automate search for missing fields and options
+            % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+            %
+            %     data(i) = dummy;
+            % end
+        end
+
+        clear list_dirs expIdx dirIdx 
+        % Set up base variables
+        initial_vars = who;
+        initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+        initial_vars = unique(initial_vars);
+
+        % Save data / make new grouped data folder
+        switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
+            case 'new structure'
+                expGroup = char(inputdlg('Structure name:'));
+                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+                if ~exist(saveDir,'dir')
+                    mkdir(saveDir);
+                end
+                save([saveDir expGroup ' data.mat'],'-v7.3');
+                disp([expGroup ' saved'])
+            case 'existing structure'
+                list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+                list_dirs = {list_dirs(:).name};
+                list_dirs(1:2) = [];
+                dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+                expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+                save([saveDir expGroup ' data.mat'],'-v7.3');
+                disp([expGroup ' saved'])
+            case 'cancel'
+                return
+        end
+
+end
+disp(expNames')
 
 
-
-
+%% 
 
 
 

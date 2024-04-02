@@ -1544,7 +1544,7 @@ h = drawpoint('Color','r', 'Selectable', true);
 % Uncomment the following line to see how it works
 % h.PositionConstraintFcn = makeConstrainToRectFcn('impoint',get(gca,'XLim'),get(gca,'YLim'));
 
-% -------------------------------------------------------------
+% ------------------------------------------------------------- 
 % Initial point coordinates
 x = 5;
 y = 5;
@@ -1574,10 +1574,120 @@ function stopDragFcn(fig, event)
 end
 
 
+%% Mac testing
+fig = open('/Users/evyndickinson/Desktop/untitled folder/demofig.fig');
+
+save_loc = '/Users/evyndickinson/Desktop/untitled folder/demofig';
+export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 
 
+%% Write to excel replacement functions
 
 
+xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+
+writematrix(M,'M.xls','Sheet',2,'Range','A3:E8')
+
+testFile = '/Users/evyndickinson/Desktop/Quad Bowl Experiments.xlsx';
+
+writematrix(nflies(arena),testFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))])
+
+
+videoStartTime = 
+
+writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+
+%% 
+%% Select data groups to compare
+% add matlabroot folder to the directory path
+% addpath(genpath('C:\matlabroot'));
+
+clear; close all; clc
+baseFolder = getCloudPath;
+
+switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
+    case 'Cancel'
+        return
+    case 'Yes' % have user select which preexisting structure to load
+        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
+
+        try expGroup = list_dirs{dirIdx}; %load experiment groups selected
+        catch
+            disp('No group selected')
+            return
+        end
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        load([saveDir expGroup ' data.mat']);
+        disp([expGroup ' loaded'])
+        %check for temperature protocol assignments (make back-compatible)
+        for i = 1:num.exp
+            if ~isfield(data(i),'temp_protocol')
+                data(i).temp_protocol = data(i).T.TempProtocol{1};
+            end
+            if isempty(data(i).temp_protocol)
+                data(i).temp_protocol = data(i).T.TempProtocol{1};
+            end
+        end
+    case 'No'
+        % Select processed data structures to compare:
+        structFolder = [baseFolder 'Data structures\'];
+        list_dirs = dir(structFolder);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+        expNames = list_dirs(expIdx); %name of experiment groups selected
+        num.exp = length(expIdx);  %number of groups selected
+
+        % Load selected experiment data groups
+        for i = 1:num.exp
+            % get field list for loading data:
+            dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+                   dummy.hold_exp = false; % account for new data structures
+                   dummy.temp_protocol = dummy.T.TempProtocol{1};
+             end
+            data(i) = dummy;
+            % try data(i) = dummy;
+            % catch % TODO -- better automate search for missing fields and options
+            % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+            %
+            %     data(i) = dummy;
+            % end
+        end
+
+        clear list_dirs expIdx dirIdx
+        % Set up base variables
+        initial_vars = who;
+        initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+        initial_vars = unique(initial_vars);
+
+        % Save data / make new grouped data folder
+        switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
+            case 'new structure'
+                expGroup = char(inputdlg('Structure name:'));
+                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+                if ~exist(saveDir,'dir')
+                    mkdir(saveDir);
+                end
+                save([saveDir expGroup ' data.mat'],'-v7.3');
+                disp([expGroup ' saved'])
+            case 'existing structure'
+                list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+                list_dirs = {list_dirs(:).name};
+                list_dirs(1:2) = [];
+                dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+                expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+                save([saveDir expGroup ' data.mat'],'-v7.3');
+                disp([expGroup ' saved'])
+            case 'cancel'
+                return
+        end
+end
+disp(expNames')
 
 
 
