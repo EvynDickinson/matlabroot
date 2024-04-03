@@ -1,359 +1,688 @@
 
 
-%% EXPANDING RAMP PROTOCOL ANALYSIS:
-% Do individual ramps show hysteresis?
-
-trial = 2;
-
-tempPoints = getTempTurnPoints(T.TempProtocol{1});
-% 
-% figure; 
-% plot(G(trial).TR.tempIdx)
-% vline(tempPoints.transitions)
-
-temp = G(trial).TR.tempIdx;
-tempList = G(trial).TR.temps;
-dist = G(trial).TR.data(:,3);
-G1 = [2 3; 5,7; 5,7; 8,9; 8,9];    %cooling
-G2 = [3,5; 3,5; 7,8; 7,8; 9,10];   %heating
-row = 1;
-col = 5;
+% SELECT AND LOAD DATA FOR ANAYLSIS
+% CAVEATS:
+% ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
+% *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
 
-fig = figure; set(fig, 'pos',[29 458 1746 504])
-for ramp = 1:5
-    subplot(row,col,ramp)
-    
-    % DATA SELECTION
-    roiDOWN = tempPoints.transitions(G1(ramp,1)):tempPoints.transitions(G1(ramp,2));
-    roiUP = tempPoints.transitions(G2(ramp,1)):tempPoints.transitions(G2(ramp,2));
+%% Select data groups to compare
+% add matlabroot folder to the directory path
+% addpath(genpath('C:\matlabroot'));
 
-    hold on
-    % COOLING
-    y_avg = [];
-    cList = unique(temp(roiDOWN));
-    cList(isnan(cList)) = [];
-    y = dist(roiDOWN);
-    x = temp(roiDOWN);
-    % scatter(x,y,30,Color('dodgerblue'),'filled')
-    for ii = 1:length(cList)
-        y_avg(ii) = mean(y(x==cList(ii)));
-        y_err = std(y(x==cList(ii)));
-        t = tempList(cList(ii));
-        scatter(t,y_avg(ii),50,Color('dodgerblue'),'filled')
-        plot([t,t], [y_avg(ii)-y_err,y_avg(ii)+y_err], 'linewidth', 1.5, 'color', Color('dodgerblue'))
-    end
-    plot(tempList(cList),y_avg,'linewidth', 1.5, 'color', Color('dodgerblue'))
+clear; close all; clc
+baseFolder = getCloudPath;
+structFolder = [baseFolder 'Data structures\'];
+UpdatedFlag = false;
 
-    % HEATING
-    y_avg = [];
-    cList = unique(temp(roiUP));
-    cList(isnan(cList)) = [];
-    y = dist(roiUP);
-    x = temp(roiUP);
-    % scatter(x,y,30,Color('red'),'filled')
-    for ii = 1:length(cList)
-        y_avg(ii) = mean(y(x==cList(ii)));
-        y_err = std(y(x==cList(ii)));
-        t = tempList(cList(ii));
-        scatter(t,y_avg(ii),50,Color('red'),'filled')
-        plot([t,t], [y_avg(ii)-y_err,y_avg(ii)+y_err], 'linewidth', 1.5, 'color', Color('red'))
-    end
-    plot(tempList(cList),y_avg,'linewidth', 1.5, 'color', Color('red'))
-    
-    % FORMAT
-    xlabel('Temp (\circC)')
-    ylabel('Distance from well (mm)')
-end
-
-formatFig(fig,true,[row,col]);
-for ramp = 1:5
-    subplot(row,col,ramp)
-    set(gca, 'fontsize', 18)
-end
-
-save_figure(fig, [figDir 'hysteresis by ramp ' T.Genotype{trial} ' ' num2str(trial)], '-png');
-
-
-%% MOVEMENT ANALYSIS: 
-
-clearvars('-except',vars{:})
-
-ID_mat = nan(ntrials,3);
-
-% what are the temp protocols: 
-tempList = unique(T.TempProtocol);
-nTempLists = size(tempList,1);
-for ii = 1:nTempLists
-    ID_mat(strcmp(T.TempProtocol,tempList(ii)),1) = ii;
-end
-
-% what are the genotypes:
-genoList = unique(T.Genotype);
-ngenoList = size(genoList,1);
-for ii = 1:ngenoList
-    ID_mat(strcmp(T.Genotype,genoList(ii)),2) = ii;
-end
-
-% what are the foods/well options:
-foodList = unique(T.foodCat);
-nfoodList = size(foodList,1);
-for ii = 1:nfoodList
-    ID_mat(strcmp(T.foodCat,foodList(ii)),3) = ii;
-end
-
-% Find unique instances across all trials:
-ID_List = string(ID_mat(:,1));
-for ii = 2:3
-    ID_List = [ID_List+string(ID_mat(:,ii))];
-end
-IDs = unique(ID_List);
-nIDs = size(IDs,1);
-
-% Make an empty structure in which to group the data
-plotData = struct;
-for ii = 1:nIDs
-    plotData(ii).h = []; %heating
-    plotData(ii).c = []; %cooling
-    plotData(ii).r = []; %temp rate list
-end
-
-% Compare across all conditions (overlays all temp rates...)
-% CList = {'BlueViolet', 'DeepPink','Orange','Lime','DodgerBlue','Teal','Red',...
-%          'Turquoise', 'DarkRed', 'Indigo', 'Plum'};
-colors = {'BlueViolet',...
-         'Indigo',...
-         'Plum',...
-         'Thistle',...
-         'Teal',...
-         'Turquoise',...
-         'Aquamarine',...
-         'Red',...
-         'DarkRed',...
-         'Orange',...
-         'Gold'};
-CList = colors([1,5,10,8,2,3,6,11,9,4,7]);
-     
-% group together trials with the same identity
-for trial = 1:ntrials
-    id = find(strcmp(ID_List(trial),IDs));
-    kolor = Color(CList{id});
-    plotData(id).color = kolor;
-    
-    % collapse all temp rates into one:
-    for ii = 1:G(trial).TR.nRates
-        plotData(id).r = [plotData(id).r, G(trial).TR.rates(ii)];
-%         temp = G(trial).TR.heatmap(ii,:); % DISTANCE
-        temp = G(trial).TR.movement.avg(ii,:); % MOVEMENT
-        if G(trial).TR.rates(ii)<0 % Cooling data
-            plotData(id).c = [plotData(id).c; temp];
-        elseif G(trial).TR.rates(ii)>0 % Heating data
-            plotData(id).h = [plotData(id).h; temp];
-        end
-    end
-end
-
-
-%% FIGURE: overlay movement tracks for all trials in the structure color coded by heating and cooling
-% plot all trials individually
-sSpan = 1; %3-degree smoothing
-id = 1;
-
-fig = figure;
-    hold on
-    % Cooling
-    for id = 1:nIDs
-        x = G(1).TR.temps; %all trials should have same temp ids
-        y = plotData(id).c;
-        for ii = 1:size(y,1)
-            plot(x,smooth(y(ii,:),sSpan),'color', Color('dodgerblue')) %plotData(id).color) %
-        end
-    end
-    % Heating
-    for id = 1:nIDs
-        x = G(1).TR.temps; %all trials should have same temp ids
-        y = plotData(id).h;
-        for ii = 1:size(y,1)
-            plot(x,smooth(y(ii,:),sSpan),'color', 'r') %plotData(id).color) %
-        end
-    end
-% xlim([7,22])
-xlabel('Temperature (\circC)')
-% ylabel('Distance')
-ylabel('Movement')
-formatFig(fig, true);
-h_line(5,'w',1)
-v_line([14,22],'gold',1)
-set(gca, 'fontsize', 18)
-
-save_figure(fig, [figDir 'movement hysteresis loops all trials'], '-png');
-
-
-%%
-
-% Characterize movement hysteresis:
-SZ = 75;
-LW = 2;
-sSpan = 8;
-
-for trial = 1:ntrials
-    
-    cool = G(trial).TR.movement.avg(1,:); % heating
-    heat = G(trial).TR.movement.avg(2,:); % heating
-    temp = G(trial).TR.temps;
-    % cutoff temp and heat cool etc by location
-    loc = isnan(cool);
-    cool(loc) = [];
-    heat(loc) = [];
-    temp(loc) = [];
-    
-    % find peak movement in the cooling phase
-    [cool_max,Cmax_loc] = max(smooth(cool,sSpan));
-    [cool_min,Cmin_loc] = min(smooth(cool,sSpan));
-    % find peak movement in the heating phase
-    [heat_max,Hmax_loc] = max(smooth(heat,sSpan));
-    [heat_min,Hmin_loc] = min(smooth(heat,sSpan));
-    % quarter-movement line
-    quarter_line = cool_min + (cool_max-cool_min)*0.25;
-    crossPoint = find(smooth(heat,sSpan)>=quarter_line);
-    crossPoint = crossPoint(1)-1;
-    
-    fig = figure; hold on
-        %heating
-        plot(temp,smooth(heat,sSpan),'color', Color('orangered'),'linewidth', LW) 
-        plot(temp,heat,'color', Color('orangered'),'linewidth', LW,'linestyle', ':') 
-        %cooling
-        plot(temp,smooth(cool,sSpan),'color', Color('dodgerblue'),'linewidth', LW) 
-        plot(temp,cool,'color', Color('dodgerblue'),'linewidth', LW,'linestyle', ':') 
-        % plot the peak speed in the cooling phase
-        scatter(temp(Cmax_loc),cool_max,SZ,Color('yellow'),'filled','d')
-        scatter(temp(Cmin_loc),cool_min,SZ,Color('yellow'),'filled','d')
-%         % plot the peak speed in the heating phase
-%         scatter(temp(Hmax_loc),heat_max,SZ,Color('orangered'),'filled','d')
-%         scatter(temp(Hmin_loc),heat_min,SZ,Color('orangered'),'filled','d')
-        % quarter-movement line
-        h_line(quarter_line, 'yellow',1)
-        v_line(temp(crossPoint), 'yellow',1)
-        
-        % labels and formatting
-        xlabel('Temperature (\circC)')
-        ylabel('Movement')
-        formatFig(fig,true);
-        set(gca, 'fontsize', 18)
-        
-        save_figure(fig, [figDir 'movement hysteresis loop recovery ' num2str(trial)], '-png');
-
-        
-% plot the hysteresis...
-mov_diff = cool-heat;
-
-fig = figure; hold on
-    plot(temp,mov_diff, 'Color', Color('teal'),'linewidth', LW,'linestyle', ':') 
-    plot(temp,smooth(mov_diff,sSpan), 'Color', Color('teal'),'linewidth', LW) 
-    h_line(0,'grey',1)
-    xlabel('Temperature (\circC)')
-    ylabel('cool-heat difference')
-    formatFig(fig,true);
-    set(gca, 'fontsize', 18)
-        
-
-end
-
-
-
-%%
-
-
-
-
-    
-% Average across trials and 'uncode' the parameter names
-for id = 1:nIDs
-    plotData(id).c_avg = mean(plotData(id).c,1,'omitnan');
-    plotData(id).h_avg = mean(plotData(id).h,1,'omitnan');
-    % decode parameter names
-    a = char(IDs(id));
-    plotData(id).name = [tempList{str2double(a(1))} ' ' genoList{str2double(a(2))} ' ' foodList{str2double(a(3))}];
-end
-    
-% FIGURE: Plot the temp-rate food proximity tuning curves
-temp = G(1).TR.temps; %all trials should have same temp ids
-LW = 1.5;
-lStr = [];
-fig = figure; set(fig, 'pos', [210 121 977 660])
-    hold on
-    ii = 1;
-    for id = 1:nIDs
-        plot(temp, plotData(id).c_avg,'color', plotData(id).color,'linewidth',LW,'linestyle', '--')
-        plot(temp, plotData(id).h_avg,'color', plotData(id).color,'linewidth',LW,'linestyle', '-')
-        % legend string
-        if nIDs<5
-            lStr{ii} = [plotData(id).name ' cooling'];
-            lStr{ii+1} = [plotData(id).name ' heating'];
-            ii = ii+2;
+switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
+    case 'Cancel'
+        return
+    case 'Yes' % LOAD PRE-EXISTING DATA
+        % find and select list of possible experimental groups:
+        list_dirs = dir([baseFolder 'Grouped Data Structures\']);  list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        [dirIdx, v] = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[400,700]);
+        if v
+            expGroup = list_dirs{dirIdx}; %name of experiment groups selected
         else
-            lStr{ii} = plotData(id).name;
-            lStr{ii+1} = '';
-            ii = ii+2;
+            disp('No group selected')
+            return
+        end
+        % Find the group name of the existing data to load
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        filePath = [saveDir expGroup ' data.mat'];
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %    TODO:  add here something to load the dataList so we can                %
+        %    test the existence of missing data before spending time loading        %
+        %    the whole structure if we need to update a group set within in           %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        % Load exisiting data structure
+        temp = load(filePath);
+        % Pull  variables from structure (prevents errors in the local saving path for the current computer)
+        data = temp.data;
+        expNames = temp.expNames;
+        initial_vars = temp.initial_vars;
+        num = temp.num;
+        clear temp v
+
+        % Determine if any new groups need to be added/removed to structure by user
+        list_dirs = dir(structFolder);  list_dirs = {list_dirs(:).name}; list_dirs(1:2) = [];
+        includedIdx = [];
+        for i = 1:num.exp
+            includedIdx(i) = find(strcmp(expNames{i},list_dirs));
+        end
+        %Check that the current selection of experiments is okay by showing the
+        %included groups
+        prompt_string = {'Select the groups for the structure: ', expGroup};
+        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450], ...
+                        'InitialValue',includedIdx,'PromptString',prompt_string); clear prompt_string
+
+        % List of included data for comparison & updates
+        dataList = struct;
+        for i = 1:length(data)
+            dataList(i).T = data(i).T;
+            dataList(i).name = expNames{i};
+            dataList(i).remove = false;
+        end
+
+        % Determine if new data was added to the list: 
+        added_data = setdiff(expIdx,includedIdx); 
+        if ~isempty(added_data)
+            %check that the data for these are all updated
+            idx = num.exp + 1;
+            for i = 1:length(added_data)
+                dataList(idx).name = list_dirs{added_data(i)};
+                idx = idx +1;
+            end
+        end; clear added_data idx
+
+        % Determine if data was removed: TODO
+        remove_data = setdiff(includedIdx,expIdx);
+        if ~isempty(remove_data)
+            for i = 1:length(remove_data)
+                 loc = strcmp(list_dirs{remove_data(i)},{dataList(:).name});
+                 dataList(loc).remove = true;
+            end
+        end; clear loc remove_data includedIdx
+
+    case 'No' % CREATE NEW DATA STRUCTURE
+        UpdatedFlag = true;
+        % Select processed data structures to compare:
+        list_dirs = dir(structFolder);  list_dirs = {list_dirs(:).name};  list_dirs(1:2) = [];
+        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+        expNames = list_dirs(expIdx); %name of experiment groups selected
+        num.exp = length(expIdx);  %number of groups selected
+
+        % Load selected experiment data groups
+        for i = 1:num.exp
+            % get field list for loading data:
+            dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+                   dummy.hold_exp = false; % account for new data structures
+                   dummy.temp_protocol = dummy.T.TempProtocol{1};
+             end
+            data(i) = dummy;
+        end
+
+        clear list_dirs expIdx dirIdx dummy
+        % Set up base variables
+        initial_vars = who;
+        initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+        initial_vars = unique(initial_vars);
+
+        % List of included data for comparison & updates
+        dataList = struct;
+        for i = 1:length(data)
+            dataList(i).T = data(i).T;
+            dataList(i).name = expNames{i};
+            dataList(i).remove = false;
+        end
+    
+end
+
+% CHECK FOR DATA UPDATES OF INCLUDED STRUCTURES        
+% Find the files within each data set and compare to the existing base 
+% data structure for missing data & then updata any missing data if possible
+for i = 1:size(dataList,2)
+    if dataList(i).remove
+        continue
+    end
+    [a,b,c] = matchDataStructure(dataList(i).name, dataList(i).T);
+    dataList(i).rebuild = a;
+    dataList(i).add = b;
+    dataList(i).extradata = c;            
+end; clear a b c
+
+% Update the grouped structure according to the dataList
+for i = 1:size(dataList, 2)
+    exp_name = dataList(i).name;
+    % remove unwanted data sets
+        if dataList(i).remove
+            loc = find(strcmp(exp_name,{data(:).ExpGroup}));
+            data(loc) = [];
+        end
+    %load or reload existing datasets
+        if dataList(i).rebuild ||  dataList(i).extradata
+            disp([exp_name ' needs to be rebuilt from Step 3.1'])
+            switch questdlg(['"' exp_name ''' is not up-to-date in this structure. Continue anyway?'])
+                case 'No'
+                        disp('Check for other rebuilds in the structure')
+                        return
+                case 'Cancel'
+                    return
+            end
+        end
+        if dataList(i).add
+            disp(['Updating data for ' exp_name])
+            updatedFlag = true;
+            loc = strcmp(exp_name,{data(:).ExpGroup}); 
+            dummy = load([structFolder exp_name '\' exp_name ' post 3.1 data.mat']);
+             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+                   dummy.hold_exp = false; % account for new data structures
+                   dummy.temp_protocol = dummy.T.TempProtocol{1};
+             end
+            data(i) = dummy;
+        end
+end; clear dummy
+
+%check for temperature protocol assignments (make back-compatible)
+for i = 1:num.exp
+    if ~isfield(data(i),'temp_protocol')
+        data(i).temp_protocol = data(i).T.TempProtocol{1};
+    end
+    if isempty(data(i).temp_protocol)
+        data(i).temp_protocol = data(i).T.TempProtocol{1};
+    end
+end
+
+disp([expGroup ' loaded'])
+
+% Save data / make new grouped data folder
+clearvars('-except',initial_vars{:})
+ % List of included data for comparison & updates
+dataList = struct;
+for i = 1:length(data)
+    dataList(i).T = data(i).T;
+    dataList(i).name = expNames{i};
+end
+
+ if UpdatedFlag
+    switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','existing structure')
+        case 'new structure'
+            expGroup = char(inputdlg('Structure name:'));
+            saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+            if ~exist(saveDir,'dir')
+                mkdir(saveDir);
+            end 
+            save([saveDir expGroup ' data.mat'],'-v7.3');
+            disp([expGroup ' saved'])
+        case 'existing structure'
+            list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+            list_dirs = {list_dirs(:).name};
+            list_dirs(1:2) = [];
+            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+            expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+            saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+            save([saveDir expGroup ' data.mat'],'-v7.3');
+            disp([expGroup ' saved'])
+        case 'cancel'
+            return
+    end
+ else % append the dataList structure to the existing file if nothing else changed
+        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+        save([saveDir expGroup ' data.mat'], 'dataList','-v7.3','-append');
+ end
+
+disp(expNames')
+
+%% ANALYSIS: organize data for each group
+clearvars('-except',initial_vars{:})
+fig_type = '-png';
+blkbgd = true;
+initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
+initial_vars = unique(initial_vars);
+f2m = 3*60; %fps*min = number of frames in a minute
+pix2mm = 12.8; % pixels per mm of real space
+grouped = struct;
+
+% Color selections
+switch expGroup
+% ---- WILD TYPE COMPARISONS ----
+    case 'WT linear recovery caviar'
+        expOrder = [];
+        expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+        % expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi', 'Zimbabwe'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
+        end
+    case 'WT linear recovery no food'
+        expOrder = [];
+        expList = {'Berlin WT', 'CantonS ', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp no food']));
+        end
+    case 'All linear recovery ramp'
+        expOrder = [];
+        expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
+        end
+    case 'WT linear recovery caviar 27-19'
+        expOrder = [];
+%         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+%         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
+        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 27-19'])  | ...
+                                strcmp(expNames,[expList{ii} ' linear recovery ramp 27-19 caviar']));
+        end
+    case 'WT linear recovery caviar 25-17'
+        expOrder = [];
+%         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
+%         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
+        expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
+        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
+        for ii = 1:num.exp
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 25-17'])  | ...
+                                strcmp(expNames,[expList{ii} ' linear recovery ramp 25-17 caviar']));
+        end
+ % ---- FOOD VS NO FOOD CONTROLS ----
+    case 'Berlin linear recovery ramp food vs no food'
+        expOrder = [2,1];
+        colors = {'black','dodgerblue'}; %
+    case 'Berlin LRR 25-17 food vs no food'
+        expOrder = [1,2];
+        colors = {'white', 'gold'};
+    case 'Berlin S LRR 25-17 caviar vs no food'
+        expOrder = [2,1];
+        colors = {'white', 'gold'};
+    case 'Berlin S LRR 25-17 food vs no food'
+        expOrder = [2,1];
+        colors = {'white', 'gold'};
+    case 'Berlin LRR 25-17 new arena vs OG caviar'
+        expOrder = [1,2];
+        colors = {'teal', 'white'};
+    case 'Berlin F 25-17 food vs no food'
+        expOrder = [1,2];
+        colors = {'blueviolet', 'white'};
+    case 'Berlin giant ramp food vs no food'
+        expOrder = [1,2];
+        colors = {'white','DarkOrchid'};
+    case 'Berlin LTS 15-35 caviar vs empty'
+        expOrder = [2,1];
+        colors = {'white','DarkOrchid'};
+    case 'CantonS LRR food vs no food'
+        expOrder = [1,2];
+        colors = {'white','DarkOrchid'};
+    case 'Berlin F hold 25C food vs no food'
+        expOrder = 1:2;
+        colors = {'slategrey', 'white'};
+
+% ---- FOOD GROUP COMPARISIONS ----
+    case 'Berlin F LRR 25-17 ACV'
+        expOrder = 1:num.exp;
+        colors = {'White','magenta','dodgerblue','Orange','DarkOrchid'};
+    % case 'Berlin F LRR 25-17'
+    %     expOrder = [6,1,2,3,4,5];
+    %     colors = {'White','grey','yellow','orange', 'red','dodgerblue'};
+    case 'Berlin LRR 25-17 different food comp'
+        expOrder = [1,2];
+        colors = {'gold','DarkOrchid'};
+    case 'Berlin S LRR 23-15 food raised comparison'
+        expOrder = [1,2];
+        colors = {'gold','Dodgerblue'};
+    case 'Berlin S LRR 25-17 food raised comparison'
+        expOrder = [1,2];
+        colors = {'gold','Dodgerblue'};
+    case 'Berlin S LRR 23-15 caviar'
+        expOrder = [1,3,2];
+        colors = {'white','gold', 'DarkOrchid'};
+    case 'Berlin S LRR 25-17 caviar'
+        expOrder = [1,3,2]; % combined, old, new
+        colors = {'white','gold', 'DarkOrchid'};
+    case 'Berlin S LRR 27-19 caviar'
+        expOrder = [1,3,2]; % combined, old, new
+        colors = {'white','gold', 'DarkOrchid'};
+    % ---- SEX COMPARISONS ----
+    case 'Zimbabwe sex comparison'
+        expOrder = 1:num.exp;
+        colors = {'White','magenta','dodgerblue','Orange'};
+    case 'Berlin sex comparison'
+        expOrder = 1:num.exp;
+        colors = {'White','magenta','dodgerblue','Orange'};
+
+    % ---- TEMP RATE COMPARISONS ----
+    case 'Berlln LRR 25-17 temprate comp caviar'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+    case 'Berlin LRR 25-17 temprate caviar'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+    case 'Berlin LRR temprate comp'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+    case 'Berlin LRR temprate comp no food'
+        expOrder = 4:-1:1; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+    case 'Zimbabwe LRR caviar temprate comparison'
+        expOrder = [3,4,2,1];
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+
+    % ---- TEMP SHIFT COMPARISONS ----
+    case 'Swedish LRR tempshift comp cavair full'
+        expOrder = 1:4; %lowest to highest
+        colors = {'dodgerblue','powderblue','peachpuff','tomato'};
+    case 'Swedish LRR temp shift caviar'
+        expOrder = [1,2,3]; %lowest to highest temp
+        colors = {'dodgerblue','gold','red'};
+    case 'Malawi LRR temp shift caviar'
+        expOrder = 1:3; %lowest to highest temp
+        colors = {'dodgerblue','gold','red'};
+    case 'OregonR LRR temp shift comp caviar'
+        expOrder = 1:3; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
+    case 'Zimbabwe temp shifted linear recovery ramp caviar'
+        expOrder = [3,1,2]; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
+    case 'Berlin temp shifted comp linear recovery ramp caviar'
+        expOrder = [3,1,2]; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
+    case 'Berlin S LRR temp shift'
+        expOrder = [1,2,3]; %lowest to highest
+        colors = {'dodgerblue','gold','red'};
+    case 'Berlin S LRR TempShift caviar'
+        expOrder = 1:3;
+        colors = {'dodgerblue','gold','red'};
+    case 'Berlin LRR tempshift no food'
+        expOrder = [3 1 2];
+        colors = {'dodgerblue','gold','red'};
+    case 'LRR 27-19 no food comparison'
+        expOrder = 1:3;
+        colors = {'DarkOrchid', 'LimeGreen', 'Red'};
+    case 'Berlin WT mechanical manipulation linear recovery ramp caviar'
+        expOrder = [1,2]; %lowest to highest
+        colors = {'dodgerblue','peachpuff'};
+    case 'W1118 genetic background comp'
+        expOrder = [1,2,3]; %lowest to highest
+        colors = {'deeppink','dodgerblue','greenyellow'};
+    case 'R60H12-gal4 S LRR 25-17 food vs no food'
+        expOrder = 1:2;
+        colors = {'white', 'dodgerblue'};
+    case 'Berlin vs UAS-Chrimson-TM2 S LRR 25-17 caviar'
+        expOrder  = 1:2;
+        colors  = {'dodgerblue', 'yellow'};
+    case 'Berlin S LRR 25_17 caviar Cedar vs Collge'
+        expOrder  = 1:2;
+        colors  = {'dodgerblue', 'yellow'};
+    case 'Berlin F LRR caviar Cedar vs College'
+        expOrder  = 1:2;
+        colors  = {'dodgerblue', 'yellow'};
+    % ===  controls ======
+    case 'Berlin S LRR 23-15 all controls'
+        expOrder = [2 1 4 3]; %NF-NT; F-NT; NF-T; F-T
+        colors = {'lightslategray', 'white', 'lightpink', 'deeppink'};
+    case 'Berlin F LRR 25-17 controls and caviar'
+        expOrder = [4 3 2 1]; %NF-NT; F-NT; NF-T; F-T
+        colors = {'white', 'lightslategray', 'lightpink', 'deeppink'};
+    case 'Berlin Temp Holds caviar'
+        expOrder = 1:5;
+        colors = {'Blue', 'Dodgerblue', 'Cyan', 'lightcyan', 'white'}; %cold to warm
+    case 'Berlin Temp Holds no food'
+        expOrder = 1:4;
+        colors = { 'Blue','Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
+    case 'Berlin 23C Hold food vs no food'
+        expOrder = [2,1];
+        colors = {'white', 'aquamarine'};
+    case 'Berlin S LRR 25-17 caviar vs temp holds'
+        colors = {'gold','lightcyan', 'dodgerblue'};
+        expOrder = 3:-1:1;
+    case 'Berlin S LRR 25-17 no food vs temp holds'
+        colors = {'gold','lightcyan', 'dodgerblue'};
+        expOrder = 3:-1:1;
+    case 'Berlin F LRR 25-17 food vs odor'
+        expOrder = 1:num.exp;
+        colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','pink','Orange'};
+   % ======  arista and antenna experiments ======
+    case 'Berlin F LRR 25-17 antenna arista intact comparisons'
+        expOrder = 1:4; % empty, no antenna, no arista, intact
+        colors = { 'white','lightslategray', 'lightpink', 'deeppink'};
+end
+
+if ~exist('colors','var')
+    expOrder = 1:num.exp;
+    if num.exp<=7
+        colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','Orange'};
+    else
+        cMap = colormap(turbo(num.exp+2));
+        cMap(1,:) = []; cMap(num.exp+1,:) = []; %remove ends since they are too dark for black background
+    end
+end
+% Display the experiment 'order'
+disp('Experiment order:')
+for exp = 1:num.exp
+    i = expOrder(exp);
+    disp(expNames{i})
+end
+
+for i = 1:num.exp % FOR EACH DATA GROUP
+    % GENERAL
+    grouped(i).name = data(i).ExpGroup;
+    if exist('colors','var')
+        grouped(expOrder(i)).color = Color(colors{(i)});
+    else 
+        grouped(expOrder(i)).color = cMap(i,:);
+    end
+    % TIME COURSE DATA
+    num.trial(i) = data(i).ntrials;
+    [time,temp,speed,distance] = deal([]);
+    for trial = 1:num.trial(i)
+        time = autoCat(time,data(i).data(trial).occupancy.time,false,true);
+        temp = autoCat(temp,data(i).data(trial).occupancy.temp,false,true);
+        speed = autoCat(speed,data(i).data(trial).speed.avg,false,true);
+    % movement = autoCat(speed,data(i).data(trial).speed.avg,false,true);
+        distance = autoCat(distance,data(i).data(trial).dist2wells(:,data(i).T.foodLoc(trial)),false,true);
+    end
+    grouped(i).time = mean(time,2,'omitnan');
+    grouped(i).temp = mean(temp,2,'omitnan');
+    grouped(i).speed.all = speed;
+    grouped(i).speed.avg = mean(speed,2,'omitnan');
+    grouped(i).speed.err = std(speed,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).speed.zscore.all = zscore(grouped(i).speed.all);
+    grouped(i).speed.zscore.avg = mean(grouped(i).speed.zscore.all,2,'omitnan');
+    grouped(i).dist.all = distance;
+    grouped(i).dist.avg = mean(distance,2,'omitnan');
+    grouped(i).dist.err = std(distance,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).dist.zscore.all = zscore(grouped(i).dist.all);
+    grouped(i).dist.zscore.avg = mean(grouped(i).dist.zscore.all,2,'omitnan');
+
+    % AVG POSITION BINNED BY TEMP
+    for trial = 1:num.trial(i)
+        tempList = data(i).G(trial).TR.temps;
+        y = data(i).G(trial).TR.data(:,3);
+        for tt = 1:length(tempList)
+            grouped(i).dist.tempBinned(trial,tt) = mean(y(data(i).G(trial).TR.tempIdx==tt),'omitnan');
+        end
+        grouped(i).dist.tempList(trial,:) = tempList;
+    end
+    grouped(i).dist.distavgbytemp = [grouped(i).dist.tempList(1,:)',...
+                                     mean(grouped(i).dist.tempBinned,1,'omitnan')'];
+    grouped(i).dist.distavgbytemp_err = [grouped(i).dist.tempList(1,:)',...
+                                         (std(grouped(i).dist.tempBinned,0,'omitnan')/sqrt(num.trial(i)))'];
+
+    % BINNED
+    [tempRates,decreasing,increasing,temperatures] = deal([]);
+    for trial = 1:num.trial(i)
+        % Account for multiple numbers of rate trials
+        rates = data(i).G(1).TR.rates;
+        nRates(i) = size(rates,2);
+        if nRates(i)==2
+            blankdata = data(i).G(trial).TR.dist_mat.avg;
+        elseif nRates == 3
+            blankdata = data(i).G(trial).TR.dist_mat.avg;
+            blankdata(rates==0,:) = [];
+            rates(rates==0) = [];
+        else
+            warndlg('Temp protocol has too many rates for this analysis')
+            return
+        end
+        downIdx = find(rates<0);
+        upIdx = find(rates>0);
+        decreasing(:,trial) = blankdata(downIdx,:);
+        increasing(:,trial) = blankdata(upIdx,:);
+        tempRates = autoCat(tempRates,rates,true,true);
+        temperatures(:,trial) = data(i).G(trial).TR.temps;
+    end
+    grouped(i).increasing.temps = median(temperatures,2);
+    grouped(i).increasing.all = increasing;
+    grouped(i).increasing.avg = mean(increasing,2,'omitnan');
+    grouped(i).increasing.zscore.all = zscore(increasing,0,'omitnan');
+    grouped(i).increasing.zscore.avg = mean(grouped(i).increasing.zscore.all,2,'omitnan');
+    grouped(i).increasing.err = std(increasing,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).increasing.rate = median(tempRates(:,upIdx));
+    grouped(i).decreasing.temps = median(temperatures,2);
+    grouped(i).decreasing.all = decreasing;
+    grouped(i).decreasing.avg = mean(decreasing,2,'omitnan');
+    grouped(i).decreasing.zscore.all = zscore(decreasing,0,'omitnan');
+    grouped(i).decreasing.zscore.avg = mean(grouped(i).decreasing.zscore.all,2,'omitnan');
+    grouped(i).decreasing.err = std(decreasing,0,2,'omitnan')/sqrt(num.trial(i));
+    grouped(i).decreasing.rate = median(tempRates(:,downIdx));
+
+end
+
+% RAMP-TO-RAMP COMPARISONS
+binWidth = 0.5; %temp bin increment
+mat = struct;
+% Extract ramp by ramp information from each trial
+for i = 1:num.exp
+    for trial = 1:num.trial(i)
+        tempPoints = getTempTurnPoints(data(i).T.TempProtocol{trial});
+        foodLoc = data(i).T.foodLoc(trial);
+        threshLow = tempPoints.threshLow;
+        threshHigh = tempPoints.threshHigh;
+        dist = data(i).data(trial).occupancy.dist2wells(:,foodLoc);
+        temp = data(i).data(trial).occupancy.temp;
+        tempBins = floor(threshLow):binWidth:ceil(threshHigh);
+        if tempBins(end)<ceil(threshHigh)
+            tempBins(end+1) = ceil(threshHigh) + binSpace;
+        end
+
+        for idx = 1:tempPoints.nDown
+            % COOLING
+            downROI = tempPoints.down(idx,1):tempPoints.down(idx,2);
+            mat(i).cooling(idx).dist(:,trial) = dist(downROI);
+            mat(i).cooling(idx).temp(:,trial) = temp(downROI);
+            mat(i).cooling(idx).tempIdx(:,trial) = discretize(temp(downROI),tempBins);
+
+            % HEATING
+            upROI = tempPoints.up(idx,1):tempPoints.up(idx,2);
+            mat(i).heating(idx).dist(:,trial) = dist(upROI);
+            mat(i).heating(idx).temp(:,trial) = temp(upROI);
+            mat(i).heating(idx).tempIdx(:,trial) = discretize(temp(upROI),tempBins);
+
+            % HYSTERESIS MEASURE
+            for n = 1:length(tempBins)-1 %pull avg temp for this particular cooling ramp
+                %cooling
+                C_loc = mat(i).cooling(idx).tempIdx(:,trial)==n;
+                mat(i).cooling(idx).bintemp(n,trial) = mean(mat(i).cooling(idx).dist(C_loc,trial),'omitnan');
+                %heating
+                H_loc = mat(i).heating(idx).tempIdx(:,trial)==n;
+                mat(i).heating(idx).bintemp(n,trial) = mean(mat(i).heating(idx).dist(H_loc,trial),'omitnan');
+            end
+            mat(i).hysteresis(idx).all(:,trial) = mat(i).cooling(idx).bintemp(:,trial)-mat(i).heating(idx).bintemp(:,trial);
+            mat(i).hysteresis(idx).sum(trial) = sum(mat(i).hysteresis(idx).all(:,trial),'omitnan');
+            mat(i).hysteresis(idx).tempbins = tempBins;
+            mat(i).distHist(:,trial,idx) = mat(i).hysteresis(idx).all(:,trial); %hyst by temp bin
+            mat(i).cumHist(trial,idx) = mat(i).hysteresis(idx).sum(trial); %cumulative hysteresis
         end
     end
-    %labels and formatting
-    xlabel('Temperature (\circC)')
-    ylabel('Movement (mm)')
-    formatFig(fig, true);
-    set(gca,'fontsize', 18)
-    xlim([floor(temp(1)-1),temp(end)+ceil(range(temp)*0.33)])
-    %legend
-    lStr = strrep(lStr,'_',' ');
-    legend(lStr,'textcolor', 'w', 'box', 'off','fontsize', 8)
-    
-save_figure(fig, [figDir 'movement tuning overlay'], '-png');
+end
 
-% TODO: get measure of movement hysteresis and recovery from cooling in
-% flies
+disp('Next')
 
 
 
 
+%% OLD OG Code
 
+% Temp-rate distance tuning curve for a single genotype or across genotypes
+% Show how a single genotypes compares in food attraction:temperature for
+% different rates of temperature change
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
-
-
-
-
-
-
+% %% Select data groups to compare
+% % add matlabroot folder to the directory path
+% % addpath(genpath('C:\matlabroot'));
+% 
+% clear; close all; clc
+% baseFolder = getCloudPath;
+% 
+% switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
+%     case 'Cancel'
+%         return
+%     case 'Yes'
+%         list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+%         list_dirs = {list_dirs(:).name};
+%         list_dirs(1:2) = [];
+%         dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
+% 
+%         try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+%         catch
+%             disp('No group selected')
+%             return
+%         end
+%         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+%         load([saveDir expGroup ' data.mat']);
+%         disp([expGroup ' loaded'])
+%         %check for temperature protocol assignments (make back-compatible)
+%         for i = 1:num.exp
+%             if ~isfield(data(i),'temp_protocol')
+%                 data(i).temp_protocol = data(i).T.TempProtocol{1};
+%             end
+%             if isempty(data(i).temp_protocol)
+%                 data(i).temp_protocol = data(i).T.TempProtocol{1};
+%             end
+%         end
+%     case 'No'
+%         % Select processed data structures to compare:
+%         structFolder = [baseFolder 'Data structures\'];
+%         list_dirs = dir(structFolder);
+%         list_dirs = {list_dirs(:).name};
+%         list_dirs(1:2) = [];
+%         expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+%         expNames = list_dirs(expIdx); %name of experiment groups selected
+%         num.exp = length(expIdx);  %number of groups selected
+% 
+%         % Load selected experiment data groups
+%         for i = 1:num.exp
+%             % get field list for loading data:
+%             dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+%              if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+%                    dummy.hold_exp = false; % account for new data structures
+%                    dummy.temp_protocol = dummy.T.TempProtocol{1};
+%              end
+%             data(i) = dummy;
+%             % try data(i) = dummy;
+%             % catch % TODO -- better automate search for missing fields and options
+%             % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+%             %
+%             %     data(i) = dummy;
+%             % end
+%         end
+% 
+%         clear list_dirs expIdx dirIdx
+%         % Set up base variables
+%         initial_vars = who;
+%         initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+%         initial_vars = unique(initial_vars);
+% 
+%         % Save data / make new grouped data folder
+%         switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
+%             case 'new structure'
+%                 expGroup = char(inputdlg('Structure name:'));
+%                 saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+%                 if ~exist(saveDir,'dir')
+%                     mkdir(saveDir);
+%                 end
+%                 save([saveDir expGroup ' data.mat'],'-v7.3');
+%                 disp([expGroup ' saved'])
+%             case 'existing structure'
+%                 list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+%                 list_dirs = {list_dirs(:).name};
+%                 list_dirs(1:2) = [];
+%                 dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+%                 expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+%                 saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+%                 save([saveDir expGroup ' data.mat'],'-v7.3');
+%                 disp([expGroup ' saved'])
+%             case 'cancel'
+%                 return
+%         end
+% end
+% disp(expNames')
+% 
