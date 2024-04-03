@@ -1597,7 +1597,7 @@ videoStartTime =
 
 writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
 
-%% 
+
 %% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
@@ -1611,63 +1611,118 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
         return
     case 'Yes' % LOAD PRE-EXISTING DATA
         % find and select list of possible experimental groups:
-        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-        list_dirs = {list_dirs(:).name};
+        list_dirs = dir([baseFolder 'Grouped Data Structures\']);  list_dirs = {list_dirs(:).name};
         list_dirs(1:2) = [];
-        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[400,700]);
-
-        try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-        catch
+        [dirIdx, v] = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[400,700]);
+        if v
+            expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        else
             disp('No group selected')
             return
         end
         % Find the group name of the existing data to load
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
         filePath = [saveDir expGroup ' data.mat'];
-        % TODO:  add here something to load the dataList so we can
-        % test the existence of missing data before spending time loading
-        % the whole structure if we need to update a group set within in
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %    TODO:  add here something to load the dataList so we can                %
+        %    test the existence of missing data before spending time loading        %
+        %    the whole structure if we need to update a group set within in           %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        % Load exisiting data structure
         temp = load(filePath);
-        % Pull key variables from structure (this prevents overwriting the
-        %local saving path for the current computer)
+        % Pull  variables from structure (prevents errors in the local saving path for the current computer)
         data = temp.data;
         expNames = temp.expNames;
         initial_vars = temp.initial_vars;
         num = temp.num;
+        clear temp
         
-        % load a group list with the names and identities of the existing data in the structure
-        % MAKE DATA LIST if it doesn't exist
-        if ~exist('dataList','var')
-            disp('No data list exists')
-            dataList = struct;
-            for i = 1:length(data)
-                dataList(i).T = data(i).T;
-                dataList(i).name = expNames{i};
-            end
+        % List of included data for comparison & updates
+        dataList = struct;
+        for i = 1:length(data)
+            dataList(i).T = data(i).T;
+            dataList(i).name = expNames{i};
         end
+
+        % Determine if any new groups need to be added/removed to structure by user
+        list_dirs = dir(structFolder);  list_dirs = {list_dirs(:).name}; list_dirs(1:2) = [];
+        includedIdx = [];
+        for i = 1:num.exp
+            includedIdx(i) = find(strcmp(expNames{i},list_dirs));
+        end
+        %Check that the current selection of experiments is okay by showing the
+        %included groups
+        prompt_string = {'Select the groups for the structure: ', expGroup};
+        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450], ...
+                        'InitialValue',includedIdx,'PromptString',prompt_string); clear prompt_string
+
+        % Determine if new data was added to the list: 
+        added_data = setdiff(expIdx,includedIdx); 
+        if ~isempty(added_data)
+            %check that the data for these are all updated
+            idx = num.exp + 1;
+            for i = 1:length(added_data)
+                dataList(idx).name = list_dirs{added_data(i)};
+                idx = idx +1;
+            end
+        end; clear added_data idx
+
+        % Determine if data was removed: TODO
+        remove_data = setdiff(includedIdx,expIdx);
+        if ~isempty(remove_data)
+            for i = 1:length(remove_data)
+                 loc = strcmp(list_dirs{remove_data(i)},{dataList(:).name});
+                 dataList(loc).remove = true;
+            end
+        end; clear loc remove_data includedIdx
 
         % Find the files within each data set and compare to the existing base 
         % data structure for missing data & then updata any missing data if possible
-        [rebuildFlag, addFlag, extradataFlag] = deal([]);
-        for i = 1:num.exp
-            [rebuildFlag(i), addFlag(i), extradataFlag(i)] = matchDataStructure(structFolder, dataList(i).name, dataList(i).T(:,1:4));
+        for i = 1:size(dataList,2)
+            if dataList(i).remove == false
+                continue
+            end
+            [a,b,c] = matchDataStructure(dataList(i).name, dataList(i).T);
+            dataList(i).rebuild = a;
+            dataList(i).add = b;
+            dataList(i).extradata = c;            
+        end; clear a b c
+        
+        % Update the grouped structure according to the dataList
+        for i = 1:size(dataList, 2)
+            exp_name = dataList(i).name;
+            % remove unwanted data sets
+                if dataList(i).remove
+                    loc = find(strcmp(exp_name,{data(:).ExpGroup}));
+                    data(loc) = [];
+                end
+            %load or reload existing datasets
+                if dataList(i).rebuild ||  dataList(i).extradata
+                    disp([exp_name ' needs to be rebuilt from Step 3.1'])
+                    switch questdlg(['"' exp_name ''' is not up-to-date in this structure. Continue anyway?'])
+                        case 'No'
+                                disp('Check for other rebuilds in the structure')
+                                return
+                        case 'Cancel'
+                            return
+                    end
+                end
+                if dataList(i).add
+                    disp(['Updating data for ' exp_name])
+                    loc = strcmp(exp_name,{data(:).ExpGroup}); 
+                    dummy = load([structFolder exp_name '\' exp_name ' post 3.1 data.mat']);
+                     if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+                           dummy.hold_exp = false; % account for new data structures
+                           dummy.temp_protocol = dummy.T.TempProtocol{1};
+                     end
+                    data(i) = dummy;
+                end
         end
-        
 
-        % TODO: ask if there are any data groups to keep or delete
-        % TODO: check if any new data groups from the selected list have
-        % missing data and need to be updated before loading into the
-        % larger structure
-        
-
-       
-        
-        
-        
-        temp = load(filePath);
-
-        load(filePath);
         disp([expGroup ' loaded'])
+   
         %check for temperature protocol assignments (make back-compatible)
         for i = 1:num.exp
             if ~isfield(data(i),'temp_protocol')
@@ -1677,6 +1732,9 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 data(i).temp_protocol = data(i).T.TempProtocol{1};
             end
         end
+
+        % TODO : IF ANYTHING CHANGED, ASK TO RESAVE THE DATA
+
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 'No' % CREATE NEW DATA STRUCTURE
