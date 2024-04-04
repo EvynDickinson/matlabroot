@@ -166,8 +166,6 @@ for i = 1:size(dataList,2)
     dataList(i).extradata = c;            
 end; clear a b c
 
-%TODO : working here to get this code to work
-
 % Update the grouped structure according to the dataList
 for i = 1:size(dataList, 2)
     exp_name = dataList(i).name;
