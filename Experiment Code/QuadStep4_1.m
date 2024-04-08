@@ -208,30 +208,31 @@ for i = 1:size(dataList, 2)
             data(i) = dummy;
         end
 end; clear dummy
+
 % clear blank space **this might differ for a trial that ends with a removal???
 i = 1; idx = 0; maxIdx = size(data,2);
-while i < (size(data,2)+1)
-    idx = idx +1; 
-    disp(['Count: ' num2str(idx) '      i : ' num2str(i)])
-    if isempty(data(i).ExpGroup) %remove data and repeat line (all data shuffles up)
+while i <= size(data,2) 
+    idx = idx + 1;
+    % Check if the current element should be removed
+    if isempty(data(i).ExpGroup)
+        % Display info of the element to be removed
+        disp(['Removed ' num2str(i)]) % Since data(i).ExpGroup is empty, showing index
+        % Remove the element
         data(i) = [];
-        disp(['Removed ' data(i).ExpGroup])
-    else % keep data, move to next index
-        i = i+1;
-        disp(['Kept ' data(i).ExpGroup])
+    else
+        % Element is kept, display its info and move to next
+        disp(['Kept ' num2str(i) ' ' data(i).ExpGroup])
+        i = i + 1;
     end
+    % Break the loop if idx exceeds the original max index
     if idx > maxIdx
-        break
+        break;
     end
-end 
-
-dummy = data;
-loc = [];
-for i = 1:size(dummy,2)
-    if ~isempty(data(i).ExpGroup)
-        loc(i) = true;
-    end
+    disp(['i end loop = ' num2str(i)])
+    disp(['idx end loop: ' num2str(idx)])
 end
+
+num.exp = size(data,2);
 
 %check for temperature protocol assignments (make back-compatible)
 for i = 1:num.exp
