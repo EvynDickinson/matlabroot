@@ -244,7 +244,7 @@ for i = 1:num.exp
     end
 end
 
-disp([expGroup ' loaded'])
+% disp([expGroup ' loaded'])
 
 % Save data / make new grouped data folder
 clearvars('-except',initial_vars{:})
