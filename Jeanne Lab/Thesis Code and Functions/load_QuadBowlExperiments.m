@@ -19,7 +19,10 @@ baseFolder = basePath(1:end-5); % path to just the '/jeanne lab/' folder
 xlFile = [baseFolder 'Quad Bowl Experiments.xlsx'];
 
 %load excel sheet data
-excelfile = readcell(xlFile,'Sheet','Exp List');
+[~,~,excelfile] = xlsread(xlFile,'Exp List');
+% excelfile = readcell(xlFile,'Sheet','Exp List'); %update to new format --
+% but need to adjust other functions that call the 1st two data type
+% options
 
 % Excel column for the headers:
 Excel.headers = excelfile(1,:); %xltitles
