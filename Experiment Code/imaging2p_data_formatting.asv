@@ -1,0 +1,82 @@
+
+baseFolder = getCloudPath;
+
+data_dir = [baseFolder 'Imaging/Waxed antenna 2P imaging Kristyn/'];
+load([data_dir 'meanDFF_ACV_heavy_wax_antennaeandpalps.mat']) % load avg data
+load([data_dir 'glomeruli_labels.mat']) % load labels for the glomeruli
+
+hz = 4.22; %check this with Kristyn (was it really ~12 sec?)
+odor_on = 4;
+odor_dur = 2;
+
+%% SKIP :  load provided data and pull the glom lables
+
+% get handles for each subplot on the graph
+subplot_handles = findobj(gcf, 'type', 'axes');
+
+n = length(subplot_handles);
+
+% pull names into cell format
+glom_ID = cell(size(subplot_handles));
+
+for i = 1:n
+    glom_ID{i} = get(subplot_handles(i), 'Title').String;
+end
+
+save([data_dir 'glomeruli_labels.mat']
+
+%% FIGURE: plot the mean df/f for each glomeruli
+%figure parameters
+blkbgd = true;
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+kolor = Color('teal');
+LW = 2.5;
+col = 7; 
+row = 6;
+
+%plot figure
+new_fig = getfig('');
+xlimits = []; skipIdx = [];
+for i = 1:n
+    subplot(row,col,i)
+    y = meanDFF{1,i};
+    len = length(y);
+    x = linspace(0,len/hz,len);
+    plot(x,y,'Color', kolor,'linewidth',LW)
+
+    % add glomerulus identity
+    title(glom_ID{i},'FontSize',12,'Color',foreColor)
+    % get info for normalizing
+    xlimits(i,:) = xlim;
+    ylimits(i,:) = ylim;
+    if all(isnan(y))
+        skipIdx(i) = true;
+    else
+        skipIdx(i) = false;
+    end
+end
+
+X_norm = [min(min(xlimits)), max(max(xlimits))];
+Y_norm = [min(min(ylimits)), max(max(ylimits))];
+
+
+formatFig(new_fig,blkbgd,[row,col]);
+for i = 1:n
+    subplot(row,col,i)
+    xlim(X_norm)
+    ylim(Y_norm)
+    set(gca,'xcolor', backColor,'xtick', [],'ycolor',backColor,'ytick',[]);
+    if ~skipIdx(i)
+        % Draw the odor stim rectangle
+        hold on
+        rectangle('Position', [odor_on, Y_norm(1), odor_dur, diff(Y_norm)], ...
+              'FaceColor', foreColor, 'EdgeColor', 'none', 'FaceAlpha', 0.3);
+    end
+    % color the first column 
+    if ismember(i,1:col:n)
+        set(gca,'ycolor',foreColor,'ytick',Y_norm);
+        ylabel('df/f')
+    end
+end
+
+save_figure(new_fig,[],'-png')
