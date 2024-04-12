@@ -109,6 +109,7 @@ legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off',
 save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
+
 clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = true;
@@ -212,6 +213,50 @@ set(gca,'ydir','reverse')
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
+
+%% FIGURE: highlight specific trials within the grouped data:
+
+%1) select the group
+i = 1;
+trial_list = [17:20];
+colorList = {'white'};
+
+
+for idx = 1:length(trial_list)
+     % trial specific parameters: 
+    trial = trial_list(idx);
+    disp([data(i).T.Date(trial) data(i).T.Arena(trial)])
+
+    for jj = 1:2
+        if jj ==1
+            kolor = Color('white');
+        else 
+           kolor =  grouped(i).color;
+        end
+        % plot distance
+        subplot(r,c,sb(2).idx); hold on
+        x = grouped(i).time;
+        y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
+        plot(x,y,'LineWidth',LW+2,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+            
+        % plot temp dependent distance
+        subplot(r,c,sb(3).idx); hold on
+        x = grouped(i).dist.tempList(trial,:);
+        y = grouped(i).dist.tempBinned(trial,:);
+        loc = isnan(y);
+        x(loc) = [];  y(loc) = [];
+        plot(x,y,'color',kolor,'linewidth',3)
+        h = warndlg('wait for identificaiton');
+        uiwait(h)
+    end
+end
+
+%2) select the trials
+%3) overlay the data
+
 
 %% FIGURE & STATS: cumulative hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
