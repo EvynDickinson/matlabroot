@@ -215,21 +215,16 @@ while i <= size(data,2)
     idx = idx + 1;
     % Check if the current element should be removed
     if isempty(data(i).ExpGroup)
-        % Display info of the element to be removed
-        disp(['Removed ' num2str(i)]) % Since data(i).ExpGroup is empty, showing index
-        % Remove the element
+        % Remove the blank slots
         data(i) = [];
     else
-        % Element is kept, display its info and move to next
-        disp(['Kept ' num2str(i) ' ' data(i).ExpGroup])
+        % Keep group and move to next
         i = i + 1;
     end
     % Break the loop if idx exceeds the original max index
     if idx > maxIdx
         break;
     end
-    disp(['i end loop = ' num2str(i)])
-    disp(['idx end loop: ' num2str(idx)])
 end
 
 num.exp = size(data,2);
@@ -286,7 +281,7 @@ disp(expNames')
 
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
-fig_type = '-png';
+fig_type = '-png'; 
 blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);

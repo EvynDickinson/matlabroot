@@ -1,465 +1,5 @@
  
-% Temp-rate distance tuning curve for a single genotype or across genotypes
-% Show how a single genotypes compares in food attraction:temperature for
-% different rates of temperature change
-% CAVEATS:
-% ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
-% *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
-%% Select data groups to compare
-% add matlabroot folder to the directory path
-% addpath(genpath('C:\matlabroot'));
-
-clear; close all; clc
-baseFolder = getCloudPath;
-
-switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
-    case 'Cancel'
-        return
-    case 'Yes'
-        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-        list_dirs = {list_dirs(:).name};
-        list_dirs(1:2) = [];
-        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
-
-        try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-        catch
-            disp('No group selected')
-            return
-        end
-        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        load([saveDir expGroup ' data.mat']);
-        disp([expGroup ' loaded'])
-        %check for temperature protocol assignments (make back-compatible)
-        for i = 1:num.exp
-            if ~isfield(data(i),'temp_protocol')
-                data(i).temp_protocol = data(i).T.TempProtocol{1};
-            end
-            if isempty(data(i).temp_protocol)
-                data(i).temp_protocol = data(i).T.TempProtocol{1};
-            end
-        end
-    case 'No'
-        % Select processed data structures to compare:
-        structFolder = [baseFolder 'Data structures\'];
-        list_dirs = dir(structFolder);
-        list_dirs = {list_dirs(:).name};
-        list_dirs(1:2) = [];
-        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
-        expNames = list_dirs(expIdx); %name of experiment groups selected
-        num.exp = length(expIdx);  %number of groups selected
-
-        % Load selected experiment data groups
-        for i = 1:num.exp
-            % get field list for loading data:
-            dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
-                   dummy.hold_exp = false; % account for new data structures
-                   dummy.temp_protocol = dummy.T.TempProtocol{1};
-             end
-            data(i) = dummy;
-            % try data(i) = dummy;
-            % catch % TODO -- better automate search for missing fields and options
-            % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-            %
-            %     data(i) = dummy;
-            % end
-        end
-
-        clear list_dirs expIdx dirIdx
-        % Set up base variables
-        initial_vars = who;
-        initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
-        initial_vars = unique(initial_vars);
-
-        % Save data / make new grouped data folder
-        switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
-            case 'new structure'
-                expGroup = char(inputdlg('Structure name:'));
-                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-                if ~exist(saveDir,'dir')
-                    mkdir(saveDir);
-                end
-                save([saveDir expGroup ' data.mat'],'-v7.3');
-                disp([expGroup ' saved'])
-            case 'existing structure'
-                list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-                list_dirs = {list_dirs(:).name};
-                list_dirs(1:2) = [];
-                dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-                expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-                save([saveDir expGroup ' data.mat'],'-v7.3');
-                disp([expGroup ' saved'])
-            case 'cancel'
-                return
-        end
-end
-disp(expNames')
-
-%% ANALYSIS: organize data for each group
-clearvars('-except',initial_vars{:})
-fig_type = '-png';
-blkbgd = true;
-initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
-initial_vars = unique(initial_vars);
-f2m = 3*60; %fps*min = number of frames in a minute
-pix2mm = 12.8; % pixels per mm of real space
-grouped = struct;
-
-% Color selections
-switch expGroup
-% ---- WILD TYPE COMPARISONS ----
-    case 'WT linear recovery caviar'
-        expOrder = [];
-        expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
-        % expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi', 'Zimbabwe'};
-        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-        for ii = 1:num.exp
-            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-        end
-    case 'WT linear recovery no food'
-        expOrder = [];
-        expList = {'Berlin WT', 'CantonS ', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'};
-        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-        for ii = 1:num.exp
-            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp no food']));
-        end
-    case 'All linear recovery ramp'
-        expOrder = [];
-        expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
-        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
-        for ii = 1:num.exp
-            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-        end
-    case 'WT linear recovery caviar 27-19'
-        expOrder = [];
-%         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
-%         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-        expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
-        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
-        for ii = 1:num.exp
-            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 27-19'])  | ...
-                                strcmp(expNames,[expList{ii} ' linear recovery ramp 27-19 caviar']));
-        end
-    case 'WT linear recovery caviar 25-17'
-        expOrder = [];
-%         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
-%         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
-        expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
-        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
-        for ii = 1:num.exp
-            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 25-17'])  | ...
-                                strcmp(expNames,[expList{ii} ' linear recovery ramp 25-17 caviar']));
-        end
- % ---- FOOD VS NO FOOD CONTROLS ----
-    case 'Berlin linear recovery ramp food vs no food'
-        expOrder = [2,1];
-        colors = {'black','dodgerblue'}; %
-    case 'Berlin LRR 25-17 food vs no food'
-        expOrder = [1,2];
-        colors = {'white', 'gold'};
-    case 'Berlin S LRR 25-17 caviar vs no food'
-        expOrder = [2,1];
-        colors = {'white', 'gold'};
-    case 'Berlin S LRR 25-17 food vs no food'
-        expOrder = [2,1];
-        colors = {'white', 'gold'};
-    case 'Berlin LRR 25-17 new arena vs OG caviar'
-        expOrder = [1,2];
-        colors = {'teal', 'white'};
-    case 'Berlin F 25-17 food vs no food'
-        expOrder = [1,2];
-        colors = {'blueviolet', 'white'};
-    case 'Berlin giant ramp food vs no food'
-        expOrder = [1,2];
-        colors = {'white','DarkOrchid'};
-    case 'Berlin LTS 15-35 caviar vs empty'
-        expOrder = [2,1];
-        colors = {'white','DarkOrchid'};
-    case 'CantonS LRR food vs no food'
-        expOrder = [1,2];
-        colors = {'white','DarkOrchid'};
-    case 'Berlin F hold 25C food vs no food'
-        expOrder = 1:2;
-        colors = {'slategrey', 'white'};
-
-% ---- FOOD GROUP COMPARISIONS ----
-    case 'Berlin F LRR 25-17 ACV'
-        expOrder = 1:num.exp;
-        colors = {'White','magenta','dodgerblue','Orange','DarkOrchid'};
-    case 'Berlin F LRR 25-17'
-        expOrder = [6,1,2,3,4,5];
-        colors = {'White','grey','yellow','orange', 'red','dodgerblue'};
-    case 'Berlin LRR 25-17 different food comp'
-        expOrder = [1,2];
-        colors = {'gold','DarkOrchid'};
-    case 'Berlin S LRR 23-15 food raised comparison'
-        expOrder = [1,2];
-        colors = {'gold','Dodgerblue'};
-    case 'Berlin S LRR 25-17 food raised comparison'
-        expOrder = [1,2];
-        colors = {'gold','Dodgerblue'};
-    case 'Berlin S LRR 23-15 caviar'
-        expOrder = [1,3,2];
-        colors = {'white','gold', 'DarkOrchid'};
-    case 'Berlin S LRR 25-17 caviar'
-        expOrder = [1,3,2]; % combined, old, new
-        colors = {'white','gold', 'DarkOrchid'};
-    case 'Berlin S LRR 27-19 caviar'
-        expOrder = [1,3,2]; % combined, old, new
-        colors = {'white','gold', 'DarkOrchid'};
-    % ---- SEX COMPARISONS ----
-    case 'Zimbabwe sex comparison'
-        expOrder = 1:num.exp;
-        colors = {'White','magenta','dodgerblue','Orange'};
-    case 'Berlin sex comparison'
-        expOrder = 1:num.exp;
-        colors = {'White','magenta','dodgerblue','Orange'};
-
-    % ---- TEMP RATE COMPARISONS ----
-    case 'Berlln LRR 25-17 temprate comp caviar'
-        expOrder = 4:-1:1; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
-    case 'Berlin LRR 25-17 temprate caviar'
-        expOrder = 4:-1:1; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
-    case 'Berlin LRR temprate comp'
-        expOrder = 4:-1:1; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
-    case 'Berlin LRR temprate comp no food'
-        expOrder = 4:-1:1; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
-    case 'Zimbabwe LRR caviar temprate comparison'
-        expOrder = [3,4,2,1];
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
-
-    % ---- TEMP SHIFT COMPARISONS ----
-    case 'Swedish LRR tempshift comp cavair full'
-        expOrder = 1:4; %lowest to highest
-        colors = {'dodgerblue','powderblue','peachpuff','tomato'};
-    case 'Swedish LRR temp shift caviar'
-        expOrder = [1,2,3]; %lowest to highest temp
-        colors = {'dodgerblue','gold','red'};
-    case 'Malawi LRR temp shift caviar'
-        expOrder = 1:3; %lowest to highest temp
-        colors = {'dodgerblue','gold','red'};
-    case 'OregonR LRR temp shift comp caviar'
-        expOrder = 1:3; %lowest to highest
-        colors = {'dodgerblue','gold','red'};
-    case 'Zimbabwe temp shifted linear recovery ramp caviar'
-        expOrder = [3,1,2]; %lowest to highest
-        colors = {'dodgerblue','gold','red'};
-    case 'Berlin temp shifted comp linear recovery ramp caviar'
-        expOrder = [3,1,2]; %lowest to highest
-        colors = {'dodgerblue','gold','red'};
-    case 'Berlin S LRR temp shift'
-        expOrder = [1,2,3]; %lowest to highest
-        colors = {'dodgerblue','gold','red'};
-    case 'Berlin S LRR TempShift caviar'
-        expOrder = 1:3;
-        colors = {'dodgerblue','gold','red'};
-    case 'Berlin LRR tempshift no food'
-        expOrder = [3 1 2];
-        colors = {'dodgerblue','gold','red'};
-    case 'LRR 27-19 no food comparison'
-        expOrder = 1:3;
-        colors = {'DarkOrchid', 'LimeGreen', 'Red'};
-    case 'Berlin WT mechanical manipulation linear recovery ramp caviar'
-        expOrder = [1,2]; %lowest to highest
-        colors = {'dodgerblue','peachpuff'};
-    case 'W1118 genetic background comp'
-        expOrder = [1,2,3]; %lowest to highest
-        colors = {'deeppink','dodgerblue','greenyellow'};
-    case 'R60H12-gal4 S LRR 25-17 food vs no food'
-        expOrder = 1:2;
-        colors = {'white', 'dodgerblue'};
-    case 'Berlin vs UAS-Chrimson-TM2 S LRR 25-17 caviar'
-        expOrder  = 1:2;
-        colors  = {'dodgerblue', 'yellow'};
-    case 'Berlin S LRR 25_17 caviar Cedar vs Collge'
-        expOrder  = 1:2;
-        colors  = {'dodgerblue', 'yellow'};
-    case 'Berlin F LRR caviar Cedar vs College'
-        expOrder  = 1:2;
-        colors  = {'dodgerblue', 'yellow'};
-    % ===  controls ======
-    case 'Berlin S LRR 23-15 all controls'
-        expOrder = [2 1 4 3]; %NF-NT; F-NT; NF-T; F-T
-        colors = {'lightslategray', 'white', 'lightpink', 'deeppink'};
-    case 'Berlin F LRR 25-17 controls and caviar'
-        expOrder = [4 3 2 1]; %NF-NT; F-NT; NF-T; F-T
-        colors = {'white', 'lightslategray', 'lightpink', 'deeppink'};
-    case 'Berlin Temp Holds caviar'
-        expOrder = 1:5;
-        colors = {'Blue', 'Dodgerblue', 'Cyan', 'lightcyan', 'white'}; %cold to warm
-    case 'Berlin Temp Holds no food'
-        expOrder = 1:4;
-        colors = { 'Blue','Dodgerblue', 'Cyan', 'lightcyan'}; %cold to warm
-    case 'Berlin 23C Hold food vs no food'
-        expOrder = [2,1];
-        colors = {'white', 'aquamarine'};
-    case 'Berlin S LRR 25-17 caviar vs temp holds'
-        colors = {'gold','lightcyan', 'dodgerblue'};
-        expOrder = 3:-1:1;
-    case 'Berlin S LRR 25-17 no food vs temp holds'
-        colors = {'gold','lightcyan', 'dodgerblue'};
-        expOrder = 3:-1:1;
-    case 'Berlin F LRR 25-17 food vs odor'
-        expOrder = 1:num.exp;
-        colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','pink','Orange'};
-   % ======  arista and antenna experiments ======
-    case 'Berlin F LRR 25-17 antenna arista intact comparisons'
-        expOrder = 1:4; % empty, no antenna, no arista, intact
-        colors = { 'white','lightslategray', 'lightpink', 'deeppink'};
-end
-
-if ~exist('colors','var')
-    expOrder = 1:num.exp;
-    if num.exp<=7
-        colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','Orange'};
-    else
-        cMap = 
-        
-end
-% Display the experiment 'order'
-disp('Experiment order:')
-for exp = 1:num.exp
-    i = expOrder(exp);
-    disp(expNames{i})
-end
-
-for i = 1:num.exp % FOR EACH DATA GROUP
-    % GENERAL
-    grouped(i).name = data(i).ExpGroup;
-    grouped(expOrder(i)).color = Color(colors{(i)});
-
-    % TIME COURSE DATA
-    num.trial(i) = data(i).ntrials;
-    [time,temp,speed,distance] = deal([]);
-    for trial = 1:num.trial(i)
-        time = autoCat(time,data(i).data(trial).occupancy.time,false,true);
-        temp = autoCat(temp,data(i).data(trial).occupancy.temp,false,true);
-        speed = autoCat(speed,data(i).data(trial).speed.avg,false,true);
-    % movement = autoCat(speed,data(i).data(trial).speed.avg,false,true);
-        distance = autoCat(distance,data(i).data(trial).dist2wells(:,data(i).T.foodLoc(trial)),false,true);
-    end
-    grouped(i).time = mean(time,2,'omitnan');
-    grouped(i).temp = mean(temp,2,'omitnan');
-    grouped(i).speed.all = speed;
-    grouped(i).speed.avg = mean(speed,2,'omitnan');
-    grouped(i).speed.err = std(speed,0,2,'omitnan')/sqrt(num.trial(i));
-    grouped(i).speed.zscore.all = zscore(grouped(i).speed.all);
-    grouped(i).speed.zscore.avg = mean(grouped(i).speed.zscore.all,2,'omitnan');
-    grouped(i).dist.all = distance;
-    grouped(i).dist.avg = mean(distance,2,'omitnan');
-    grouped(i).dist.err = std(distance,0,2,'omitnan')/sqrt(num.trial(i));
-    grouped(i).dist.zscore.all = zscore(grouped(i).dist.all);
-    grouped(i).dist.zscore.avg = mean(grouped(i).dist.zscore.all,2,'omitnan');
-
-    % AVG POSITION BINNED BY TEMP
-    for trial = 1:num.trial(i)
-        tempList = data(i).G(trial).TR.temps;
-        y = data(i).G(trial).TR.data(:,3);
-        for tt = 1:length(tempList)
-            grouped(i).dist.tempBinned(trial,tt) = mean(y(data(i).G(trial).TR.tempIdx==tt),'omitnan');
-        end
-        grouped(i).dist.tempList(trial,:) = tempList;
-    end
-    grouped(i).dist.distavgbytemp = [grouped(i).dist.tempList(1,:)',...
-                                     mean(grouped(i).dist.tempBinned,1,'omitnan')'];
-    grouped(i).dist.distavgbytemp_err = [grouped(i).dist.tempList(1,:)',...
-                                         (std(grouped(i).dist.tempBinned,0,'omitnan')/sqrt(num.trial(i)))'];
-
-    % BINNED
-    [tempRates,decreasing,increasing,temperatures] = deal([]);
-    for trial = 1:num.trial(i)
-        % Account for multiple numbers of rate trials
-        rates = data(i).G(1).TR.rates;
-        nRates(i) = size(rates,2);
-        if nRates(i)==2
-            blankdata = data(i).G(trial).TR.dist_mat.avg;
-        elseif nRates == 3
-            blankdata = data(i).G(trial).TR.dist_mat.avg;
-            blankdata(rates==0,:) = [];
-            rates(rates==0) = [];
-        else
-            warndlg('Temp protocol has too many rates for this analysis')
-            return
-        end
-        downIdx = find(rates<0);
-        upIdx = find(rates>0);
-        decreasing(:,trial) = blankdata(downIdx,:);
-        increasing(:,trial) = blankdata(upIdx,:);
-        tempRates = autoCat(tempRates,rates,true,true);
-        temperatures(:,trial) = data(i).G(trial).TR.temps;
-    end
-    grouped(i).increasing.temps = median(temperatures,2);
-    grouped(i).increasing.all = increasing;
-    grouped(i).increasing.avg = mean(increasing,2,'omitnan');
-    grouped(i).increasing.zscore.all = zscore(increasing,0,'omitnan');
-    grouped(i).increasing.zscore.avg = mean(grouped(i).increasing.zscore.all,2,'omitnan');
-    grouped(i).increasing.err = std(increasing,0,2,'omitnan')/sqrt(num.trial(i));
-    grouped(i).increasing.rate = median(tempRates(:,upIdx));
-    grouped(i).decreasing.temps = median(temperatures,2);
-    grouped(i).decreasing.all = decreasing;
-    grouped(i).decreasing.avg = mean(decreasing,2,'omitnan');
-    grouped(i).decreasing.zscore.all = zscore(decreasing,0,'omitnan');
-    grouped(i).decreasing.zscore.avg = mean(grouped(i).decreasing.zscore.all,2,'omitnan');
-    grouped(i).decreasing.err = std(decreasing,0,2,'omitnan')/sqrt(num.trial(i));
-    grouped(i).decreasing.rate = median(tempRates(:,downIdx));
-
-end
-
-% RAMP-TO-RAMP COMPARISONS
-binWidth = 0.5; %temp bin increment
-mat = struct;
-% Extract ramp by ramp information from each trial
-for i = 1:num.exp
-    for trial = 1:num.trial(i)
-        tempPoints = getTempTurnPoints(data(i).T.TempProtocol{trial});
-        foodLoc = data(i).T.foodLoc(trial);
-        threshLow = tempPoints.threshLow;
-        threshHigh = tempPoints.threshHigh;
-        dist = data(i).data(trial).occupancy.dist2wells(:,foodLoc);
-        temp = data(i).data(trial).occupancy.temp;
-        tempBins = floor(threshLow):binWidth:ceil(threshHigh);
-        if tempBins(end)<ceil(threshHigh)
-            tempBins(end+1) = ceil(threshHigh) + binSpace;
-        end
-
-        for idx = 1:tempPoints.nDown
-            % COOLING
-            downROI = tempPoints.down(idx,1):tempPoints.down(idx,2);
-            mat(i).cooling(idx).dist(:,trial) = dist(downROI);
-            mat(i).cooling(idx).temp(:,trial) = temp(downROI);
-            mat(i).cooling(idx).tempIdx(:,trial) = discretize(temp(downROI),tempBins);
-
-            % HEATING
-            upROI = tempPoints.up(idx,1):tempPoints.up(idx,2);
-            mat(i).heating(idx).dist(:,trial) = dist(upROI);
-            mat(i).heating(idx).temp(:,trial) = temp(upROI);
-            mat(i).heating(idx).tempIdx(:,trial) = discretize(temp(upROI),tempBins);
-
-            % HYSTERESIS MEASURE
-            for n = 1:length(tempBins)-1 %pull avg temp for this particular cooling ramp
-                %cooling
-                C_loc = mat(i).cooling(idx).tempIdx(:,trial)==n;
-                mat(i).cooling(idx).bintemp(n,trial) = mean(mat(i).cooling(idx).dist(C_loc,trial),'omitnan');
-                %heating
-                H_loc = mat(i).heating(idx).tempIdx(:,trial)==n;
-                mat(i).heating(idx).bintemp(n,trial) = mean(mat(i).heating(idx).dist(H_loc,trial),'omitnan');
-            end
-            mat(i).hysteresis(idx).all(:,trial) = mat(i).cooling(idx).bintemp(:,trial)-mat(i).heating(idx).bintemp(:,trial);
-            mat(i).hysteresis(idx).sum(trial) = sum(mat(i).hysteresis(idx).all(:,trial),'omitnan');
-            mat(i).hysteresis(idx).tempbins = tempBins;
-            mat(i).distHist(:,trial,idx) = mat(i).hysteresis(idx).all(:,trial); %hyst by temp bin
-            mat(i).cumHist(trial,idx) = mat(i).hysteresis(idx).sum(trial); %cumulative hysteresis
-        end
-    end
-end
-
-disp('Next')
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols w/ SPEED
 clearvars('-except',initial_vars{:})
@@ -563,6 +103,7 @@ legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off',
 save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
+
 clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = true;
@@ -666,6 +207,137 @@ set(gca,'ydir','reverse')
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
+
+
+%% FIGURE: SINGLE TRIAL LINES over-lap of time-trials and temperature protocols NO SPEED
+clearvars('-except',initial_vars{:})
+plot_err = true;
+autoLim = true;
+% Y limit ranges
+dist_lim = [10,35];       %distance
+dt_lim = [14, 32];        %distance-temp
+xlim_auto = true; % change the time range for the x axis
+time_limits = [50,365]; % time limits if manual control over x-axis range
+nMax =  num.exp;%
+[~,backColor] = formattingColors(blkbgd); %get background colors
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 360;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = num.exp:-1:1
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        for trial = 1:num.trial(i)
+            y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
+            plot(x,y,'LineWidth',LW,'Color',kolor)
+            if ~autoLim
+                ylim(dist_lim)
+            end
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+        for trial = 1:num.trial(i)
+            x = grouped(i).dist.tempList(trial,:);
+            y = grouped(i).dist.tempBinned(trial,:);
+            loc = isnan(y);
+            x(loc) = [];  y(loc) = [];
+            plot(x,y,'color',kolor,'linewidth',1.25)
+        end
+        dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+% distance
+subplot(r,c,sb(2).idx)
+ylabel('proximity to food (mm)')
+xlabel('time (min)')
+set(gca,'ydir','reverse')
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel('proximity to food (mm)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dt_lim)
+end
+h_line(18.1,'grey',':',1) %36.2
+set(gca,'ydir','reverse')
+
+if ~xlim_auto
+    subplot(r,c,sb(1).idx)
+    set(gca, 'xlim', time_limits)
+    subplot(r,c,sb(2).idx)
+    set(gca, 'xlim', time_limits)
+end
+
+
+
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);
+
+%% FIGURE: highlight specific trials within the grouped data:
+
+%1) select the group
+i = 1; 
+trial_list = [17:20];
+colorList = {'white'};
+
+
+for idx = 1:length(trial_list)
+    % trial specific parameters: 
+    trial = trial_list(idx);
+    kolor = grouped(i).color;
+    % kolor = Color(colorList{idx});
+
+    % plot distance
+    subplot(r,c,sb(2).idx); hold on
+    x = grouped(i).time;
+    y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
+    plot(x,y,'LineWidth',LW+2,'Color',kolor)
+    if ~autoLim
+        ylim(dist_lim)
+    end
+        
+    % plot temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+    x = grouped(i).dist.tempList(trial,:);
+    y = grouped(i).dist.tempBinned(trial,:);
+    loc = isnan(y);
+    x(loc) = [];  y(loc) = [];
+    plot(x,y,'color',kolor,'linewidth',3)
+
+
+    
+end
+
+%2) select the trials
+%3) overlay the data
+
 
 %% FIGURE & STATS: cumulative hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
@@ -3784,93 +3456,3 @@ formatFig(fig,true);
 
 
 
-%% FIGURE: SINGLE TRIAL LINES over-lap of time-trials and temperature protocols NO SPEED
-clearvars('-except',initial_vars{:})
-plot_err = true;
-autoLim = true;
-% Y limit ranges
-dist_lim = [10,35];       %distance
-dt_lim = [14, 32];        %distance-temp
-xlim_auto = true; % change the time range for the x axis
-time_limits = [50,365]; % time limits if manual control over x-axis range
-nMax =  num.exp;%
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
-
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = [1,2]; %temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
-sb(3).idx = 3:c:r*c; %binned distance alignment
-
-LW = 0.75;
-sSpan = 180;
-dataString = cell([1,num.exp]);
-
-% FIGURE:
-fig = getfig('',true);
-for i = num.exp:-1:1
-    x = grouped(i).time;
-    kolor = grouped(i).color;
-
-    %temp
-    subplot(r,c,sb(1).idx); hold on
-        y = grouped(i).temp;
-        plot(x,y,'LineWidth',2,'Color',kolor)
-
-    %distance
-    subplot(r,c,sb(2).idx); hold on
-        for trial = 1:num.trial(i)
-            y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
-            plot(x,y,'LineWidth',LW,'Color',kolor)
-            if ~autoLim
-                ylim(dist_lim)
-            end
-        end
-
-    %temp dependent distance
-    subplot(r,c,sb(3).idx); hold on
-        for trial = 1:num.trial(i)
-            x = grouped(i).dist.tempList(trial,:);
-            y = grouped(i).dist.tempBinned(trial,:);
-            loc = isnan(y);
-            x(loc) = [];  y(loc) = [];
-            plot(x,y,'color',kolor,'linewidth',1.25)
-        end
-        dataString{i} = grouped(i).name;
-end
-
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx)
-ylabel('\circC')
-set(gca,"XColor",backColor)
-% distance
-subplot(r,c,sb(2).idx)
-ylabel('proximity to food (mm)')
-xlabel('time (min)')
-set(gca,'ydir','reverse')
-% temp-distance relationship
-subplot(r,c,sb(3).idx)
-ylabel('proximity to food (mm)')
-xlabel('temp (\circC)')
-if ~autoLim
-    ylim(dt_lim)
-end
-h_line(18.1,'grey',':',1) %36.2
-set(gca,'ydir','reverse')
-
-if ~xlim_auto
-    subplot(r,c,sb(1).idx)
-    set(gca, 'xlim', time_limits)
-    subplot(r,c,sb(2).idx)
-    set(gca, 'xlim', time_limits)
-end
-
-
-
-% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
-
-% save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);

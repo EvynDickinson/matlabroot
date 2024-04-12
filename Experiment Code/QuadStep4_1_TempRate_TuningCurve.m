@@ -103,6 +103,7 @@ legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off',
 save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
 
 %% FIGURE: Basic over-lap of time-trials and temperature protocols NO SPEED
+
 clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = true;
@@ -206,6 +207,142 @@ set(gca,'ydir','reverse')
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
+
+
+%% FIGURE: SINGLE TRIAL LINES over-lap of time-trials and temperature protocols NO SPEED
+clearvars('-except',initial_vars{:})
+plot_err = true;
+autoLim = true;
+% Y limit ranges
+dist_lim = [10,35];       %distance
+dt_lim = [14, 32];        %distance-temp
+xlim_auto = true; % change the time range for the x axis
+time_limits = [50,365]; % time limits if manual control over x-axis range
+nMax =  num.exp;%
+[~,backColor] = formattingColors(blkbgd); %get background colors
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 360;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = num.exp:-1:1
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        for trial = 1:num.trial(i)
+            y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
+            plot(x,y,'LineWidth',LW,'Color',kolor)
+            if ~autoLim
+                ylim(dist_lim)
+            end
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+        for trial = 1:num.trial(i)
+            x = grouped(i).dist.tempList(trial,:);
+            y = grouped(i).dist.tempBinned(trial,:);
+            loc = isnan(y);
+            x(loc) = [];  y(loc) = [];
+            plot(x,y,'color',kolor,'linewidth',1.25)
+        end
+        dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+% distance
+subplot(r,c,sb(2).idx)
+ylabel('proximity to food (mm)')
+xlabel('time (min)')
+set(gca,'ydir','reverse')
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel('proximity to food (mm)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dt_lim)
+end
+h_line(18.1,'grey',':',1) %36.2
+set(gca,'ydir','reverse')
+
+if ~xlim_auto
+    subplot(r,c,sb(1).idx)
+    set(gca, 'xlim', time_limits)
+    subplot(r,c,sb(2).idx)
+    set(gca, 'xlim', time_limits)
+end
+
+
+
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);
+
+%% FIGURE: highlight specific trials within the grouped data:
+
+%1) select the group
+i = 1;
+trial_list = [17:20];
+colorList = {'white'};
+
+
+for idx = 1:length(trial_list)
+     % trial specific parameters: 
+    trial = trial_list(idx);
+    disp([data(i).T.Date(trial) data(i).T.Arena(trial)])
+
+    for jj = 1:2
+        if jj ==1
+            kolor = Color('white');
+        else 
+           kolor =  grouped(i).color;
+        end
+        % plot distance
+        subplot(r,c,sb(2).idx); hold on
+        x = grouped(i).time;
+        y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
+        plot(x,y,'LineWidth',LW+2,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+            
+        % plot temp dependent distance
+        subplot(r,c,sb(3).idx); hold on
+        x = grouped(i).dist.tempList(trial,:);
+        y = grouped(i).dist.tempBinned(trial,:);
+        loc = isnan(y);
+        x(loc) = [];  y(loc) = [];
+        plot(x,y,'color',kolor,'linewidth',3)
+        h = warndlg('wait for identificaiton');
+        uiwait(h)
+    end
+end
+
+%2) select the trials
+%3) overlay the data
+
 
 %% FIGURE & STATS: cumulative hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
@@ -3324,93 +3461,3 @@ formatFig(fig,true);
 
 
 
-%% FIGURE: SINGLE TRIAL LINES over-lap of time-trials and temperature protocols NO SPEED
-clearvars('-except',initial_vars{:})
-plot_err = true;
-autoLim = true;
-% Y limit ranges
-dist_lim = [10,35];       %distance
-dt_lim = [14, 32];        %distance-temp
-xlim_auto = true; % change the time range for the x axis
-time_limits = [50,365]; % time limits if manual control over x-axis range
-nMax =  num.exp;%
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
-
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = [1,2]; %temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
-sb(3).idx = 3:c:r*c; %binned distance alignment
-
-LW = 0.75;
-sSpan = 180;
-dataString = cell([1,num.exp]);
-
-% FIGURE:
-fig = getfig('',true);
-for i = num.exp:-1:1
-    x = grouped(i).time;
-    kolor = grouped(i).color;
-
-    %temp
-    subplot(r,c,sb(1).idx); hold on
-        y = grouped(i).temp;
-        plot(x,y,'LineWidth',2,'Color',kolor)
-
-    %distance
-    subplot(r,c,sb(2).idx); hold on
-        for trial = 1:num.trial(i)
-            y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
-            plot(x,y,'LineWidth',LW,'Color',kolor)
-            if ~autoLim
-                ylim(dist_lim)
-            end
-        end
-
-    %temp dependent distance
-    subplot(r,c,sb(3).idx); hold on
-        for trial = 1:num.trial(i)
-            x = grouped(i).dist.tempList(trial,:);
-            y = grouped(i).dist.tempBinned(trial,:);
-            loc = isnan(y);
-            x(loc) = [];  y(loc) = [];
-            plot(x,y,'color',kolor,'linewidth',1.25)
-        end
-        dataString{i} = grouped(i).name;
-end
-
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx)
-ylabel('\circC')
-set(gca,"XColor",backColor)
-% distance
-subplot(r,c,sb(2).idx)
-ylabel('proximity to food (mm)')
-xlabel('time (min)')
-set(gca,'ydir','reverse')
-% temp-distance relationship
-subplot(r,c,sb(3).idx)
-ylabel('proximity to food (mm)')
-xlabel('temp (\circC)')
-if ~autoLim
-    ylim(dt_lim)
-end
-h_line(18.1,'grey',':',1) %36.2
-set(gca,'ydir','reverse')
-
-if ~xlim_auto
-    subplot(r,c,sb(1).idx)
-    set(gca, 'xlim', time_limits)
-    subplot(r,c,sb(2).idx)
-    set(gca, 'xlim', time_limits)
-end
-
-
-
-% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
-
-% save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);
