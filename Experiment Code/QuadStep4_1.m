@@ -122,8 +122,6 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 end
             end
 
-            
-
     case 'No' % CREATE NEW DATA STRUCTURE
             UpdatedFlag = true;
             % Select processed data structures to compare:
@@ -244,15 +242,19 @@ for i = 1:num.exp
     end
 end
 
-% disp([expGroup ' loaded'])
 
 % Save data / make new grouped data folder
+initial_vars{end+1} = 'UpdatedFlag';
 clearvars('-except',initial_vars{:})
- % List of included data for comparison & updates
+initial_vars  = initial_vars(1:end-1);
+
+% List of included data for comparison & updates
+expNames = [];
 dataList = struct;
 for i = 1:length(data)
     dataList(i).T = data(i).T;
-    dataList(i).name = expNames{i};
+    dataList(i).name = data(i).ExpGroup;
+    expNames{i} = data(i).ExpGroup;
 end
 
  if UpdatedFlag
@@ -279,7 +281,7 @@ end
     end
  else % append the dataList structure to the existing file if nothing else changed
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        save([saveDir expGroup ' data.mat'], 'dataList','-v7.3','-append');
+        save([saveDir expGroup ' data.mat'], 'dataList','-append');
  end
 
 disp(expNames')

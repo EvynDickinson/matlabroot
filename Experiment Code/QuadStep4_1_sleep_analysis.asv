@@ -1766,7 +1766,7 @@ initial_vars{end+1} = 'null_dist';
 
 
 % PLOT NULL DISTRIBUTION:
-fig_dir = [saveDir 'Sleep\' 'sleeping histograms overlay\'];
+fig_dir = [saveDir 'sleeping histograms overlay\'];
 if ~exist(fig_dir,'dir')
     mkdir(fig_dir)
 end
@@ -1811,7 +1811,7 @@ clearvars('-except',initial_vars{:})
 LW = 2;
 
 % PLOT NULL DISTRIBUTION:
-fig_dir = [saveDir 'Sleep\' 'sleeping histograms overlay\'];
+fig_dir = [saveDir 'sleeping histograms overlay\'];
 if ~exist(fig_dir,'dir')
     mkdir(fig_dir) 
 end 
@@ -1892,7 +1892,7 @@ clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 
 % PLOT NULL DISTRIBUTION:
-fig_dir = [saveDir 'Sleep\' 'sleeping histograms overlay\'];
+fig_dir = [saveDir 'sleeping histograms overlay\'];
 if ~exist(fig_dir,'dir')
     mkdir(fig_dir)
 end 

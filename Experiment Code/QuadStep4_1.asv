@@ -122,8 +122,6 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 end
             end
 
-            
-
     case 'No' % CREATE NEW DATA STRUCTURE
             UpdatedFlag = true;
             % Select processed data structures to compare:
@@ -211,39 +209,12 @@ end; clear dummy
 
 % clear blank space **this might differ for a trial that ends with a removal???
 i = 1; idx = 0; maxIdx = size(data,2);
-while i <= (size(data,2))
-    % disp(['i start loop = ' num2str(i)])
-    % disp(['idx start loop: ' num2str(idx)])
-    % {data(:).ExpGroup}'
-    idx = idx +1; 
-    if i > (size(data,2)) 
-        break
-    end
-    if isempty(data(i).ExpGroup) %remove data and repeat line (all data shuffles up)
-        data(i) = [];
-        disp(['Removed ' data(i).ExpGroup])
-    else % keep data, move to next index
-        i = i+1;
-        disp(['Kept ' data(i).ExpGroup])
-    end
-    if idx > maxIdx
-        break
-    end
-    disp(['i end loop = ' num2str(i)])
-    disp(['idx end loop: ' num2str(idx)])
-end 
-
-
-% Initialize variables
-i = 1; idx = 0; maxIdx = size(data,2);
 while i <= size(data,2) 
     idx = idx + 1;
-    
     % Check if the current element should be removed
     if isempty(data(i).ExpGroup)
         % Display info of the element to be removed
         disp(['Removed ' num2str(i)]) % Since data(i).ExpGroup is empty, showing index
-        
         % Remove the element
         data(i) = [];
     else
@@ -251,25 +222,15 @@ while i <= size(data,2)
         disp(['Kept ' num2str(i) ' ' data(i).ExpGroup])
         i = i + 1;
     end
-    
     % Break the loop if idx exceeds the original max index
     if idx > maxIdx
         break;
     end
-    
     disp(['i end loop = ' num2str(i)])
     disp(['idx end loop: ' num2str(idx)])
 end
 
-
-
-dummy = data;
-loc = [];
-for i = 1:size(dummy,2)
-    if ~isempty(data(i).ExpGroup)
-        loc(i) = true;
-    end
-end
+num.exp = size(data,2);
 
 %check for temperature protocol assignments (make back-compatible)
 for i = 1:num.exp
@@ -281,15 +242,19 @@ for i = 1:num.exp
     end
 end
 
-disp([expGroup ' loaded'])
+% disp([expGroup ' loaded'])
 
 % Save data / make new grouped data folder
+initial_vars{end+1} = 'UpdatedFlag';
 clearvars('-except',initial_vars{:})
+
+expNames = [];
  % List of included data for comparison & updates
 dataList = struct;
 for i = 1:length(data)
     dataList(i).T = data(i).T;
-    dataList(i).name = expNames{i};
+    dataList(i).name = data(i).ExpGroup;
+    expNames{i} = data(i).ExpGroup;
 end
 
  if UpdatedFlag
@@ -316,7 +281,7 @@ end
     end
  else % append the dataList structure to the existing file if nothing else changed
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        save([saveDir expGroup ' data.mat'], 'dataList','-v7.3','-append');
+        save([saveDir expGroup ' data.mat'], 'dataList','-append');
  end
 
 disp(expNames')
