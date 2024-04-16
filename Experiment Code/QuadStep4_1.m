@@ -103,7 +103,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             % Determine if new data was added to the list: 
             added_data = setdiff(expIdx,includedIdx); 
             if ~isempty(added_data)
-                %check that the data for these are all updated
+                %check that the data structures for these are all updated (from step 3.1)
                 idx = size(dataList,2) + 1;
                 for i = 1:length(added_data)
                     dataList(idx).name = list_dirs{added_data(i)};
@@ -161,20 +161,20 @@ end
 % Find the files within each data set and compare to the existing base 
 % data structure for missing data & then updata any missing data if possible
 for i = 1:size(dataList,2)
-    if dataList(i).remove || dataList(i).skipCheck
+    if dataList(i).remove || dataList(i).skipCheck %auto dont update data that will be deleted
         dataList(i).rebuild = false;
         dataList(i).add = false;
         dataList(i).extradata = false;      
         continue
     end
+    % check the included data structure with the data list in the folder 
     [a,b,c] = matchDataStructure(dataList(i).name, dataList(i).T);
-    dataList(i).rebuild = a;
-    dataList(i).add = b;
-    dataList(i).extradata = c;            
+    dataList(i).rebuild = a; % data in the struct folder doesn't match the data list, must rebuild from 3.1
+    dataList(i).add = b;    % add/update data to the current structure
+    dataList(i).extradata = c; % more data in the struct than in the data list           
 end; clear a b c
 
-%TODO : working here to get this code to work
-
+% TODO : working here to get this code to work
 % Update the grouped structure according to the dataList
 for i = 1:size(dataList, 2)
     exp_name = dataList(i).name;
@@ -183,7 +183,7 @@ for i = 1:size(dataList, 2)
             loc = find(strcmp(exp_name,{data(:).ExpGroup}));
             data(loc) = [];
         end
-    %load or reload existing datasets
+    % Load or reload existing datasets
         if any([dataList(i).rebuild, dataList(i).extradata])
             disp([exp_name ' needs to be rebuilt from Step 3.1'])
             switch questdlg(['"' exp_name ''' is not up-to-date in this structure. Continue anyway?'])
@@ -239,9 +239,14 @@ end
 
 
 % Save data / make new grouped data folder
+result = cellfun(@isnumeric, initial_vars);
+initial_vars(result) = [];
 initial_vars{end+1} = 'UpdatedFlag';
 clearvars('-except',initial_vars{:})
-initial_vars  = initial_vars(1:end-1);
+result = cellfun(@(x) strcmpi(x, 'UpdatedFlag'), initial_vars);
+if result(end)==1
+    initial_vars  = initial_vars(1:end-1);
+end
 
 % List of included data for comparison & updates
 expNames = [];

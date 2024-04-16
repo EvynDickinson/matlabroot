@@ -103,7 +103,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             % Determine if new data was added to the list: 
             added_data = setdiff(expIdx,includedIdx); 
             if ~isempty(added_data)
-                %check that the data for these are all updated
+                %check that the data structures for these are all updated (from step 3.1)
                 idx = size(dataList,2) + 1;
                 for i = 1:length(added_data)
                     dataList(idx).name = list_dirs{added_data(i)};
@@ -173,7 +173,7 @@ for i = 1:size(dataList,2)
     dataList(i).extradata = c;            
 end; clear a b c
 
-%TODO : working here to get this code to work
+% TODO : working here to get this code to work
 
 % Update the grouped structure according to the dataList
 for i = 1:size(dataList, 2)
@@ -213,21 +213,16 @@ while i <= size(data,2)
     idx = idx + 1;
     % Check if the current element should be removed
     if isempty(data(i).ExpGroup)
-        % Display info of the element to be removed
-        disp(['Removed ' num2str(i)]) % Since data(i).ExpGroup is empty, showing index
-        % Remove the element
+        % Remove the blank slots
         data(i) = [];
     else
-        % Element is kept, display its info and move to next
-        disp(['Kept ' num2str(i) ' ' data(i).ExpGroup])
+        % Keep group and move to next
         i = i + 1;
     end
     % Break the loop if idx exceeds the original max index
     if idx > maxIdx
         break;
     end
-    disp(['i end loop = ' num2str(i)])
-    disp(['idx end loop: ' num2str(idx)])
 end
 
 num.exp = size(data,2);
@@ -242,14 +237,19 @@ for i = 1:num.exp
     end
 end
 
-% disp([expGroup ' loaded'])
 
 % Save data / make new grouped data folder
+result = cellfun(@isnumeric, initial_vars);
+initial_vars(result) = [];
 initial_vars{end+1} = 'UpdatedFlag';
 clearvars('-except',initial_vars{:})
+result = cellfun(@(x) strcmpi(x, 'UpdatedFlag'), initial_vars);
+if result(end)==1
+    initial_vars  = initial_vars(1:end-1);
+end
 
+% List of included data for comparison & updates
 expNames = [];
- % List of included data for comparison & updates
 dataList = struct;
 for i = 1:length(data)
     dataList(i).T = data(i).T;
@@ -288,7 +288,7 @@ disp(expNames')
 
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
-fig_type = '-png';
+fig_type = '-png'; 
 blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
