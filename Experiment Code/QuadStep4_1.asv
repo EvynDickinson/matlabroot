@@ -161,20 +161,20 @@ end
 % Find the files within each data set and compare to the existing base 
 % data structure for missing data & then updata any missing data if possible
 for i = 1:size(dataList,2)
-    if dataList(i).remove || dataList(i).skipCheck
+    if dataList(i).remove || dataList(i).skipCheck %auto dont update data that will be deleted
         dataList(i).rebuild = false;
         dataList(i).add = false;
         dataList(i).extradata = false;      
         continue
     end
+    % check the included data structure with the data list in the folder 
     [a,b,c] = matchDataStructure(dataList(i).name, dataList(i).T);
-    dataList(i).rebuild = a;
-    dataList(i).add = b;
-    dataList(i).extradata = c;            
+    dataList(i).rebuild = a; % data in the struct folder doesn't match the data list, must rebuild from 3.1
+    dataList(i).add = b;    % add/update data to the current structure
+    dataList(i).extradata = c; % more data in the struct than in the data list           
 end; clear a b c
 
 % TODO : working here to get this code to work
-
 % Update the grouped structure according to the dataList
 for i = 1:size(dataList, 2)
     exp_name = dataList(i).name;
@@ -183,7 +183,7 @@ for i = 1:size(dataList, 2)
             loc = find(strcmp(exp_name,{data(:).ExpGroup}));
             data(loc) = [];
         end
-    %load or reload existing datasets
+    % Load or reload existing datasets
         if any([dataList(i).rebuild, dataList(i).extradata])
             disp([exp_name ' needs to be rebuilt from Step 3.1'])
             switch questdlg(['"' exp_name ''' is not up-to-date in this structure. Continue anyway?'])
@@ -283,6 +283,7 @@ end
         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
         save([saveDir expGroup ' data.mat'], 'dataList','-append');
  end
+
 
 disp(expNames')
 
@@ -501,6 +502,9 @@ switch expGroup
     case 'Berlin F LRR 25-17 antenna arista intact comparisons'
         expOrder = 1:4; % empty, no antenna, no arista, intact
         colors = { 'white','lightslategray', 'lightpink', 'deeppink'};
+    case 'Berlin F LRR 25-17 olfaction contribution'
+        expOrder = [1,2,5,4,3];
+        colors = {'DarkOrchid','grey','dodgerblue','turquoise','lime','red','pink','Orange'};
 end
 
 if ~exist('colors','var')

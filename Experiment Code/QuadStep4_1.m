@@ -284,6 +284,7 @@ end
         save([saveDir expGroup ' data.mat'], 'dataList','-append');
  end
 
+
 disp(expNames')
 
 %% ANALYSIS: organize data for each group
@@ -501,6 +502,9 @@ switch expGroup
     case 'Berlin F LRR 25-17 antenna arista intact comparisons'
         expOrder = 1:4; % empty, no antenna, no arista, intact
         colors = { 'white','lightslategray', 'lightpink', 'deeppink'};
+    case 'Berlin F LRR 25-17 olfaction contribution'
+        expOrder = [1,2,5,4,3];
+        colors = {'gold','grey','dodgerblue','darkorchid','lime'};
 end
 
 if ~exist('colors','var')
