@@ -12,15 +12,16 @@
 
 clear; close all; clc
 baseFolder = getCloudPath;
-structFolder = [baseFolder 'Data structures\'];
+structFolder = [baseFolder 'Data structures/'];
 UpdatedFlag = false;
 
+% Load preliminary data structure or determine which trials to load:
 switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
     case 'Cancel'
         return
     case 'Yes' % LOAD PRE-EXISTING DATA
             % find and select list of possible experimental groups:
-            list_dirs = dir([baseFolder 'Grouped Data Structures\']);  list_dirs = {list_dirs(:).name};
+            list_dirs = dir([baseFolder 'Grouped Data Structures/']);  list_dirs = {list_dirs(:).name};
             list_dirs(1:2) = [];
             [dirIdx, v] = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[400,700]);
             if v
@@ -30,7 +31,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 return
             end
             % Find the group name of the existing data to load
-            saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+            saveDir = [baseFolder 'Grouped Data Structures/' expGroup '/'];
             filePath = [saveDir expGroup ' data.mat'];
     
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,9 +44,13 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             temp = load(filePath);
             % Pull  variables from structure (prevents errors in the local saving path for the current computer)
             data = temp.data;
-            expNames = temp.expNames;
+            expNames = [];
             initial_vars = temp.initial_vars;
-            num = temp.num;
+            num = struct; 
+            num.exp = length(data);
+            for i = 1:num.exp
+                expNames{i} = data(i).ExpGroup;
+            end
             clear temp v
     
             % Determine if any new groups need to be added/removed to structure by user
@@ -80,8 +85,8 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             %included groups
             prompt_string = {'Select the groups for the structure: ', expGroup};
             expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450], ...
-                            'InitialValue',includedIdx,'PromptString',prompt_string); clear prompt_string
-    
+                            'InitialValue',includedIdx,'PromptString',prompt_string); clear prompt_string     
+
             % List of included data for comparison & updates
             dataList = struct;
             for i = 1:length(data)
@@ -133,7 +138,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             % Load selected experiment data groups
             for i = 1:num.exp
                 % get field list for loading data:
-                dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+                dummy = load([structFolder expNames{i} '/' expNames{i} ' post 3.1 data.mat']);
                  if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
                        dummy.hold_exp = false; % account for new data structures
                        dummy.temp_protocol = dummy.T.TempProtocol{1};
@@ -174,7 +179,8 @@ for i = 1:size(dataList,2)
     dataList(i).extradata = c; % more data in the struct than in the data list           
 end; clear a b c
 
-% TODO : working here to get this code to work
+% temp = data;
+
 % Update the grouped structure according to the dataList
 for i = 1:size(dataList, 2)
     exp_name = dataList(i).name;
@@ -182,6 +188,7 @@ for i = 1:size(dataList, 2)
         if dataList(i).remove
             loc = find(strcmp(exp_name,{data(:).ExpGroup}));
             data(loc) = [];
+            UpdatedFlag = true;
         end
     % Load or reload existing datasets
         if any([dataList(i).rebuild, dataList(i).extradata])
@@ -196,9 +203,9 @@ for i = 1:size(dataList, 2)
         end
         if dataList(i).add
             disp(['Updating data for ' exp_name])
-            updatedFlag = true;
+            UpdatedFlag = true;
             loc = strcmp(exp_name,{data(:).ExpGroup}); 
-            dummy = load([structFolder exp_name '\' exp_name ' post 3.1 data.mat']);
+            dummy = load([structFolder exp_name '/' exp_name ' post 3.1 data.mat']);
              if ~isfield(dummy,'hold_exp') % 1/24/24 compatability for hold temperature experiments
                    dummy.hold_exp = false; % account for new data structures
                    dummy.temp_protocol = dummy.T.TempProtocol{1};
@@ -237,7 +244,6 @@ for i = 1:num.exp
     end
 end
 
-
 % Save data / make new grouped data folder
 result = cellfun(@isnumeric, initial_vars);
 initial_vars(result) = [];
@@ -257,32 +263,33 @@ for i = 1:length(data)
     expNames{i} = data(i).ExpGroup;
 end
 
- if UpdatedFlag
-    switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','existing structure')
-        case 'new structure'
-            expGroup = char(inputdlg('Structure name:'));
-            saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-            if ~exist(saveDir,'dir')
-                mkdir(saveDir);
-            end 
-            save([saveDir expGroup ' data.mat'],'-v7.3');
-            disp([expGroup ' saved'])
-        case 'existing structure'
-            list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-            list_dirs = {list_dirs(:).name};
-            list_dirs(1:2) = [];
-            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-            expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-            saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-            save([saveDir expGroup ' data.mat'],'-v7.3');
-            disp([expGroup ' saved'])
-        case 'cancel'
-            return
-    end
- else % append the dataList structure to the existing file if nothing else changed
-        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        save([saveDir expGroup ' data.mat'], 'dataList','-append');
- end
+if UpdatedFlag
+switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','existing structure')
+    case 'new structure'
+        expGroup = char(inputdlg('Structure name:'));
+        saveDir = [baseFolder 'Grouped Data Structures/' expGroup '/'];
+        if ~exist(saveDir,'dir')
+            mkdir(saveDir);
+        end 
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'existing structure'
+        % TODO check if there is an existing folder and then offer that as the base selection
+        list_dirs = dir([baseFolder 'Grouped Data Structures/']);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        saveDir = [baseFolder 'Grouped Data Structures/' expGroup '/'];
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'cancel'
+        return
+end
+else % append the dataList structure to the existing file if nothing else changed
+    saveDir = [baseFolder 'Grouped Data Structures/' expGroup '/'];
+    save([saveDir expGroup ' data.mat'], 'dataList','-append');
+end
 
 
 disp(expNames')

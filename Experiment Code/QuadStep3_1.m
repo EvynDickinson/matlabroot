@@ -1110,219 +1110,219 @@ save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_name], '-p
 clearvars('-except',vars{:})
 
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp
-% use the temperatures : 8:2:22 for key points to check location of flies
-clearvars('-except',vars{:})
-if strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_23-15')
-    tempList = [15,18.5,23];
-    rateList = [0.125,-0.125];
-elseif strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_25-17')
-    tempList = [17,20.5,25];
-    rateList = [0.125,-0.125];
-else
-    tempList = [8,12,17,22];
-    rateList = [0.16,-0.16];
-end
-
-% tempList = [15,20,25,30];
-% rateList = [0.15,-0.15];
-
-% tempList = [8,12,17,22];
-% rateList = [0.16,-0.16];
-
-n = 10; % number of spatial bins
-tt = 1; 
-buffer = 0.5; % temperature buffer around target temperature
-idx = 1;
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList)   
-    temp = tempList(tt); % temp in C
-    rate = find(rateList(rr)==G(trial).TR.rates);
-    HM = zeros(n);
-    for trial = 1:ntrials
-        % frame location selection
-        tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
-        rLoc = G(trial).TR.rateIdx==rate;
-        frames = tLoc & rLoc;
-
-        % pull the position data for these frames and concatenate into a large
-        % structure for this temp rate and temp location
-        x = data(trial).data.x_loc(frames,:);
-        y = data(trial).data.y_loc(frames,:);
-        X = reshape(x,numel(x),1);
-        Y = reshape(y,numel(y),1);
-        pos = [X,Y];
-
-        % get the 'square' units for partitioning space
-        C = data(trial).data.centre;
-        r = data(trial).data.r;
-        x_edge = linspace(C(1)-r,C(1)+r,n);
-        y_edge = linspace(C(2)-r,C(2)+r,n);
-
-        % find x and y that are within each 'box'
-        xInd = discretize(pos(:,1),x_edge);
-        yInd = discretize(pos(:,2),y_edge);
-
-        % find the number of flies within each spatial bin:
-        for row = 1:n
-            for col = 1:n
-                nflies(row,col) = sum(yInd==row & xInd==col);
-            end
-        end
-
-        % Rotate the matrix if needed to align to a well position of '2'
-        k = T.foodLoc(trial)-2;
-        B = rot90(nflies,k);
-
-%         fig = figure; imagesc(B);
-%         uiwait(fig)
-
-        % Save matrix to the structure:
-        HM = HM + B;
-    end
-    plotData(rr,tt).HM = HM;
-    cmaps(idx,1) = min(min(HM));
-    cmaps(idx,2) = max(max(HM));
-    idx = idx + 1;
-  end
-end
-
-% figures   
-idx = 0;
-fig = figure; set(fig, 'color', 'k', 'position',  [547 304 992 555]); %[32 70 1318 435]
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList)
-    idx = idx+1;
-    subplot(length(rateList),length(tempList),idx)
-        imagesc(plotData(rr,tt).HM)
-        ax = gca;
-        set(ax, 'xscale', 'log', 'yscale', 'log')
-        axis tight
-        set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);
-        c = colorbar;
-        c.Label.String = 'Number of flies';
-        c.Label.Color = 'w';
-        c.Color = 'w';
-        title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'w')
-        caxis([min(cmaps(:,1)) max(cmaps(:,2))]) 
-        axis square
-  end
-end
-
-save_figure(fig, [figDir 'Four temp hysteresis position heatmaps'], '-png');
-clearvars('-except',vars{:})
+% % use the temperatures : 8:2:22 for key points to check location of flies
+% clearvars('-except',vars{:})
+% if strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_23-15')
+%     tempList = [15,18.5,23];
+%     rateList = [0.125,-0.125];
+% elseif strcmp(T.TempProtocol{1},'linear_ramp_with_recovery_25-17')
+%     tempList = [17,20.5,25];
+%     rateList = [0.125,-0.125];
+% else
+%     tempList = [8,12,17,22];
+%     rateList = [0.16,-0.16];
+% end
+% 
+% % tempList = [15,20,25,30];
+% % rateList = [0.15,-0.15];
+% 
+% % tempList = [8,12,17,22];
+% % rateList = [0.16,-0.16];
+% 
+% n = 10; % number of spatial bins
+% tt = 1; 
+% buffer = 0.5; % temperature buffer around target temperature
+% idx = 1;
+% for rr = 1:length(rateList)
+%   for tt = 1:length(tempList)   
+%     temp = tempList(tt); % temp in C
+%     rate = find(rateList(rr)==G(trial).TR.rates);
+%     HM = zeros(n);
+%     for trial = 1:ntrials
+%         % frame location selection
+%         tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
+%         rLoc = G(trial).TR.rateIdx==rate;
+%         frames = tLoc & rLoc;
+% 
+%         % pull the position data for these frames and concatenate into a large
+%         % structure for this temp rate and temp location
+%         x = data(trial).data.x_loc(frames,:);
+%         y = data(trial).data.y_loc(frames,:);
+%         X = reshape(x,numel(x),1);
+%         Y = reshape(y,numel(y),1);
+%         pos = [X,Y];
+% 
+%         % get the 'square' units for partitioning space
+%         C = data(trial).data.centre;
+%         r = data(trial).data.r;
+%         x_edge = linspace(C(1)-r,C(1)+r,n);
+%         y_edge = linspace(C(2)-r,C(2)+r,n);
+% 
+%         % find x and y that are within each 'box'
+%         xInd = discretize(pos(:,1),x_edge);
+%         yInd = discretize(pos(:,2),y_edge);
+% 
+%         % find the number of flies within each spatial bin:
+%         for row = 1:n
+%             for col = 1:n
+%                 nflies(row,col) = sum(yInd==row & xInd==col);
+%             end
+%         end
+% 
+%         % Rotate the matrix if needed to align to a well position of '2'
+%         k = T.foodLoc(trial)-2;
+%         B = rot90(nflies,k);
+% 
+% %         fig = figure; imagesc(B);
+% %         uiwait(fig)
+% 
+%         % Save matrix to the structure:
+%         HM = HM + B;
+%     end
+%     plotData(rr,tt).HM = HM;
+%     cmaps(idx,1) = min(min(HM));
+%     cmaps(idx,2) = max(max(HM));
+%     idx = idx + 1;
+%   end
+% end
+% 
+% % figures   
+% idx = 0;
+% fig = figure; set(fig, 'color', 'k', 'position',  [547 304 992 555]); %[32 70 1318 435]
+% for rr = 1:length(rateList)
+%   for tt = 1:length(tempList)
+%     idx = idx+1;
+%     subplot(length(rateList),length(tempList),idx)
+%         imagesc(plotData(rr,tt).HM)
+%         ax = gca;
+%         set(ax, 'xscale', 'log', 'yscale', 'log')
+%         axis tight
+%         set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);
+%         c = colorbar;
+%         c.Label.String = 'Number of flies';
+%         c.Label.Color = 'w';
+%         c.Color = 'w';
+%         title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'w')
+%         caxis([min(cmaps(:,1)) max(cmaps(:,2))]) 
+%         axis square
+%   end
+% end
+% 
+% save_figure(fig, [figDir 'Four temp hysteresis position heatmaps'], '-png');
+% clearvars('-except',vars{:})
 
 %% FIGURE: Heat map of location within the arena at key points during the temp ramp for WHITE BACKGROUND
-% save images as individual figures, not a group figure
-% use the temperatures : 8:2:22 for key points to check location of flies
-clearvars('-except',vars{:})
-
+% % save images as individual figures, not a group figure
+% % use the temperatures : 8:2:22 for key points to check location of flies
+% clearvars('-except',vars{:})
+% 
+% % tempList = [8,12,17,22];
+% % rateList = [0.16,-0.16];
+% % tempList = [15,20,25,30];
+% % rateList = [0.15,-0.15];
+% 
 % tempList = [8,12,17,22];
 % rateList = [0.16,-0.16];
-% tempList = [15,20,25,30];
-% rateList = [0.15,-0.15];
-
-tempList = [8,12,17,22];
-rateList = [0.16,-0.16];
-
-n = 10; % number of spatial bins
-tt = 1; 
-buffer = 0.5; % temperature buffer around target temperature
-idx = 1;
-
-
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList) 
-    frameCount = 0;  
-    temp = tempList(tt); % temp in C
-    rate = find(rateList(rr)==G(trial).TR.rates);
-    HM = zeros(n);
-    for trial = 1:ntrials
-        % frame location selection
-        tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
-        rLoc = G(trial).TR.rateIdx==rate;
-        frames = tLoc & rLoc;
-        frameCount = frameCount + sum(frames); % to normalize to the number of flies, not frames
-
-        % pull the position data for these frames and concatenate into a large
-        % structure for this temp rate and temp location
-        x = data(trial).data.x_loc(frames,:);
-        y = data(trial).data.y_loc(frames,:);
-        X = reshape(x,numel(x),1);
-        Y = reshape(y,numel(y),1);
-        pos = [X,Y];
-
-        % get the 'square' units for partitioning space
-        C = data(trial).data.centre;
-        r = data(trial).data.r;
-        x_edge = linspace(C(1)-r,C(1)+r,n);
-        y_edge = linspace(C(2)-r,C(2)+r,n);
-
-        % find x and y that are within each 'box'
-        xInd = discretize(pos(:,1),x_edge);
-        yInd = discretize(pos(:,2),y_edge);
-
-        % find the number of flies within each spatial bin:
-        for row = 1:n
-            for col = 1:n
-                nflies(row,col) = sum(yInd==row & xInd==col);
-            end
-        end
-
-        % Rotate the matrix if needed to align to a well position of '2'
-        k = T.foodLoc(trial)-2;
-        B = rot90(nflies,k);
-
-%         fig = figure; imagesc(B);
-%         uiwait(fig)
-
-        % Save matrix to the structure:
-        HM = HM + B;
-    end
-    plotData(rr,tt).HM = HM./frameCount;
-    cmaps(idx,1) = min(min(HM));
-    cmaps(idx,2) = max(max(HM));
-    idx = idx + 1;
-  end
-end
-
-
-% Find the max and min 'avg' number of flies...
-ii = 0;
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList)
-      ii = ii + 1;
-      flyMax(ii) = max(max((plotData(rr,tt).HM)));
-  end
-end
-
-
-
-% figures   
-for rr = 1:length(rateList)
-  for tt = 1:length(tempList)
-      
-    fig = figure; set(fig, 'color', 'w', 'position', [-931 697 534 421])  
-
-        imagesc(plotData(rr,tt).HM)
-        
-        axis square
-        ax = gca;
-        set(ax, 'xscale', 'log', 'yscale', 'log')
-        axis tight
-        set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);      
-        c = colorbar;
-        c.Label.String = 'Number of flies';
-        c.Label.FontSize = 15;
-        c.FontSize = 13;
-        c.Label.Color = 'k';
-        c.Color = 'k';
-        title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'k')
-        caxis([0 max(flyMax)]) 
-        save_figure(fig, [figDir 'Place Diagrams/Position heatmaps rate ' num2str(rr) ' temp ' num2str(tempList(tt))], '-pdf');
-  end
-end
-
-clearvars('-except',vars{:})
+% 
+% n = 10; % number of spatial bins
+% tt = 1; 
+% buffer = 0.5; % temperature buffer around target temperature
+% idx = 1;
+% 
+% 
+% for rr = 1:length(rateList)
+%   for tt = 1:length(tempList) 
+%     frameCount = 0;  
+%     temp = tempList(tt); % temp in C
+%     rate = find(rateList(rr)==G(trial).TR.rates);
+%     HM = zeros(n);
+%     for trial = 1:ntrials
+%         % frame location selection
+%         tLoc = G(trial).TR.data(:,1)>=temp-buffer & G(trial).TR.data(:,1)<=temp+buffer;
+%         rLoc = G(trial).TR.rateIdx==rate;
+%         frames = tLoc & rLoc;
+%         frameCount = frameCount + sum(frames); % to normalize to the number of flies, not frames
+% 
+%         % pull the position data for these frames and concatenate into a large
+%         % structure for this temp rate and temp location
+%         x = data(trial).data.x_loc(frames,:);
+%         y = data(trial).data.y_loc(frames,:);
+%         X = reshape(x,numel(x),1);
+%         Y = reshape(y,numel(y),1);
+%         pos = [X,Y];
+% 
+%         % get the 'square' units for partitioning space
+%         C = data(trial).data.centre;
+%         r = data(trial).data.r;
+%         x_edge = linspace(C(1)-r,C(1)+r,n);
+%         y_edge = linspace(C(2)-r,C(2)+r,n);
+% 
+%         % find x and y that are within each 'box'
+%         xInd = discretize(pos(:,1),x_edge);
+%         yInd = discretize(pos(:,2),y_edge);
+% 
+%         % find the number of flies within each spatial bin:
+%         for row = 1:n
+%             for col = 1:n
+%                 nflies(row,col) = sum(yInd==row & xInd==col);
+%             end
+%         end
+% 
+%         % Rotate the matrix if needed to align to a well position of '2'
+%         k = T.foodLoc(trial)-2;
+%         B = rot90(nflies,k);
+% 
+% %         fig = figure; imagesc(B);
+% %         uiwait(fig)
+% 
+%         % Save matrix to the structure:
+%         HM = HM + B;
+%     end
+%     plotData(rr,tt).HM = HM./frameCount;
+%     cmaps(idx,1) = min(min(HM));
+%     cmaps(idx,2) = max(max(HM));
+%     idx = idx + 1;
+%   end
+% end
+% 
+% 
+% % Find the max and min 'avg' number of flies...
+% ii = 0;
+% for rr = 1:length(rateList)
+%   for tt = 1:length(tempList)
+%       ii = ii + 1;
+%       flyMax(ii) = max(max((plotData(rr,tt).HM)));
+%   end
+% end
+% 
+% 
+% 
+% % figures   
+% for rr = 1:length(rateList)
+%   for tt = 1:length(tempList)
+% 
+%     fig = figure; set(fig, 'color', 'w', 'position', [-931 697 534 421])  
+% 
+%         imagesc(plotData(rr,tt).HM)
+% 
+%         axis square
+%         ax = gca;
+%         set(ax, 'xscale', 'log', 'yscale', 'log')
+%         axis tight
+%         set(ax, 'XColor', 'k','YColor', 'k', 'XTick', [],'YTick', []);      
+%         c = colorbar;
+%         c.Label.String = 'Number of flies';
+%         c.Label.FontSize = 15;
+%         c.FontSize = 13;
+%         c.Label.Color = 'k';
+%         c.Color = 'k';
+%         title([num2str(tempList(tt)) ' \circC at ' num2str(rateList(rr)) ' \circC/min'],'color', 'k')
+%         caxis([0 max(flyMax)]) 
+%         save_figure(fig, [figDir 'Place Diagrams/Position heatmaps rate ' num2str(rr) ' temp ' num2str(tempList(tt))], '-pdf');
+%   end
+% end
+% 
+% clearvars('-except',vars{:})
 
 %% FIGURE: Plot the time course for all trials with the same temperature protocol
 clearvars('-except',vars{:})

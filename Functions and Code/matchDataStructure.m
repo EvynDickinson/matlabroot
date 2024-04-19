@@ -11,15 +11,15 @@ function [rebuildFlag, addFlag, extradataFlag] = matchDataStructure(StructureNam
 % ESD 04.2024 Yale
 
     baseFolder = getCloudPath;
-    structFolder = [baseFolder 'Data structures\'];
+    structFolder = [baseFolder 'Data structures/'];
 
     [rebuildFlag, addFlag, extradataFlag] = deal(false);
     C_sel = 1:4; %selected columns to compare
 
 
 % 1) Does the flielist in the structure folder match the 3.1 processed data file?
-    T_truth = load([structFolder StructureName '\fileList.mat'],'T'); %loads 'T' which is the most up-to-date flieList
-    Tpost3_1 = load([structFolder StructureName '\' StructureName ' post 3.1 data.mat'],'T');
+    T_truth = load([structFolder StructureName '/fileList.mat'],'T'); %loads 'T' which is the most up-to-date flieList
+    Tpost3_1 = load([structFolder StructureName '/' StructureName ' post 3.1 data.mat'],'T');
     % Find rows unique to the grouped data or single data
     missingDataFiles = setdiff(T_truth.T(:,C_sel), Tpost3_1.T(:,C_sel), 'rows'); % files missing from the grouped data
     extraDataFiles = setdiff(Tpost3_1.T(:,C_sel), T_truth.T(:,C_sel), 'rows');   % extra files in the grouped but not single data list

@@ -3,7 +3,7 @@ clear; close all; clc
 autoSave = true;
 essentialfigs = true;
 
-%% ---------------------Select Date & Experiment to Process ------------------------------
+%% --------------------- Select Date & Experiment to Process ------------------------------
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 switch questdlg('Use Excel sheet to select experiment?')

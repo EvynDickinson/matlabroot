@@ -11,8 +11,13 @@ if size(monitorPositions, 1) < 2
     single_monitor = true;
 else
     single_monitor = false;
-    idx = find(monitorPositions(:,1)<0);
-    secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
+    if strcmp(getenv('COMPUTERNAME'), '') %mac laptop -- display on computer as second display
+        idx = find(monitorPositions(:,1)==1);
+        secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
+    else
+        idx = find(monitorPositions(:,1)<0);
+        secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
+    end
 end
 
 
