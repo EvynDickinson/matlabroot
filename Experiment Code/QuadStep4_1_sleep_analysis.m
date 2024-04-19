@@ -395,12 +395,17 @@ end
 fps = 3;
 % Thermal threat quantification and avg sleep quantity
 for i = 1:num.exp
-    tPoints = getTempTurnPoints(data(i).temp_protocol); %data(i).T.TempProtocol{1}
-    demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2);
+    if strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35')
+        sleep(i).avg_quant = nan;
+        sleep(i).thermalThreat = nan;
+        continue
+    end
+    tPoints = getTempTurnPoints(data(i).temp_protocol); 
+    demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2); % points for a full ramp down and up
     
     % Thermal threat
     temp_ramp = grouped(i).temp(demoRamp_idx);
-    thermalThreat = (sum(25-temp_ramp)/fps)/1000;
+    thermalThreat = (sum(25-temp_ramp)/fps)/1000; % quant of time not at 25 *only punishes cold though...
     
     % Sleep duration
     nFlies = zeros(1,num.trial(i));
