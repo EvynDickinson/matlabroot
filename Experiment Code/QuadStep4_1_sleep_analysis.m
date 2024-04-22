@@ -1624,7 +1624,7 @@ for i = 1:num.exp
     save_figure(fig,[saveDir 'Sleep\' expNames{i} ' sleeping by temp type'],fig_type);
 end
 
-%% FIGURE: Onset of sleep raster plot
+%% FIGURE: Onset of sleep raster plot 
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 
