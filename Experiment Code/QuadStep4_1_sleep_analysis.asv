@@ -1164,7 +1164,7 @@ fig = getfig('',1); hold on
     xlabel('distance to well (mm)','FontSize',20)
     ylabel('sleep occupancy diff in probability from null','FontSize',20)
     set(gca,'TickDir','out')
-save_figure(fig,[fig_dir 'sleeping null diff in occupancy vs distance to food'],fig_type);
+save_figure(fig,[fig_dir 'sleeping occupancy vs distance to food'],fig_type);
 
 
 %% ANALYSIS: fly sleeping locations in the arena (oriented to same heading)

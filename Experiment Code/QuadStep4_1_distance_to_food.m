@@ -214,7 +214,7 @@ set(gca,'ydir','reverse')
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
 
-%% FIGURE: highlight specific trials within the grouped data:
+%% FIGURE: WORKING highlight specific trials within the grouped data:
 
 %1) select the group
 i = 1;
@@ -258,7 +258,7 @@ end
 %3) overlay the data
 
 
-%% FIGURE & STATS: cumulative hysteresis for each genotype / trial
+%% FIGURE & STATS: Hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
 LW = 0.75;
 buff = 0.2;

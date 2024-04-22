@@ -117,7 +117,7 @@ for i = 1:num.exp
 end
 clearvars('-except',initial_vars{:})
 
-%% FIGURES: distance to 
+%% FIGURES: distance to food screened vs full arena (group by group)
 % food over time between all and screened data per experiment
 clearvars('-except',initial_vars{:})
 plot_err = true;
@@ -741,7 +741,7 @@ for ii = 1:num.exp
 
     % cooling
     y = grouped(i).screen_d.decreasing.avg(:,1);
-    x = shuffle_data(linspace(i-buff*1.5,i-buff/2, length(y)))';
+    x = shuffle_data(linspace(ii-buff*1.5,ii-buff/2, length(y)))';
     loc = isnan(y);
     x(loc) = [];
     y(loc) = [];
@@ -751,7 +751,7 @@ for ii = 1:num.exp
 
     % warming
     y = grouped(i).screen_d.increasing.avg(:,1);
-    x = shuffle_data(linspace(i+buff/2,i+buff*1.5, length(y)))';
+    x = shuffle_data(linspace(ii+buff/2,ii+buff*1.5, length(y)))';
     loc = isnan(y);
     x(loc) = [];
     y(loc) = [];
@@ -795,7 +795,7 @@ ax.XTickLabel = [];% Hide original tick labels
 % Create new tick labels with specified colors
 for ii = 1:length(xTicks)
     i = expOrder(ii);
-    text(xTicks(i), ax.YLim(2), xTickLabels(i), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color,'FontSize',16);
+    text(xTicks(ii), ax.YLim(2), xTickLabels(ii), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color,'FontSize',16);
 end
 ax.XColor = backColor;
 

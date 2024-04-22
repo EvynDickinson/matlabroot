@@ -505,13 +505,17 @@ switch expGroup
     case 'Berlin F LRR 25-17 food vs odor'
         expOrder = 1:num.exp;
         colors = {'DarkOrchid','Gold','dodgerblue','turquoise','lime','red','pink','Orange'};
-   % ======  arista and antenna experiments ======
+ 
+        % ======  Sensory Component Experiments ======
     case 'Berlin F LRR 25-17 antenna arista intact comparisons'
         expOrder = 1:4; % empty, no antenna, no arista, intact
         colors = { 'white','lightslategray', 'lightpink', 'deeppink'};
     case 'Berlin F LRR 25-17 olfaction contribution'
         expOrder = [1,2,5,4,3];
         colors = {'gold','grey','dodgerblue','darkorchid','lime'};
+    case 'Berlin F LRR 25-17 sensory components'
+        expOrder = [1 5 2 4 3]; %full, empty, waxed, 23, 17
+        colors = {'black','blue','orange','pink', 'magenta'};
 end
 
 if ~exist('colors','var')

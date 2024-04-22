@@ -1942,7 +1942,7 @@ end
 % save figure
 save_figure(fig,[saveDir 'Flies on food heating and cooling'],fig_type);
 
-% Correlation between flies on food and distance to food:
+%% Correlation between flies on food and distance to food:
 
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
