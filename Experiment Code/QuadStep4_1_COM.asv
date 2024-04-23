@@ -116,7 +116,7 @@ end
 
 %% FIGURE: Register position COM to common frame
 % TODO -- account for the new camera orientation here!!! 1.24.24
-OG_Orientation = datetime('10.30.2023','InputFormat','MM.dd.yyyy');
+OG_Orientation 
 clearvars('-except',initial_vars{:})
 autoSave = true; %autosave the resulting figures
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -140,14 +140,24 @@ for i = 1:num.exp
         X = x-x_offset;
         Y = y-y_offset;
         
-        trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
+        trial_date = datetime(data(i).T.Date{trial},'InputFormat','dd.MM.yyyy');
 
-        if trial_date > OG_orientation %new camera orientation
+        if data(i).T.Date{trial} %DATE FALLS IN CAMERA ONE ORGANIZATION
 
+        % Convert dates to serial date numbers
+        date1 = datenum('02.01.2023', 'dd.mm.yyyy');
+        date2 = datenum('your_other_date', 'your_date_format'); % Replace 'your_other_date' and 'your_date_format' with your actual date and format
         
-        
-
+        % Compare dates
+        if date1 < date2
+            disp('The first date is before the second date.');
+        elseif date1 > date2
+            disp('The first date is after the second date.');
         else
+            disp('The two dates are the same.');
+        end
+
+
             % Rotate to correct orientation
             switch wellLoc
                 case 1
@@ -171,8 +181,6 @@ for i = 1:num.exp
                     WELLS(:,1) = wells_x;
                     WELLS(:,2) = wells_y;
             end
-
-        end
 
         % PLOT
         scatter(WELLS(1:4,1),WELLS(1:4,2),SZ,foreColor,'filled')

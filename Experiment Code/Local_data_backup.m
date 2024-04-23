@@ -19,3 +19,7 @@ sum(checklist)
 % do the cross comparision
 
 listdirs
+
+
+%% Copy over the data files from each research day (leave videos)
+
