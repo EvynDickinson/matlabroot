@@ -508,7 +508,7 @@ for i = 1:num.exp
         c.Label.String = 'Occupancy';
         c.Label.Color = foreColor;
         c.Color = foreColor;
-        clim([0,max_occ]) 
+        clim(axis_limits) 
     end
 
 
