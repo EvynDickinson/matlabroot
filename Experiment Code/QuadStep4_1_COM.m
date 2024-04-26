@@ -426,14 +426,24 @@ end
 
 %% FIGURE: plot heatmap of fly position within arena
 clearvars('-except',initial_vars{:})
+save_path = [saveDir 'COM/'];
+if ~exist(save_path,'dir')
+    mkdir(save_path)
+end
+fig_type = '-pdf';
+blkbgd = false;
 [foreColor,backColor] = formattingColors(blkbgd);
 
 % Find the occupancy for each bin:
 r = data(1).data(1).data.r; %pixel radius of the arena
-n = 20; % number of spatial bins
-axis_limits = [0, 0.2];
+n = 30; % number of spatial bins
+autoLim = true;
+% axis_limits = [0, 0.08];
+axis_limits = [0, 0.05];
 
-temp = 24.5; % plot all rates for this temperature
+% Set Temperature
+for temp = 16:2:35 %(17:2:25)
+
 plotData = [];
 max_occ = [];
 % GROUP DATA
@@ -443,6 +453,14 @@ for i = 1:num.exp
     Cy = mean(grouped(i).position.well_pos.y(5,:)); %center Y
     x_edge = linspace(Cx-r,Cx+r,n);
     y_edge = linspace(Cy-r,Cy+r,n);
+
+    % determine what a circle around the arena would look like:
+    % r needs to be transformed into unit square space...
+    % r
+    square_unit = mean(diff(x_edge)); % pixel size for one bin
+    circ_r = r/square_unit; % arena radius in bin size
+    circ_X = discretize(Cx, x_edge);
+    circ_Y = discretize(Cy, y_edge);
 
     % find the temp bin that corresponds to the selected temp:
     [~,idx] = min(abs(grouped(i).position.temp_list-temp));
@@ -482,13 +500,13 @@ for i = 1:num.exp
     end
 end
 
-
+disp(['Max occupancy: ' num2str(max_occ)])
 
 % PLOT 
 fig_W = 20 + (400*nRates);
 
 for i = 1:num.exp
-    fig = getfig('',true,[fig_W, 439]); 
+    fig = getfig('',false,[fig_W, 340]); 
     for rr = 1:nRates
         subplot(1,nRates,rr)
         hold on
@@ -496,20 +514,42 @@ for i = 1:num.exp
         scatter(plotData(i,rr).wells(:,1),plotData(i,rr).wells(:,2),20,'r','filled')
         axis tight;
         axis square;
+        % h = drawcircle('Center',[circ_X,circ_Y],'Radius',circ_r,'StripeColor',foreColor);
+        v = viscircles([circ_X,circ_Y],circ_r, 'color', 'w');
     end
-    formatFig(fig, true,[1,nRates]);
+    formatFig(fig, blkbgd,[1,nRates]);
     for rr = 1:nRates
         subplot(1,nRates,rr)
         set(gca,'XColor',backColor,'Ycolor',backColor,'XTick', [],'YTick', [])
-        t_str = [num2str(grouped(i).position.temp_rates(rr)) '\circC/min'];
-        title({grouped(i).name; t_str},'color',foreColor)
+        t_str = [num2str(grouped(i).position.temp_rates(rr)) '\circC/min | ' num2str(temp) '\circC'];
+        title({grouped(i).name; t_str},'color',foreColor,'fontsize', 12)
+        
+        % set(gca,'ColorScale','log')
 
         c = colorbar;
-        c.Label.String = 'Occupancy';
+        c.Label.String = 'Occupancy Probability';
         c.Label.Color = foreColor;
         c.Color = foreColor;
-        clim([0,max_occ]) 
+        if autoLim
+            clim([0,max_occ]) 
+        else
+            clim(axis_limits)
+        end
     end
 
+    % save the figure to a folder specific to that cohort?
+    save_figure(fig,[save_path grouped(i).name ' ' num2str(temp) ' deg'], fig_type,true,true);
+end
 
 end
+
+
+
+% make mask for arena sizing...
+
+
+
+
+
+
+
