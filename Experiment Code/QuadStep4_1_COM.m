@@ -426,7 +426,8 @@ end
 
 %% FIGURE: plot heatmap of fly position within arena
 clearvars('-except',initial_vars{:})
-save_path = [saveDir 'COM/'];
+% save_path = [saveDir 'COM/'];
+save_path = '/Users/evyndickinson/Desktop/data/';
 if ~exist(save_path,'dir')
     mkdir(save_path)
 end
@@ -436,13 +437,13 @@ blkbgd = false;
 
 % Find the occupancy for each bin:
 r = data(1).data(1).data.r; %pixel radius of the arena
-n = 30; % number of spatial bins
-autoLim = true;
+n = 26; % number of spatial bins
+autoLim = false;
 % axis_limits = [0, 0.08];
-axis_limits = [0, 0.05];
+axis_limits = [0, 0.056];
 
 % Set Temperature
-for temp = 16:2:35 %(17:2:25)
+for temp = [17,23,32]%16:2:35 %(17:2:25)
 
 plotData = [];
 max_occ = [];
