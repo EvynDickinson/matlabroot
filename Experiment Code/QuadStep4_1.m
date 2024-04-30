@@ -294,7 +294,7 @@ end
 
 disp(expNames')
 
-%% ANALYSIS: organize data for each group
+%% ANALYSIS: organize data for  each group
 clearvars('-except',initial_vars{:})
 fig_type = '-png'; 
 blkbgd = true;

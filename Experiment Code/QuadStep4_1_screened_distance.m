@@ -802,7 +802,6 @@ ax.XColor = backColor;
 save_figure(fig,[comp_saveDir expGroup ' distance to food vertical warm cool split'],fig_type);
 
 %% FIGURE:  distance to food as scatter plot (for simple view)
-
 clearvars('-except',initial_vars{:})
 % blkbgd = true;  fig_type = '-png'; 
 fig_type = '-pdf'; blkbgd = false;
@@ -877,21 +876,58 @@ for ii = 1:num.exp
     end
 end
 
-%% Analysis: update the code for the best possible figures! 
+%% FIXED FIGURE [static vs dynamic temp] 
 
 % make a comparison for fixed temperature/temp-rate points to compare the static
 % temperature protocols and the dynamic temperature holds
+clearvars('-except',initial_vars{:})
+% blkbgd = true;  fig_type = '-png'; 
+fig_type = '-pdf'; blkbgd = false;
+buff = 0.2;
+sz = 50;
+autoLim = false;
+dist_lim = [10,32];
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 temp_comparisions = [15, 17, 20, 23, 25]; % these are the temps with fixed, held points -- might do just 17:25 for easy comp.
 
+% find the average temp
 
-fig = getfig('',1);
-for i = 1:num.exp
-    subplot(r,c,i)
+% TODO HERE: just plot the average for each data group at the time-locked
+% version (grouped(i).increasing)...
+
+
+
+% FIGURE: plot a comparison line between the heating and cooling position for each temp
+fig = getfig('',true,[565 649]);
+for ii = 1:num.exp
     hold on
-    x = 
+    i = expOrder(ii);
+    
+    % find index for the selected temperatures
+    for tt = 1:length(temp)
+        [~, idx(tt)] = min(abs(grouped(i).screen_d.temps-temp(tt)));
+        % cooling
 
+        y1 = grouped(i).screen_d.decreasing.all(idx(tt),:);
+        % x = shuffle_data(linspace(temp(tt)-buff, temp(tt)+buff, length(y)));
+        x1_roi = [tt-buff-0.1, tt-0.1];
+        x1 = shuffle_data(linspace(x1_roi(1), x1_roi(2), length(y)));
+        scatter(x1,y1,sz, grouped(i).color)
+        % plot(x1_roi,[mean(y2),mean(y2)], 'linewidth', 1, 'color', grouped(i).color,'LineStyle',':')
+        
+        % warming
+        y2 = grouped(i).screen_d.increasing.all(idx(tt),:);
+        % x = shuffle_data(linspace(temp(tt)-buff, temp(tt)+buff, length(y)));
+        x2_roi = [tt+0.1, tt+buff+0.1];
+        x2 = shuffle_data(linspace(x2_roi(1), x2_roi(2), length(y)));
+        scatter(x2,y2,sz, grouped(i).color,'filled')
+        % plot(x2_roi,[mean(y2),mean(y2)], 'linewidth', 1, 'color', grouped(i).color)
 
+        plot([x1;x2], [y1;y2],'color',grouped(i).color)
+    
+    end
+end
 
 
     
