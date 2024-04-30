@@ -12,14 +12,10 @@ for i = 1:length(names)
     end
 end
 
-sum(checklist)
+sum(checklist)  
 
 
 
 % do the cross comparision
 
 listdirs
-
-
-%% Copy over the data files from each research day (leave videos)
-

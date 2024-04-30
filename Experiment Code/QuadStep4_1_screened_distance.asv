@@ -886,10 +886,6 @@ temp_comparisions = [15, 17, 20, 23, 25]; % these are the temps with fixed, held
 
 
 fig = getfig('',1);
-for i = 1:num.exp
-    subplot(r,c,i)
-    hold on
-    x = 
 
 
 
