@@ -71,7 +71,7 @@ for i = 1:n
     % get info for normalizing
     xlimits(i,:) = xlim;
     ylimits(i,:) = ylim;
-    if all(all(isnan(y))) && all(all(isnan(y1)))
+    if all(isnan(y)) && all(all(isnan(y1)))
         skipIdx(i) = true;
     else
         skipIdx(i) = false;
@@ -98,11 +98,11 @@ for i = 1:n
         % Create the rectangle as a semi-transparent patch
         patch(xRect, yRect, foreColor, 'FaceAlpha', 0.3,'EdgeColor','none');
     end
-    % color the first column 
-    if ismember(i,1:col:n)
-        set(gca,'ycolor',foreColor,'ytick',Y_norm);
-        ylabel('df/F')
-    end
+    % % color the first column 
+    % if ismember(i,1:col:n)
+    %     set(gca,'ycolor',foreColor,'ytick',Y_norm);
+    %     ylabel('df/F')
+    % end
 end
 
 % save_figure(new_fig,[data_dir 'HeavyWax_ACV_meanDFF'],'-png');

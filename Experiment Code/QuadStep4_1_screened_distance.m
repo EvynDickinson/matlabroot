@@ -884,7 +884,7 @@ clearvars('-except',initial_vars{:})
 % blkbgd = true;  fig_type = '-png'; 
 fig_type = '-pdf'; blkbgd = false;
 buff = 0.2;
-sz = 50;
+sz = 50; 
 autoLim = false;
 dist_lim = [10,32];
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
@@ -930,7 +930,6 @@ for ii = 1:num.exp
 end
 
 
-    
 
 
 
