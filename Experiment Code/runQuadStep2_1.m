@@ -234,7 +234,7 @@ for arena = 1:nArenas
     movement = squeeze(sum(sum(binDiff,1),2));
     binSizeinMM = ((2*r)/nbins)/pix2mm;
     movement = movement./binSizeinMM;
-    movement = movement*3; % convert to per second WITH 3fps videos
+    movement = movement*expData.parameters.FPS; % convert to per second WITH 3fps videos
     avg_movement = movement./T.flyCount(1:end-1,arena);% normalize for the number of flies actually tracked on the page:
     % update data structures
     occupancy.movement = avg_movement;
