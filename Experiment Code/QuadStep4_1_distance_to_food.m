@@ -26,11 +26,11 @@ LW = 0.75;
 sSpan = 360; % 2 minute smoothing 
 dataString = cell([1,num.exp]);
 
-% FIGURE:
+% FIGURE:  
 fig = getfig('',true);
 for i = 1:nMax
 %     i = expOrder(ii);
-    x = grouped(i).time;
+    x = grouped(i).time;   
     kolor = grouped(i).color;
 
     %temp
