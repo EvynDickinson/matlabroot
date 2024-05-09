@@ -1575,10 +1575,10 @@ end
 
 
 %% Mac testing
-fig = open('/Users/evyndickinson/Desktop/untitled folder/demofig.fig');
-
-save_loc = '/Users/evyndickinson/Desktop/untitled folder/demofig';
-export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+% fig = open('/Users/evyndickinson/Desktop/untitled folder/demofig.fig');
+% 
+% save_loc = '/Users/evyndickinson/Desktop/untitled folder/demofig';
+% export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
 
 
 %% Write to excel replacement functions
@@ -1593,7 +1593,7 @@ testFile = '/Users/evyndickinson/Desktop/Quad Bowl Experiments.xlsx';
 writematrix(nflies(arena),testFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))])
 
 
-videoStartTime = 
+% videoStartTime = 
 
 writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
 
@@ -1697,6 +1697,13 @@ disp(expNames')
 
 
 
+
+
+
+
+%%
+
+parameters.protocol = 'linear_ramp_F_25-17_FPS6';
 
 
 

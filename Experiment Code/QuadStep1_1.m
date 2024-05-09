@@ -360,7 +360,7 @@ for vid = 1:nvids
 end
 occupancy.temp = temperature;
 % Time count
-time = (linspace(1, (frame(end)/3)/60, frame(end)))';
+time = (linspace(1, (frame(end)/expData.parameters.FPS)/60, frame(end)))';
 occupancy.time = time;
 
 % Data table with continuous variables:
