@@ -9,6 +9,7 @@ essentialfigs = true;
 switch questdlg('Use Excel sheet to select experiment?')
     case 'Yes'
         loc1 = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+        % loc1 = cellfun(@isnan,excelfile(2:end,Excel.processed));
         loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
         loc = loc1 & loc2;
         rownums = find(loc)+1;
@@ -359,7 +360,7 @@ for vid = 1:nvids
 end
 occupancy.temp = temperature;
 % Time count
-time = (linspace(1, (frame(end)/3)/60, frame(end)))';
+time = (linspace(1, (frame(end)/expData.parameters.FPS)/60, frame(end)))';
 occupancy.time = time;
 
 % Data table with continuous variables:

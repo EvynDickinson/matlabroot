@@ -372,27 +372,29 @@ end
 % STATS:
 % TODO -- update all other stats to reflect this vv
 % determine which groups differ from each other
-[~,~,stats] = anova1(mlt(:),id(:),'off');
-alpha = 0.05; %significance level
-[c,~,~,~] = multcompare(stats,alpha,'off');
-% bonferonni multiple comparisons correction
-m = size(c,1); %number of hypotheses
-sigThreshold = alpha/m;
-%find p-values that fall under the threshold
-significantHypotheses = c(:,6)<=sigThreshold;
-fprintf('\n\nPosition hysteresis cross group comparison statistics\n\n')
-[Group1,Group2,P_Value] = deal([]);
-idx = 0;
-for i = 1:length(significantHypotheses)
-    if significantHypotheses(i)
-        idx = idx+1;
-        Group1{idx,1} = expNames{c(i,1)};
-        Group2{idx,1} = expNames{c(i,2)};
-        P_Value(idx,1) = c(i,6);
+if num.exp>1
+    [~,~,stats] = anova1(mlt(:),id(:),'off');
+    alpha = 0.05; %significance level
+    [c,~,~,~] = multcompare(stats,alpha,'off');
+    % bonferonni multiple comparisons correction
+    m = size(c,1); %number of hypotheses
+    sigThreshold = alpha/m;
+    %find p-values that fall under the threshold
+    significantHypotheses = c(:,6)<=sigThreshold;
+    fprintf('\n\nPosition hysteresis cross group comparison statistics\n\n')
+    [Group1,Group2,P_Value] = deal([]);
+    idx = 0;
+    for i = 1:length(significantHypotheses)
+        if significantHypotheses(i)
+            idx = idx+1;
+            Group1{idx,1} = expNames{c(i,1)};
+            Group2{idx,1} = expNames{c(i,2)};
+            P_Value(idx,1) = c(i,6);
+        end
     end
+    sig_comp = table(Group1,Group2,P_Value);
+    disp(sig_comp)
 end
-sig_comp = table(Group1,Group2,P_Value);
-disp(sig_comp)
 
 % save figure
 save_figure(fig,[saveDir expGroup ' hysteresis summary'],fig_type);

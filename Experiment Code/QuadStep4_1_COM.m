@@ -431,8 +431,8 @@ save_path = [saveDir 'COM/'];
 if ~exist(save_path,'dir')
     mkdir(save_path)
 end
-fig_type = '-pdf';
-blkbgd = false;
+fig_type = '-png';
+blkbgd = true;
 [foreColor,backColor] = formattingColors(blkbgd);
 
 % Find the occupancy for each bin:
@@ -443,7 +443,7 @@ autoLim = false;
 axis_limits = [0, 0.06];
 
 % Set Temperature
-for temp = 25; %[17,18, 20,30,32]%16:2:35 %(17:2:25)
+for temp = 17:25  %[17,18, 20,30,32]%16:2:35 %(17:2:25)
 
 plotData = [];
 max_occ = [];
@@ -457,7 +457,6 @@ for i = 1:num.exp
 
     % determine what a circle around the arena would look like:
     % r needs to be transformed into unit square space...
-    % r
     square_unit = mean(diff(x_edge)); % pixel size for one bin
     circ_r = r/square_unit; % arena radius in bin size
     circ_X = discretize(Cx, x_edge);
@@ -490,12 +489,12 @@ for i = 1:num.exp
         max_occ = max([max_occ,max(max(plotData(i,rr).data))]);
 
         % Find the wells within the binned space
-        wellX = (grouped(i).position.well_pos.x(1:4,:)); 
-        wellY = (grouped(i).position.well_pos.y(1:4,:));
-        wellX = wellX(:);
-        wellY = wellY(:);
-        xInd = discretize(wellX,x_edge);
-        yInd = discretize(wellY,y_edge);
+        % wellX = (grouped(i).position.well_pos.x(1:4,:)); 
+        % wellY = (grouped(i).position.well_pos.y(1:4,:));
+        % wellX = wellX(:);
+        % wellY = wellY(:);
+        xInd = discretize(0,x_edge);
+        yInd = discretize(0,y_edge);
 
         plotData(i,rr).wells = [xInd,yInd];
     end
@@ -512,7 +511,7 @@ for i = 1:num.exp
         subplot(1,nRates,rr)
         hold on
         imagesc(plotData(i,rr).data); hold on
-        scatter(plotData(i,rr).wells(:,1),plotData(i,rr).wells(:,2),20,'r','filled')
+        scatter(plotData(i,rr).wells(:,1),plotData(i,rr).wells(:,2),10,'r','filled')
         axis tight;
         axis square;
         % h = drawcircle('Center',[circ_X,circ_Y],'Radius',circ_r,'StripeColor',foreColor);

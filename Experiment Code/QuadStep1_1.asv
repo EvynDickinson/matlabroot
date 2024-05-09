@@ -3,12 +3,13 @@ clear; close all; clc
 autoSave = true;
 essentialfigs = true;
 
-%% ---------------------Select Date & Experiment to Process ------------------------------
+%% --------------------- Select Date & Experiment to Process ------------------------------
 %load excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 switch questdlg('Use Excel sheet to select experiment?')
     case 'Yes'
-        loc1 = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+        % loc1 = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+        loc1 = cellfun(@isnan,excelfile(2:end,Excel.processed));
         loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
         loc = loc1 & loc2;
         rownums = find(loc)+1;
@@ -213,7 +214,7 @@ fprintf('Next\n')
 %% Get the number of flies in each arena
 % Number of flies:
 nframes = 3;
-nflies = nan(1,4);
+nflies = nan(1,4); 
 for arena = 1:4
     arenaData(arena).nflies = excelfile{XLrow(arena),Excel.numflies};
     nflies(arena) = arenaData(arena).nflies;
@@ -253,29 +254,26 @@ if any(isnan(nflies))
                 Y = PT(jj).frame(2,:);
                 % find points within each arena sphere
                 loc = (((X-centre(1)).^2 + (Y-centre(2)).^2).^0.5)<=r;
+                nflies(arena,jj) = sum(loc);
             end
-            nflies(arena,jj) = sum(loc);
             disp(nflies(:,jj)')
         end
-        disp('Fully number of flies counted')
+        disp('Number of flies:')
         A = nflies(1,:)'; B = nflies(2,:)'; C = nflies(3,:)'; D = nflies(4,:)';
         numFlies = [A,B,C,D];
         disp(table(A,B,C,D))
         
+        % Skip Frame Speed Hack
         % if there is a row of zeros (skipped tracking frame) remove the empty frame
         skipFrameloc = sum(numFlies==0,2)==4; %skipped counting frame locations
         mismatchLoc = diff(numFlies)==0; % across frame mismatched numbers
-        if any(skipFrameloc) & ~all(mismatchLoc(1,:))
-            % if we skipped labeling a frame
-            
-
-        numFlies(sum(numFlies==0,2)==4,:) = []; 
-        
-
-
-
+        % if we skipped labeling a frame but the first two counts match up,
+        % then auto add the number from the first two counts to the list
+        if any(skipFrameloc) && all(mismatchLoc(1,:)) 
+                numFlies(skipFrameloc,:) = numFlies(1,:);
+        end
+        % Resume normal miscounted fly error catching protocol
         count_match = (diff(numFlies,(nframes-1),1)==0);
-
         if all(count_match)
             nflies = [];
             for arena = 1:4

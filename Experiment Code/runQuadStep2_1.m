@@ -27,8 +27,9 @@ threshHigh = tPoints.threshHigh;
 threshLow = tPoints.threshLow;
 binSpace = 1; %temp degree bin widths
 
-initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
+initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace','FPS'];
 
+FPS = expData.parameters.FPS;
 
 %%  summary figure for each arena
 nrow = 5; ncol = 4;
@@ -234,7 +235,7 @@ for arena = 1:nArenas
     movement = squeeze(sum(sum(binDiff,1),2));
     binSizeinMM = ((2*r)/nbins)/pix2mm;
     movement = movement./binSizeinMM;
-    movement = movement*3; % convert to per second WITH 3fps videos
+    movement = movement*expData.parameters.FPS; % convert to per second WITH 3fps videos
     avg_movement = movement./T.flyCount(1:end-1,arena);% normalize for the number of flies actually tracked on the page:
     % update data structures
     occupancy.movement = avg_movement;
@@ -268,7 +269,7 @@ for arena = 1:nArenas
     plotData(:,1) = temp(1:end-1); 
 
     % rate of temperature change
-    dT = diff(smooth(temp,180)); %180 = 1 minute smoothing kernal
+    dT = diff(smooth(temp,(FPS*60))); % 1 minute smoothing kernal
     dt = diff(T.time(:)); 
     plotData(:,2) = dT./dt; 
     % figure; plot(T.time(1:end-1),plotData(:,2)) %to look at the calculated temp rate
@@ -292,7 +293,7 @@ for arena = 1:nArenas
     
     % find the mean temp rate during each ramp period:
     lastdatapoint = size(plotData,1);
-    tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
+    tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group       
     keepLoc = false(1,lastdatapoint);
 
     % Skip if no temp change regions matter
@@ -307,8 +308,7 @@ for arena = 1:nArenas
         if tPoints.up(ii,1)>lastdatapoint
             disp('Error: Up ramp ROI out of bounds')
             continue
-        % the second data point is missing: keep data up to the appropriate
-        % location
+        % the second data point is missing: keep data up to the appropriate location
         elseif tPoints.up(ii,2)>lastdatapoint
             % check that the data point is within this region...
             if any(lastdatapoint==roi)
@@ -329,7 +329,7 @@ for arena = 1:nArenas
         roi = tPoints.down(ii,1):tPoints.down(ii,2);
         % the first data points is not present: skip
         if tPoints.down(ii,1)>lastdatapoint
-            disp('Error: Dpwn ramp ROI out of bounds')
+            disp('Error: Down ramp ROI out of bounds')
             continue
         elseif tPoints.down(ii,2)>lastdatapoint
         % check that the data point is within this region...

@@ -25,12 +25,12 @@ end
 % threshLow = tPoints.threshLow;
 % binSpace = 1; %temp degree bin widths
 
-initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
+initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace','FPS'];
+FPS = expData.parameters.FPS;
 
 %% ANALYSIS: Segment data into functional tracks 
 clearvars('-except',initial_vars{:})
 close all
-
 
 trackROI = struct;
 
@@ -54,7 +54,6 @@ for vid = 1:nvids
         end
         continue
     end
-
 
     ntracks = size(data(vid).tracks,4);
     flynums = 1:ntracks;
@@ -168,7 +167,7 @@ for vid = 1:nvids
         dX = diff(X,1,1);
         dY = diff(Y,1,1);
         speed = sqrt(dX.^2 + dY.^2);
-        speed = (speed./pix2mm)*expData.parameters.FPS;
+        speed = (speed./pix2mm)*FPS;
         trackROI(vid,arena).speed = speed;
         
         % extract the avg and err of speed for a given frame

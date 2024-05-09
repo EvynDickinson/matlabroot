@@ -814,7 +814,7 @@ dist_lim = [10,32];
 dataString = cell([1,num.exp]);
 
 % temperatures to compare
-temp = [20,30];
+temp = 17:1:25;
 
 % FIGURE:
 fig = getfig('',true,[565 649]);
@@ -876,7 +876,7 @@ for ii = 1:num.exp
     end
 end
 
-%% FIXED FIGURE [static vs dynamic temp] 
+%% FIXED FIGURE [static vs dynamic temp] WORKING
 
 % make a comparison for fixed temperature/temp-rate points to compare the static
 % temperature protocols and the dynamic temperature holds
