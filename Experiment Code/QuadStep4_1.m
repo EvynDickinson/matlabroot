@@ -5,6 +5,10 @@
 % ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
 % *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
+% 
+% for i = 1:num.exp
+% data(i).fps = 3;
+% end
 
 %% Select data groups to compare
 % add matlabroot folder to the directory path
@@ -144,6 +148,8 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                        dummy.temp_protocol = dummy.T.TempProtocol{1};
                  end
                 data(i) = dummy;
+                % FPS update here ...
+                % TODO 5.27.24
             end
     
             clear list_dirs expIdx dirIdx dummy
@@ -416,11 +422,11 @@ switch expGroup
 
     % ---- TEMP RATE COMPARISONS ----
     case 'Berlln LRR 25-17 temprate comp caviar'
-        expOrder = 4:-1:1; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+        expOrder = 4:-1:1; 
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
     case 'Berlin LRR 25-17 temprate caviar'
-        expOrder = 4:-1:1; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
+        expOrder = [3 2 1 4 5]; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
     case 'Berlin LRR temprate comp'
         expOrder = 4:-1:1; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
@@ -536,6 +542,9 @@ end
 
 for i = 1:num.exp % FOR EACH DATA GROUP
     % GENERAL
+    if ~isfield(data,'fps')
+        data(i).fps = 3;
+    end
     grouped(i).name = data(i).ExpGroup;
     if exist('colors','var')
         grouped(expOrder(i)).color = Color(colors{(i)});
@@ -666,6 +675,8 @@ for i = 1:num.exp
         end
     end
 end
+
+
 
 disp('Next')
 
