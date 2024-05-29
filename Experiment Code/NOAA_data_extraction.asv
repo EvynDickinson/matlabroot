@@ -302,21 +302,14 @@ surfT_P1 = mean(P1,2);
 % ylim([0,0.5])
 % save_figure(fig, [rootdir, 'Figures\surface temp zoom 3 FFT'],'-png',false,false)    
 
-fig = getfig('',1); hold on 
-plot(surfT_f, surfT_P1,'color', Color('cyan'),'linewidth', 1)
-formatFig(fig, true);
-grid on
-set(gca, 'TickDir','out')
-ylabel('Power')
-xlabel('Frequency (Hz)')
-title('Surface Temperature','color', 'w')
-
-save_figure(fig, [rootdir, 'Figures\avg surface temp full FFT'],'-png',false,false)
-xlim([0,1e-4])
-ylim([0,10])
-save_figure(fig, [rootdir, 'Figures\avg surface temp zoom 1 FFT'],'-png',false,false)
-ylim([0,1])
-save_figure(fig, [rootdir, 'Figures\avg surface temp zoom 2 FFT'],'-png',false,false)
+ fig = getfig('',1); hold on 
+ plot(surfT_f, surfT_P1,'color', 'w','linewidth', 1)
+ formatFig(fig, true);
+% % grid on
+% % set(gca, 'TickDir','out')
+% % ylabel('Power')
+% % xlabel('Frequency (Hz)')
+% % title('Surface Temperature','color', 'w')
 
     L = length(temperature_filled);  % Length of signal
     f = Fs*(0:(L/2))/L;
