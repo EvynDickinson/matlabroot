@@ -348,11 +348,11 @@ for arena = 1:nArenas
     end
     
     plotData(~keepLoc,:) = nan; % exclude data outside prescribed ROI regions
-%     figure; 
-%     plot(T.time(1:end-1),plotData(:,2))
-%     hold on 
-%     time = T.time(1:end-1);
-%     scatter(time(keepLoc),plotData(keepLoc,2))
+    % figure; 
+    % plot(T.time(1:end-1),plotData(:,2))
+    % hold on 
+    % time = T.time(1:end-1);
+    % scatter(time(keepLoc),plotData(keepLoc,2))
 
     % Temp-rate identification and sorting: 
     buffSize = 0.05;
