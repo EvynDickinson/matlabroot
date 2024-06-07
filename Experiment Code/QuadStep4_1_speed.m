@@ -176,7 +176,7 @@ set(gca,'xgrid','off','ygrid','off')
 set(gca,'ytick',0:0.2:1)
 save_figure(fig,[saveDir expGroup ' speed CDF'],fig_type,autoSave);
 
-%% FIGURE & STATS: speed hystere  sis across groups
+%% FIGURE & STATS: speed hysteresis across groups
 clearvars('-except',initial_vars{:})
 plotSig = true;
 LW = 1;

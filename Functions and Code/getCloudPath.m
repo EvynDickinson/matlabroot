@@ -5,6 +5,7 @@ function [path, folder] = getCloudPath(folderOption)
 %                  1) basepath & folder selection merged
 %                  2) folder is just the folder name
 %                  3) folder is the path + 'structures' folder
+%                  4) outvar_1 = path to data folder, outvar2 = date folder, outvar3 = exp name
 % if no folderOption is not included, just the environment is given
 % folder --> folder/path selected from path
 % 

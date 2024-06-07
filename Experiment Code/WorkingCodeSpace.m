@@ -1703,7 +1703,7 @@ disp(expNames')
 
 %%
 
-parameters.protocol = 'linear_ramp_F_25-17_FPS6';
+parameters.protocol = 'Large_temp_sweep_15_35_FPS6';
 
 
 

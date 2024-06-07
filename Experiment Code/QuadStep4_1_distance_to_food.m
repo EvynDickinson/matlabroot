@@ -1940,7 +1940,7 @@ ylabel('eccentricity (mm)')
 % SEP HEAT / COOL
 subplot(r,c,2)
 hold on
-for i = [4,7,8] %1:nMax
+for i = 1:nMax
     kolor = grouped(i).color;
     for type = 1:2 %increasing | decreasing
         switch type

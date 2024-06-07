@@ -66,6 +66,18 @@ switch TempProtocolString
         tempPoints.rates = [-0.125, 0.125]; 
         tempPoints.threshLow = 14.5;
         tempPoints.threshHigh = 35.5;
+    case 'Large_temp_sweep_15_35_FPS6'
+        tempPoints.fps = 6;
+        tempPoints.hold = [];
+        tempPoints.up =   [21646, 50691;...
+                                        108132 165504;...
+                                        222956 251217];
+        tempPoints.down =  [50692 108130;...
+                                            165505 222959];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = [-0.125, 0.125]; 
+        tempPoints.threshLow = 14.5;
+        tempPoints.threshHigh = 35.5;
     % =======================================
     case 'linear_ramp_XF_25-17'
         tempPoints.hold = [1350, 18079; ...
@@ -96,6 +108,7 @@ switch TempProtocolString
         tempPoints.threshLow = 16.5;
         tempPoints.threshHigh = 25.5;   
     case 'linear_ramp_F_25-17_FPS6'
+        tempPoints.fps = 6;
         tempPoints.hold = [2385 36124;...
                                           47728 76184;...
                                           88021 116668];
@@ -731,6 +744,11 @@ switch TempProtocolString
             tempPoints.down = [34629,64818;...
                                93740,141259];
         
+end
+
+% FPS 
+if ~isfield(tempPoints,'fps')
+    tempPoints.fps = 3;
 end
 
 % increasing|decreasing ROI:

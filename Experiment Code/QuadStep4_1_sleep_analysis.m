@@ -395,15 +395,21 @@ end
 
 
 % Thermal threat quantifcation
-fps = data(i).fps; 
+
+
 % Thermal threat quantification and avg sleep quantity
 for i = 1:num.exp
-    if strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35')
-        sleep(i).avg_quant = nan;
-        sleep(i).thermalThreat = nan;
-        continue
-    end
     tPoints = getTempTurnPoints(data(i).temp_protocol); 
+    fps = tPoints.fps; 
+
+    if strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35') ||...
+       strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35_FPS6') 
+       sleep(i).avg_quant = nan;
+       sleep(i).thermalThreat = nan;
+       disp(['Skipping thermal threat for ' grouped(i).name])
+       continue
+    end
+    
     demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2); % points for a full ramp down and up
     
     % Thermal threat
@@ -411,6 +417,7 @@ for i = 1:num.exp
     thermalThreat = (sum(25-temp_ramp)/fps)/1000; % quant of time not at 25 *only punishes cold though...
     
     % Sleep duration
+    
     nFlies = zeros(1,num.trial(i));
     nRamps = size(tPoints.up,1);
     for ramp = 1:nRamps
@@ -1170,7 +1177,7 @@ fig = getfig('',1); hold on
 save_figure(fig,[fig_dir 'sleeping null diff in occupancy vs distance to food'],fig_type);
 
 
-%% ANALYSIS: fly sleeping locations in the arena (oriented to same heading)
+%% ANALYSIS: TODO fly sleeping locations in the arena (oriented to same heading)
 clearvars('-except',initial_vars{:})
 % HAVENT SCREENED FOR ONLY RAMPSSSSSSSS!!! 
 % TODO : 
@@ -2067,6 +2074,7 @@ evcdf
 ecdf(null_distance,'Bounds','on')
 
 %% Find probability of occupancy for each distance
+
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 
@@ -2106,7 +2114,79 @@ set(gca,'Ycolor',foreColor)
 save_figure(fig,[fig_dir  'Distance probabilty null distribution'],fig_type);
 
 
+ 
+%% FIGURE: Null distribution vs experimental fly distances to food:
+% TODO : 
+% 1) normalize the histograms to compare between the null and experiment
+% 2) determine the median distance from the food (if flies were normally
+% distributed across the arena
 
+
+clearvars('-except',initial_vars{:})
+
+% [foreColor,backColor] = formattingColors(blkbgd);
+LW = 3;
+if ~exist('null_dist','var')
+    load([baseFolder 'Fundamentals\Distance_to_well_distribution']);
+    initial_vars{end+1} = 'null_dist';
+end
+
+% PLOT NULL DISTRIBUTION:
+fig_dir = [saveDir 'Sleep\' 'sleeping histograms overlay\'];
+if ~exist(fig_dir,'dir')
+    mkdir(fig_dir)
+end
+
+binlow = 0;
+binhigh = 51;
+binwidth = 3;
+binedges = binlow:binwidth:binhigh;
+bincenters = (binwidth-binlow)/2:binwidth:binhigh;
+
+% ylimits = [-50 500]; % [-50,1400] 15-23 WT
+% ylimits = [-50 800];
+
+
+for i = 1:num.exp 
+    fig = getfig('',1); hold on
+    plotData = [];
+    for trial = 1:num.trial(i)
+        loc = sleep(i).trial(trial).sleepLoc;
+        test = sleep(i).trial(trial).all_distance(loc);
+        plotData = [plotData; test];
+    end
+
+    % NULL DISTRIBUTION: 
+    tic
+    N = 1000; % number of selections from the null distribution to make the display null distr
+    null_h_temp = nan([N, length(binedges)-1]);
+    for jj = 1:N
+        idx = randi(length(null_dist.distance),[1,length(plotData)]);
+        null_h_temp(jj,:) = histcounts(null_dist.distance(idx), binedges);
+    end
+    null_h = mean(null_h_temp);
+    toc
+    bar(bincenters, null_h,'BarWidth', 1,'FaceColor',Color('grey'),'FaceAlpha',0.7);
+
+    % Exp Data
+    histogram(plotData,binedges,'FaceColor',grouped(i).color,'FaceAlpha',0.7);
+
+    % % histogram(null_dist.distance,null_dist.binedges,'FaceColor',Color('grey'),'FaceAlpha',1)
+    % yyaxis right
+    % plot(null_dist.binedges,null_dist.prob,'color', Color('teal'),'linewidth',LW,'linestyle','-')
+
+    formatFig(fig,blkbgd);
+    xlabel('distance to well (mm)','FontSize',20)
+    ylabel('sleeping flies (#)','FontSize',20)
+    set(gca,'TickDir','out')
+    xlim([-1.5000   51.5000])
+%     ylim(ylimits)
+    
+    % save figure
+    save_figure(fig,[fig_dir expNames{i} ' sleeping distance vs. normalized null histogram'],fig_type);
+end
+
+% save_figure(fig,[fig_dir 'Null sleeping distance distribution'],fig_type);
 
 
 
