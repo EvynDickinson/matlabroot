@@ -34,7 +34,7 @@ switch questdlg('Use Excel sheet to select experiment?')
         list_dirs = {list_dirs(:).name};
         expNames = cellfun(@(x) x(1:end-11),list_dirs,'UniformOutput',false); %pull root name
         expName = expNames{listdlg('ListString', expNames, 'SelectionMode', 'Single')};
-        expName = expName(1:end-1);clear expNames
+        expName = expName(1:end-1); clear expNames 
     case 'Cancel'
         return
 end
