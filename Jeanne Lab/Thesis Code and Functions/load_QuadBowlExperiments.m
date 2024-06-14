@@ -48,6 +48,7 @@ Excel.starved_hours = find(strcmpi('Starved Hours', Excel.headers)==1);
 Excel.tracked = find(strcmpi('Tracked', Excel.headers)==1);
 Excel.starttime = find(strcmpi('Start time', Excel.headers)==1);
 Excel.facility = find(strcmpi('Facility', Excel.headers)==1);
+Excel.trialID = find(strcmpi('Trial_ID', Excel.headers)==1);
 
 end
 

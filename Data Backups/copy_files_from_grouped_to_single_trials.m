@@ -1,0 +1,87 @@
+
+
+% data groupings: 
+% 10.29.2021 -- 2.8.2022 : date>arena>analysis (:)   [black background video copy] 
+% these are before line 149 in the folder
+
+
+
+%%
+
+baseFolder = getCloudPath;
+
+%load excel file:
+[excelfile, Excel, XL] = load_QuadBowlExperiments;
+loc = cellfun(@isnan,excelfile(2:end,Excel.trialID)); % unprocessed trials
+rownums = find(loc)+1; 
+
+for i = 148:length(rownums)
+    % get trial name:
+
+    excelfile(rownums(i),2)
+    % trial ID structure: [date_expname_arena]
+    trial_date = excelfile{rownums(i),Excel.date};
+    trial_expName = excelfile{rownums(i),Excel.expID};
+    trial_arena = excelfile{rownums(i),Excel.arena};
+
+    trialID = [trial_date '_' trial_expName '_' trial_arena];
+    
+    % make a new folder if it doesn't exist for the new items: 
+    startDir = [baseFolder trial_date '/Arena '  trial_arena '/'];
+    % check for more than 1 experiment (which would require subdividing the
+    % data files individually)
+    targetDir = [baseFolder ]
+
+% WORKING HERE 
+
+end
+
+
+
+% get base folder pathway
+finishedFiles = []; 
+baseFolder = getCloudPath;
+for ii = 1:length(fileIdx)
+
+    % ===============================================================================
+    % ----- Write experiments start time and location to the excel summary file ------
+    searchPath = [baseFolder List.date{ii} '/' List.expID{ii} '*_1.avi'];
+    videoList = dir(searchPath);
+    videoStartTime = videoList(1).date(end-7:end);
+
+
+
+end
+
+
+
+
+%% Get a list of the data groups that need to be characterized
+% go by excel spreadsheet order...
+
+
+baseFolder = getCloudPath;
+temp = dir(baseFolder);
+date_folders_idx = 3:347; % manually check this list
+fullList = {temp(:).name};
+date_folders = fullList(date_folders_idx);
+
+% organize by temporal date?
+
+
+% for each folder, find the number of unique trials within it:
+
+for i = 1:length(date_folders)
+    for arena = 1:4 % for each arena find the number of trials
+        
+        fileList = dir([baseFolder date_folders{i} '\Arena ' Alphabet(arena)]);
+        date_folders(i).
+
+
+
+temp(4).name
+
+%% Copy file data into the new trial data folder
+
+%% Add a column in the excel mastersheet that has the trial ID
+
