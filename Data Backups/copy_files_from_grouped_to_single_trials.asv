@@ -4,52 +4,115 @@
 % 10.29.2021 -- 2.8.2022 : date>arena>analysis (:)   [black background video copy] 
 % these are before line 149 in the folder
 
+clear
+clc
 
 
 %%
 
 baseFolder = getCloudPath;
+trialDataBase = getBasePath;
 
 %load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
+trial_ID_list = excelfile(:,Excel.trialID);
 loc = cellfun(@isnan,excelfile(2:end,Excel.trialID)); % unprocessed trials
+
+% Sample cell array
+cellArray = {NaN, '09.12.12', [NaN], 'Text', [1, 2, NaN], 'AnotherText', NaN};
+
+% Use cellfun to apply a function that checks if a cell contains NaN
+isNaNCell = cellfun(@(c) isequal(c, NaN) || (iscell(c) && any(cellfun(@(x) isequal(x, NaN), c))), trial_ID_list);
+
+
+% Display the result
+disp(isNaNCell);
+
+
 rownums = find(loc)+1; 
 
-for i = 148:length(rownums)
-    % get trial name:
+OG_Orientation = datetime('02.20.2022','InputFormat','MM.dd.yyyy');
 
-    excelfile(rownums(i),2)
+for i = 1: 150 %length(rownums)
+
+    [success, success_1, success_2] = deal(true);
+
     % trial ID structure: [date_expname_arena]
     trial_date = excelfile{rownums(i),Excel.date};
     trial_expName = excelfile{rownums(i),Excel.expID};
     trial_arena = excelfile{rownums(i),Excel.arena};
-
-    trialID = [trial_date '_' trial_expName '_' trial_arena];
     
+    % generate a unique trial ID:
+    trialID = [trial_date '_' trial_expName '_' trial_arena];
+
+    % check the date
+    if datetime(trial_date,'InputFormat','MM.dd.yyyy') < OG_Orientation %new data organization
+        % disp(['Skipped: ' trialID])
+        continue
+    end
+
     % make a new folder if it doesn't exist for the new items: 
-    startDir = [baseFolder trial_date '\']
-    targetDir = [baseFolder ]
+    startDir = [baseFolder trial_date '/Arena '  trial_arena '/'];
+    endDir = [trialDataBase trialID '\'];
+    if ~exist(endDir, 'dir')
+        mkdir(endDir)
+    end
 
+    % check for more than 1 experiment (which would require subdividing the data files individually)
+    tempDir = dir([startDir '*timecourse data.mat']);
+    if size(tempDir,1)>1 % more than 1 experiment for the day
+        % split the data by the trial:
+        
+        % timecourse data:
+        try
+        success_1 = copyfile([startDir trial_expName trial_arena ' timecourse data.mat'],endDir);
+        catch
+            warndlg(['No timecourse data found for trial: ' startDir trial_expName trial_arena])
+            disp(i)
+            break
+        end
+        if ~success_1
+            warndlg(['Copy error on ' startDir trial_expName trial_arena])
+        end
 
+        % speed data:
+        try
+        success_2 = copyfile([startDir trial_expName ' speed data.mat'],endDir);
+        catch
+            warndlg(['No speed data found for trial: ' startDir trial_expName trial_arena])
+            disp(i)
+            break
+        end
+         if ~success_2
+            warndlg(['Copy error on ' startDir trial_expName trial_arena])
+         end
+
+        % sleep data
+        try
+        copyfile([startDir trial_expName ' sleeping data.mat'],endDir);
+        catch
+        end
+
+        % figures:
+        copyfile([startDir '*' trial_expName ' *.pdf'],endDir)
+        copyfile([startDir '*' trial_expName ' *.png'],endDir)
+ 
+    else % COPY WHOLE FOLDER, ONLY 1 TRIAL CONTAINED
+        success = copyfile(startDir, endDir);
+        if ~success
+            disp(['Error on copying full directory: ' startDir])
+        end
+    end
+    
+    % update the excel sheet that the file has been copied
+    if all([success, success_1, success_2])
+        writecell({trialID},XL,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(rownums(i))]);
+    else 
+        break
+    end
 
 end
 
-
-
-% get base folder pathway
-finishedFiles = []; 
-baseFolder = getCloudPath;
-for ii = 1:length(fileIdx)
-
-    % ===============================================================================
-    % ----- Write experiments start time and location to the excel summary file ------
-    searchPath = [baseFolder List.date{ii} '/' List.expID{ii} '*_1.avi'];
-    videoList = dir(searchPath);
-    videoStartTime = videoList(1).date(end-7:end);
-
-
-
-end
 
 
 
@@ -66,14 +129,14 @@ date_folders = fullList(date_folders_idx);
 
 % organize by temporal date?
 
-
-% for each folder, find the number of unique trials within it:
-
-for i = 1:length(date_folders)
-    for arena = 1:4 % for each arena find the number of trials
-        
-        fileList = dir([baseFolder date_folders{i} '\Arena ' Alphabet(arena)]);
-        date_folders(i).
+% 
+% % for each folder, find the number of unique trials within it:
+% 
+% for i = 1:length(date_folders)
+%     for arena = 1:4 % for each arena find the number of trials
+% 
+%         fileList = dir([baseFolder date_folders{i} '\Arena ' Alphabet(arena)]);
+%         date_folders(i).
 
 
 
