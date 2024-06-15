@@ -25,7 +25,7 @@ end
 
 OG_Orientation = datetime('02.20.2022','InputFormat','MM.dd.yyyy');
 
-for i = 1:200 %length(rownums)
+for i = 1: length(rownums)
 
     [success, success_1, success_2] = deal(true);
 
@@ -38,7 +38,11 @@ for i = 1:200 %length(rownums)
     trialID = [trial_date '_' trial_expName '_' trial_arena];
 
     % check the date
-    if datetime(trial_date,'InputFormat','MM.dd.yyyy') < OG_Orientation %new data organization
+    try currTime = datetime(trial_date,'InputFormat','MM.dd.yyyy');
+    catch 
+        continue
+    end
+    if  currTime < OG_Orientation %new data organization
         % disp(['Skipped: ' trialID])
         continue
     end
@@ -99,10 +103,8 @@ for i = 1:200 %length(rownums)
     % update the excel sheet that the file has been copied
     if all([success, success_1, success_2])
         writecell({trialID},XL,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(rownums(i))]);
-    else 
-        break
     end
-
+    disp(['Finished ' trialID])
 end
 
 

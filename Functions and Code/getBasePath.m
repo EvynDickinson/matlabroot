@@ -18,8 +18,8 @@ function [path, folder] = getBasePath(folderOption)
 switch getenv('COMPUTERNAME')
     % case 'DENALI'
     %     path = 'G:\My Drive\Jeanne Lab\DATA\';
-    % case 'ACADIA'
-    %     path = 'G:\My Drive\Jeanne Lab\DATA\';
+    case 'ACADIA'
+        path = 'D:\Trial Data\';
     % case 'TOGIAK'
     %     path = 'G:\My Drive\Jeanne Lab\DATA\';
     case 'EVYNPC'

@@ -4,11 +4,11 @@
 % 10.29.2021 -- 2.8.2022 : date>arena>analysis (:)   [black background video copy] 
 % these are before line 149 in the folder
 
+
+
+%% 
 clear
 clc
-
-
-%%
 
 baseFolder = getCloudPath;
 trialDataBase = getBasePath;
@@ -16,24 +16,16 @@ trialDataBase = getBasePath;
 %load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 trial_ID_list = excelfile(:,Excel.trialID);
-loc = cellfun(@isnan,excelfile(2:end,Excel.trialID)); % unprocessed trials
-
-% Sample cell array
-cellArray = {NaN, '09.12.12', [NaN], 'Text', [1, 2, NaN], 'AnotherText', NaN};
-
-% Use cellfun to apply a function that checks if a cell contains NaN
-isNaNCell = cellfun(@(c) isequal(c, NaN) || (iscell(c) && any(cellfun(@(x) isequal(x, NaN), c))), trial_ID_list);
-
-
-% Display the result
-disp(isNaNCell);
-
-
-rownums = find(loc)+1; 
+rownums = [];
+for i = 2:length(trial_ID_list)
+    if ~ischar(trial_ID_list{i})
+        rownums = [rownums; i];
+    end
+end
 
 OG_Orientation = datetime('02.20.2022','InputFormat','MM.dd.yyyy');
 
-for i = 1: 150 %length(rownums)
+for i = 1: length(rownums)
 
     [success, success_1, success_2] = deal(true);
 
@@ -107,10 +99,9 @@ for i = 1: 150 %length(rownums)
     % update the excel sheet that the file has been copied
     if all([success, success_1, success_2])
         writecell({trialID},XL,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(rownums(i))]);
-    else 
-        break
+  
     end
-
+    disp(['Finished ' trialID])
 end
 
 
