@@ -8,15 +8,10 @@ date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 start_dir = 'F:\Evyn\DATA\'; %'C:\Users\jeannelab\Documents\Evyn\DATA\';
 
 %get base folder pathway  
-switch getenv('COMPUTERNAME')
-    case 'DENALI'
-        baseFolder = 'E:\My Drive\Jeanne Lab\DATA\';
-    case 'TOGIAK'
-        baseFolder = 'G:\My Drive\Jeanne Lab\DATA\';  
-end
+baseFolder = 'S:\Evyn\DATA\'; % G:\My Drive\Jeanne Lab\DATA\';  
+
 
 %select folder date    
-%TODO update this to iterate through multiple folders if need be
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
     folderNames{i-2} = list_dirs(i).name;
@@ -80,7 +75,7 @@ if idx > 0
     end
 end
                  
-%% Move videos from computer drive to google drive
+%% Move videos from computer drive to the server
 
 % Move folders to google drive:
 copyfile(folder, targetDir)

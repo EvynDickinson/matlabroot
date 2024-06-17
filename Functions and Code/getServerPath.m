@@ -20,8 +20,8 @@ switch getenv('COMPUTERNAME')
     %     path = 'G:\My Drive\Jeanne Lab\DATA\';
     case 'ACADIA'
         path = 'S:\Evyn\';
-    % case 'TOGIAK'
-    %     path = 'G:\My Drive\Jeanne Lab\DATA\';
+    case 'TOGIAK'
+        path = 'S:\Evyn\';
     % case 'EVYNPC'
     %     path = 'H:\Trial Data\';
         % path = 'G:\My Drive\Jeanne Lab\DATA\';

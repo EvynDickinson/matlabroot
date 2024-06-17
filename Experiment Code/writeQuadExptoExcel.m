@@ -1,4 +1,4 @@
-function writeQuadExptoExcel(params)
+function rows = writeQuadExptoExcel(params)
 % Write the experiment data into Excel master sheet
 % single line for each arena, since they can function independently or
 % grouped
@@ -27,8 +27,10 @@ nrow = size(excelfile,1)+1;
 
 base_paramList = {'date', 'expID', 'protocol'};
 arena_paramList = {'genotype','well_1', 'well_2', 'well_3', 'well_4', 'sex','starved_hours'};
-         
+
+rows = [];
 for arena = 1:4
+    rows(arena) = nrow;
     % arena:
     xlswrite(xlFile, {Alphabet(arena)}, sheet, [Alphabet(Excel.arena),num2str(nrow)]);
     % shared data:
