@@ -210,7 +210,7 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% Get the number of flies in each arena
-% Number of flies: 
+% Number of flies:
 nframes = 3;
 nflies = nan(1,4); 
 for arena = 1:4
@@ -495,147 +495,147 @@ T = movevars(T,'Y','After','X');
 
 %% FIGURES: check on the number of flies per arena
 
-n = 1; % how many miscounted frames to look at
-
-% Check flycount offset by arena:
-for arena = 1:4
-    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' over and Under Tracked Images.pdf'];
-    offset = flyCount(:,arena)-nflies(arena);
-    [~,idx] = sort(offset);
-    lowIDX = idx(1:n);          % lowest fly count frame index
-    highIDX = idx(end-n+1:end); % highest fly count frame index
-
-    % -------------- LOW COUNTS ---------------
-    % load video information
-    for ii = 1:n
-        frame = lowIDX(ii);
-        vidNum = T.vidNums(frame);
-        if isempty(data(vidNum).occupancy_matrix)
-            continue
-        end
-        vidframe = T.vidFrame(frame);
-        movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
-        img = read(movieInfo,vidframe);
-        fig = figure;
-        if isempty(getenv('COMPUTERNAME'))
-            set(fig, 'pos', [534 10 972 967]);
-        end
-            imshow(img); set(fig,'color', 'k')
-            hold on
-            x = T.X(frame,:);
-            y = T.Y(frame,:);
-            scatter(x,y, 10, 'y')
-            % draw arena circle
-            kolor = arenaData(arena).color;
-            centre = arenaData(arena).centre;
-            viscircles(centre', r, 'color', kolor);
-            % write the number of frames that are offset
-            for a = 1:4
-                AC = arenaData(a).centre;
-                str = num2str(T.flyCount(frame,a)-nflies(a));
-                text(AC(1),AC(2),str,'color','w','fontsize',14,'horizontalAlignment', 'center')
-            end
-            % Add title with temperature
-            title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
-                'color', 'w')
-        % save image??
-        export_fig(fig, save_loc, '-pdf', '-nocrop', '-r80' , '-painters', '-rgb','-append');
-        close(fig)
-    end
-
-     % -------------- HIGH COUNTS ---------------
-    % load video information
-    for ii = 1:n
-        frame = highIDX(ii);
-        vidNum = T.vidNums(frame);
-        if isempty(data(vidNum).occupancy_matrix)
-            continue
-        end
-        vidframe = T.vidFrame(frame);
-        movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
-        img = read(movieInfo,vidframe);
-        fig = figure;
-        if isempty(getenv('COMPUTERNAME'))
-            set(fig, 'pos', [534 10 972 967]);
-        end
-            imshow(img); set(fig,'color', 'k')
-            hold on
-            x = T.X(frame,:);
-            y = T.Y(frame,:);
-            scatter(x,y, 10, 'y')
-            % draw arena circle
-            kolor = arenaData(arena).color;
-            centre = arenaData(arena).centre;
-            viscircles(centre', r, 'color', kolor);
-            % write the number of frames that are offset
-            for a = 1:4
-                AC = arenaData(a).centre;
-                str = num2str(T.flyCount(frame,a)-nflies(a));
-                text(AC(1),AC(2),str,'color','w','fontsize',14,'horizontalAlignment', 'center')
-            end
-            % Add title with temperature
-            title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
-                'color', 'w')
-        export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
-        close(fig)
-    end
-end
+% n = 1; % how many miscounted frames to look at
+% 
+% % Check flycount offset by arena:
+% for arena = 1:4
+%     save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' over and Under Tracked Images.pdf'];
+%     offset = flyCount(:,arena)-nflies(arena);
+%     [~,idx] = sort(offset);
+%     lowIDX = idx(1:n);          % lowest fly count frame index
+%     highIDX = idx(end-n+1:end); % highest fly count frame index
+% 
+%     % -------------- LOW COUNTS ---------------
+%     % load video information
+%     for ii = 1:n
+%         frame = lowIDX(ii);
+%         vidNum = T.vidNums(frame);
+%         if isempty(data(vidNum).occupancy_matrix)
+%             continue
+%         end
+%         vidframe = T.vidFrame(frame);
+%         movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
+%         img = read(movieInfo,vidframe);
+%         fig = figure;
+%         if isempty(getenv('COMPUTERNAME'))
+%             set(fig, 'pos', [534 10 972 967]);
+%         end
+%             imshow(img); set(fig,'color', 'k')
+%             hold on
+%             x = T.X(frame,:);
+%             y = T.Y(frame,:);
+%             scatter(x,y, 10, 'y')
+%             % draw arena circle
+%             kolor = arenaData(arena).color;
+%             centre = arenaData(arena).centre;
+%             viscircles(centre', r, 'color', kolor);
+%             % write the number of frames that are offset
+%             for a = 1:4
+%                 AC = arenaData(a).centre;
+%                 str = num2str(T.flyCount(frame,a)-nflies(a));
+%                 text(AC(1),AC(2),str,'color','w','fontsize',14,'horizontalAlignment', 'center')
+%             end
+%             % Add title with temperature
+%             title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
+%                 'color', 'w')
+%         % save image??
+%         export_fig(fig, save_loc, '-pdf', '-nocrop', '-r80' , '-painters', '-rgb','-append');
+%         close(fig)
+%     end
+% 
+%      % -------------- HIGH COUNTS ---------------
+%     % load video information
+%     for ii = 1:n
+%         frame = highIDX(ii);
+%         vidNum = T.vidNums(frame);
+%         if isempty(data(vidNum).occupancy_matrix)
+%             continue
+%         end
+%         vidframe = T.vidFrame(frame);
+%         movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
+%         img = read(movieInfo,vidframe);
+%         fig = figure;
+%         if isempty(getenv('COMPUTERNAME'))
+%             set(fig, 'pos', [534 10 972 967]);
+%         end
+%             imshow(img); set(fig,'color', 'k')
+%             hold on
+%             x = T.X(frame,:);
+%             y = T.Y(frame,:);
+%             scatter(x,y, 10, 'y')
+%             % draw arena circle
+%             kolor = arenaData(arena).color;
+%             centre = arenaData(arena).centre;
+%             viscircles(centre', r, 'color', kolor);
+%             % write the number of frames that are offset
+%             for a = 1:4
+%                 AC = arenaData(a).centre;
+%                 str = num2str(T.flyCount(frame,a)-nflies(a));
+%                 text(AC(1),AC(2),str,'color','w','fontsize',14,'horizontalAlignment', 'center')
+%             end
+%             % Add title with temperature
+%             title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
+%                 'color', 'w')
+%         export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+%         close(fig)
+%     end
+% end
 
 %% FIGURES : Visualize tracking across all four quadrants
-nrows = 2;
-ncols = 3;
-sb(1).idx = 4; %A
-sb(2).idx = 1; %B
-sb(3).idx = 5; %C
-sb(4).idx = 2; %D
-sb(5).idx = [3,6];
-
-fig = figure; set(fig, 'pos', [99 200 895 635])
-    for arena = 1:4
-        subplot(nrows, ncols, sb(arena).idx)
-        hold on
-        kolor = arenaData(arena).color;
-        histogram(arenaData(arena).flyCount,'FaceColor', kolor,'EdgeColor','w','facealpha', 1)
-        v_line(arenaData(arena).nflies,'w','--',2)
-        xlabel('# Flies')
-        ylabel('Count')
-        title(arenaData(arena).name)
-    end
-    subplot(nrows, ncols, sb(5).idx)
-    histogram(sum(flyCount,2),'FaceColor', Color('grey'),'EdgeColor','w')
-    v_line(sum(nflies),'r','-',2)
-    xlabel('# Flies')
-    ylabel('Count')
-    title('Full plate')
-    formatFig(fig, true, [nrows,ncols],sb);
-    figure(fig)
-save_figure(fig, [analysisDir expName ' Fly Count Histogram'],'-png',false,true,'-r80');
-
-% Tracking with temperature
-sSpan = 360;
-LW = 2;
-nrows = 3; ncols = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:3;
-fig = figure; set(fig, 'pos', [298 260 508 483])
-subplot(nrows, ncols, sb(1).idx)
-plot(T.time, T.temperature,'color', 'w','linewidth', LW)
-xlabel('Time (min)')
-ylabel('Temp (\circC)')
-subplot(nrows, ncols, sb(2).idx)
-hold on
-for arena = 1:4
-    y = arenaData(arena).flyCount-arenaData(arena).nflies;
-    plot(T.time, smooth(y,sSpan), 'color', arenaData(arena).color, 'linewidth', LW)
-end
-h_line(0,'grey',':',1)
-xlabel('Time (min)')
-ylabel('Fly count offset (#)')
-formatFig(fig, true, [nrows, ncols],sb);
-figure(fig)
-save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,'-r80');
-
-clearvars('-except',initial_vars{:})
+% nrows = 2;
+% ncols = 3;
+% sb(1).idx = 4; %A
+% sb(2).idx = 1; %B
+% sb(3).idx = 5; %C
+% sb(4).idx = 2; %D
+% sb(5).idx = [3,6];
+% 
+% fig = figure; set(fig, 'pos', [99 200 895 635])
+%     for arena = 1:4
+%         subplot(nrows, ncols, sb(arena).idx)
+%         hold on
+%         kolor = arenaData(arena).color;
+%         histogram(arenaData(arena).flyCount,'FaceColor', kolor,'EdgeColor','w','facealpha', 1)
+%         v_line(arenaData(arena).nflies,'w','--',2)
+%         xlabel('# Flies')
+%         ylabel('Count')
+%         title(arenaData(arena).name)
+%     end
+%     subplot(nrows, ncols, sb(5).idx)
+%     histogram(sum(flyCount,2),'FaceColor', Color('grey'),'EdgeColor','w')
+%     v_line(sum(nflies),'r','-',2)
+%     xlabel('# Flies')
+%     ylabel('Count')
+%     title('Full plate')
+%     formatFig(fig, true, [nrows,ncols],sb);
+%     figure(fig)
+% save_figure(fig, [analysisDir expName ' Fly Count Histogram'],'-png',false,true,'-r80');
+% 
+% % Tracking with temperature
+% sSpan = 360;
+% LW = 2;
+% nrows = 3; ncols = 1;
+% sb(1).idx = 1;
+% sb(2).idx = 2:3;
+% fig = figure; set(fig, 'pos', [298 260 508 483])
+% subplot(nrows, ncols, sb(1).idx)
+% plot(T.time, T.temperature,'color', 'w','linewidth', LW)
+% xlabel('Time (min)')
+% ylabel('Temp (\circC)')
+% subplot(nrows, ncols, sb(2).idx)
+% hold on
+% for arena = 1:4
+%     y = arenaData(arena).flyCount-arenaData(arena).nflies;
+%     plot(T.time, smooth(y,sSpan), 'color', arenaData(arena).color, 'linewidth', LW)
+% end
+% h_line(0,'grey',':',1)
+% xlabel('Time (min)')
+% ylabel('Fly count offset (#)')
+% formatFig(fig, true, [nrows, ncols],sb);
+% figure(fig)
+% save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,'-r80');
+% 
+% clearvars('-except',initial_vars{:})
 
 %% Find number of flies within each well sphere & fly distance to wells
 pix2mm = 12.8; %conversion from pixels to mm for these videos
@@ -673,61 +673,61 @@ clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% FIGURE: distance to food and well occupancy across the experiment
-sSpan = 360;
-LW = 1;
-nrows = 6;
-ncols = 1;
-sb(1).idx = 1;   % tracking
-sb(2).idx = 2;   % temperature
-sb(3).idx = 3:4; % occupancy
-sb(4).idx = 5:6; % distance to food
-
-for arena = 1:4
-    fig = figure; set(fig, 'pos', [297 48 1065 820])
-    % TRACKING 
-    subplot(nrows,ncols,sb(1).idx)
-        plot(T.time, smooth(T.flyCount(:,arena),sSpan),'color', arenaData(arena).color,'linewidth', LW)
-        ylabel('# flies') 
-    % TEMPERATURE
-    subplot(nrows,ncols,sb(2).idx)
-        plot(T.time, T.temperature,'color', 'w','linewidth', LW)
-        ylabel('Temp (\circC)')
-    % OCCUPATION
-    subplot(nrows,ncols,sb(3).idx)
-        hold on
-        for well = 1:4
-            kolor = pullFoodColor(arenaData(arena).wellLabels{well});
-            y = smooth(arenaData(arena).occ_P(:,well),'moving',sSpan);
-            plot(T.time, y, 'linewidth', LW, 'color', kolor);
-        end
-        ylabel('occupation probability')
-
-    % DISTANCE TO FOOD
-    subplot(nrows,ncols,sb(4).idx)
-        hold on
-        for well = 1:4
-            kolor = pullFoodColor(arenaData(arena).wellLabels{well});
-            y = smooth(arenaData(arena).dist2well(:,well),'moving',sSpan);
-            plot(T.time, y, 'linewidth', LW, 'color', kolor);
-        end
-        ylabel('distance to food (mm)')
-        xlabel('time (min)');
-
-    formatFig(fig, true, [nrows,ncols],sb);
-    subplot(nrows,ncols,sb(3).idx)
-    l = legend(strrep(arenaData(arena).wellLabels,'_','-'));
-    set(l, 'box', 'off', 'textcolor', 'w','edgecolor', 'k','location', 'northwest');
-    subplot(nrows, ncols, sb(1).idx)
-    titleName = strrep({[folder ' ' expName ' Arena ' arenaIdx{arena}];...
-                         expData.parameters.(['Arena' Alphabet(arena)]).genotype}, '_',' ');
-    title(titleName,'color', 'w')
-
-    save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' time course overview'];
-    save_figure(fig, save_loc, '-png',true,true,'-r80');
-end
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
+% sSpan = 360;
+% LW = 1;
+% nrows = 6;
+% ncols = 1;
+% sb(1).idx = 1;   % tracking
+% sb(2).idx = 2;   % temperature
+% sb(3).idx = 3:4; % occupancy
+% sb(4).idx = 5:6; % distance to food
+% 
+% for arena = 1:4
+%     fig = figure; set(fig, 'pos', [297 48 1065 820])
+%     % TRACKING 
+%     subplot(nrows,ncols,sb(1).idx)
+%         plot(T.time, smooth(T.flyCount(:,arena),sSpan),'color', arenaData(arena).color,'linewidth', LW)
+%         ylabel('# flies') 
+%     % TEMPERATURE
+%     subplot(nrows,ncols,sb(2).idx)
+%         plot(T.time, T.temperature,'color', 'w','linewidth', LW)
+%         ylabel('Temp (\circC)')
+%     % OCCUPATION
+%     subplot(nrows,ncols,sb(3).idx)
+%         hold on
+%         for well = 1:4
+%             kolor = pullFoodColor(arenaData(arena).wellLabels{well});
+%             y = smooth(arenaData(arena).occ_P(:,well),'moving',sSpan);
+%             plot(T.time, y, 'linewidth', LW, 'color', kolor);
+%         end
+%         ylabel('occupation probability')
+% 
+%     % DISTANCE TO FOOD
+%     subplot(nrows,ncols,sb(4).idx)
+%         hold on
+%         for well = 1:4
+%             kolor = pullFoodColor(arenaData(arena).wellLabels{well});
+%             y = smooth(arenaData(arena).dist2well(:,well),'moving',sSpan);
+%             plot(T.time, y, 'linewidth', LW, 'color', kolor);
+%         end
+%         ylabel('distance to food (mm)')
+%         xlabel('time (min)');
+% 
+%     formatFig(fig, true, [nrows,ncols],sb);
+%     subplot(nrows,ncols,sb(3).idx)
+%     l = legend(strrep(arenaData(arena).wellLabels,'_','-'));
+%     set(l, 'box', 'off', 'textcolor', 'w','edgecolor', 'k','location', 'northwest');
+%     subplot(nrows, ncols, sb(1).idx)
+%     titleName = strrep({[folder ' ' expName ' Arena ' arenaIdx{arena}];...
+%                          expData.parameters.(['Arena' Alphabet(arena)]).genotype}, '_',' ');
+%     title(titleName,'color', 'w')
+% 
+%     save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' time course overview'];
+%     save_figure(fig, save_loc, '-png',true,true,'-r80');
+% end
+% 
+% clearvars('-except',initial_vars{:})
+% fprintf('Next\n')
 
 %% ------------------- Save preformatted data for QuadStep2 ------------------------
 disp('Saving data...')
@@ -735,13 +735,13 @@ disp('Saving data...')
 % write number of flies into the excel sheet
 try
     for arena = 1:4
-        writecell({'Y'}, xlFile, 'Sheet','Exp List','Range',[Alphabet(Excel.step1) num2str(XLrow(arena))]);
+        writematrix('Y', xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))]);
     end
 catch
     h = warndlg('Close Experiment Summary excel file and then close this warning box');
     uiwait(h)
     for arena = 1:4
-        writecell({'Y'}, xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.step1) num2str(XLrow(arena))]);
+        writematrix(nflies(arena),xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))]);
     end
 end
 

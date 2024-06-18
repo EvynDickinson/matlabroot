@@ -23,41 +23,6 @@ for i = 1:2
 end
 clear let i
 
-
-%%
-
-parameters.well_2 = 'Empty';
-parameters.well_3 = 'Empty';
-parameters.well_4 = 'Empty';
-
-params.genotype = select_cross; % choose the fly genotypes
-params.protocol = select_protocol;  % choose experiment protocol
-
-% move params into structure:
-params.date = dirName;
-params.expID = videoNames;
-params.num = num;
-
-
-writeExptoExcel(params) % save the data to the experiement list
-
-% resave with same name: 
-save([baseFolder dirName '\' videoNames 'dataMat'])
-
-
-%% 
-baseFolder = getCloudPath;
-
-for i = 1:num.vids
-    filename = [baseFolder dirName '\analysis\' videoNames '_' num2str(i) ' data'];
-    load(filename);
-    
-    params.well_1 = 'Plant';
-    
-    save(filename, 'videoData', 'params')
-end
-
-
 %% Fix the temp log information being added...
 clear
 % manually load the exp data file
@@ -141,9 +106,6 @@ maskedImage = imcrop(maskedImage, props.BoundingBox);
 % Display it in the lower right plot.
 subplot(2, 2, 4);
 imshow(maskedImage, []);
-
-
-%%
 
 
 %% Simple visualization: relationship between temp & well occupation
@@ -806,233 +768,6 @@ l = legend({['SLEAP ' num2str(mean(raw_flyCount)) ' avg'],...
             ['wells, arena & manual ' num2str(mean(flyCount)) ' avg']});
 set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','Position', [0.0169 0.8981 0.3122 0.0877]); %
 
-%% Dynamically select files to make a group structure:
-
-% FIND THE OPTIONS FOR SELECTION 
-clear
-% load current excel file
-[excelfile, Excel, ~] = load_QuadBowlExperiments;
-
-% number of flies
-numb = (excelfile(2:end,Excel.numflies));
-numb = cell2mat(numb);
-numb(isnan(numb)) = [];
-numberList = unique(numb);
-numb  = ["all"; string(numberList)];
-
-% genotypes
-loc = cellfun(@ischar, excelfile(2:end, Excel.genotype));
-geno = unique(excelfile([false;loc], Excel.genotype));
-geno = ['all'; geno];
-
-% food options:
-foodOpt = [];
-for ii = 1:4 %for each well
-    loc = cellfun(@ischar, excelfile(2:end, Excel.(['well_' num2str(ii)])));
-    well = unique(excelfile([false;loc], Excel.(['well_' num2str(ii)])));
-    foodOpt = unique([well;foodOpt]);
-end
-foodOpt = ['all';foodOpt];
-
-% exp ID
-loc = cellfun(@ischar, excelfile(2:end, Excel.expID));
-expID = unique(excelfile([false;loc], Excel.expID));
-expID = ['all'; expID];
-
-% temp protocol
-loc = cellfun(@ischar, excelfile(2:end, Excel.protocol));
-proto = unique(excelfile([false;loc], Excel.protocol));
-proto(strcmpi(proto,'Protocol Name')) = []; 
-proto = ['all'; proto];
-
-% Sex 
-loc = cellfun(@ischar, excelfile(2:end, Excel.sex));
-sex = excelfile([false;loc], Excel.sex);
-sex = unique(excelfile([false;loc], Excel.sex));
-sex(strcmpi(sex,'Sex')) = []; 
-sex = ['all'; sex];
-sex = unique(strrep(sex, ' ' , '')); % remove any extra spaces in name
-
-% Arena
-arena = {'all', 'A', 'B', 'C', 'D'};
-
-% Selection 'index' -- would be pulled from the gui selected items & can be many!
-num_idx = listdlg('ListString', numb, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-geno_idx = listdlg('ListString', geno, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-foodOpt_idx = listdlg('ListString', foodOpt, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-expID_idx = listdlg('ListString', expID, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-proto_idx = listdlg('ListString', proto, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-sex_idx = listdlg('ListString', sex, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-arena_idx = listdlg('ListString', arena, 'ListSize', [300, 400],...
-                             'PromptString', 'Select data structure(s)', 'SelectionMode', 'multiple');
-
-                         
-                         
-% Now find the locations of files that match each criteria    
-loc_all = strcmpi(excelfile(:,Excel.processed),'Y');
-temp = excelfile(loc_all,:);
-
-
-
-
-% number of flies:
-loc = [];
-if strcmpi(numb(num_idx),'all')
-    num_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(numb(num_idx)); %selected categories
-    temp = excelfile(:,Excel.numflies);
-    for ii = 1:length(sel)
-        loc(:,ii) = cellfun(@(x) x==str2double(sel(ii)),temp(loc_all), 'uniformOutput', false);
-    end
-    num_loc  = sum(cell2mat(loc),2)>0;
-end
-  
-% genotypes
-loc = [];
-if strcmpi(geno(geno_idx),'all')
-    geno_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(geno(geno_idx)); %selected categories
-    temp = excelfile(loc_all,Excel.genotype);
-    
-    for ii = 1:length(sel)
-        loc(:,ii) = strcmpi(temp, sel{ii});
-    end
-    geno_loc  = sum(loc,2)>0;
-end
-
-% food options % TODO: add a button that limits the food to MUST INCLUDE
-% BOTH or include just one of the options
-exclusiveButton = true;
-loc = [];
-if strcmpi(foodOpt(foodOpt_idx),'all')
-    foodOpt_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(foodOpt(foodOpt_idx)); %selected categories
-    
-    for ii = 1:length(sel) 
-        for well = 1:4
-             temp = excelfile(loc_all,Excel.(['well_' num2str(well)]));
-             well_loc(:,well) = strcmpi(temp, sel{ii});
-        end
-        loc(:,ii) = sum(well_loc,2)>0; % logical for each food type
-    end
-        
-    if exclusiveButton == true %MUST include only these items
-        foodOpt_loc  = sum(loc,2) == length(sel);
-    else 
-        foodOpt_loc  = sum(loc,2)>0; % if even one food was included
-    end
-end
-% sum(foodOpt_loc)
-    
-% experiment IDs
-loc = [];
-if strcmpi(expID(expID_idx),'all')
-    expID_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(expID(expID_idx)); %selected categories
-    temp = excelfile(loc_all,Excel.expID);
-    
-    for ii = 1:length(sel)
-        loc(:,ii) = strcmpi(temp, sel{ii});
-    end
-    expID_loc  = sum(loc,2)>0;
-end
-
-% temp protocol
-loc = [];
-if strcmpi(proto(proto_idx),'all')
-    proto_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(proto(proto_idx)); %selected categories
-    temp = excelfile(loc_all,Excel.protocol);
-    
-    for ii = 1:length(sel)
-        loc(:,ii) = strcmpi(temp, sel{ii});
-    end
-    proto_loc  = sum(loc,2)>0;
-end
-
-% sex
-loc = [];
-if strcmpi(sex(sex_idx),'all')
-    sex_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(sex(sex_idx)); %selected categories
-    temp = excelfile(loc_all,Excel.sex);
-    
-    for ii = 1:length(sel)
-        loc(:,ii) = strcmpi(temp, sel{ii});
-    end
-    sex_loc  = sum(loc,2)>0;
-end
-
-% arena
-loc = [];
-if strcmpi(arena(arena_idx),'all')
-    arena_loc = true(sum(loc_all),1);
-else
-    sel = cellstr(arena(arena_idx)); %selected categories
-    temp = excelfile(loc_all,Excel.arena);
-    
-    for ii = 1:length(sel)
-        loc(:,ii) = strcmpi(temp, sel{ii});
-    end
-    arena_loc  = sum(loc,2)>0;
-end
-
-% Find the overlapping criteria:
-
-selLoc = num_loc & geno_loc & foodOpt_loc...
-             & expID_loc & proto_loc & sex_loc & arena_loc;
-numberSelected = sum(selLoc);
-
-% Make variables for each category and all files
-fileList = excelfile(selLoc,:);
-TD = [];
-data2Inc = {'date', 'expID', 'protocol',  'arena', 'sex', 'genotype',...
-                  'numflies', 'well_1', 'well_2', 'well_3', 'well_4'};
-for ii = 1:length(data2Inc)
-    if strcmpi(data2Inc{ii}, 'numflies')
-        TD{:,ii} = string(fileList(:,Excel.(data2Inc{ii})));
-    else
-        TD{:,ii} = fileList(:,Excel.(data2Inc{ii}));
-    end
-end
-
-T = table(TD(:,1),TD(:,2),TD(:,3),TD(:,4),TD(:,5),TD(:,6),...
-              TD(:,7),TD(:,8),TD(:,9),TD(:,10),TD(:,11),...
-              'VariableNames',data2Inc);
-
-%% auto adjust the food names in the diff arenas
-
-
-for i = 1:4
-    for well = 1:4
-        switch well
-            case 1
-                input = 'Empty';
-            case 2
-                input = 'Yeast_1_4_22';
-            case 3
-                input = 'Empty';
-            case 4
-                input = 'Plant_1_18_22';
-        end
-        parameters.(['Arena' Alphabet(i)]).(['well_' num2str(well)]) = input;
-    end
-end
-
-
-load('G:\My Drive\Jeanne Lab\DATA\01.20.2022\PlantYeastChoice_1 parameters.mat')
 
 %% Finding specific flies within the jumble
 
@@ -1453,6 +1188,22 @@ parameters.ArenaD.well_1 = '0.5M_glucose_5%ACV';
 % Clear extra variables:
 clear i ii ans
 
+%% UPDATE THE GENOTYPE
+
+%Blank all of them
+for i = 1:4
+        parameters.(['Arena' Alphabet(i)]).genotype = 'UAS-Kir2.1_B_F8';
+end
+
+% %Custom (not all) updates to genotype the appropriate food labels:
+% parameters.ArenaA.genotype = '0.5M_glucose_15%ACV';
+% parameters.ArenaB.genotype = '0.5M_glucose_15%ACV';
+% parameters.ArenaC.genotype = '0.5M_glucose_5%ACV';
+% parameters.ArenaD.genotype = '0.5M_glucose_5%ACV';
+
+% Clear extra variables:
+clear i ii ans
+
 %% Double templog 
 clear 
 
@@ -1583,116 +1334,112 @@ end
 
 %% Write to excel replacement functions
 
+% 
+% xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+% 
+% writematrix(M,'M.xls','Sheet',2,'Range','A3:E8')
+% 
+% testFile = '/Users/evyndickinson/Desktop/Quad Bowl Experiments.xlsx';
+% 
+% writematrix(nflies(arena),testFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))])
+% 
+% 
+% % videoStartTime = 
+% 
+% writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
 
-xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
 
-writematrix(M,'M.xls','Sheet',2,'Range','A3:E8')
-
-testFile = '/Users/evyndickinson/Desktop/Quad Bowl Experiments.xlsx';
-
-writematrix(nflies(arena),testFile,'Sheet','Exp List','Range',[Alphabet(Excel.numflies) num2str(XLrow(arena))])
-
-
-% videoStartTime = 
-
-writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
-
-%% 
 %% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
 
-clear; close all; clc
-baseFolder = getCloudPath;
+% % clear; close all; clc
+% baseFolder = getCloudPath;
+% 
+% switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
+%     case 'Cancel'
+%         return
+%     case 'Yes' % have user select which preexisting structure to load
+%         list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+%         list_dirs = {list_dirs(:).name};
+%         list_dirs(1:2) = [];
+%         dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
+% 
+%         try expGroup = list_dirs{dirIdx}; %load experiment groups selected
+%         catch
+%             disp('No group selected')
+%             return
+%         end
+%         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+%         load([saveDir expGroup ' data.mat']);
+%         disp([expGroup ' loaded'])
+%         %check for temperature protocol assignments (make back-compatible)
+%         for i = 1:num.exp
+%             if ~isfield(data(i),'temp_protocol')
+%                 data(i).temp_protocol = data(i).T.TempProtocol{1};
+%             end
+%             if isempty(data(i).temp_protocol)
+%                 data(i).temp_protocol = data(i).T.TempProtocol{1};
+%             end
+%         end
+%     case 'No'
+%         % Select processed data structures to compare:
+%         structFolder = [baseFolder 'Data structures\'];
+%         list_dirs = dir(structFolder);
+%         list_dirs = {list_dirs(:).name};
+%         list_dirs(1:2) = [];
+%         expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+%         expNames = list_dirs(expIdx); %name of experiment groups selected
+%         num.exp = length(expIdx);  %number of groups selected
+% 
+%         % Load selected experiment data groups
+%         for i = 1:num.exp
+%             % get field list for loading data:
+%             dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+%              if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
+%                    dummy.hold_exp = false; % account for new data structures
+%                    dummy.temp_protocol = dummy.T.TempProtocol{1};
+%              end
+%             data(i) = dummy;
+%             % try data(i) = dummy;
+%             % catch % TODO -- better automate search for missing fields and options
+%             % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
+%             %
+%             %     data(i) = dummy;
+%             % end
+%         end
+% 
+%         clear list_dirs expIdx dirIdx
+%         % Set up base variables
+%         initial_vars = who;
+%         initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
+%         initial_vars = unique(initial_vars);
+% 
+%         % Save data / make new grouped data folder
+%         switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
+%             case 'new structure'
+%                 expGroup = char(inputdlg('Structure name:'));
+%                 saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+%                 if ~exist(saveDir,'dir')
+%                     mkdir(saveDir);
+%                 end
+%                 save([saveDir expGroup ' data.mat'],'-v7.3');
+%                 disp([expGroup ' saved'])
+%             case 'existing structure'
+%                 list_dirs = dir([baseFolder 'Grouped Data Structures\']);
+%                 list_dirs = {list_dirs(:).name};
+%                 list_dirs(1:2) = [];
+%                 dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+%                 expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+%                 saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
+%                 save([saveDir expGroup ' data.mat'],'-v7.3');
+%                 disp([expGroup ' saved'])
+%             case 'cancel'
+%                 return
+%         end
+% end
+% disp(expNames')
 
-switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
-    case 'Cancel'
-        return
-    case 'Yes' % have user select which preexisting structure to load
-        list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-        list_dirs = {list_dirs(:).name};
-        list_dirs(1:2) = [];
-        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
-
-        try expGroup = list_dirs{dirIdx}; %load experiment groups selected
-        catch
-            disp('No group selected')
-            return
-        end
-        saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-        load([saveDir expGroup ' data.mat']);
-        disp([expGroup ' loaded'])
-        %check for temperature protocol assignments (make back-compatible)
-        for i = 1:num.exp
-            if ~isfield(data(i),'temp_protocol')
-                data(i).temp_protocol = data(i).T.TempProtocol{1};
-            end
-            if isempty(data(i).temp_protocol)
-                data(i).temp_protocol = data(i).T.TempProtocol{1};
-            end
-        end
-    case 'No'
-        % Select processed data structures to compare:
-        structFolder = [baseFolder 'Data structures\'];
-        list_dirs = dir(structFolder);
-        list_dirs = {list_dirs(:).name};
-        list_dirs(1:2) = [];
-        expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
-        expNames = list_dirs(expIdx); %name of experiment groups selected
-        num.exp = length(expIdx);  %number of groups selected
-
-        % Load selected experiment data groups
-        for i = 1:num.exp
-            % get field list for loading data:
-            dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-             if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
-                   dummy.hold_exp = false; % account for new data structures
-                   dummy.temp_protocol = dummy.T.TempProtocol{1};
-             end
-            data(i) = dummy;
-            % try data(i) = dummy;
-            % catch % TODO -- better automate search for missing fields and options
-            % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-            %
-            %     data(i) = dummy;
-            % end
-        end
-
-        clear list_dirs expIdx dirIdx
-        % Set up base variables
-        initial_vars = who;
-        initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
-        initial_vars = unique(initial_vars);
-
-        % Save data / make new grouped data folder
-        switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
-            case 'new structure'
-                expGroup = char(inputdlg('Structure name:'));
-                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-                if ~exist(saveDir,'dir')
-                    mkdir(saveDir);
-                end
-                save([saveDir expGroup ' data.mat'],'-v7.3');
-                disp([expGroup ' saved'])
-            case 'existing structure'
-                list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-                list_dirs = {list_dirs(:).name};
-                list_dirs(1:2) = [];
-                dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-                expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-                saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-                save([saveDir expGroup ' data.mat'],'-v7.3');
-                disp([expGroup ' saved'])
-            case 'cancel'
-                return
-        end
-end
-disp(expNames')
-
-
-%%
-
-parameters.protocol = 'Large_temp_sweep_15_35_FPS6';
 
 %%
 
@@ -1703,48 +1450,46 @@ set(app.VideoPathEditField.Value)
 [baseFolder,app.expParams.expData.parameters.date '/' app.expParams.expName '_']
 
 
-load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
-    % load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena D\caviar_recovery_rampD timecourse data.mat');
-    % load('G:\MyDrive\Jeanne')
-    baseFolder = getCloudPath;
-    vidDir = [baseFolder expData.parameters.date '/' expName '_'];
-    dataDir = [baseFolder 'Manual Tracking\'];
-    T = data.T;
-    % Set axis limits for the selected arena
-    x = data.centre(1);
-    y = data.centre(2);
-    r = data.r;
-    xlimit = [x-(r+50),x+(r+50)];
-    ylimit = [y-(r+50),y+50+r];
-    
-    % check for existing data structures
-    SaveFile = [dataDir expName ' manual tracks.mat'];
-    if ~exist(SaveFile,'file')
-       trackPoints = nan([2,size(data.x_loc,1),data.nflies]);
-       saveData(app);
-    else
-        load(SaveFile);
-    end
-
-    % Load fly options
-    nflies = data.nflies;
-    flyList = strsplit(num2str(1:nflies));
-    app.FliesListBox.Items = flyList;
-
-    % Bring up frame image
-    displayImage(app);
-    set(fig,'pos',[724 67 1101 922]);
-    figure(app.UIFigure);
-else
-    close all
-    app.VideoEditField_2.Value = '';
-    switch questdlg('Save Data?')
-        case 'Yes'
-           saveData(app); 
-    end
-end
-
-
+% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
+%     % load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena D\caviar_recovery_rampD timecourse data.mat');
+%     % load('G:\MyDrive\Jeanne')
+%     baseFolder = getCloudPath;
+%     vidDir = [baseFolder expData.parameters.date '/' expName '_'];
+%     dataDir = [baseFolder 'Manual Tracking\'];
+%     T = data.T;
+%     % Set axis limits for the selected arena
+%     x = data.centre(1);
+%     y = data.centre(2);
+%     r = data.r;
+%     xlimit = [x-(r+50),x+(r+50)];
+%     ylimit = [y-(r+50),y+50+r];
+% 
+%     % check for existing data structures
+%     SaveFile = [dataDir expName ' manual tracks.mat'];
+%     if ~exist(SaveFile,'file')
+%        trackPoints = nan([2,size(data.x_loc,1),data.nflies]);
+%        saveData(app);
+%     else
+%         load(SaveFile);
+%     end
+% 
+%     % Load fly options
+%     nflies = data.nflies;
+%     flyList = strsplit(num2str(1:nflies));
+%     app.FliesListBox.Items = flyList;
+% 
+%     % Bring up frame image
+%     displayImage(app);
+%     set(fig,'pos',[724 67 1101 922]);
+%     figure(app.UIFigure);
+% else
+%     close all
+%     app.VideoEditField_2.Value = '';
+%     switch questdlg('Save Data?')
+%         case 'Yes'
+%            saveData(app); 
+%     end
+% end
 
 
 
@@ -1756,50 +1501,50 @@ end
 
 
 
-% Assume you have a video file named 'myVideo.mp4'
-videoFile = 'myVideo.mp4';
-v = VideoReader(videoFile);
 
-% Initialize a flag for pause/resume
-isPaused = false;
-
-% Display Loop
-while hasFrame(v) % reads and displays each frame of the video.
-    frame = readFrame(v);
-    image(frame, 'Parent', app.UIAxes); % Assuming app.UIAxes is the axes where you display the video
-    drawnow;
-    
-    % Check if the pause button was pressed
-    while isPaused
-        pause(0.1); % Small pause to prevent MATLAB from becoming unresponsive
-    end
-    
-    % You might want to include a small pause here to control the playback speed
-    % pause(1/v.FrameRate); % Uncomment to control playback speed
-end
-
-% Callback function for the Pause/Resume Button
-function PauseButtonPushed(app)
-    if strcmp(app.PauseButton.Text, 'Pause')
-        app.PauseButton.Text = 'Resume';
-        isPaused = true; % Pause the video
-    elseif strcmp(app.PauseButton.Text, 'Resume')
-        app.PauseButton.Text = 'Pause';
-        isPaused = false; % Resume the video
-    end
-end
-
-
-
-
-
-
-"G:\My Drive\Jeanne Lab\DATA\06.05.2024\C2_LTS_35-15_n2_1.avi"
+% 
+% % Assume you have a video file named 'myVideo.mp4'
+% videoFile = 'myVideo.mp4';
+% v = VideoReader(videoFile);
+% 
+% % Initialize a flag for pause/resume
+% isPaused = false;
+% 
+% % Display Loop
+% while hasFrame(v) % reads and displays each frame of the video.
+%     frame = readFrame(v);
+%     image(frame, 'Parent', app.UIAxes); % Assuming app.UIAxes is the axes where you display the video
+%     drawnow;
+% 
+%     % Check if the pause button was pressed
+%     while isPaused
+%         pause(0.1); % Small pause to prevent MATLAB from becoming unresponsive
+%     end
+% 
+%     % You might want to include a small pause here to control the playback speed
+%     % pause(1/v.FrameRate); % Uncomment to control playback speed
+% end
+% 
+% % Callback function for the Pause/Resume Button
+% function PauseButtonPushed(app)
+%     if strcmp(app.PauseButton.Text, 'Pause')
+%         app.PauseButton.Text = 'Resume';
+%         isPaused = true; % Pause the video
+%     elseif strcmp(app.PauseButton.Text, 'Resume')
+%         app.PauseButton.Text = 'Pause';
+%         isPaused = false; % Resume the video
+%     end
+% end
+% 
+% 
 
 
 
+%% 
+ans = 0;
+autoSave = 1;
 
-
+clear 
 
 
 

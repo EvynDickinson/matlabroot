@@ -64,7 +64,6 @@ switch run_ans
             % TODO (1/31) finish the comparison between the files 
         end
 
-
         % load the directory list:
         load([figDir 'fileList.mat'])
         

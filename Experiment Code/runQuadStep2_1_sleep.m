@@ -1,0 +1,112 @@
+
+
+% clearvars('-except',initial_vars{:})
+
+nbins = 50;
+
+% Create sleep data for unprocessed files (trial by trial)
+
+
+fps = expData.parameters.FPS;
+
+% How long does a fly need to be still to count as 'sleep'
+min_duration = 5*fps*60; % 5 mins * 3fps*60sec = data point number that must be met 'unmoving'
+
+% sleep_file = [baseFolder T.Date{trial} '\Arena ' T.Arena{trial} '\' T.ExperimentID{trial} ' sleeping data.mat'];  
+if ~exist(sleep_file,"file")
+    sleepData = struct;
+    %preallocate for speed and space
+    trial_length = size(data.T,1);
+
+    [N,frameCount,sleepLoc] = deal(nan(nbins,nbins,trial_length));
+    sleepingCount = zeros(trial_length,1);
+
+    % Set axis limits for the selected arena
+    x = data.centre(1);
+    y = data.centre(2);
+    r = data.r;
+    xlimit = [x-(r+50),x+(r+50)];
+    ylimit = [y-(r+50),y+50+r];
+
+    % find the 'auto bin' lines
+    xedge = linspace(xlimit(1),xlimit(2),nbins+1);
+    yedge = linspace(ylimit(1),ylimit(2),nbins+1);
+
+    % pull the fly locations during the trial
+    x_loc = data.x_loc;
+    y_loc = data.y_loc;
+    for frame = 1:trial_length
+        X = x_loc(frame,:); X(isnan(X)) = [];
+        Y = y_loc(frame,:); Y(isnan(Y)) = [];
+        N(:,:,frame) = histcounts2(X,Y,xedge,yedge);
+    end
+
+    % find grid space that have continuous occupation for more than min_duration
+    frameCount(:,:,1) = N(:,:,1);
+    for frame = 2:trial_length
+        currFrame = N(:,:,frame); % current frame locations
+        resetLoc = currFrame==0; % locations that do not have flies and thus need a count reset
+
+        tempCount = frameCount(:,:,frame-1)+currFrame; % add current frames to list
+        tempCount(resetLoc) = 0; % reset counts for spots with no flies
+
+        frameCount(:,:,frame) = tempCount; % add current count into the saving structure
+    end
+
+    % ---- Vectorize the data (find the flies that are sleeping....) -----
+
+    % find food well location for distance capture later
+    % RANDOMIZE well location for empty trials (movement only controls)
+    if all(strcmpi(T.Well1(:),'Empty')) && all(strcmpi(T.Well2(:),'Empty')) &&...
+       all(strcmpi(T.Well3(:),'Empty')) && all(strcmpi(T.Well4(:),'Empty'))     
+        for trial = 1:ntrials
+            loc = randi(4);
+            data(trial).wellLabels{loc} = 'Movement';
+            T.(['Well' num2str(loc)]){trial} = 'Movement';
+        end
+    end
+
+
+
+
+    foodWellLoc = data.wellcenters(:,data(i).T.foodLoc(trial));
+    c1 = foodWellLoc(1);
+    c2 = foodWellLoc(2);
+    
+    % create empty matrixes for the x and y positions of the sleeping flies
+    sleeping = struct;
+    [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data(i).T.NumFlies(trial)));
+    sleeping.sleepNum = zeros(trial_length,1);
+    [sleeping.dist_avg, sleeping.dist_err] = deal(nan(trial_length,1));
+    % assign data by frame
+    for frame = 1:trial_length
+        frame_data = frameCount(:,:,frame) > min_duration;
+        binLoc = find(frame_data>0);
+        
+        % Find the coordinates of the sleeping flies bins from the discretized data
+        y_row = ceil(binLoc/nbins);
+        x_row = rem(binLoc-1,nbins)+1;
+        x_position = (xedge(x_row) + xedge(x_row+1))/2;
+        y_position = (yedge(y_row) + yedge(y_row+1))/2;
+        
+        % add position data to the matrix:
+        if ~isempty(binLoc)
+            % number of flies sleeping
+            sleepNum = length(x_position);
+            sleeping.sleepNum(frame) = sleepNum;
+            % location of sleeping flies
+            sleeping.X(frame,1:sleepNum) = x_position;
+            sleeping.Y(frame,1:sleepNum) = y_position;
+            % distance to food...
+            temp_dist = sqrt((x_position-c1).^2 + (y_position-c2).^2)./pix2mm;
+            sleeping.all_distance(frame,1:sleepNum) = temp_dist;
+            % average distance:
+            sleeping.dist_avg(frame) = mean(temp_dist);
+            sleeping.dist_err(frame) = std(temp_dist);
+        end
+    end
+
+    save(sleep_file,'sleeping','-v7.3'); 
+end   
+disp([num2str(i) ' | ' num2str(trial)])
+clear N preallocate frameCount sleepingCount sleepLoc resetLoc tempCount

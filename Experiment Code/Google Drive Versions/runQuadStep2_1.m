@@ -256,6 +256,24 @@ save([analysisDir expName ' half processed data.mat'])
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% Identify the food well
+
+% find food well location for distance capture later
+    % randomize well location for empty trials (movement only controls)
+for arena = 1:4
+   temp  = expData.parameters.(['Arena' Alphabet(arena)]);
+    if all(strcmpi(temp.well_1(:),'Empty')) && all(strcmpi(temp.well_2(:),'Empty')) &&...
+       all(strcmpi(temp.well_3(:),'Empty')) && all(strcmpi(temp.well_4(:),'Empty'))     
+            loc = randi(4);
+            expData.parameters.(['Arena' Alphabet(arena)]).(['well_' num2str(loc)]) = 'Movement';
+    else
+        for ii = 1:4 %for each well
+            
+
+        end
+    end
+end
+
 %% Temp rate heat map: 
 
 % Get the temp rate, temp, and distance from food

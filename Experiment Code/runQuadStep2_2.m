@@ -1,5 +1,5 @@
 
-function results = runQuadStep2_1(inputPath,autoSave,essentialfigs)
+function results = runQuadStep2_2(inputPath,autoSave,essentialfigs)
 % results = runQuadStep2(inputPath,autoSave,essentialfigs)
 %
 %
@@ -27,8 +27,9 @@ threshHigh = tPoints.threshHigh;
 threshLow = tPoints.threshLow;
 binSpace = 1; %temp degree bin widths
 
-initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'];
+initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace','FPS','essentialfigs','autoSave'];
 
+FPS = expData.parameters.FPS;
 
 %%  summary figure for each arena
 nrow = 5; ncol = 4;
@@ -108,7 +109,7 @@ for arena = 1:nArenas
             export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
         end
     end  
-    save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' summary figure'], '-png', autoSave);
+    save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' summary figure'], '-png', autoSave,true,'-r80');
 end
 
 clearvars('-except',initial_vars{:})
@@ -234,7 +235,7 @@ for arena = 1:nArenas
     movement = squeeze(sum(sum(binDiff,1),2));
     binSizeinMM = ((2*r)/nbins)/pix2mm;
     movement = movement./binSizeinMM;
-    movement = movement*3; % convert to per second WITH 3fps videos
+    movement = movement*expData.parameters.FPS; % convert to per second WITH 3fps videos
     avg_movement = movement./T.flyCount(1:end-1,arena);% normalize for the number of flies actually tracked on the page:
     % update data structures
     occupancy.movement = avg_movement;
@@ -255,6 +256,26 @@ save([analysisDir expName ' half processed data.mat'])
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
+%% Identify the food well
+
+% find food well location for distance capture later
+% randomize well location for empty trials (movement only controls)
+for arena = 1:4
+    temp  = expData.parameters.(['Arena' Alphabet(arena)]);
+    loc = [];
+    for ii = 1:4 %for each well find the food location
+        if ~strcmpi(temp.(['well_' num2str(ii)]),'Empty')
+            loc = ii;
+        end
+    end
+    if isempty(loc) % no food in well, so randomly assign a movement well for comparison
+        loc = randi(4);
+        expData.parameters.(['Arena' Alphabet(arena)]).(['well_' num2str(loc)]) = 'Movement';
+    end
+    expData.parameters.foodLoc = loc;
+end
+
+
 %% Temp rate heat map: 
 
 % Get the temp rate, temp, and distance from food
@@ -268,7 +289,7 @@ for arena = 1:nArenas
     plotData(:,1) = temp(1:end-1); 
 
     % rate of temperature change
-    dT = diff(smooth(temp,180)); %180 = 1 minute smoothing kernal
+    dT = diff(smooth(temp,(FPS*60))); % 1 minute smoothing kernal
     dt = diff(T.time(:)); 
     plotData(:,2) = dT./dt; 
     % figure; plot(T.time(1:end-1),plotData(:,2)) %to look at the calculated temp rate
@@ -292,7 +313,7 @@ for arena = 1:nArenas
     
     % find the mean temp rate during each ramp period:
     lastdatapoint = size(plotData,1);
-    tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group
+    tPoints = getTempTurnPoints(expData.parameters.protocol); %accomodates multiple temp protocols within the data group       
     keepLoc = false(1,lastdatapoint);
 
     % Skip if no temp change regions matter
@@ -307,8 +328,7 @@ for arena = 1:nArenas
         if tPoints.up(ii,1)>lastdatapoint
             disp('Error: Up ramp ROI out of bounds')
             continue
-        % the second data point is missing: keep data up to the appropriate
-        % location
+        % the second data point is missing: keep data up to the appropriate location
         elseif tPoints.up(ii,2)>lastdatapoint
             % check that the data point is within this region...
             if any(lastdatapoint==roi)
@@ -329,7 +349,7 @@ for arena = 1:nArenas
         roi = tPoints.down(ii,1):tPoints.down(ii,2);
         % the first data points is not present: skip
         if tPoints.down(ii,1)>lastdatapoint
-            disp('Error: Dpwn ramp ROI out of bounds')
+            disp('Error: Down ramp ROI out of bounds')
             continue
         elseif tPoints.down(ii,2)>lastdatapoint
         % check that the data point is within this region...
@@ -348,11 +368,11 @@ for arena = 1:nArenas
     end
     
     plotData(~keepLoc,:) = nan; % exclude data outside prescribed ROI regions
-%     figure; 
-%     plot(T.time(1:end-1),plotData(:,2))
-%     hold on 
-%     time = T.time(1:end-1);
-%     scatter(time(keepLoc),plotData(keepLoc,2))
+    % figure; 
+    % plot(T.time(1:end-1),plotData(:,2))
+    % hold on 
+    % time = T.time(1:end-1);
+    % scatter(time(keepLoc),plotData(keepLoc,2))
 
     % Temp-rate identification and sorting: 
     buffSize = 0.05;
@@ -496,7 +516,7 @@ for arena = 1:nArenas
             subplot(3,1,3)
             yyaxis left 
             set(gca,'YColor', kolor)
-            save_figure(fig, fig_file, '-png', true);
+            save_figure(fig, fig_file, '-png', true,true,'-r80');
     end
     
     % PLOT DISTANCE AS FUNCTION OF TEMP AND RATE OF TEMP
@@ -531,7 +551,7 @@ for arena = 1:nArenas
             % flip colormap around to make yellow closer to food
             cmap = colormap;
             set(gca, 'colormap', flip(cmap))
-        save_figure(fig, fig_file, '-png', true);
+        save_figure(fig, fig_file, '-png', true,true,'-r80');
     end
     
     % FIGURE: Line plots of each rate comparison 
@@ -603,7 +623,7 @@ for arena = 1:nArenas
         set(gca, 'color', 'k','box', 'off','XColor', 'w', 'YColor',...
                  'w','XTickLabels', TR.temps,...
                  'FontSize', 14)
-        save_figure(fig, fig_file, '-png',true);
+        save_figure(fig, fig_file, '-png',true,true,'-r80');
     end
 
 clearvars('-except',initial_vars{:}) 
@@ -720,7 +740,7 @@ for arena = 1:nArenas
     end
     legend(str,'textcolor','w','box','off','location', 'best')
 
-save_figure(fig,fig_file,'-png',true);
+save_figure(fig,fig_file,'-png',true,true,'-r80');
 end
 clearvars('-except',initial_vars{:}) 
 
