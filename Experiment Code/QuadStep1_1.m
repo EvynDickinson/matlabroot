@@ -88,7 +88,7 @@ demoImg = rgb2gray(read(movieInfo,1));
 %give well order hint:
 demo_well_label = [];
 for i = 1:16; demo_well_label{i} = num2str(i); end
-demo_well_loc = load([baseFolder(1:end-6) '/demo_well_loc']);
+demo_well_loc = load([baseFolder(1:end-6) '/demo_well_loc.mat']);
 RGB = insertText(demoImg,demo_well_loc.demo_well_loc,demo_well_label,'FontSize', 15);
 
 radii = 165; %well surround regions
