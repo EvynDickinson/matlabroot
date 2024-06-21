@@ -54,6 +54,47 @@ switch TempProtocolString
         tempPoints.rates = 0; 
         tempPoints.threshLow = 14;
         tempPoints.threshHigh = 16;
+% ===============================
+    case 'Hold25C_FPS6'
+        tempPoints.hold = [1000 326613];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 24;
+        tempPoints.threshHigh = 26;  
+     case 'Hold23C_FPS6'
+        tempPoints.hold = [1000 326613];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 22;
+        tempPoints.threshHigh = 24;
+    case 'Hold20C_FPS6'
+        tempPoints.hold = [1000 326613];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 19;
+        tempPoints.threshHigh = 21;
+     case 'Hold17C_FPS6'
+        tempPoints.hold = [1000 326613];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 16;
+        tempPoints.threshHigh = 18;
+    case 'Hold15C_FPS6'
+        tempPoints.hold = [1000 326613];
+        tempPoints.up =   [];
+        tempPoints.down =   [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 14;
+        tempPoints.threshHigh = 16;
     % =======================================
     case 'Large_temp_sweep_15_35'
         tempPoints.hold = [];
@@ -218,15 +259,6 @@ switch TempProtocolString
         tempPoints.rates = [-0.125, 0.125]; % added zero for hold times... errors in 3.1 w/out 0 ... errors in 2.1 w/ 0
         tempPoints.threshLow = 12.5;
         tempPoints.threshHigh = 21.5;  
-     % =======================================
-    case 'Hold25C'
-        tempPoints.hold = [10, 64275];
-         tempPoints.down = [];
-         tempPoints.up = [];
-         tempPoints.nRates = 1; 
-        tempPoints.rates = 0;
-        tempPoints.threshLow = 24.5;
-        tempPoints.threshHigh = 25.5;  
 
     % =======================================                   
     case 'eaton_cooling_warming_ramp'

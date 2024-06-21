@@ -1,7 +1,7 @@
 
 
 % clearvars('-except',initial_vars{:})
-
+pix2mm = 12.8; %conversion from pixels to mm for these videos
 nbins = 50;
 
 % Create sleep data for unprocessed files (trial by trial)
@@ -18,7 +18,7 @@ if ~exist(sleep_file,"file")
     %preallocate for speed and space
     trial_length = size(data.T,1);
 
-    [N,frameCount,sleepLoc] = deal(nan(nbins,nbins,trial_length));
+    [N, frameCount, sleepLoc] = deal(nan(nbins,nbins,trial_length));
     sleepingCount = zeros(trial_length,1);
 
     % Set axis limits for the selected arena
@@ -55,29 +55,16 @@ if ~exist(sleep_file,"file")
 
     % ---- Vectorize the data (find the flies that are sleeping....) -----
 
-    % find food well location for distance capture later
-    % RANDOMIZE well location for empty trials (movement only controls)
-    if all(strcmpi(T.Well1(:),'Empty')) && all(strcmpi(T.Well2(:),'Empty')) &&...
-       all(strcmpi(T.Well3(:),'Empty')) && all(strcmpi(T.Well4(:),'Empty'))     
-        for trial = 1:ntrials
-            loc = randi(4);
-            data(trial).wellLabels{loc} = 'Movement';
-            T.(['Well' num2str(loc)]){trial} = 'Movement';
-        end
-    end
-
-
-
-
-    foodWellLoc = data.wellcenters(:,data(i).T.foodLoc(trial));
-    c1 = foodWellLoc(1);
-    c2 = foodWellLoc(2);
-    
     % create empty matrixes for the x and y positions of the sleeping flies
     sleeping = struct;
-    [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data(i).T.NumFlies(trial)));
+    [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data.nflies));
     sleeping.sleepNum = zeros(trial_length,1);
     [sleeping.dist_avg, sleeping.dist_err] = deal(nan(trial_length,1));
+
+    c1 = data.wellcenters(1,expData.parameters.foodLoc);
+    c2 = data.wellcenters(2,expData.parameters.foodLoc);
+
+
     % assign data by frame
     for frame = 1:trial_length
         frame_data = frameCount(:,:,frame) > min_duration;
@@ -106,7 +93,7 @@ if ~exist(sleep_file,"file")
         end
     end
 
-    save(sleep_file,'sleeping','-v7.3'); 
-end   
+save(sleep_file,'sleeping','-v7.3'); 
+  
 disp([num2str(i) ' | ' num2str(trial)])
 clear N preallocate frameCount sleepingCount sleepLoc resetLoc tempCount

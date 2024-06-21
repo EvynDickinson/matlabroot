@@ -31,7 +31,7 @@ Excel.date = find(strcmpi('Date',Excel.headers) == 1);
 Excel.expID = find(strcmpi('Experiment ID', Excel.headers)==1);
 Excel.protocol = find(strcmpi('Temp Protocol',Excel.headers) == 1);
 Excel.arena = find(strcmpi('Arena',Excel.headers) == 1);
-Excel.processed = find(strcmpi('Processed',Excel.headers) == 1);
+Excel.processed = find(strcmpi('Step 2',Excel.headers) == 1);
 Excel.structure = find(strcmpi('Structure', Excel.headers)==1);
 Excel.structurenum = find(strcmpi('Exp Num',Excel.headers) == 1);
 Excel.backUp = find(strcmpi('Backed Up',Excel.headers) == 1);

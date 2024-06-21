@@ -1,0 +1,108 @@
+
+%  status = align_local_and_server
+
+%% -------- Find the files that haven't been analyized yet and run them -------------
+clear; close all; clc
+autoSave = true; 
+essentialfigs = true;   
+excelWrite = true;
+facility = 'college';
+
+%load excel file:
+[excelfile, Excel, XL] = load_QuadBowlExperiments;
+loc = cellfun(@isnan,excelfile(2:end,Excel.numflies));
+loc = ~loc;
+rownums = find(loc)+1; 
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
+loc1 = cellfun(@isnan,eligible_files(:,4));
+c = cellfun(@string,eligible_files);
+c(loc1,4) = ' ';
+FileNames = join(c);
+fileIdx = listdlg('ListString', FileNames,'ListSize',[300,450]);
+%pull the list of dates and arenas to be 
+List.date = eligible_files(fileIdx,1);
+List.expID = eligible_files(fileIdx,3); 
+List.arena = eligible_files(fileIdx,2); 
+
+% get base folder pathway
+finishedFiles = []; 
+
+% select data location: % TODO -- update this for more specific locations where the
+% 'raw' data from step 1 will be stored?
+switch questdlg('Select current data location:','','Local', 'Server','Other','Local')
+    case 'Local'
+        baseFolder = getBasePath; % local data
+        baseFolder = baseFolder(1:end-11); % get the root folder 
+    case 'Server'
+        baseFolder = getServerPath; % server data
+    case 'Other'
+        baseFolder = uigetdir;
+        baseFolder = [baseFolder '\'];
+    case []
+        return
+end
+
+
+for ii = 1:length(fileIdx)
+    trial_ID = [List.date{ii} '_' List.expID{ii} '_' List.arena{ii}];
+
+    % % ===============================================================================
+    % %------ Write experiments start time and location to the excel summary file (TODO: MOVE TO STEP 1) ------
+    % searchPath = [baseFolder List.date{ii} '/' List.expID{ii} '*_1.avi'];
+    % videoList = dir(searchPath);
+    % videoStartTime = videoList(1).date(end-7:end);
+    % % write the time into the excel sheet b
+    % XLrow = rownums(fileIdx(ii));
+    % 
+    % try writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+    %     % xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
+    %     writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
+    %      % xlswrite(XL, {facility}, 'Exp List', [Alphabet(Excel.facility) num2str(XLrow)]);
+    % catch
+    %     h = warndlg('Close Experiment Summary excel file and then close this warning box');
+    %     uiwait(h)
+    %     writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
+    %     writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
+    % end
+    % % ===============================================================================
+
+    % ===============================================================================
+    % --------------  Proccess data for files not yet run --------------
+    inputPath = [baseFolder trial_ID '/' List.expID{ii} ' ' List.arena{ii} ' preformed data.mat'];  %List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat'];
+    
+    if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
+        results = runQuadStep2_2(inputPath,autoSave,essentialfigs); % Run the basic figures
+        results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs); % Run the basic speed figures
+    end
+
+    % Process sleep data:
+    results3 = runQuadStep2_2_sleep([baseFolder trial_ID '/'], List.expID{ii});
+
+    finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
+    if excelWrite == true
+        if strcmpi(results, 'Saved Data')
+            XLrow = rownums(fileIdx(ii));
+            % write processed 'Y' into the excel sheet
+            try
+                writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
+                % xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+            catch
+                h = warndlg('Close Experiment Summary excel file and then close this warning box');
+                uiwait(h)
+                writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
+                % xlswrite(XL, {'Y'}, 'Exp List', [Alphabet(Excel.processed) num2str(XLrow)]);
+            end
+        end
+    end
+    % ===============================================================================
+
+disp(['Finished ' FileNames(fileIdx(ii))])         
+end
+
+
+disp('Done with full set')
+
+
+
+
+

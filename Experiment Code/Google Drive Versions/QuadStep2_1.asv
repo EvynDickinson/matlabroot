@@ -33,7 +33,7 @@ for ii = 1:length(fileIdx)
     searchPath = [baseFolder List.date{ii} '/' List.expID{ii} '*_1.avi'];
     videoList = dir(searchPath);
     videoStartTime = videoList(1).date(end-7:end);
-    % write the time into the excel sheet
+    % write the time into the excel sheet b
     XLrow = rownums(fileIdx(ii));
     try writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
         % xlswrite(XL, {videoStartTime}, 'Exp List', [Alphabet(Excel.starttime) num2str(XLrow)]);
@@ -51,10 +51,11 @@ for ii = 1:length(fileIdx)
     % --------------  Proccess data for files not yet run --------------
     inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat'];
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
-        % results = runQuadStep2_2(inputPath,autoSave,essentialfigs); % Run the basic figures
-        results = 'Saved Data';
+        results = runQuadStep2_2(inputPath,autoSave,essentialfigs); % Run the basic figures
+        % results = 'Saved Data';
         results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs); % Run the basic speed figures
     end
+    
     finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
     if excelWrite == true
         if strcmpi(results, 'Saved Data')

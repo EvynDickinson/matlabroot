@@ -1,9 +1,14 @@
 
 
-function basePath = getBasePath(folderOption)
+function [path, folder] = getBasePath(folderOption)
 % path = getBasePath(DateSelOpt)
-% folderOption 1 (default) : trial data folder
-% folderOption 2 : raw data folder 
+% folderOption --> list and select a folder from the basepath
+%                  1) basepath & folder selection merged
+%                  2) folder is just the folder name
+%                  3) folder is the path + 'structures' folder
+% if no folderOption is not included, just the environment is given
+% folder --> folder/path selected from path
+% 
 % 
 % ES Dickinson, Yale University, Aug 2021
 
@@ -11,25 +16,23 @@ function basePath = getBasePath(folderOption)
 
 switch getenv('COMPUTERNAME')
     case 'ACADIA'
-        path = 'D:\';
+        path = 'D:\Trial Data\';
     case 'TOGIAK'
         warndlg('manually select data path')
         path = uigetdir;
     case 'EVYNPC'
-        path = 'K:\';
+        path = 'K:\Trial Data\';
     case '' %shows up as empty on the mac %TODO: find one to test here for how it shows up
         warndlg('manually select data path')
         path = uigetdir;
 end 
 
-if nargin >= 1
+if nargin == 1
     switch folderOption
         case 1 % single trial folders
             basePath = [path, 'Trial Data/'];
-        case 2 % raw data folder
-            basePath = [path, '/DATA/'];
-    end
-end
+        case 2 % raw d
+
 
 % if nargin == 1
 %     if folderOption==3 %no folder, just data path
