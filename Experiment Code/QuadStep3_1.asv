@@ -64,7 +64,6 @@ switch run_ans
             % TODO (1/31) finish the comparison between the files 
         end
 
-
         % load the directory list:
         load([figDir 'fileList.mat'])
         
@@ -169,13 +168,15 @@ end
 [foodName,foodLoc,foodCat] = deal([]);
 bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water','water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar','Movement','German'};
 for trial = 1:ntrials
-    loc = ~strcmp(data(trial).wellLabels,'Empty');
+    loc = ~strcmpi(data(trial).wellLabels,'Empty');
     foodName{trial,1} = data(trial).wellLabels{loc};
     foodLoc(trial,1) = find(loc);
     % find the 'category' of food:
     for ii = 1:length(bin_foods)
         if strfind(foodName{trial}, bin_foods{ii})
             foodCat{trial,1} = bin_foods{ii};
+        elseif
+            
         end
     end
 end
@@ -1412,7 +1413,6 @@ if questdlg('Save processed data?')
     save([figDir ExpGroup ' post 3.1 data.mat'],'-v7.3')
 end
 fprintf('Data saved\n')
-
 
 
 %% 

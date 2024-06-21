@@ -1539,12 +1539,13 @@ set(app.VideoPathEditField.Value)
 % 
 
 
-
 %% 
-ans = 0;
-autoSave = 1;
 
-clear 
+
+% path = getDataPath(rawORsingle, localORserver);
+path = getDataPath(2,3);
+
+
 
 
 

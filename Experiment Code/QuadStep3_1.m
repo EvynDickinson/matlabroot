@@ -168,9 +168,13 @@ end
 [foodName,foodLoc,foodCat] = deal([]);
 bin_foods = {'Plant', 'Molasses', 'Glucose', 'Water','water', 'ACV', 'Sugar','Merlot','glucose','sucrose','Caviar','Movement','German'};
 for trial = 1:ntrials
-    loc = ~strcmp(data(trial).wellLabels,'Empty');
+    loc = ~strcmpi(data(trial).wellLabels,'Empty');
     foodName{trial,1} = data(trial).wellLabels{loc};
     foodLoc(trial,1) = find(loc);
+    % account for mismatched cases in 'Caviar'
+    if strcmp(foodName{trial,1},'caviar')
+        foodName{trial,1} = 'Caviar';
+    end
     % find the 'category' of food:
     for ii = 1:length(bin_foods)
         if strfind(foodName{trial}, bin_foods{ii})
@@ -334,7 +338,7 @@ for trial = 1:ntrials
                 y = data(trial).occupancy.occ(:,well);
         end
         if well==T.foodLoc(trial)
-            foodType = find(strcmp(T.foodName{trial},foodNames));
+            foodType = find(strcmpi(T.foodName{trial},foodNames));
             food(foodType).N = [food(foodType).N; x(roi), y(roi)];
         else % empty well
             food(nfoods+1).N = [food(nfoods+1).N; x(roi), y(roi)];
@@ -1412,6 +1416,7 @@ if questdlg('Save processed data?')
 end
 fprintf('Data saved\n')
 
+return
 
 %% 
 

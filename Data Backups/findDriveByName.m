@@ -8,6 +8,10 @@ function matchingDrives = findDriveByName(targetName)
 %
 % 
 
+if nargin==0;
+    targetName = 'OnTheGoData';
+end
+
 if ispc
     % Get drive letters and volume names using WMIC
     [~, result] = system('wmic volume get DriveLetter,Label /format:csv');
@@ -75,7 +79,7 @@ if ismac
         % If both volume name and mount point are found, check for a match
         if ~isempty(currentVolume) && ~isempty(currentMountPoint)
             if strcmpi(currentVolume, targetName)
-                matchingDrives{end+1} = currentMountPoint; %#ok<AGROW>
+                matchingDrives{end+1} = currentMountPoint; 
             end
             % Reset for the next volume
             currentVolume = '';

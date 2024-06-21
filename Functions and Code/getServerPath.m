@@ -27,14 +27,7 @@ switch getenv('COMPUTERNAME')
 %         disp('Evyn''s Macbook');
         path = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/DATA/';
 end 
-
-try dirc = dir([path 'Trial Data\']); 
-catch
-    warndlg('Connect to VPN and try again')
-    return
-end
-
-
+ % working here TODO
 if nargin >= 1
     switch folderOption
         case 1 % single trial folders
@@ -43,6 +36,16 @@ if nargin >= 1
             basePath = [path, '/DATA/'];
     end
 end
+
+if exist(path, 'dir') == 7
+    serverDrive = true;
+else
+    warndlg('Connect to VPN and try again')
+    return
+end
+
+
+
 
 
 

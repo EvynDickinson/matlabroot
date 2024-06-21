@@ -215,7 +215,10 @@ nbins = 50;
 
 % Create sleep data for unprocessed files (trial by trial)
 for i = 1:num.exp
-    fps = data(i).fps;
+    
+    TP = getTempTurnPoints(data(i).temp_protocol);
+    fps = TP.fps;
+
     % How long does a fly need to be still to count as 'sleep'
     min_duration = 5*fps*60; % 5 mins * 3fps*60sec = data point number that must be met 'unmoving'
     
