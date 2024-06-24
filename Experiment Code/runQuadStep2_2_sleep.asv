@@ -1,16 +1,15 @@
 
-function results = runQuadStep2_2_sleep(trialPath,arena, expName)
+function results = runQuadStep2_2_sleep(trialPath, expName)
 
 % check if data already exists before remaking it: 
 sleep_file = [trialPath expName ' sleeping data.mat'];  
 if isfile(sleep_file)
-    disp(['Skipping ' trialPath expName ' sleep data exists'])
-    results = true;
+    disp(['Skipping ' ' sleep data exists'])
     return
 end
 
 % load data processed from quadstep2_2
-load([trialPath expName arena ' timecourse data.mat'])
+load([trialPath expName ' timecourse data.mat'])
 
 % clearvars('-except',initial_vars{:})
 pix2mm = 12.8; %conversion from pixels to mm for these videos

@@ -11,7 +11,7 @@ clear
 clc
 
 baseFolder = getCloudPath;
-trialDataBase = getBasePath;
+trialDataBase = getDataPath(1,0);
 
 %load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;

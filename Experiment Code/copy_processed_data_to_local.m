@@ -1,6 +1,5 @@
 
 
-
 % set up directories
 curr_folder = 'G:\My Drive\Jeanne Lab\DATA\';
 target_dir = 'D:\Processed Data\';

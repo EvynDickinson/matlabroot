@@ -1,0 +1,39 @@
+
+
+function folderSelected = selectFolder(path,mulitselect)
+% folderSelected = selectFolder(path)
+% select a folder from an input directory with the autoadded 
+
+if nargin <2
+    mulitselect = 'Single'; % default (other option: multiple)
+end
+
+dirc = dir(path);
+folderNames = ['Today', {dirc(:).name}];
+folderNames(2:3) = [];
+indx = listdlg('ListString', folderNames, 'SelectionMode', 'multiple');
+nFolders = length(indx);
+if isempty(indx)
+    fprintf('\n No folder selected\n')
+    folder = '';
+    return
+end
+
+nFolders>1
+    dir_sel = cell(1,nFolders);
+    for i = 1:nFolders
+        dir_sel{i} = folderNames{indx(i)};
+    end
+else
+     if strcmpi(folderNames{indx(i)}, 'Today')==true
+        dir_sel = char(datetime('Today','Format', 'MM.dd.yyyy'));
+    else
+        dir_sel = folderNames{indx};
+    end
+end
+
+
+folderSelected = dir_sel;
+
+
+% uigetdir(path)

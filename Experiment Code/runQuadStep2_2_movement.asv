@@ -10,6 +10,13 @@ load(inputPath);
 
 disp(['Starting figures for ' folder ' ' expName])
 
+
+
+figDir = [baseFolder folder '/'];
+for arena = 1:nArenas
+    arenaData(arena).figDir = [figDir arenaData(arena).name '/'];
+end
+
 % pull the current base data pathway for the raw data
 components = strsplit(inputPath,{'\','/'});
 baseFolder = [];
@@ -31,6 +38,7 @@ for arena = 1:nArenas
         mkdir(arenaData(arena).figDir)
     end    
 end
+
 
 initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace','FPS','essentialfigs', 'autoSave'];
 FPS = expData.parameters.FPS;
@@ -68,7 +76,10 @@ for vid = 1:nvids
     % CList = {'yellow', 'pink', 'purple', 'teal', 'navy', 'green'};
     
     % SEGMENT TRACKS INTO BETWEEN NAN SECTIONS
-    nframes = size(data(vid).tempLog,2);
+    % pull image
+    movieInfo = VideoReader([figDir,'/',expName,'_',num2str(vid),'.avi']); 
+%     img = read(movieInfo,1);
+    nframes = movieInfo.NumFrames;
     
     % set an empty structure for tracks to load into:
     for arena = 1:4
@@ -140,6 +151,13 @@ for vid = 1:nvids
             end
         end
     end
+    
+    % % Remove the column of zeros 
+    % for arena = 1:4
+    %     X = squeeze(trackROI(vid,arena).tracks(:,1,:));
+    %     loc = sum(X,1,'omitnan')==0;
+    %     trackROI(vid,arena).tracks(:,1,:)
+    % end
     
     % Visual confirmation that this roughly maps onto the number of flies that
     % are 'counted' 
@@ -378,7 +396,7 @@ if essentialfigs == false
             subplot(row, col, sb(2).idx)
             set(gca,'XColor','k','TickDir','out')
         
-        save_figure(fig, [arenaData(arena).figDir expName ' walking vs resting fly numbers' ], '-png',autoSave,true,'-r80');
+        save_figure(fig, [figDir 'Arena ' Alphabet(arena) '/' expName ' walking vs resting fly numbers' ], '-png',autoSave,true,'-r80');
     
     end
     
@@ -388,18 +406,16 @@ end
 %% SAVE: data stored in each subfolder for arenas
 
 % Save group data into combo folder: 
-save([baseFolder folder '/analysis/' expName ' speed data.mat'],'speed', 'trackROI');
+save([figDir 'analysis/' expName ' speed data.mat'],'speed', 'trackROI');
 
 % Save into each group folder:
 SPEED = speed;
 for arena = 1:nArenas
     speed = SPEED(arena);
     speedTracks = trackROI(:,arena);
-    save([arenaData(arena).figDir expName ' speed data.mat'],'speed', 'speedTracks');
+    save([figDir 'Arena ' Alphabet(arena) '/' expName ' speed data.mat'],'speed', 'speedTracks');
 end
 
 results = 'Saved Data';
 display(['Processed ' folder ' ' expName])
-
-
 

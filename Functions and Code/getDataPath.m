@@ -1,6 +1,6 @@
 
 
-function path = getDataPath(rawORsingle, localORserver)
+function path = getDataPath(rawORsingle, localORserver, selectFolder)
 % path = getDataPath(rawORsingle, localORserver)
 % 
 % rawORsingle:
@@ -21,9 +21,9 @@ removableDrive = 'OnTheGoData';
 single_trial = 'Trial Data/';
 raw_data = 'DATA/';
 fixedDriveLocations  = {'ACADIA','EVYNPC'}; % computer names that have permanent local drives
-acadiaServerPath = 'S:\Evyn\Trial Data\';
-togiakServerPath = 'S:\Evyn\Trial Data\';
-EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\Trial Data\';
+acadiaServerPath = 'S:\Evyn\';
+togiakServerPath = 'S:\Evyn\';
+EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
 EvynMacServerPath = 'TBD';
 acadiaLocalPath = 'D:\';
 EvynPCLocalPath = 'K:\';
@@ -165,10 +165,11 @@ switch localORserver
 end
 
 % disp(path)
-if ~exist(path, 'var')
+if ~(exist('path','var')==1)
     disp('Warning: selected path not found')
     path = [];
 end
+
 
 
 

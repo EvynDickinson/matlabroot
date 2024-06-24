@@ -13,29 +13,24 @@ load(inputPath);
 
 disp(['Starting figures for ' folder ' ' expName])
 
-% pull the current base data pathway for the raw data
+% g
 components = strsplit(inputPath,{'\','/'});
 baseFolder = [];
 for i = 1:length(components)-1
     baseFolder = [baseFolder components{i} '/'];
 end
 clear components i
+
 analysisDir = [baseFolder folder '/analysis/']; %just for preformed data (halfway point save)
 nArenas = 4;
 initial_vars{end+1} = 'nArenas';
 initial_vars{end+1} = 'figDir';
 
-% create new pathways for the single trial data
 for arena = 1:nArenas
     trial_ID = [folder '_' expName '_' Alphabet(arena)];
     arenaData(arena).trial_ID = trial_ID;
     arenaData(arena).figDir = [outputPath trial_ID '/'];
-    if ~isfolder(arenaData(arena).figDir)
-        mkdir(arenaData(arena).figDir)
-    end    
 end
-
-% Test for the correct tempeture protocol parameters
 try tPoints = getTempTurnPoints(expData.parameters.protocol);
 catch
     warndlg('No temperature protocol data available')

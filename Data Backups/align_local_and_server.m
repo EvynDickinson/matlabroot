@@ -7,19 +7,10 @@ function status = align_local_and_server()
 
 %% Compare local trial data to server data
 
-% select the local drive to compare to the server
-switch questdlg('Use standard local drive?')
-    case 'Yes'
-        local_drive = getBasePath;
-    case 'No'
-        local_drive = uigetdir;
-        local_drive = [local_drive '/'];
-    case 'Cancel'
-        return b
-end
-
-server_drive = getServerPath; 
-% TODO: add check that the server is functioning
+% Pull drive pathways:
+disp('Select local drive path to align with server:')
+local_drive = getDataPath(1,0);
+server_drive = getDataPath(1,2);
 
 % get the names of the folders in the single trial portion of the local drive:
 localList = dir(local_drive);
