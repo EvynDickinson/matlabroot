@@ -1,5 +1,5 @@
 
-%  status = align_local_and_server
+%  status = align_local_and_server;
 
 %% -------- Find the files that haven't been analyized yet and run them -------------
 clear; close all; clc

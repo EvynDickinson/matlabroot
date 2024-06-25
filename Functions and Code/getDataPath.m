@@ -1,7 +1,7 @@
 
 
-function path = getDataPath(rawORsingle, localORserver, selectFolder)
-% path = getDataPath(rawORsingle, localORserver)
+function path = getDataPath(rawORsingle, localORserver, promptString)
+% path = getDataPath(rawORsingle, localORserver, promptString)
 % 
 % rawORsingle:
 % 0) user select (default)
@@ -27,6 +27,7 @@ EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
 EvynMacServerPath = 'TBD';
 acadiaLocalPath = 'D:\';
 EvynPCLocalPath = 'K:\';
+path = []; % empty so that in the end, there is something assigned
 %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
 
 
@@ -43,16 +44,21 @@ switch nargin
     case 0
         rawORsingle = 0;
         localORserver = 0;
+        promptString = 'Select desired type of data folder : ';
     case 1 
         localORserver = 0;
+        promptString = 'Select desired type of data folder : ';
+    case 2
+        promptString = 'Select desired type of data folder : ';
 end
 
 
 % RAW OR SINGLE DATA PATH ENDING SELECTION
 switch rawORsingle
     case 0 % user select
-         switch questdlg('Select desired type of data folder : ', '', 'Single Trial', 'Raw Data','Cancel','Single Trial')
+         switch questdlg('Select the type of desired data:', '', 'Single Trial', 'Raw Data','Cancel','Single Trial')
              case {'Cancel',''}
+                 disp('Data type selection canceled')
                  return
              case 'Single Trial'
                  path_end = single_trial;
@@ -106,7 +112,7 @@ end
 % Appropriate drive location selection
 if localORserver==0 % USER INPUT SELECTION
         if permanentDrive && portableDrive && serverDrive % choice of all three locations
-            switch questdlg('Select data drive location:', 'Drive Location', 'Local', 'Server', 'On The Go','Local')
+            switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'On The Go','Local')
                 case 'Local' 
                         drive_loc_sel = 1; 
                 case 'Server'
@@ -114,33 +120,37 @@ if localORserver==0 % USER INPUT SELECTION
                 case 'On The Go'
                         drive_loc_sel = 3;
                 case ''
-                        return
+                        disp('Path selection canceled')
+                    return
             end
         elseif permanentDrive && portableDrive && ~serverDrive % local options only
-            switch questdlg('Select data drive location:', 'Drive Location', 'Local', 'On The Go', 'Cancel','Local')
+            switch questdlg(promptString, 'Drive Location', 'Local', 'On The Go', 'Cancel','Local')
                 case 'Local' 
                         drive_loc_sel = 1;
                 case 'On The Go'
                         drive_loc_sel = 3;
                  case {'Cancel',''}
+                     disp('Path selection canceled')
                      return
             end
         elseif permanentDrive && ~portableDrive && serverDrive % no portable drive
-            switch questdlg('Select data drive location:', 'Drive Location', 'Local', 'Server', 'Cancel','Local')
+            switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'Cancel','Local')
                 case 'Local' 
                         drive_loc_sel = 1;
                 case 'Server'
                         drive_loc_sel = 2;
                  case {'Cancel',''}
+                     disp('Path selection canceled')
                      return
             end
         elseif ~permanentDrive && portableDrive && serverDrive % server and portable
-            switch questdlg('Select data drive location:', 'Drive Location', 'On The Go', 'Server', 'Cancel', 'On The Go')
+            switch questdlg(promptString, 'Drive Location', 'On The Go', 'Server', 'Cancel', 'On The Go')
                 case 'On The Go' 
                         drive_loc_sel = 3;
                 case 'Server'
                         drive_loc_sel = 2;
                  case {'Cancel',''}
+                     disp('Path selection canceled')
                      return
             end
          elseif ~permanentDrive && ~portableDrive && serverDrive % server only

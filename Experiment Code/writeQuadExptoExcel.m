@@ -6,6 +6,8 @@ function rows = writeQuadExptoExcel(params)
 
 % load current excel file:
 [excelfile, Excel, xlFile] = load_QuadBowlExperiments;
+isExcelFileOpen(xlFile); % test that excel file is not open before writing to it
+
 sheet = 'Exp List'; % excel sheet to write into       
 fprintf('\n Writing to excel...')
 
@@ -28,11 +30,15 @@ nrow = size(excelfile,1)+1;
 base_paramList = {'date', 'expID', 'protocol'};
 arena_paramList = {'genotype','well_1', 'well_2', 'well_3', 'well_4', 'sex','starved_hours'};
 
+
 rows = [];
 for arena = 1:4
     rows(arena) = nrow;
     % arena:
     xlswrite(xlFile, {Alphabet(arena)}, sheet, [Alphabet(Excel.arena),num2str(nrow)]);
+    % trial name:
+    trial_name = [params.date '_' params.expID '_' Alphabet(arena)];
+    xlswrite(xlFile, {trial_name}, sheet, [Alphabet(Excel.trialID),num2str(nrow)]);
     % shared data:
     for ii = 1:length(base_paramList)
         xlswrite(xlFile, {params.(base_paramList{ii})}, sheet, [Alphabet(Excel.(base_paramList{ii})),num2str(nrow)]);
