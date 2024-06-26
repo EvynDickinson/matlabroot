@@ -24,12 +24,11 @@ fixedDriveLocations  = {'ACADIA','EVYNPC'}; % computer names that have permanent
 acadiaServerPath = 'S:\Evyn\';
 togiakServerPath = 'S:\Evyn\';
 EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
-EvynMacServerPath = 'TBD';
+EvynMacServerPath = '/Volumes/shared/Evyn/';
 acadiaLocalPath = 'D:\';
 EvynPCLocalPath = 'K:\';
 path = []; % empty so that in the end, there is something assigned
 %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
-
 
 % Get computer name
 if ismac
@@ -38,6 +37,8 @@ if ismac
 else
     computerName = getenv('COMPUTERNAME');
 end
+
+% the computer name is a host VPN on a mac when there is a VPN connection
 
 % default values -- single trial data, user selected drive
 switch nargin
@@ -92,12 +93,23 @@ switch computerName
     case 'EVYNPC'
         serverPath = EvynPCServerPath;
         permanentPath = EvynPCLocalPath;
-    case '' % TODO -- update mac name
+    case 'vpn1722513182.its.yale.internal' % VPN into Yale on Mac
         serverPath = EvynMacServerPath;
+        permanentPath = [];
+    case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
+        serverPath = [];
         permanentPath = [];
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;
+end
+
+% Return error if there aren't available drives
+if ~permanentDrive && ~serverDrive && ~portableDrive
+    warndlg({'No local, portable, or server directories available';...
+             'Try reestablishing a VPN connection and/or checking the OnTheGoDrive'})
+    path = [];
+    return
 end
 
 % if the coded drive isn't available, switch to manual selection: 

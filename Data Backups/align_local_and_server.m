@@ -8,9 +8,14 @@ function status = align_local_and_server()
 %% Compare local trial data to server data
 
 % Pull drive pathways:
-disp('Select local drive path to align with server:')
-local_drive = getDataPath(1,0);
-server_drive = getDataPath(1,2);
+local_drive = getDataPath(1,0,'Select LOCAL drive to synchronize');
+server_drive = getDataPath(1,2, 'Select SERVER drive to synchronize');
+
+% check that paths were selected
+if isempty(local_drive) || isempty(server_drive)
+    disp('Failed to find data directory pathways, please try again')
+    return
+end
 
 % get the names of the folders in the single trial portion of the local drive:
 localList = dir(local_drive);

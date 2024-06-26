@@ -8,7 +8,7 @@ function matchingDrives = findDriveByName(targetName)
 %
 % 
 
-if nargin==0;
+if nargin==0
     targetName = 'OnTheGoData';
 end
 
@@ -65,13 +65,13 @@ if ismac
         line = strtrim(lines{i});
         
         % Check if the line contains volume name information
-        if startsWith(line, '   Volume Name:')
+        if startsWith(line, 'Volume Name:')
             % Extract the volume name
             currentVolume = strtrim(strrep(line, 'Volume Name:', ''));
         end
         
         % Check if the line contains mount point information
-        if startsWith(line, '   Mount Point:')
+        if startsWith(line, 'Mount Point:')
             % Extract the mount point
             currentMountPoint = strtrim(strrep(line, 'Mount Point:', ''));
         end

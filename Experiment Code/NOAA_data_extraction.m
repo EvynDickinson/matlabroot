@@ -256,8 +256,8 @@ initial_vars{end+1} = airtempData;
 
 %% START BY LOADING DATA HERE: 
 dirPath = getCloudPath;
-rootdir = [dirPath, 'NOAA data\'];
-load([rootdir 'Processed Data\2021 Subhourly Data.mat'])
+rootdir = [dirPath, 'NOAA data/'];
+load([rootdir 'Processed Data/2021 Subhourly Data.mat'])
 
 
 %% ANALYSIS: fourier transform of light / temp
