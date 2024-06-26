@@ -16,19 +16,21 @@ function path = getDataPath(rawORsingle, localORserver, promptString)
 % 
 % ES Dickinson, Yale University, June 2024
 
-%%%%%%%%%%%%%%%%%%%           EDITABLE PATH LOCATIONS         %%%%%%%%%%%%%%%%%%%
-removableDrive = 'OnTheGoData';
-single_trial = 'Trial Data/';
-raw_data = 'DATA/';
-fixedDriveLocations  = {'ACADIA','EVYNPC'}; % computer names that have permanent local drives
-acadiaServerPath = 'S:\Evyn\';
-togiakServerPath = 'S:\Evyn\';
-EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
-EvynMacServerPath = '/Volumes/shared/Evyn/';
-acadiaLocalPath = 'D:\';
-EvynPCLocalPath = 'K:\';
-path = []; % empty so that in the end, there is something assigned
-%%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%           EDITABLE PATH LOCATIONS         %%%%%%%%%%%%%%%%%%%
+% removableDrive = 'OnTheGoData';
+% single_trial = 'Trial Data/';
+% raw_data = 'DATA/';
+% fixedDriveLocations  = {'ACADIA','EVYNPC'}; % computer names that have permanent local drives
+% acadiaServerPath = 'S:\Evyn\';
+% togiakServerPath = 'S:\Evyn\';
+% EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
+% EvynMacServerPath = '/Volumes/shared/Evyn/';
+% acadiaLocalPath = 'D:\';
+% EvynPCLocalPath = 'K:\';
+% path = []; % empty so that in the end, there is something assigned
+% %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
+
+paths = getPathNames; 
 
 % Get computer name
 if ismac
@@ -62,46 +64,54 @@ switch rawORsingle
                  disp('Data type selection canceled')
                  return
              case 'Single Trial'
-                 path_end = single_trial;
+                 path_end = paths.single_trial;
              case 'Raw Data'
-                 path_end = raw_data;
+                 path_end = paths.raw_data;
          end
     case 1 % single trial data
-        path_end = single_trial;
+        path_end = paths.single_trial;
     case 2 % raw data
-        path_end = raw_data;
+        path_end = paths.raw_data;
 end
 
 % BASE DRIVE LOCATION SELECTION
 
 % portable drive test
 [serverDrive, portableDrive] = deal(false);
-matchingDrives = findDriveByName(removableDrive); % test if there is a removable drive attached
+matchingDrives = findDriveByName(paths.removableDrive); % test if there is a removable drive attached
 if ~isempty(matchingDrives)
     portableDrive = true;
 end
 % permanent drive test
-permanentDrive = any(strcmp(computerName, fixedDriveLocations)); % fixed drive yes or no
+permanentDrive = any(strcmp(computerName, paths.fixedDriveLocations)); % fixed drive yes or no
 % server drive test
 switch computerName
     case 'ACADIA'
-        serverPath = acadiaServerPath;
-        permanentPath = acadiaLocalPath;
+        serverPath = paths.acadiaServerPath;
+        permanentPath = paths.acadiaLocalPath;
     case 'TOGIAK'
-        serverPath = togiakServerPath;
+        serverPath = paths.togiakServerPath;
         permanentPath =[];
     case 'EVYNPC'
-        serverPath = EvynPCServerPath;
-        permanentPath = EvynPCLocalPath;
+        serverPath = paths.EvynPCServerPath;
+        permanentPath = paths.EvynPCLocalPath;
     case 'vpn1722513182.its.yale.internal' % VPN into Yale on Mac
-        serverPath = EvynMacServerPath;
+        serverPath = paths.EvynMacServerPath;
         permanentPath = [];
     case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
-        serverPath = EvynMacServerPath;
+        serverPath = [];
         permanentPath = [];
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;
+end
+
+% Return error if there aren't available drives
+if ~permanentDrive && ~serverDrive && ~portableDrive
+    warndlg({'No local, portable, or server directories available';...
+             'Try reestablishing a VPN connection and/or checking the OnTheGoDrive'})
+    path = [];
+    return
 end
 
 % if the coded drive isn't available, switch to manual selection: 

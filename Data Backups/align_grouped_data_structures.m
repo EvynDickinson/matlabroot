@@ -1,13 +1,24 @@
 
-% Align 'raw' data local and server
+
+%% Comparison between grouped data structures
+
 
 clear
 clc
 
-%%  Select the data to be copied:
+%%  Select the data to be synchronized between the drives (can be between any two drives)
+
+
  
 serverPath = getDataPath(2,2);
 localPath = getDataPath(2,0, 'Select the LOCAL data folder:');
+
+
+% Synchronization should occur based on the most recent file timestamp,
+% if two copies exist -- ask for everything so that nothing gets copied
+% that may have been targeted for deletion
+
+
 
 switch questdlg('Select the direction you want to align the data:','Raw Data Alignment',...
                              'Download from Server', 'Upload to Server', 'Cancel', 'Download from Server')
