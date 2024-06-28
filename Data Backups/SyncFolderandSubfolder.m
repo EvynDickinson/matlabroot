@@ -5,6 +5,13 @@ function success = SyncFolderandSubfolder(startPath, targetPath, version_control
 %
 % ES DICKINSON
 
+% % testing area: 
+% clear; clc
+% targetPath = 'C:\Users\evynd\Desktop\Testing Folder End\';
+% startPath = 'C:\Users\evynd\Desktop\Testing Folder Start\';
+% version_control = false;
+
+
 % OPTION 1: no data folder exists, full copy the folder
 if ~isfolder(targetPath) % no current folder exists
     success = copyfile(startPath, targetPath);
@@ -25,10 +32,13 @@ else
     % determine if any contents within 1 layer of subFOLDERS are missing
     subfolder_contents = dir(startPath);
     subfolderList = {subfolder_contents(:).name};
-    fold_idx = [subfolder_contents(:).isdir]; 
-    subfolders_idx = find(fold_idx==true);
-    for jj = 1:length(subfolders_idx)
-        subfolder_name = subfolderList{subfolders_idx(jj)};
+    % get list of folders
+    subfolderNames = subfolderList([subfolder_contents(:).isdir]);
+
+    % fold_idx = [subfolder_contents(:).isdir]; 
+    % subfolders_idx = find(fold_idx==true);
+    for jj = 1:length(subfolderNames)
+        subfolder_name = subfolderNames{jj};
         % skip the empty folder holders
         if any(strcmpi(subfolder_name, {'.', '', '..'})) %TODO:  see how this works on mac 
             continue

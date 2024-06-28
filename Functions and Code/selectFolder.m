@@ -17,10 +17,26 @@ end
 %TODO: screen for only folders? 
 
 dirc = dir(path);
-folderNames = {dirc(:).name};
+
+% Remove files from the list of directory contents
+folders = dirc([dirc.isdir]);
+
+% Get the names of the folders
+folderNames = {folders.name}';
+
+
+% folderNames = {dirc(:).name};
 folderNames(1:2) = [];
+
+if isempty(folderNames)
+    fprintf('\n No available folders \n')
+    folderSelected = '';
+    return
+end
+
 indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[300 500]);
 nFolders = length(indx);
+
 if isempty(indx)
     fprintf('\n No folder selected\n')
     folderSelected = '';

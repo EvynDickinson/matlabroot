@@ -27,7 +27,13 @@ if ~isempty(missingdestinationFiles)
             statusList(idx) = true;
             continue
         end
-        statusList(idx) = copyfile(start_location, destPath);
+        % if the file is a folder, make sure that it is copying the
+        % contents of the folder into a new folder of the same name! 
+        if isfolder(start_location)
+            statusList(idx) = copyfile(start_location, [destPath missingdestinationFiles{idx}]);
+        else
+            statusList(idx) = copyfile(start_location, destPath);
+        end
     end
     if ~all(statusList)
         warndlg({'Copy error moving: '; ['From: ' start_location]; ['To: ' destPath]})
