@@ -4,6 +4,8 @@ function folderSelected = selectFolder(path,mulitselect,promptString)
 % folderSelected = selectFolder(path)
 % select a folder from an input directory with the autoadded 
 
+% path_A = 'C:\Users\evynd\OneDrive\Desktop\Testing End Folder\'
+
 switch nargin 
     case 1
         promptString = 'Select folders';
@@ -12,7 +14,7 @@ switch nargin
         promptString = 'Select folders';
 end
 
-
+git 
 dirc = dir(path);
 folderNames = {dirc(:).name};
 folderNames(1:2) = [];

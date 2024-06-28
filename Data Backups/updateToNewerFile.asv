@@ -5,13 +5,8 @@
 
 function results = updateToNewerFile(startPath, destPath, bidirectional) 
 % results = updateToNewerFile(startPath, destPath, bidirectional)
-% Update files of the same name and type to the newest version
-% input the paths to the folders with the files to compare
-%
-% bidirectional default is false; 
-% if bidirectional is true, then the newest version in either directory is
-% copied over the older version, if it is false, then only a newer file in the
-% start directory is written into the destination folder
+% Update files with the same name
+% bidirectional default is false
 % 
 % ES Dickinson
 

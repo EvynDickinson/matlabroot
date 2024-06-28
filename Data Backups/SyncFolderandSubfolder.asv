@@ -15,7 +15,7 @@ if ~isfolder(targetPath) % no current folder exists
 % OPTION 2: folder exists locally, check for mismatch between folder contents    
 else 
     % Copy any files from the main folder to the target destination
-    if version_control % update any files to the new version
+    if version_control 
         updateToNewerFile(startPath,targetPath);
     end
     success = copyMissingFiles(startPath, targetPath);
@@ -35,9 +35,6 @@ else
         end
         start_subfolder = [startPath subfolder_name '/'];
         end_subfolder = [targetPath subfolder_name '/'];
-        if version_control % update any files to the newest version
-            updateToNewerFile(start_subfolder,end_subfolder);
-        end
         success = copyMissingFiles(start_subfolder, end_subfolder); %copy any missing files in the folder
         if ~success
             disp(['Error copying: ' end_subfolder])
