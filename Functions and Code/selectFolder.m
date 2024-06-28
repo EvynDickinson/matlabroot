@@ -14,7 +14,8 @@ switch nargin
         promptString = 'Select folders';
 end
 
-git 
+%TODO: screen for only folders? 
+
 dirc = dir(path);
 folderNames = {dirc(:).name};
 folderNames(1:2) = [];
