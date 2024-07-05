@@ -232,33 +232,39 @@ for i = 1:num.exp
             [N,frameCount,sleepLoc] = deal(nan(nbins,nbins,trial_length));
             sleepingCount = zeros(trial_length,1);
 
-            % Set axis limits for the selected arena
+            % Set axis limits for the selected arena for bins that will dictate single fly sizes
             x = data(i).data(trial).data.centre(1);
             y = data(i).data(trial).data.centre(2);
             r = data(i).data(trial).data.r;
             xlimit = [x-(r+50),x+(r+50)];
             ylimit = [y-(r+50),y+50+r];
 
-            % find the 'auto bin' lines
-            xedge = linspace(xlimit(1),xlimit(2),nbins+1);
+            % find the 'auto bin' lines (aka the bin edge coordinates)
+            xedge = linspace(xlimit(1),xlimit(2),nbins+1); 
             yedge = linspace(ylimit(1),ylimit(2),nbins+1);
 
             % pull the fly locations during the trial
             x_loc = data(i).data(trial).data.x_loc;
             y_loc = data(i).data(trial).data.y_loc;
+            % find the bins in which flies were present for this frame and add to the giant 'N' structure
             for frame = 1:trial_length
-                X = x_loc(frame,:); X(isnan(X)) = [];
-                Y = y_loc(frame,:); Y(isnan(Y)) = [];
-                N(:,:,frame) = histcounts2(X,Y,xedge,yedge);
+                X = x_loc(frame,:); % x-coordinates for all flies on this camera frame
+                X(isnan(X)) = []; % removes any nan locations from the list
+                Y = y_loc(frame,:); 
+                Y(isnan(Y)) = [];
+                N(:,:,frame) = histcounts2(X,Y,xedge,yedge); 
             end
+            % (at this point, N is a large matrix where we will look for flies that
+            % stay in the same x-y space bin for longer than 5 minutes (the def of
+            % sleep in flies))
 
             % find grid space that have continuous occupation for more than min_duration
-            frameCount(:,:,1) = N(:,:,1);
+            frameCount(:,:,1) = N(:,:,1); % frameCount is the running count for # of frames that have a fly
             for frame = 2:trial_length
                 currFrame = N(:,:,frame); % current frame locations
                 resetLoc = currFrame==0; % locations that do not have flies and thus need a count reset
 
-                tempCount = frameCount(:,:,frame-1)+currFrame; % add current frames to list
+                tempCount = frameCount(:,:,frame-1)+currFrame; % add 1 to the frame count from previous frame count
                 tempCount(resetLoc) = 0; % reset counts for spots with no flies
 
                 frameCount(:,:,frame) = tempCount; % add current count into the saving structure
@@ -266,26 +272,27 @@ for i = 1:num.exp
 
             % ---- Vectorize the data (find the flies that are sleeping....) -----
 
-            % find food well location for distance capture later
+            % pull coordinates of the food well for distance capture later
             foodWellLoc = data(i).data(trial).data.wellcenters(:,data(i).T.foodLoc(trial));
-            c1 = foodWellLoc(1);
-            c2 = foodWellLoc(2);
+            c1 = foodWellLoc(1); % x-coordinate for the center of the food well
+            c2 = foodWellLoc(2); % y-coordinate for the center of the food well
             
             % create empty matrixes for the x and y positions of the sleeping flies
             sleeping = struct;
-            [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data(i).T.NumFlies(trial)));
+            [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data(i).T.NumFlies(trial))); 
             sleeping.sleepNum = zeros(trial_length,1);
             [sleeping.dist_avg, sleeping.dist_err] = deal(nan(trial_length,1));
+
             % assign data by frame
             for frame = 1:trial_length
-                frame_data = frameCount(:,:,frame) > min_duration;
-                binLoc = find(frame_data>0);
+                frame_data = frameCount(:,:,frame) > min_duration; % puts a 'T' for any bin location that has had a stationary fly for >5 mins
+                binLoc = find(frame_data>0); % vectorize the location % TODO HERE: resume sweep
                 
                 % Find the coordinates of the sleeping flies bins from the discretized data
                 y_row = ceil(binLoc/nbins);
                 x_row = rem(binLoc-1,nbins)+1;
-                x_position = (xedge(x_row) + xedge(x_row+1))/2;
-                y_position = (yedge(y_row) + yedge(y_row+1))/2;
+                x_position = (xedge(x_row) + xedge(x_row+1))/2; %x-location is the middle of the x-bins
+                y_position = (yedge(y_row) + yedge(y_row+1))/2; %y-location is the middle of the y-bins
                 
                 % add position data to the matrix:
                 if ~isempty(binLoc)
