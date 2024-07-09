@@ -178,7 +178,7 @@ for i = 1:size(dataList,2)
         continue
     end
     % check the included data structure with the data list in the folder 
-    [a,b,c] = matchDataStructure(dataList(i).name, dataList(i).T, structFolder);
+    [a,b,c] = matchDataStructure(dataList(i).name, dataList(i).T);
     dataList(i).rebuild = a; % data in the struct folder doesn't match the data list, must rebuild from 3.1
     dataList(i).add = b;    % add/update data to the current structure
     dataList(i).extradata = c; % more data in the struct than in the data list           
@@ -302,8 +302,8 @@ disp(expNames')
 
  %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
-fig_type = '-png'; 
-blkbgd = true;
+fig_type = '-pdf'; 
+blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 % f2m = 3*60; %fps*min = number of frames in a minute -- this is now held

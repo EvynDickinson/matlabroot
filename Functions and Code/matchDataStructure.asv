@@ -1,7 +1,7 @@
 
 
 function [rebuildFlag, addFlag, extradataFlag] = matchDataStructure(StructureName, test_T, structFolder)
-% [rebuildFlag, addFlag, extradataFlag] = matchDataStructure(structFolder, StructureName, structFolder, T)
+% [rebuildFlag, addFlag, extradataFlag] = matchDataStructure(structFolder, StructureName, T)
 %
 % rebuildFlag      -->  rerun Step3.1 to update the data structure for current data
 % addFlag           --> data is missing from test structure but is present in current post3.1
@@ -28,7 +28,7 @@ function [rebuildFlag, addFlag, extradataFlag] = matchDataStructure(StructureNam
     end
 
 % 2) Does the test data structure match the ground truth?
-    if nargin == 3 
+    if nargin == 2
         if isempty(test_T)
             addFlag = true;
         else

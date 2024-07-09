@@ -93,9 +93,9 @@ switch run_ans
             
             trial_ID = [dates{trial} '_' expID{trial} '_' arenas{trial}];
             filePath = [rawDataFolder trial_ID '/'];
-            % filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+            filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
             if ~isfolder(filePath)
-                warndlg(['File not found ' trial_ID])
+                filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/'];
             end
             
             temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});

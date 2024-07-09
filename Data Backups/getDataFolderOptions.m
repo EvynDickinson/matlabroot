@@ -37,6 +37,9 @@ paths = getPathNames;
 if ismac
     [~, result] = system('hostname');
     computerName = strtrim(result);
+    if contains(computerName,'its.yale.internal')
+        computerName = 'Yale VPN';
+    end
 else
     computerName = getenv('COMPUTERNAME');
 end
@@ -59,6 +62,7 @@ end
 permanentDrive = any(strcmp(computerName, paths.fixedDriveLocations)); % fixed drive yes or no
 permanentPath = [];
 
+
 % server drive test
 serverPath = [];
 switch computerName
@@ -71,7 +75,7 @@ switch computerName
     case 'EVYNPC'
         serverPath = paths.EvynPCServerPath;
         permanentPath = paths.EvynPCLocalPath;
-    case 'vpn1722513182.its.yale.internal' % VPN into Yale on Mac
+    case 'Yale VPN' % VPN into Yale on Mac
         serverPath = paths.EvynMacServerPath;
         permanentPath = [];
     case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
