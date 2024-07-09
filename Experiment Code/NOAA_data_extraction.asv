@@ -400,7 +400,7 @@ fig = getfig('', 1,[675, 854]); hold on
 
 % xlim([-1,1])
 
-% save_figure(fig,[rootdir 'Figures/All locations temp-rate zoomed in'],'-png'); % rate lines
+save_figure(fig,[rootdir 'Figures/All locations temp-rate zoomed in'],'-png'); % rate lines
 
 save_figure(fig,[rootdir 'Figures/All locations temp-rate PDF'],'-pdf'); % rate lines
 
@@ -413,19 +413,8 @@ end
 
 fig = figure;
 h = histogram(allRates,100);
-h.FaceColor = Color('grey');
 set(gca, 'YScale', 'log')
-ylabel('Count')
-xlabel('\DeltaT (\circC/min)')
-fig = formatFig(fig,false);
-set(gca, 'TickDir', 'out')
-title('Temperature rate all sampled US cities')
-
-tempList = [1,0.5, 0.25, 0.125, 0.0063];
-v_line([tempList -1*tempList],'teal','-',1)
-% xlim([-1.25, 1.25])
-
-save_figure(fig,[rootdir 'Figures/Combined locations temp-rate histogram'],'-pdf'); % rate lines
+xlim([-1,1])
 
 %% FIGURE: correlation of temp and light 
 % over the year for each city organized by longitude
@@ -676,7 +665,7 @@ nbins = 400;
 
 fig = figure;
 h = histogram(cityData(city).tempRate,nbins);
-% xlim([xMin,xMax])
+xlim([xMin,xMax])
 h.FaceColor = 'w';
 h.EdgeColor = 'w';
 xlabel('\DeltaT (\circC/min)')
@@ -685,7 +674,8 @@ title_str = [city_name{city} ' 2021'];
 title(title_str)
 
 formatFig(fig,true);
-msave_figure(fig,[rootdir 'Figures/Annual temprate histogram ' title_str],'-png');
+set(gca, 'fontsize', 15)
+save_figure(fig,[rootdir 'Figures/Annual temprate histogram ' title_str],'-png');
 
 
 % overlay the PDF fuction for this dataset:
