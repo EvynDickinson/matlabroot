@@ -72,7 +72,7 @@ h.EdgeColor = Color('teal');
 h.FaceColor = Color('teal');
 ylabel('Count (five minute periods)')
 xlabel('Temp (\circC)')
-fig = formatFig(fig, true,[nrows,ncols], sb);
+fig = formatFig(fig, blackbackground,[nrows,ncols], sb);
 
 save_figure(fig, ['G:\My Drive\Jeanne Lab\NOAA data\' title_str ' annual temp rate no lines'],'-png');
 
@@ -285,7 +285,7 @@ surfT_P1 = mean(P1,2);
 % for ii = 1:size(P1,2)
 %     plot(f, P1(:,ii),'linewidth', 0.25)
 % end
-% formatFig(fig, true);
+% formatFig(fig, blackbackground);
 % grid on
 % set(gca, 'TickDir','out')
 % ylabel('Power')
@@ -304,7 +304,7 @@ surfT_P1 = mean(P1,2);
 
 fig = getfig('',1); hold on 
 plot(surfT_f, surfT_P1,'color', Color('cyan'),'linewidth', 1)
-formatFig(fig, true);
+formatFig(fig, blackbackground);
 grid on
 set(gca, 'TickDir','out')
 ylabel('Power')
@@ -330,8 +330,8 @@ save_figure(fig, [rootdir, 'Figures\avg surface temp zoom 2 FFT'],'-png',false,f
 
 
 %% Plot geographical locations of all the cities in the data set
-fig_type = '-png';
-blackbackground = true;
+fig_type = '-pdf';
+blackbackground = false;
 if blackbackground
     fColor = 'k';
     bColor = 'w';
@@ -379,14 +379,14 @@ save_figure(fig,[rootdir 'Figures/Sample locations purple'],fig_type);
 % Plot the distribution functions overlaid
 
 % fig = figure; hold on; %set(fig,'pos',[-655 564 442 662]); hold on
-fig = getfig('', 1,[675, 854]); hold on
+fig = getfig('', 1,[398, 522]); hold on
     temp = data1(:,5:end)';
     for ii = size(temp,2):-1:1
         plot(X, temp(:,ii),'color', CList(ii,:),'linewidth',0.5) %CList(ii,:) ; Color('grey')
     end
     xlabel('\DeltaT (\circC/min)')
     ylabel('PDF')
-    formatFig(fig, false);
+    formatFig(fig, blackbackground);
     set(gca, 'fontsize', 18,'tickdir','out')
     
     tempList = [1,0.5, 0.25, 0.125, 0.0063];
@@ -417,12 +417,12 @@ h.FaceColor = Color('grey');
 set(gca, 'YScale', 'log')
 ylabel('Count')
 xlabel('\DeltaT (\circC/min)')
-fig = formatFig(fig,false);
+fig = formatFig(fig,blackbackground);
 set(gca, 'TickDir', 'out')
 title('Temperature rate all sampled US cities')
 
 tempList = [1,0.5, 0.25, 0.125, 0.0063];
-v_line([tempList -1*tempList],'teal','-',1)
+v_line([tempList -1*tempList],'teal','-',0.5)
 % xlim([-1.25, 1.25])
 
 save_figure(fig,[rootdir 'Figures/Combined locations temp-rate histogram'],'-pdf'); % rate lines
@@ -446,7 +446,7 @@ fig = figure;
 scatter(latitude,all_corr,40,'w')%longitude
 xlabel('Latitude')
 ylabel('Correlation coefficient')
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 xlim([10,80])
 save_figure(fig,[rootdir 'Figures/Temp-light correlation across cities'],'-png');
   
@@ -649,7 +649,7 @@ title_str = [city_name{city} ' 2021'];
 title(title_str)
 xlabel('Month')
 axis tight
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 15)
 save_figure(fig,[rootdir 'Figures/Annual temp in ' city_name{city}],'-png');
 
@@ -664,7 +664,7 @@ title(title_str)
 xlabel('Month')
 axis tight
 
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 15)
 ylim([-1.5,1.5])
 save_figure(fig,[rootdir 'Figures/Annual temprate in ' city_name{city}],'-png');
@@ -684,7 +684,7 @@ ylabel('Count')
 title_str = [city_name{city} ' 2021'];
 title(title_str)
 
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 msave_figure(fig,[rootdir 'Figures/Annual temprate histogram ' title_str],'-png');
 
 
@@ -704,7 +704,7 @@ yyaxis right
     plot(X,Y,'color', Color('dodgerblue'),'linewidth', 2)
     ylabel('PDF')
 
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 15)
 yyaxis left
 set(gca, 'YColor', 'w')
@@ -725,7 +725,7 @@ yyaxis right
     plot(X,Y,'color', Color('dodgerblue'),'linewidth', 2)
     ylabel('PDF')
 
-formatFig(fig,false);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 18)
 yyaxis left
 set(gca, 'YColor', 'k')
@@ -772,7 +772,7 @@ scatter(data1(:,1),data1(:,2),75,CList,'filled')
 ylim([0,0.02])
 xlabel('average annual temperature (\circC)')
 ylabel('temp rate variance')
-formatFig(fig,false);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance white background.pdf'],'-pdf');
@@ -786,7 +786,7 @@ fig = figure;
 scatter(data1(:,3), data1(:,1), 75, CList, 'filled')
 xlabel('Latitude (\circ)')
 ylabel('average annual temperature (\circC)')
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs latitude'],'-png');
@@ -819,7 +819,7 @@ scatter(data1(:,3), data1(:,1), 75, CList, 'filled')
 scatter(latitude(loc), annualT(loc), 75, 'r', 'filled')
 xlabel('Latitude (\circ)')
 ylabel('average annual temperature (\circC)')
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs latitude temprate outliers'],'-png');
@@ -829,7 +829,7 @@ scatter(data1(:,1),data1(:,2),75,CList,'filled')
 scatter(annualT(loc), sigma(loc), 75, 'r', 'filled')
 xlabel('average annual temperature (\circC)')
 ylabel('temp rate variance')
-formatFig(fig,true);
+formatFig(fig,blackbackground);
 set(gca, 'fontsize', 18)
 
 save_figure(fig,[rootdir 'Figures/Annual temp vs temp rate variance temprate outliers'],'-png');
@@ -893,7 +893,7 @@ fig = figure;
         set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
         xlabel('Time (hr)')
         ylabel('Temperature (\circC)')
-formatFig(fig,true, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 subplot(row,col,2);
 yyaxis right
 ax = gca;
@@ -947,7 +947,7 @@ for kk = 1:length(ii_range)
     axis tight
     xlabel('Solar radiation (W/m^2)')
     ylabel('Temperature (\circC)')
-    formatFig(fig, true);
+    formatFig(fig, blackbackground);
     xlim([0 902])
     ylim([9.9, 26.5])
     save_figure(fig,[rootdir 'Figures/time series/radiation v temperature day ' num2str(kk)],'-png',true);
@@ -969,7 +969,7 @@ fig = figure; hold on
     axis tight
     xlabel('Solar radiation (W/m^2)')
     ylabel('Temperature (\circC)')
-    formatFig(fig, true);
+    formatFig(fig, blackbackground);
 
 figure;
     scatter(1:length(xx),xx)
@@ -1014,7 +1014,7 @@ end
         set(ax, 'XTick',x,'XTickLabels',T.time(x,ii)/100)
         xlabel('Time (hr)')
         ylabel('Temperature (\circC)')
-formatFig(fig,true, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 legend(lStr,'textcolor', 'w','box', 'off')
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp rise'],'-png');
@@ -1095,7 +1095,7 @@ end
         set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
         xlabel('Time (hr)')
         ylabel('Temperature (\circC)')
-formatFig(fig,true, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp overlays'],'-png');
 
@@ -1160,7 +1160,7 @@ subplot(row,col,2)
 xlim([0.5,2.5])
 xlabel('')
 set(gca,'XTickLabel',[])
-formatFig(fig,true, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multifactor overlays'],'-png');
 
 %% TRIAL AND ERROR: try looking at temp patterns by precipitation
@@ -1243,7 +1243,7 @@ end
         set(ax, 'XTick',x ,'XTickLabels',T.time(x,ii)/100)
         xlabel('Time (hr)')
         ylabel('Temperature (\circC)')
-formatFig(fig,true, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' temp overlays'],'-png');
 
@@ -1308,10 +1308,11 @@ subplot(row,col,2)
 xlim([0.5,2.5])
 xlabel('')
 set(gca,'XTickLabel',[])
-formatFig(fig,true, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' multifactor overlays'],'-png');
 
-%% How much into the future could the flies predict from knowing current temp and rate of temp change?
+%% TODO: How much into the future could the flies predict from knowing current temp and rate of temp change?
+% model idea
 
 %% Light levels vs temperature for a full day
 city = 5;
@@ -1389,7 +1390,7 @@ fig = figure; set(fig, 'pos', [-767 427 469 733])
         set(ax, 'XTick',x(1:gap:end),'XTickLabels',T.time(x(1:gap:end),ii)/100)
         xlabel('Time (hr)')
 % FORMATTING
-formatFig(fig,false, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 subplot(row,col,1);
 yyaxis left
 set(gca, 'YColor',Color('dodgerblue'))
@@ -1432,7 +1433,7 @@ end
 % Formatting
 xlabel('solar radiation (W/m^2)')
 ylabel('temperature (\circC)')
-formatFig(fig,false);
+formatFig(fig,blackbackground);
 legend(monthNames,'box','off')
 
 save_figure(fig,[rootdir 'Figures/solar vs temp month average for ' city_name{city}],'-pdf');
@@ -1482,7 +1483,7 @@ fig = figure; set(fig, 'pos', [-951 661 891 499])
         xlabel('Time (hr)')
         
 % FORMATTING
-formatFig(fig,false, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 subplot(row,col,1);
 % yyaxis left
 % set(gca, 'YColor',Color('dodgerblue'))
@@ -1550,7 +1551,7 @@ fig = figure; set(fig, 'pos', [-1077 456 1050 704])
         xlabel('Time (hr)')
         xlim(xlimits)
 % FORMATTING
-formatFig(fig,false, [row,col]);
+formatFig(fig,blackbackground, [row,col]);
 % subplot(row,col,1);
 % yyaxis left
 % set(gca, 'YColor',Color('dodgerblue'))
@@ -1609,7 +1610,7 @@ ylabel('Spectral power density')
 % v_line(max_spec(:,1),'red','-.',0.5) 
 axis tight
 
-formatFig(fig, false, [row,col]);
+formatFig(fig, blackbackground, [row,col]);
 
 %% Range of temperature change in a day
 
@@ -1641,39 +1642,33 @@ CList = Color('plum','indigo', nCity);
 % FIGURE
 SZ = 10;
 MT = ones(1,366);
-fig = getfig('',true,[396 680]);  
-hold on; %set(fig,'pos',[-1056 637 1010 496]);
-for city = 1:nCity
-    x = city*MT;
-    y = tRange(:,city);
-    scatter(x,y,SZ,CList(city,:))% 
-end
-for city = 1:nCity
-    x = city*MT;
-    y = tRange(:,city);
-    scatter(city,mean(y,'omitnan'),SZ+10,'w','filled')
-end
+fig = getfig('',true,[398, 522]);  
+    hold on; %set(fig,'pos',[-1056 637 1010 496]);
+    % for city = 1:nCity
+    %     x = city*MT;
+    %     y = tRange(:,city);
+    %     scatter(x,y,SZ,CList(city,:))% 
+    % end
+    for city = 1:nCity
+        x = city*MT;
+        y = tRange(:,city);
+        scatter(city,mean(y,'omitnan'), SZ+10, CList(city,:), 'filled')
+    end
 
-formatFig(fig,true);
+formatFig(fig, blackbackground);
 ylabel('Daily temperature range (\circC)')
 set(gca,'xtick',[],'xcolor','k','tickdir','out')
-xlabel('2021 US cities','color','white')
-ylim([0,40])
+xlabel('2021 US cities','color','k')
+ylim([0,25])
 % optional plot nationwide average
 national_avg = median(median(tRange,1,'omitnan'),'omitnan');
-h_line(national_avg,'w','-',2)
-
+national_err =  std(median(tRange,1,'omitnan'),'omitnan');
+h_line(national_avg,'k','-',1) % average line
+h_line([national_avg+national_err, national_avg-national_err],'k','--',1) % std err
+xlim([-5,nCity+5])
 
 save_figure(fig,[rootdir 'Figures/avg temperature range all cities'],'-pdf');
 
-
-[~,city] = (max(mean(tRange,1,'omitnan')));
-disp(city_name{city})
-
-city = 49;
-figure; plot(temp)
-
-city_name{87}
 
 
 

@@ -302,8 +302,8 @@ disp(expNames')
 
  %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
-fig_type = '-png'; 
-blkbgd = true;
+fig_type = '-pdf'; 
+blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 % f2m = 3*60; %fps*min = number of frames in a minute -- this is now held
