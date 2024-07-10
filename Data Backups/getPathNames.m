@@ -23,5 +23,5 @@ paths.acadiaServerPath = 'S:\Evyn\';
 paths.togiakServerPath = 'S:\Evyn\';
 paths.EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
 paths.EvynMacServerPath = '/Volumes/shared/Evyn/';
-paths.acadiaLocalPath = 'D:\';
+paths.acadiaLocalPath = 'D:\Evyn Lab Data\';
 paths.EvynPCLocalPath = 'K:\';

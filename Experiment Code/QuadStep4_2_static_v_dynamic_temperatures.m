@@ -120,7 +120,7 @@ ax.FontSize = 18;
 
 clearvars('-except',initial_vars{:})
 
-%% FIGURE: animation style overview #imextra
+%% FIGURE: animation style overview 
 %   close all
 fig_dir = [saveDir '/PPT FIgures/Distance/'];
 if ~exist(fig_dir, 'dir')
