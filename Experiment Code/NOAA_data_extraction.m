@@ -77,6 +77,7 @@ fig = formatFig(fig, blackbackground,[nrows,ncols], sb);
 save_figure(fig, ['G:\My Drive\Jeanne Lab\NOAA data\' title_str ' annual temp rate no lines'],'-png');
 
 %% NOAA data column headers
+
 % #    Name                           Units
 % 1    WBANNO                         XXXXX
 % 2    UTC_DATE                       YYYYMMDD
@@ -101,6 +102,7 @@ save_figure(fig, ['G:\My Drive\Jeanne Lab\NOAA data\' title_str ' annual temp ra
 % 21   WET_FLAG                       X
 % 22   WIND_1_5                       m/s
 % 23   WIND_FLAG                      X
+
 
 
 %% Convert data from excel to .mat files
@@ -262,7 +264,7 @@ rootdir = [getCloudPath, 'NOAA data/'];
 
 %% ANALYSIS: fourier transform of light / temp
 % note: only use trials with FULL data set
-T = 5 * 60; % Sampling period in seconds
+T = 5 * 60; % Sampling period in seconds -- data was sampled once every 5 minutes
 Fs = 1/T;    % Sampling frequency        
 
 % surface temperature
@@ -326,7 +328,6 @@ save_figure(fig, [rootdir, 'Figures\avg surface temp zoom 2 FFT'],'-png',false,f
     P1(2:end-1) = 2*P1(2:end-1);
     f_temperature = f;
     P1_temperature = P1;
-
 
 
 %% Plot geographical locations of all the cities in the data set
@@ -482,7 +483,6 @@ for ii = 1: nCity
     temperature(error_loc) = nan;
     temperature_filled = fillmissing(temperature, 'linear');
     
-  
     L = length(temperature_filled);  % Length of signal
     f = Fs*(0:(L/2))/L;
     Y = fft(temperature_filled);
@@ -677,12 +677,13 @@ nbins = 400;
 fig = figure;
 h = histogram(cityData(city).tempRate,nbins);
 % xlim([xMin,xMax])
-h.FaceColor = 'w';
-h.EdgeColor = 'w';
+h.FaceColor = Color('teal');
+h.EdgeColor = Color('teal');
 xlabel('\DeltaT (\circC/min)')
 ylabel('Count')
 title_str = [city_name{city} ' 2021'];
 title(title_str)
+set(gca, 'YScale','log')
 
 formatFig(fig,blackbackground);
 msave_figure(fig,[rootdir 'Figures/Annual temprate histogram ' title_str],'-png');
@@ -1405,7 +1406,7 @@ set(gca, 'YColor',Color('orange'))
 
 save_figure(fig,[rootdir 'Figures/Morning temperature ' city_name{city} ' day ' num2str(ii)],'-pdf');
 
-%% FIGURE: 
+%% FIGURE: Solar radiation vs temperature month average
 % plot the temp vs solar radiation over time -- averaged across each month
 
 monthLength = [31,28,31,30,31,30,31,31,30,31,30,29]; % shortened december by one day
@@ -1501,7 +1502,7 @@ save_figure(fig,[rootdir 'Figures/week long temp vs light ' city_name{city} ' da
 
 
 
-% FIGURE WITH CORRELATION COEFFICIENT
+%%  FIGURE WITH CORRELATION COEFFICIENT
 % Correlation coefficients...
 sSpan = 80; % two hour rolling window
 [corrRate,corrAbs] = deal(nan([size(tempData,1),1]));
@@ -1669,6 +1670,93 @@ xlim([-5,nCity+5])
 
 save_figure(fig,[rootdir 'Figures/avg temperature range all cities'],'-pdf');
 
+%% Temperature Range plotted by latitude
+% WORKING HERE: NEED TO FIGURE OUT WHY THE DAY LENGTH ISN'T MATCHING
+% EXPECATIONS
+% pre-allocate space for structures
+LRR_rates = [1,0.5,0.24,0.125,0.0063];
+[tRange, daily_rate, time_range] = deal(nan(366,nCity));
 
+
+for city = 1:nCity 
+    if city==87
+        continue
+    end
+    temp = cityData(city).T(:,9); % air temp
+    time = cityData(city).T(:,5); % local solar time
+    %remove temp outliers
+    loc = temp(:,1)>57 | temp(:,1)<-50;
+    temp(loc) = nan;   
+    %find temp range per day
+    dayStarts = find(time==0);
+    if length(dayStarts)<365
+        disp(['city ' num2str(city) ' days: ' num2str(length(dayStarts))])
+        continue %skip the cities that don't have the correct number of days
+    end
+    for ii = 1:length(dayStarts)-1 % for each day cycle
+        ROI = dayStarts(ii):dayStarts(ii+1);
+        % check the full time range for a 'day'
+        if range(ROI)*5 > 1440
+            disp(['city ' num2str(city) ' day length: ' num2str(range(ROI)*5)])
+            % continue %skip the cities that don't have the correct number of days
+        end
+        tRange(ii,city) = range(temp(ROI));
+        % find when the range occurred 
+        [min_T, min_I] = min(temp(ROI));
+        [max_T, max_I] = max(temp(ROI));
+        time_range(ii,city) = abs(time(max_I)-time(min_I)); % time between min and max temp
+        temp_range = max_T - min_T;
+        % rough temp rate for the min-to-max
+        daily_rate(ii,city) = temp_range/time_range(ii,city);
+    end
+end
+
+% Plot 'manual high-pass temp rate' for 
+fig = getfig('',1,[656 452]); 
+    histogram(daily_rate, 'FaceColor', Color('grey'))
+    set(gca, 'YScale', 'log')
+    v_line(LRR_rates, 'teal', '-',1)
+    xlabel('Temperature (/circC)')
+    ylabel('Count')
+    fig = formatFig(fig,blackbackground);
+    title('Temp rates for the temp rate between the daily min and max temp')
+save_figure(fig, [rootdir 'Figures/min to max temp by temp rate'],'-pdf');
+
+% Plot the time by range - make sure the time range for each day makes
+% sense (aka is less than 24 hours lol)
+fig = getfig('', 1);
+scatter(time_range(:), tRange(:),30,Color('teal'),'filled')
+
+CList = Color('plum','indigo', nCity);
+
+% FIGURE
+SZ = 10;
+MT = ones(1,366);
+fig = getfig('',true,[398, 522]);  
+    hold on; %set(fig,'pos',[-1056 637 1010 496]);
+    % for city = 1:nCity
+    %     x = city*MT;
+    %     y = tRange(:,city);
+    %     scatter(x,y,SZ,CList(city,:))% 
+    % end
+    for city = 1:nCity
+        x = city*MT;
+        y = tRange(:,city);
+        scatter(city,mean(y,'omitnan'), SZ+10, CList(city,:), 'filled')
+    end
+
+formatFig(fig, blackbackground);
+ylabel('Daily temperature range (\circC)')
+set(gca,'xtick',[],'xcolor','k','tickdir','out')
+xlabel('2021 US cities','color','k')
+ylim([0,25])
+% optional plot nationwide average
+national_avg = median(median(tRange,1,'omitnan'),'omitnan');
+national_err =  std(median(tRange,1,'omitnan'),'omitnan');
+h_line(national_avg,'k','-',1) % average line
+h_line([national_avg+national_err, national_avg-national_err],'k','--',1) % std err
+xlim([-5,nCity+5])
+
+save_figure(fig,[rootdir 'Figures/avg temperature range all cities'],'-pdf');
 
 

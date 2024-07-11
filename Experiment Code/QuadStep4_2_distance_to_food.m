@@ -15,7 +15,7 @@ nMax =  num.exp;%
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
-r = 5; %rows
+r = 5; %rowsœ
 c = 3; %columns
 sb(1).idx = 1:2; %temp timecourse
 sb(2).idx = [4,5,7,8]; %distance from food timecourse %TODO: normalize this to something more intuitive?
