@@ -1,4 +1,6 @@
 clear; clc
+% base website with the available weather information: 
+%       https://www.ncei.noaa.gov/pub/data/uscrn/products/subhourly01/
 %% Format and process annual temperature data from NOAA
 
 cityNames = {'Spokane WA', 'Boulder CO', 'Versailles KY', 'Owls Head ME', 'Austin TX'};
