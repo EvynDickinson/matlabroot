@@ -51,6 +51,8 @@ minT = -90; % lowest recorded temperature on record
 maxT = 57; %highest recorded temp on record 
 light_err = -99999;
 
+% master_matrix = [];
+
 % load each data file and save to a processed data folder in the year folder  locations:
 for year = 1:nYears
     % pull the names of the city sampling locations
@@ -176,75 +178,165 @@ for year = 1:nYears
         
         % save a local copy of the data: 
         data = city(i);
-        
-        save([local_path ])
-
-        
+        save([local_path city(i).name '.mat'], 'data', "T_labels", '-v7.3')
+            
+        disp(['Finished ' city(i).location ' from ' num2str(city(i).year) ' file ' num2str(i) '/' num2str(nCities)])
 
     end
+
+    % save a copy of the full year 
+    save([local_path num2str(city(i).year) ' processed NOAA data.mat'], 'city', "T_labels", '-v7.3')
+        
+    disp(['Finished '  num2str(city(i).year)])
 end
 
 
+%% Quickly make a master list of the cities and their data
+
+clear 
+
+% Folder structures: 
+baseFolder = 'H:\NOAA Data\'; % path to raw data base folder
+year_list = 2006:2023; % years that have data
+nYears = length(year_list);
+
+all_locations = [];
+
+% originally, there were 3003 sites across the year span of 2006-2023
+
+% load each data file and save to a processed data folder in the year folder  locations:
+for year = 1:nYears
+    % pull the names of the city sampling locations
+    year_folder = [baseFolder num2str(year_list(year)) '\Processed Data\'];
+    fileList = dir([year_folder '*.mat']);
+    fileList(1) = [];
+    all_locations = [all_locations; {fileList(:).name}'];
+end
+
+% Functions to extract the desired parts and remove the '.mat'
+extractPart = @(name) strsplit(name, {'-'});
+extractAndTrimPart = @(name) name(1:end-4);
+% Use cellfun to apply the function to each element
+splitNames = cellfun(extractPart, all_locations, 'UniformOutput', false);
+% Extract the desired part from each split file name
+desiredParts  = cellfun(@(parts) parts{4}, splitNames, 'UniformOutput', false);
+trimmedNames = cellfun(@(name) extractAndTrimPart(name), desiredParts, 'UniformOutput', false);
+siteList = unique(trimmedNames);
+
+save([baseFolder 'Site List.mat'],'siteList')
 
 
-% save([rootdir 'Processed Data/2021 Subhourly Data'],'-v7.3');
-
-%% ANALYSIS find the temp rates for each sampling location
-dirPath = getCloudPath;
-rootdir = [dirPath, 'NOAA data\'];
-load([rootdir 'Processed Data\2021 Subhourly Data.mat'])
-%   save([rootdir 'Processed Data\2021 Subhourly Data.mat'],'-v7.3')
-
-latitude = [];
-longitude = [];
-annualT = [];
-X = linspace(-1.5,1.5,100);
-[dataCDF, dataPDF] = deal([]);
-
-for ii = 1 : nCity
-
-    data = cityData(ii).T; % Select data for a particular city:
-    if size(data,1)<105120
-        dataPDF(:,ii) = nan(1,length(X));
-        dataCDF(:,ii) = nan(1,length(X));
-        [mu(ii),sigma(ii),annualT(ii)] = deal(nan);
-        continue
-    end
-    % Extract data from structure
-    day = data(:,4);
-    time = data(:,5);
-    temp = data(:,9);
-
-    % Remove data outliers:
-    loc = temp>100 | temp<-50;
-    temp(loc) = nan;
-    % save avg annual temp
-    annualT(ii) = mean(temp,'omitnan');
-
-    % find the month timepoints
-    dayStart = find(time==5);
-    fiveminrate = (diff(temp))/5;
-    outliers = fiveminrate>30 | fiveminrate<-30;
-    exOut = fiveminrate(outliers);
-    fiveminrate(outliers) = nan;
-    cityData(ii).tempRate = fiveminrate;
-
-    % Fit data
-    mu(ii) = mean(fiveminrate,'omitnan');
-    sigma(ii) = var(fiveminrate,'omitnan');
-    gm = gmdistribution(mu(ii),sigma(ii));
-    dataPDF(:,ii) = pdf(gm,X');
-    dataCDF(:,ii) = cdf(gm,X');
     
-    % Pull long / lat data again
-    longitude(ii) = data(1,7);
-    latitude(ii) = data(1,8);
+%% reload the files and create a master file for them
 
+master_matrix = cell(length(siteList)+1,nYears+1);
+master_matrix(2:end,1) = siteList;
+% field_names = fields(data);
+
+% load each data file and save to a processed data folder in the year folder  locations:
+
+for year = 1:nYears
+    idx = 0;
+    % pull the names of the city sampling locations
+    year_folder = [baseFolder num2str(year_list(year)) '\Processed Data\'];
+    fileList = dir([year_folder '*.mat']);
+    city = struct;
+    nCities = length(fileList); 
+    master_matrix{1,year+1} = year_list(year);
+    for i = 2:nCities %skip the first file, which is the failed group file
+        temp = load([year_folder fileList(i).name],'data');
+        % all the data points were sampled
+        dayCheck = (temp.data.nDays==365 ||temp.data.nDays==366) ;
+        sampleCheck = temp.data.noskippedsamples;
+
+        loc = find(strcmp(temp.data.location, siteList));
+        if  sampleCheck && dayCheck
+            idx = idx+1;
+            if idx == 1
+                data = temp.data;
+            else
+                data(idx) = temp.data;
+            end
+            master_matrix{loc+1,year+1} = true; % write yes into the matrix
+        else
+            master_matrix{loc+1,year+1} = false; % write no into the matrix
+        end
+        disp([num2str(i) '/' num2str(nCities)])
+    end
+    save([baseFolder num2str(year_list(year)) ' NOAA Data.mat'],'data',  '-v7.3')
 end
 
-clear loc ii gm fiveminrate day time temp city exOut outliers
+save([baseFolder 'NOAA Data MasterList.mat'],'master_matrix', 'siteList', '-v7.3')
 
-initial_vars = who;
-initial_vars{end+1} = 'initial_vars';
+
+
+%% Find an example of a site that has had consistent temperature data for all the years and use that for a power analysis?
+
+% get some prelim stats on the meta data: 
+nSites = size(master_matrix,1)-1;
+
+masterSheet = false(nSites, nYears);
+for i = 1:nSites
+    for t = 1:nYears
+        dum = master_matrix{i+1, t+1};
+        if dum
+            masterSheet(i,t) = true;
+        end
+    end
+end
+            
+sites.isdata = masterSheet;
+sites.master_sheet = master_matrix;
+sites.names = siteList;
+sites.years = year_list;
+
+fullDataSite = find(sum(masterSheet,2)==nYears);
+sites.fullySampled = siteList(fullDataSite);
+
+
+%% Make a data matrix with the 82 sites that are fully sampled?
+fullySampled = siteList(fullDataSite);
+
+data = [];
+
+idx = 0;
+for city = 11: length(fullySampled)
+    city_name = fullySampled{city};
+    for year = 1:nYears
+        idx = idx + 1;
+        % pull the names of the city sampling locations
+        year_folder = [baseFolder num2str(year_list(year)) '\Processed Data\'];
+        fileList = dir([year_folder '*' city_name '.mat']);
+        temp  = load([year_folder, fileList.name],'data');
+   
+        if idx == 1
+            data = temp.data;
+        else
+            data(idx) = temp.data;
+        end
+    end
+end
+
+save([baseFolder 'Fully sampled NOAA sites.mat'],'data',  '-v7.3')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

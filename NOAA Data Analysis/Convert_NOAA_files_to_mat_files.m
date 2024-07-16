@@ -191,5 +191,152 @@ for year = 1:nYears
 end
 
 
+%% Quickly make a master list of the cities and their data
+
+clear 
+
+% Folder structures: 
+baseFolder = 'H:\NOAA Data\'; % path to raw data base folder
+year_list = 2006:2023; % years that have data
+nYears = length(year_list);
+
+all_locations = [];
+
+% originally, there were 3003 sites across the year span of 2006-2023
+
+% load each data file and save to a processed data folder in the year folder  locations:
+for year = 1:nYears
+    % pull the names of the city sampling locations
+    year_folder = [baseFolder num2str(year_list(year)) '\Processed Data\'];
+    fileList = dir([year_folder '*.mat']);
+    fileList(1) = [];
+    all_locations = [all_locations; {fileList(:).name}'];
+end
+
+% Functions to extract the desired parts and remove the '.mat'
+extractPart = @(name) strsplit(name, {'-'});
+extractAndTrimPart = @(name) name(1:end-4);
+% Use cellfun to apply the function to each element
+splitNames = cellfun(extractPart, all_locations, 'UniformOutput', false);
+% Extract the desired part from each split file name
+desiredParts  = cellfun(@(parts) parts{4}, splitNames, 'UniformOutput', false);
+trimmedNames = cellfun(@(name) extractAndTrimPart(name), desiredParts, 'UniformOutput', false);
+siteList = unique(trimmedNames);
+
+save([baseFolder 'Site List.mat'],'siteList')
+
+
+    
+%% reload the files and create a master file for them
+
+master_matrix = cell(length(siteList)+1,nYears+1);
+master_matrix(2:end,1) = siteList;
+% field_names = fields(data);
+
+% load each data file and save to a processed data folder in the year folder  locations:
+
+for year = 1:nYears
+    idx = 0;
+    % pull the names of the city sampling locations
+    year_folder = [baseFolder num2str(year_list(year)) '\Processed Data\'];
+    fileList = dir([year_folder '*.mat']);
+    city = struct;
+    nCities = length(fileList); 
+    master_matrix{1,year+1} = year_list(year);
+    for i = 2:nCities %skip the first file, which is the failed group file
+        temp = load([year_folder fileList(i).name],'data');
+        % all the data points were sampled
+        dayCheck = (temp.data.nDays==365 ||temp.data.nDays==366) ;
+        sampleCheck = temp.data.noskippedsamples;
+
+        loc = find(strcmp(temp.data.location, siteList));
+        if  sampleCheck && dayCheck
+            idx = idx+1;
+            if idx == 1
+                data = temp.data;
+            else
+                data(idx) = temp.data;
+            end
+            master_matrix{loc+1,year+1} = true; % write yes into the matrix
+        else
+            master_matrix{loc+1,year+1} = false; % write no into the matrix
+        end
+        disp([num2str(i) '/' num2str(nCities)])
+    end
+    save([baseFolder num2str(year_list(year)) ' NOAA Data.mat'],'data',  '-v7.3')
+end
+
+save([baseFolder 'NOAA Data MasterList.mat'],'master_matrix', 'siteList', '-v7.3')
+
+
+
+%% Find an example of a site that has had consistent temperature data for all the years and use that for a power analysis?
+
+% get some prelim stats on the meta data: 
+nSites = size(master_matrix,1)-1;
+
+masterSheet = false(nSites, nYears);
+for i = 1:nSites
+    for t = 1:nYears
+        dum = master_matrix{i+1, t+1};
+        if dum
+            masterSheet(i,t) = true;
+        end
+    end
+end
+            
+sites.isdata = masterSheet;
+sites.master_sheet = master_matrix;
+sites.names = siteList;
+sites.years = year_list;
+
+fullDataSite = find(sum(masterSheet,2)==nYears);
+sites.fullySampled = siteList(fullDataSite);
+
+
+%% Make a data matrix with the 82 sites that are fully sampled?
+fullySampled = siteList(fullDataSite);
+
+data = [];
+
+idx = 0;
+for city = 11: length(fullySampled)
+    city_name = fullySampled{city};
+    for year = 1:nYears
+        idx = idx + 1;
+        % pull the names of the city sampling locations
+        year_folder = [baseFolder num2str(year_list(year)) '\Processed Data\'];
+        fileList = dir([year_folder '*' city_name '.mat']);
+        temp  = load([year_folder, fileList.name],'data');
+   
+        if idx == 1
+            data = temp.data;
+        else
+            data(idx) = temp.data;
+        end
+    end
+end
+
+save([baseFolder 'Fully sampled NOAA sites.mat'],'data',  '-v7.3')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

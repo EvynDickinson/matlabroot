@@ -9,9 +9,20 @@ function [foreColor,backColor] = formattingColors(blkbgd)
 
 
 if blkbgd==true
-    foreColor = 'w';
-    backColor = 'k';
+    foreColor =  [1 1 1]; %white
+    backColor =  [0 0 0]; %black
 else
-    foreColor = 'k';
-    backColor = 'w';
+    foreColor = [0 0 0]; %black
+    backColor = [1 1 1]; %white
 end
+
+
+
+% 
+% if blkbgd==true
+%     foreColor = 'w';
+%     backColor = 'k';
+% else
+%     foreColor = 'k';
+%     backColor = 'w';
+% end
