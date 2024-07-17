@@ -50,14 +50,16 @@ clear T_labels i
 %% Load data structure
 
 % Folder structures: 
-baseFolder = 'H:\NOAA Data\Fully sampled\'; % path to raw data base folder
+% baseFolder = 'H:\NOAA Data\Fully sampled\'; % path to raw data base folder
+baseFolder = '/Users/evyndickinson/Documents/NOAA Data/Fully sampled/'; % path to raw data base folder
+
 load([baseFolder 'Fully sampled NOAA sites.mat'])
 
 % pull some preliminary parameters
 sites = unique({data(:).location});
 n = [];
 n.Sites = length(sites);
-n.Samples = length(baseFolder);
+n.Samples = length(data);
 n.yearList = 2006:2023;
 n.years = length(n.yearList);
 
@@ -74,6 +76,57 @@ end
 
 initial_vars = who;
 initial_vars{end+1} = 'initial_vars';
+
+%% Check for missing and error samples
+minT = -90; % lowest recorded temperature on record
+maxT = 57; %highest recorded temp on record 
+maxMissing = 1000; % 1% of the total time points
+
+missingPoints = [];
+for i = 1:n.Samples
+    temp = data(i).T(:,TH.AIR_TEMPERATURE);
+    loc = temp>=maxT | temp<=minT;
+    missingPoints(i) = sum(loc);
+    temp(loc) = nan;
+    data(i).temp = temp;
+end
+
+for i = 1:n.Samples
+    % make an index list for the day starts:
+    time = data(i).T(:,TH.LST_DATE);
+    daily_date = city_data(:,4); % column with date
+    day_starts = find(time==0);
+    nDays = length(day_starts); % how many days of data       
+    
+    dateList = daily_date(day_starts);
+    city(i).nDays = nDays;
+    city(i).dates = dateList;
+    city(i).dayStart_idx = day_starts;
+    
+    % Create a datetime array for the base date
+    datetimes = datetime(daily_date, 'ConvertFrom', 'yyyymmdd');
+    hours_part = floor(time / 100);  % Extract hours
+    minutes_part = mod(time, 100);   % Extract minutes
+    fullDateTime = datetimes + hours(hours_part) + minutes(minutes_part);
+    time_gap = minutes(diff(fullDateTime));
+    
+    % Check if all differences are 5 minutes
+    expectedDiff = 5;
+    all_five_minutes_apart = all(time_gap == expectedDiff);
+    city(i).noskippedsamples = all_five_minutes_apart;
+    
+    % Determine the rates of temperature change
+    surf_temp = city_data(:,25);
+    surface_TR = [diff(surf_temp)]./time_gap;
+    city_data(:,27) = [nan; surface_TR];
+
+
+
+sum(missingPoints<maxMissing)
+
+figure; plot(missingPoints)
+hold on
+h_line(maxMissing,'r')
 
 %% Plot the site locations on the map
 clearvars('-except',initial_vars{:})
@@ -158,18 +211,53 @@ for city = 1:n.Sites
         temp.T = data(city_loc(i)).T(:,TH.AIR_TEMP_CORRECTED);
         plottingData = [plottingData; temp.T, temp.R];
     end
+end
         
-fig = getfig('',1)
- 
-fig = getfig('', 1); hold on
-    for i = 2:length(city_loc)
-        city = city_loc(i);
-        y = data(city).T(:,TH.AIR_TEMP_CORRECTED);
+fig = getfig('',1);
+plot(plottingData(:,1))
+
+plottingData(1683118:1683118+4,:)
+
+%% Matrix of all sites and timepoints
+
+
+tot_time = 1893312;
+
+[all_rates, all_temp] = deal(nan(tot_time,n.Sites));
+
+for city = 1:n.Sites
+    city_loc = find([data(:).siteID]==city);
+    plottingData = [];
+    temp = struct; 
+    for i = city_loc
+        temp.R = data(i).T(:,TH.AIR_TEMP_RATE);
+        temp.T = data(i).T(:,TH.AIR_TEMP_CORRECTED);
+        plottingData = [plottingData; temp.T, temp.R];
+    end
+    all_temp(:,city) = plottingData(:,1);
+    all_rates(:,city) = plottingData(:,2);
+end
+
+% Quick sanity checks:
+a = all_rates(:);
+min(a)
+max(a)
+
+b = all_temp(:);
+min(b)
+max(b)
+
+fig = getfig('', 1);
+histogram(b)
 
 
 
+minT = -90; % lowest recorded temperature on record
+maxT = 57; %highest recorded temp on record 
 
 
+sum(b>maxT)
+sum(b<minT)
 
 
 

@@ -38,6 +38,13 @@ T_labels = {'WBANNO','UTC_DATE', 'UTC_TIME', 'LST_DATE', 'LST_TIME', 'CRX_VN', '
                     'WIND_FLAG', 'LIGHT_CORRECTED', 'SURFACE_TEMP_CORRECTED', 'AIR_TEMP_CORRECTED',...
                     'SURFACE_TEMP_RATE', 'AIR_TEMP_RATE'};
 
+
+TH = [];
+for i = 1:length(T_labels)
+    TH.(T_labels{i}) = i;
+end
+clear T_labels i
+
 %% Load data from the downloaded files from:
 % [https://www.ncei.noaa.gov/pub/data/uscrn/products/subhourly01/]
 
