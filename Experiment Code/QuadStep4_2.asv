@@ -1,5 +1,4 @@
 
-% DataTransferGUI
 
 % SELECT AND LOAD DATA FOR ANAYLSIS
 % CAVEATS:
@@ -326,7 +325,7 @@ disp(expNames')
 
  %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
-fig_type = '-png'; 
+fig_type = '-pdf'; 
 blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
@@ -342,24 +341,22 @@ switch expGroup
         expOrder = [];
         expList = {'Berlin', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
         % expList = {'Swedish', 'Berlin WT', 'OregonR','CantonS', 'Malawi', 'Zimbabwe'};
-        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','Grey'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
         for ii = 1:num.exp
-            try expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
-            catch
-                expOrder(ii) = find(strcmp(expNames,[expList{ii} ' S LRR 23-15 caviar']));
-            end
+            find(strcmp(data(1).T,[expList{ii} ' linear recovery ramp caviar']));
+            expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
         end
     case 'WT linear recovery no food'
         expOrder = [];
         expList = {'Berlin WT', 'CantonS ', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'};
-        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','Grey'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
         for ii = 1:num.exp
             expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp no food']));
         end
     case 'All linear recovery ramp'
         expOrder = [];
         expList = {'Berlin WT','CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe','IsoD1','W1118'};
-        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','Grey','LightSalmon','Blue','DeepPink'};
+        colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White','LightSalmon','Blue','DeepPink'};
         for ii = 1:num.exp
             expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar']));
         end
@@ -368,7 +365,7 @@ switch expGroup
 %         expList = {'Berlin WT', 'CantonS', 'OregonR', 'Swedish', 'Malawi', 'Zimbabwe'}; %desired exp order
 %         colors = {'DarkOrchid','DeepSkyBlue','LimeGreen','Red','Gold','White'};
         expList = {'Berlin WT', 'OregonR', 'SwedishC', 'Malawi', 'Zimbabwe'}; %desired exp order
-        colors = {'DarkOrchid','LimeGreen','Red','Gold','Grey'};
+        colors = {'DarkOrchid','LimeGreen','Red','Gold','White'};
         for ii = 1:num.exp
             expOrder(ii) = find(strcmp(expNames,[expList{ii} ' linear recovery ramp caviar 27-19'])  | ...
                                 strcmp(expNames,[expList{ii} ' linear recovery ramp 27-19 caviar']));
