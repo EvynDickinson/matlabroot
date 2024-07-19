@@ -3,7 +3,7 @@
 clearvars('-except',initial_vars{:})
 
 
-%% FIGURE: compare the differences in sleeping  
+%% FIGURE: compare the differences in distance  
 buff_1 = 0.25;
 buff_2 = 0.5;
 sz = 60;
@@ -87,15 +87,15 @@ for tt = 1:length(temps_idx)
     x_line = [temp_actual(tt)-buff_2, temp_actual(tt)+buff_2];
 
     % %proximity to food for dynamic trials
-    % for i = dyn_exp
-    %     % warming
-    %     y_all = grouped(i).dist.all([frames_up; frames_down],:);
-    %     y_mean = mean(y_all, 1,'omitnan');
-    %     y_line = mean(y_mean);
-    %     x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
-    %     scatter(x,y_mean, sz, grouped(i).color,'filled')
-    %     plot(x_line,[y_line,y_line],'color', grouped(i).color, 'linewidth', LW,'LineStyle','-')
-    % end
+    for i = dyn_exp
+        % warming
+        y_all = grouped(i).dist.all([frames_up; frames_down],:);
+        y_mean = mean(y_all, 1,'omitnan');
+        y_line = mean(y_mean);
+        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        scatter(x,y_mean, sz, grouped(i).color,'filled')
+        plot(x_line,[y_line,y_line],'color', grouped(i).color, 'linewidth', LW,'LineStyle','-')
+    end
     % 
     % plot concordant static trial
     i = stat_idx(tt);
@@ -117,6 +117,13 @@ xlabel('temperature (\circC)')
 ax = gca;
 set(gca,'ydir','reverse','XTick',temp_actual)
 ax.FontSize = 18;
+
+fig_dir = [saveDir '/PPT FIgures/Distance/'];
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+save_figure(gcf,[saveDir 'static vs dynamic distance to food avg heat and cooling'],fig_type);
 
 clearvars('-except',initial_vars{:})
 
@@ -937,6 +944,79 @@ save_figure(fig,[fig_dir 'proximity vs flies on food correlation'],fig_type, aut
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+ %% FIGURE: compare the differences in speed  
+ clearvars('-except',initial_vars{:})
+
+buff_1 = 0.25;
+buff_2 = 0.5;
+sz = 60;
+LW = 2;
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+temps_idx = [3, 9, 15, 19]; % 17,20,23,25 [temp locations that match the assigned hold temps]
+temp_actual = grouped(4).position.temp_list(temps_idx);
+
+dyn_exp = [4]; %start with just the caviar trial
+stat_idx = [1,2,3,6];
+
+fig = getfig('',1,[512 668]); hold on
+
+for tt = 1:length(temps_idx)
+    %  frame locations
+    frames_up = grouped(4).position.loc(3,temps_idx(tt)).frames;
+    frames_down = grouped(4).position.loc(1,temps_idx(tt)).frames;
+    x_roi = [temp_actual(tt)-buff_1, temp_actual(tt)+buff_1];
+    x_line = [temp_actual(tt)-buff_2, temp_actual(tt)+buff_2];
+
+    %proximity to food for dynamic trials
+    for i = dyn_exp
+        % warming
+        y_all = grouped(i).speed.all(frames_up,:);
+        y_mean = mean(y_all, 1,'omitnan');
+        y_line = mean(y_mean);
+        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        scatter(x,y_mean, sz, grouped(i).color,'filled')
+        plot(x_line,[y_line,y_line],'color', grouped(i).color, 'linewidth', LW,'LineStyle','-')
+        % cooling
+        y_all = grouped(i).speed.all(frames_down,:);
+        y_mean = mean(y_all, 1,'omitnan');
+        y_line = mean(y_mean);
+        scatter(x,y_mean, sz, grouped(i).color)
+        plot(x_line,[y_line,y_line],'color', grouped(i).color, 'linewidth', LW,'LineStyle','--')
+    end
+
+    % plot concordant static trial
+    i = stat_idx(tt);
+    y_all = grouped(i).speed.all([frames_up; frames_down],:);
+    y_mean = mean(y_all, 1,'omitnan');
+    y_line = mean(y_mean);
+    x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+    scatter(x,y_mean, sz, foreColor,'filled')
+    plot(x_line,[y_line,y_line],'color', foreColor, 'linewidth', LW,'LineStyle','-')
+end
+
+% Figure formatting
+formatFig(fig, blkbgd);
+
+% xlim([16,26])
+ylabel('speed (mm/s)')
+xlabel('temperature (\circC)')
+ax = gca;
+set(gca,'XTick',temp_actual)
+ax.FontSize = 18;
+
+ save_figure(fig,[saveDir 'Speed separeted by temp'],fig_type);
 
 
 

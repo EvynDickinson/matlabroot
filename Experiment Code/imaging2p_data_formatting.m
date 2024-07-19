@@ -37,9 +37,10 @@ odor_dur = 2;
 
 %% FIGURE: plot the mean df/f for each glomeruli
 %figure parameters
-blkbgd = true;
+blkbgd = false;
+fig_type = '-pdf';
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
-kolor = Color('gold');
+kolor = Color('red');
 LW = 1.5;
 col = 7; 
 row = 6;
@@ -105,10 +106,10 @@ for i = 1:n
     end
 end
 
-% save_figure(new_fig,[data_dir 'HeavyWax_ACV_meanDFF'],'-png');
+% save_figure(new_fig,[data_dir 'HeavyWax_ACV_meanDFF'],fig_type);
 
 
-save_figure(new_fig,[data_dir 'HeavyWax_ACV_meanDFF ALL'],'-png');
+save_figure(new_fig,[data_dir 'HeavyWax_ACV_meanDFF ALL'],fig_type);
 
 %%
 
