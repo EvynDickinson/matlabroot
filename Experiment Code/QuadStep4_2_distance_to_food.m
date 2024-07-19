@@ -2420,9 +2420,6 @@ set(gca,'color',backColor,'xcolor',foreColor,'ycolor',foreColor,'zcolor',foreCol
 set(gca,'gridAlpha',gridalpha)
 set(gca,'linewidth',2,'fontsize',18,'fontname','arial')
 
-% % % save figure
-% save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve'],fig_type,true);
-
 
 % add actual plot lines
 hold on
@@ -2437,6 +2434,10 @@ c.Label.String = 'Proximity to food (mm)';
 set(gca,'xgrid','off','ygrid','off','zgrid','off')
 
 
+% % % save figure
+% save_figure(fig,[saveDir expGroup ' temp rate distance tuning curve'],fig_type,true);
+% 
+% 
 
 %%
 

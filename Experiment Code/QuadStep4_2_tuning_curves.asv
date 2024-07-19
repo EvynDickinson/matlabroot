@@ -25,15 +25,16 @@ nTemps = length(dynamic_temps);
 % ============= Plot the data =============
 buff_1 = 0.15; % buffer distance for scatter points
 buff_2 = 0.35; % buffer distance for average line
-sz = 40;
-LW = 3;
+offset_buffer = 0.1;
+sz = 50;
+LW = 2;
 y_limits = [5,35];
 
 fig = getfig('',1); hold on
 
 for exp = 1:num.exp
     
-    idx = 0;
+    idx = 0+(offset_buffer*(exp-1));
     
     % Cooling first
     temp_list = flip(dynamic_temps);
@@ -59,9 +60,10 @@ for exp = 1:num.exp
         y_mean = mean(y_all, 1,'omitnan');
         y_line = mean(y_mean);
         y_err = std(y_mean,0);
-        scatter(idx, y_line,)
+        scatter(idx, y_line, sz, grouped(exp).color, "filled")
+        errorbar(idx, y_line, y_err, 'linewidth', LW, 'color', grouped(exp).color,'CapSize', 0)
 
-        % SCATTER VERSION:
+        % % SCATTER VERSION:
         % x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
         % scatter(x,y_mean, sz, grouped(exp).color,'filled')
         % plot(x_line,[y_line,y_line],'color', grouped(exp).color, 'linewidth', LW,'LineStyle','-')
@@ -91,9 +93,14 @@ for exp = 1:num.exp
         y_all = grouped(exp).dist.all(frames,:);
         y_mean = mean(y_all, 1,'omitnan');
         y_line = mean(y_mean);
-        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
-        scatter(x,y_mean, sz,  grouped(exp).color,'filled')
-        plot(x_line,[y_line,y_line],'color',  grouped(exp).color, 'linewidth', LW,'LineStyle','-')
+        y_err = std(y_mean,0);
+        scatter(idx, y_line, sz, grouped(exp).color, "filled")
+        errorbar(idx, y_line, y_err, 'linewidth', LW, 'color', grouped(exp).color,'CapSize', 0)
+
+        % % SCATTER VERSION:
+        % x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        % scatter(x,y_mean, sz,  grouped(exp).color,'filled')
+        % plot(x_line,[y_line,y_line],'color',  grouped(exp).color, 'linewidth', LW,'LineStyle','-')
     end
         
 end
@@ -141,15 +148,16 @@ nTemps = length(dynamic_temps);
 % ============= Plot the data =============
 buff_1 = 0.15; % buffer distance for scatter points
 buff_2 = 0.35; % buffer distance for average line
-sz = 40;
-LW = 3;
+offset_buffer = 0.1;
+sz = 50;
+LW = 2;
 % y_limits = [5,35]; %these should change for sleeping....
 
 fig = getfig('',1); hold on
 
 for exp = 1:num.exp
     
-    idx = 0;
+    idx = 0+(offset_buffer*(exp-1));
     
     % Cooling first
     temp_list = flip(dynamic_temps);
@@ -175,9 +183,14 @@ for exp = 1:num.exp
         y_all = sleep(exp).fract_sleep(frames,:);
         y_mean = mean(y_all, 1,'omitnan');
         y_line = mean(y_mean);
-        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
-        scatter(x,y_mean, sz, grouped(exp).color,'filled')
-        plot(x_line,[y_line,y_line],'color', grouped(exp).color, 'linewidth', LW,'LineStyle','-')
+        y_err = std(y_mean,0);
+        scatter(idx, y_line, sz, grouped(exp).color, "filled")
+        errorbar(idx, y_line, y_err, 'linewidth', LW, 'color', grouped(exp).color,'CapSize', 0)
+
+        % % SCATTER VERSION:
+        % x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        % scatter(x,y_mean, sz, grouped(exp).color,'filled')
+        % plot(x_line,[y_line,y_line],'color', grouped(exp).color, 'linewidth', LW,'LineStyle','-')
     end 
     
     % Warming second
@@ -203,9 +216,14 @@ for exp = 1:num.exp
         y_all = sleep(exp).fract_sleep(frames,:);
         y_mean = mean(y_all, 1,'omitnan');
         y_line = mean(y_mean);
-        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
-        scatter(x,y_mean, sz,  grouped(exp).color,'filled')
-        plot(x_line,[y_line,y_line],'color',  grouped(exp).color, 'linewidth', LW,'LineStyle','-')
+        y_err = std(y_mean,0);
+        scatter(idx, y_line, sz, grouped(exp).color, "filled")
+        errorbar(idx, y_line, y_err, 'linewidth', LW, 'color', grouped(exp).color,'CapSize', 0)
+
+        % % SCATTER VERSION:
+        % x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        % scatter(x,y_mean, sz,  grouped(exp).color,'filled')
+        % plot(x_line,[y_line,y_line],'color',  grouped(exp).color, 'linewidth', LW,'LineStyle','-')
     end
         
 end
@@ -217,6 +235,9 @@ for i = 1:length(temp_names_label)
     x_tick_label{i}  = num2str(temp_names_label(i));
 end
 % ylim(y_limits)
+y_limits = ylim;
+ylim([0,y_limits(2)]) % set the bottom of the y axis to zero since there can't be negative sleep
+
 ax = gca;
 % set(ax, 'YDir', 'reverse')
 set(ax, 'XTick', 1:nTemps*2,'XTickLabel', x_tick_label,'TickDir','out')
@@ -225,6 +246,107 @@ xlabel('Temperature (\circC)')
 ylabel('Fraction of flies sleeping')
 
 save_figure(fig,[figDir 'fraction of flies sleeping'],fig_type);
+
+
+
+
+
+
+
+
+
+%% Relative change in position with change in temperature
+clearvars('-except',initial_vars{:})
+
+figDir = [saveDir 'Tuning Curves/'];
+if ~isfolder(figDir)
+    mkdir(figDir)
+end
+
+PT = 25; % preferred temperature
+sz = 15;
+
+exp = 1;
+
+[approach, retreat] = deal(struct);
+approach.color = Color('teal');
+retreat.color = Color('orange');
+
+
+
+
+% fig = getfig('', 1); hold on
+
+% 1) Increasing temperatures:
+    temps = grouped(exp).increasing.temps;
+    % approach
+    approach.inc_idx = temps<PT;
+    approach.temps = temps(temps<PT);
+    approach.dist = grouped(exp).increasing.all(approach.inc_idx,:);
+    x = repmat(approach.temps, [1,num.trial(exp)]);
+    x = x(:);
+    x = abs(x-PT);
+    approach.inc_x = x;
+    approach.inc_y = approach.dist(:);
+
+    % retreat
+    retreat.inc_idx = temps>PT;
+    retreat.temps = temps(temps<PT);
+    approretreatach.dist = grouped(exp).increasing.all(retreat.inc_idx,:);
+    x = repmat(retreat.temps, [1,num.trial(exp)]);
+    x = x(:);
+    x = abs(x-PT);
+    retreat.inc_x = x;
+    approretreatach.inc_y = retreat.dist(:);
+    
+
+
+
+    retreatingIDX = temps>PT;
+    approachingIDX = temps<PT;
+    PT_IDX = temps==PT;
+    
+    % plot retreating points
+    x = grouped(exp).increasing.temps(retreatingIDX);
+    x_abs = (abs(x-PT));
+    x_plot = repmat(x_abs, [1,num.trial(exp)]);
+    y = grouped(exp).increasing.all(retreatingIDX,:);
+
+    scatter(x_plot, y, sz, retreat_color, "filled")
+
+    % plot approaching points
+    x = grouped(exp).increasing.temps(approachingIDX);
+    x_abs = (abs(x-PT));
+    x_plot = repmat(x_abs, [1,num.trial(exp)]);
+    y = grouped(exp).increasing.all(approachingIDX,:);
+    scatter(x_plot, y, sz, approach_color, "filled")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

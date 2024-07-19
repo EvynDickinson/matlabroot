@@ -188,6 +188,7 @@ for i = 1:size(dataList, 2)
             loc = find(strcmp(exp_name,{data(:).ExpGroup}));
             data(loc) = [];
             UpdatedFlag = true;
+            continue
         end
     % Load or reload existing datasets
         if any([dataList(i).rebuild, dataList(i).extradata])
@@ -200,21 +201,43 @@ for i = 1:size(dataList, 2)
                     return
             end
         end
+        % ADD or UPDATE data structures
         if dataList(i).add
             disp(['Updating data for ' exp_name])
             UpdatedFlag = true;
             loc = find(strcmp(exp_name,{data(:).ExpGroup})); 
             dummy = load([structFolder exp_name '/' exp_name ' post 3.1 data.mat']);
+             
+            % check for structure alignment and potential mis-matches:
              if ~isfield(dummy,'hold_exp') % 1/24/24 compatability for hold temperature experiments
                    dummy.hold_exp = false; % account for new data structures
                    dummy.temp_protocol = dummy.T.TempProtocol{1};
              end
+
+             struct_fields = fields(data);
+             new_fields = fields(dummy);
+             missing_in_dummy = setdiff(struct_fields, new_fields);
+             if ~isempty(missing_in_dummy)
+                 for xx = 1:length(missing_in_dummy)
+                     dummy.(missing_in_dummy{xx}) = [];
+                     disp(['Adding "' missing_in_dummy{xx} '" field to ' dummy.ExpGroup])
+                 end
+             end
+             missing_in_data = setdiff(new_fields, struct_fields);
+             if ~isempty(missing_in_data)
+                 for xx = 1:length(missing_in_data)
+                     data(1).(missing_in_data{xx}) = [];
+                     disp(['Adding "' missing_in_data{xx} '" field to ' dummy.ExpGroup])
+                 end
+             end
+
              % determine location of data in structure or add to structure if not there: 
              if isempty(loc)
                  loc = length(data)+1;
              end
              data(loc) = dummy;
         end
+
         % Check and add field to preexisting data that needs this:
         loc = find(strcmp(exp_name,{data(:).ExpGroup}));
         a = false;
@@ -231,7 +254,8 @@ for i = 1:size(dataList, 2)
         if ~a
             data(loc).hold_exp = false; % account for new data structures
         end
-end; clear dummy
+end 
+clear dummy missing_in_data missing_in_dummy struct_fields new_fields
 
 % clear blank space **this might differ for a trial that ends with a removal???
 i = 1; idx = 0; maxIdx = size(data,2);
@@ -319,12 +343,12 @@ switch questdlg('Select data saving format:','','new structure','existing struct
 end
 else % append the dataList structure to the existing file if nothing else changed
     saveDir = [baseFolder paths.group_comparision expGroup '/'];
-    save([saveDir expGroup ' data.mat'], 'dataList','-append');
+    % save([saveDir expGroup ' data.mat'], 'dataList','-append');
 end
 
 disp(expNames')
 
- %% ANALYSIS: organize data for each group
+%% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
 fig_type = '-pdf'; 
 blkbgd = false;
@@ -337,6 +361,10 @@ grouped = struct;
 
 % Color selections
 switch expGroup
+     case 'Berlin F Hold vs LRR 25-17 caviar'
+        expOrder = [4, 1:3, 5];
+        colors = {'DeepSkyBlue','DimGrey','Gray','DarkGrey','Gainsboro'};
+
 % ---- WILD TYPE COMPARISONS ----
     case 'WT linear recovery caviar'
         expOrder = [];
@@ -705,107 +733,143 @@ for i = 1:num.exp
 end
 
 
+%% ANALYSIS: normalize fly position within arena 
+clearvars('-except',initial_vars{:})
+OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy');
 
-disp('Next')
+for i = 1:num.exp
+  % BINNED
+  [tempRates,decreasing,increasing,temperatures] = deal([]);
+  % Pull temperature and rate information for the temp protocol
+  temp_rates = data(i).G(1).TR.rates;
+  temp_list = data(i).G(1).TR.temps;
+  nrates = data(i).G(1).TR.nRates;
+  ntemps = data(i).G(1).TR.nTemps;
+  rate_idx = data(i).G(1).TR.rateIdx;
+  temp_idx = data(i).G(1).TR.tempIdx;
+  loc_mat = struct;
+
+  % find frame index for each temp bin & rate of change
+  for tt = 1:ntemps
+    for rr = 1:nrates
+        rateAligned = rate_idx==rr;
+        tempAligned = temp_idx==tt;
+        loc = find(rateAligned & tempAligned);
+        if isempty(loc)
+            loc = nan;
+        end
+        loc_mat(rr,tt).frames = loc;
+        loc_mat(rr,tt).x = []; %set empty space for appending
+        loc_mat(rr,tt).y = [];
+    end
+  end
+  wellXY = [];
+  for trial = 1:num.trial(i)
+    trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
+    % get arena information
+    well_loc = data(i).T.foodLoc(trial);
+    wells = data(i).data(trial).data.wellcenters;
+    % find offset to make the food well the origin
+    x_offset = wells(1,well_loc);
+    y_offset = wells(2,well_loc);
+    wells_x = wells(1,:)-x_offset;
+    wells_y = wells(2,:)-y_offset;
+
+    X = data(i).data(trial).data.x_loc;
+    Y = data(i).data(trial).data.y_loc;
+    X = X-x_offset;
+    Y = Y-y_offset;
+    % save the position normalized data into the grouped structure or
+    % something
+
+    [WELLS,x_data,y_data] = deal([]);
+    if trial_date > OG_Orientation %new camera orientation
+        % Rotate to correct orientation
+        switch well_loc
+            case 1
+                x_data = X;
+                y_data = Y;
+                WELLS(:,1) = wells_x;
+                WELLS(:,2) = wells_y;
+            case 2
+                x_data = Y;
+                y_data = -X;
+                WELLS(:,1) = wells_y;
+                WELLS(:,2) = -wells_x;
+            case 3
+                x_data = X;
+                y_data = -Y;
+                WELLS(:,1) = wells_x;
+                WELLS(:,2) = -wells_y;
+            case 4
+                x_data = -Y;
+                y_data = X;
+                WELLS(:,1) = -wells_y;
+                WELLS(:,2) = wells_x;
+        end
+    else % Rotate to correct orientation with older camera arrangement            
+        switch well_loc
+            case 1
+                x_data = Y;
+                y_data = -X;
+                WELLS(:,1) = wells_y;
+                WELLS(:,2) = -wells_x;
+            case 2
+                x_data = X;
+                y_data = -Y;
+                WELLS(:,1) = wells_x;
+                WELLS(:,2) = -wells_y;
+            case 3
+                x_data = -Y;
+                y_data = X;
+                WELLS(:,1) = -wells_y;
+                WELLS(:,2) = wells_x;
+            case 4
+                x_data = X;
+                y_data = Y;
+                WELLS(:,1) = wells_x;
+                WELLS(:,2) = wells_y;
+        end
+
+    end
+    
+    wellXY.x(:,trial) = WELLS(:,1);
+    wellXY.y(:,trial) = WELLS(:,2);
+
+    % For each temp and rate, pool all (now normalized) fly positions
+    for tt = 1:ntemps
+      for rr = 1:nrates
+        frame_idx = loc_mat(rr,tt).frames;
+        % shift positions for food well as origin
+        if ~isnan(frame_idx)
+            x = x_data(frame_idx,:);
+            y = y_data(frame_idx,:);
+            
+            % save data into structure:
+            loc_mat(rr,tt).data(trial).pos = [x(:),y(:)];
+            loc_mat(rr,tt).x = [loc_mat(rr,tt).x; x(:)];
+            loc_mat(rr,tt).y = [loc_mat(rr,tt).y; y(:)];
+        else
+            loc_mat(rr,tt).data(trial).pos = [nan nan];
+            loc_mat(rr,tt).x = nan;
+            loc_mat(rr,tt).y = nan;
+        end
+      end
+    end
+  end
+  
+  % save trial data into broad structure
+  grouped(i).position.loc = loc_mat;
+  grouped(i).position.temp_rates = temp_rates;
+  grouped(i).position.temp_list = temp_list;
+  grouped(i).position.well_pos = wellXY;
+end
 
 
 
 
-%% OLD OG Code
 
-% Temp-rate distance tuning curve for a single genotype or across genotypes
-% Show how a single genotypes compares in food attraction:temperature for
-% different rates of temperature change
 
-% %% Select data groups to compare
-% % add matlabroot folder to the directory path
-% % addpath(genpath('C:\matlabroot'));
-% 
-% clear; close all; clc
-% baseFolder = getCloudPath;
-% 
-% switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','Cancel','Yes')
-%     case 'Cancel'
-%         return
-%     case 'Yes'
-%         list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-%         list_dirs = {list_dirs(:).name};
-%         list_dirs(1:2) = [];
-%         dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,650]);
-% 
-%         try expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-%         catch
-%             disp('No group selected')
-%             return
-%         end
-%         saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-%         load([saveDir expGroup ' data.mat']);
-%         disp([expGroup ' loaded'])
-%         %check for temperature protocol assignments (make back-compatible)
-%         for i = 1:num.exp
-%             if ~isfield(data(i),'temp_protocol')
-%                 data(i).temp_protocol = data(i).T.TempProtocol{1};
-%             end
-%             if isempty(data(i).temp_protocol)
-%                 data(i).temp_protocol = data(i).T.TempProtocol{1};
-%             end
-%         end
-%     case 'No'
-%         % Select processed data structures to compare:
-%         structFolder = [baseFolder 'Data structures\'];
-%         list_dirs = dir(structFolder);
-%         list_dirs = {list_dirs(:).name};
-%         list_dirs(1:2) = [];
-%         expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
-%         expNames = list_dirs(expIdx); %name of experiment groups selected
-%         num.exp = length(expIdx);  %number of groups selected
-% 
-%         % Load selected experiment data groups
-%         for i = 1:num.exp
-%             % get field list for loading data:
-%             dummy = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-%              if ~isfield(dummy,'hold_exp') % 1/24/24 updates for hold temperature experiments
-%                    dummy.hold_exp = false; % account for new data structures
-%                    dummy.temp_protocol = dummy.T.TempProtocol{1};
-%              end
-%             data(i) = dummy;
-%             % try data(i) = dummy;
-%             % catch % TODO -- better automate search for missing fields and options
-%             % % data(i) = load([structFolder expNames{i} '\' expNames{i} ' post 3.1 data.mat']);
-%             %
-%             %     data(i) = dummy;
-%             % end
-%         end
-% 
-%         clear list_dirs expIdx dirIdx
-%         % Set up base variables
-%         initial_vars = who;
-%         initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'];
-%         initial_vars = unique(initial_vars);
-% 
-%         % Save data / make new grouped data folder
-%         switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','new structure')
-%             case 'new structure'
-%                 expGroup = char(inputdlg('Structure name:'));
-%                 saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-%                 if ~exist(saveDir,'dir')
-%                     mkdir(saveDir);
-%                 end
-%                 save([saveDir expGroup ' data.mat'],'-v7.3');
-%                 disp([expGroup ' saved'])
-%             case 'existing structure'
-%                 list_dirs = dir([baseFolder 'Grouped Data Structures\']);
-%                 list_dirs = {list_dirs(:).name};
-%                 list_dirs(1:2) = [];
-%                 dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-%                 expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-%                 saveDir = [baseFolder 'Grouped Data Structures\' expGroup '\'];
-%                 save([saveDir expGroup ' data.mat'],'-v7.3');
-%                 disp([expGroup ' saved'])
-%             case 'cancel'
-%                 return
-%         end
-% end
-% disp(expNames')
-% 
+
+
  

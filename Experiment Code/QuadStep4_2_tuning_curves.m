@@ -253,3 +253,125 @@ save_figure(fig,[figDir 'fraction of flies sleeping'],fig_type);
 
 
 
+
+
+%% Relative change in position with change in temperature
+clearvars('-except',initial_vars{:})
+
+figDir = [saveDir 'Tuning Curves/'];
+if ~isfolder(figDir)
+    mkdir(figDir)
+end
+
+PT = 25; % preferred temperature
+sz = 15;
+
+exp = 1;
+
+[approach, retreat] = deal(struct);
+approach.color = Color('teal');
+retreat.color = Color('orange');
+
+
+
+
+% fig = getfig('', 1); hold on
+
+% 1) Increasing temperatures:
+    temps = grouped(exp).increasing.temps;
+    % approach
+    approach.increasing.idx = temps<PT;
+    approach.increasing.temps = temps(approach.increasing.idx);
+    approach.dist = grouped(exp).increasing.all(approach.inc_idx,:);
+    x = repmat(approach.temps, [1,num.trial(exp)]);
+    x = x(:);
+    x = abs(x-PT);
+    approach.inc_x = x;
+    approach.inc_y = approach.dist(:);
+
+    % retreat
+    retreat.inc_idx = temps>PT;
+    retreat.temps = temps(retreat.inc_idx);
+    retreat.dist = grouped(exp).increasing.all(retreat.inc_idx,:);
+    x = repmat(retreat.temps, [1,num.trial(exp)]);
+    x = x(:);
+    x = abs(x-PT);
+    retreat.inc_x = x;
+    retreat.inc_y = retreat.dist(:);
+    
+% 2) Decrfeasing temperatures:
+    temps = grouped(exp).decreasing.temps;
+    % approach
+    approach.dec_idx = temps>PT;
+    approach.temps = temps(approach.dec_idx);
+    approach.dist = grouped(exp).increasing.all(approach.inc_idx,:);
+    x = repmat(approach.temps, [1,num.trial(exp)]);
+    x = x(:);
+    x = abs(x-PT);
+    approach.inc_x = x;
+    approach.inc_y = approach.dist(:);
+
+    % retreat
+    retreat.inc_idx = temps>PT;
+    retreat.temps = temps(retreat.inc_idx);
+    retreat.dist = grouped(exp).increasing.all(retreat.inc_idx,:);
+    x = repmat(retreat.temps, [1,num.trial(exp)]);
+    x = x(:);
+    x = abs(x-PT);
+    retreat.inc_x = x;
+    retreat.inc_y = retreat.dist(:);
+    
+
+
+    retreatingIDX = temps>PT;
+    approachingIDX = temps<PT;
+    PT_IDX = temps==PT;
+    
+    % plot retreating points
+    x = grouped(exp).increasing.temps(retreatingIDX);
+    x_abs = (abs(x-PT));
+    x_plot = repmat(x_abs, [1,num.trial(exp)]);
+    y = grouped(exp).increasing.all(retreatingIDX,:);
+
+    scatter(x_plot, y, sz, retreat_color, "filled")
+
+    % plot approaching points
+    x = grouped(exp).increasing.temps(approachingIDX);
+    x_abs = (abs(x-PT));
+    x_plot = repmat(x_abs, [1,num.trial(exp)]);
+    y = grouped(exp).increasing.all(approachingIDX,:);
+    scatter(x_plot, y, sz, approach_color, "filled")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

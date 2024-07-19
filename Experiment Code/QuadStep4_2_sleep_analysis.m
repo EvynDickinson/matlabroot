@@ -413,7 +413,13 @@ end
 
 % Thermal threat quantification and avg sleep quantity
 for i = 1:num.exp
-    tPoints = getTempTurnPoints(data(i).temp_protocol); 
+    tempProto = data(i).temp_protocol;
+    if data(i).hold_exp
+        temp_protocol  = 'linear_ramp_F_25-17';
+    else
+        temp_protocol = data(i).temp_protocol;
+    end
+    tPoints = getTempTurnPoints(temp_protocol); 
     fps = tPoints.fps; 
 
     if strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35') ||...
@@ -1745,7 +1751,8 @@ fig_height = 50 + num.exp * 100;
 fig = getfig('',1,[1064 fig_height]); hold on
 
 y_base = 1;
-for i = 1:num.exp
+for ii = 1:num.exp
+    i = expOrder(ii);
     time = grouped(i).time;
     kolor = grouped(i).color;
     
@@ -1782,11 +1789,11 @@ for i = 1:num.exp
     tp = getTempTurnPoints(data(i).temp_protocol);
     y = [y_base+(spike_H/2);y_base+(spike_H/2)];
     
-    if i == num.exp
+    % if i == num.exp
         plot(time(tp.down)',repmat(y,[1,tp.nDown]),'color',Color('dodgerblue'),'linewidth',spike_H*2) %decreasing
         plot(time(tp.up)',repmat(y,[1,tp.nUp]),'color',Color('red'),'linewidth',spike_H*2) %increasing
         plot(time(tp.hold)',repmat(y,[1,tp.nHold]),'color',Color('grey'),'linewidth',spike_H*2) %decreasing
-    end
+    % end
     y_base = y(2)+(2+trial_space);
 end
 
@@ -1837,7 +1844,9 @@ for idx = 1:num.exp
     ylabel('sleep frequency (fly/min)')
     set(gca,'TickDir','out')
     
-    
+    % xlim([0, 400])
+    % ylim([0, 0.3])
+
     % Save figure
     save_figure(fig,[fig_dir 'sleeping onset frequency ' num2str(idx)],fig_type,autoSave);   
 
