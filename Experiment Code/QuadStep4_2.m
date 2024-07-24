@@ -124,7 +124,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
             expNames = list_dirs(expIdx); %name of experiment groups selected
             num.exp = length(expIdx);  %number of groups selected
-    
+           
             % Load selected experiment data groups
             for i = 1:num.exp
 
@@ -142,7 +142,11 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                       dummy.hold_exp = false; % account for new data structures
                       dummy.temp_protocol = dummy.T.TempProtocol{1};
                 end
-                data(i) = dummy;
+                if i == 1
+                    data = dummy;
+                else
+                    data(i) = dummy;
+                end
             end
     
             clear list_dirs expIdx dirIdx dummy
@@ -579,8 +583,8 @@ switch expGroup
         expOrder = [1,2,5,4,3];
         colors = {'gold','grey','dodgerblue','darkorchid','lime'};
     case 'Berlin F LRR 25-17 sensory components'
-        expOrder = [1 5 2 4 3]; %full, empty, waxed, 23, 17
-        colors = {'black','blue','orange','pink', 'magenta'};
+        expOrder = [2 3 4 5 1]; %full, water, waxed, 25, 17
+        colors = {'black','blue','orange', 'magenta', 'pink'};
 end
 
 if ~exist('colors','var')

@@ -19,11 +19,13 @@ if nargin <= 6
     FA = 0.2; % FaceAlpha
 end
 
-if plot_err && ~strcmpi(fig_type,'-pdf')
+% if plot_err && ~strcmpi(fig_type,'-pdf')
         fill_data = error_fill(x, y, y_err);
         h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
         set(h, 'facealpha', FA)
-    elseif plot_err && strcmpi(fig_type,'-pdf')
-            plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
-            plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
-end
+    % % turned off the pdf style line outline since we can change the alpha level of
+    % % the object in adobe with the current settings and it isn't an issue 
+    % elseif plot_err && strcmpi(fig_type,'-pdf')
+    %         plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
+    %         plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
+% end
