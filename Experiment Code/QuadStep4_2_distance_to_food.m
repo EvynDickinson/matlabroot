@@ -2589,3 +2589,103 @@ save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_typ
 
 
 
+
+%% FIGURE: heating and cooling separated vertical temp colored OCCUPATION PROBABILITY
+clearvars('-except',initial_vars{:})
+% blkbgd = true;  fig_type = '-png'; 
+fig_type = '-pdf'; blkbgd = false;
+buff = 0.1;
+sz = 50;
+autoLim = true;
+y_lim = [0,1];
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+dataString = cell([1,num.exp]);
+
+% Find the max temp and min temp of all the experiments %TODO update this to
+% autocheck the min/max temps for all the experiments
+temp_min = 16; 
+temp_max = 26;
+temp_bin = 0.5;
+cMapRange = temp_min:temp_bin:temp_max;
+ntemps = length(cMapRange);
+% color map information
+g1 = floor(ntemps/2);
+g2 = ntemps-g1;
+g1_cMap = Color('deepskyblue','grey',g1); %deepskyblue
+g2_cMap = Color('grey','red',g2);
+cMap = [g1_cMap;g2_cMap];
+
+% FIGURE:
+fig = getfig('',true,[565 649]);
+for ii = 1:num.exp
+    hold on
+    i = expOrder(ii);
+    % get color map for the temperatures in this experiment
+    CC = grouped(i).occ.temps;
+    color_idx = discretize(CC,cMapRange);
+
+    % cooling
+    y = grouped(i).occ.decreasing.avg;
+    y = y*100; % turn into percentage
+    x = shuffle_data(linspace(ii-buff*1.5,ii-buff/2, length(y)))';
+    loc = isnan(y);
+    x(loc) = [];
+    y(loc) = [];
+    kolor = cMap(color_idx,:);
+    kolor(loc,:) = [];
+    scatter(x,y,sz,kolor,'LineWidth',1)
+
+    % warming
+    y = grouped(i).occ.increasing.avg;
+    y = y*100; % turn into percentage
+    x = shuffle_data(linspace(ii+buff/2,ii+buff*1.5, length(y)))';
+    loc = isnan(y);
+    x(loc) = [];
+    y(loc) = [];
+    kolor = cMap(color_idx,:);
+    kolor(loc,:) = [];
+    scatter(x,y,sz,kolor,'filled')
+
+    % dataString{ii} = strrep(data(i).foodNames{1},'_',' ');
+    dataString{ii} = strrep(grouped(i).name,'_',' ');
+
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd);
+xlim([0,9])
+ax = gca;
+if ~autoLim
+    ylim(y_lim)
+end
+ylabel('flies in food quadrant (%)')
+
+set(ax,'XTick',1:num.exp)%,'XTickLabel',dataString,'XTickLabelRotation',0
+
+% Setup color code map:
+colormap(cMap)
+h = colorbar;
+h.Color = foreColor;
+N = findLargestDivisor(temp_min, temp_max, 5);
+temp_label = (temp_min:N:temp_max);
+h.Ticks  = linspace(0,1,length(temp_label));
+h.TickLabels = temp_label;
+h.Label.String = 'Temp (\circC)';
+h.Label.Color = foreColor;
+
+
+% Update group labels to match color scheme 
+xTicks = ax.XTick;% Get current tick positions and labels
+xTickLabels = string(ax.XTickLabel); % Convert to string array for easier manipulation
+ax.XTickLabel = [];% Hide original tick labels
+% Create new tick labels with specified colors
+for ii = 1:length(xTicks)
+    i = expOrder(ii);
+    text(xTicks(ii), ax.YLim(2), xTickLabels(ii), 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', 'Color', grouped(i).color,'FontSize',16);
+end
+ax.XColor = backColor;
+
+save_figure(fig,[comp_saveDir expGroup ' occupancy vertical warm cool split'],fig_type);
+
+

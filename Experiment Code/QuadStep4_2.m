@@ -872,6 +872,44 @@ for i = 1:num.exp
   grouped(i).position.well_pos = wellXY;
 end
 
+%% ANALYSIS: calculate group occupancy
+clearvars('-except',initial_vars{:})
+
+% Pull the data together:
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+
+    % combine all the occupancy for a given temp bin across trials:
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        for trial = 1:num.trial(exp)
+            % pull locations for temp and speed bins
+            well_loc = data(exp).T.foodLoc(trial);
+            raw_c(t,trial) = mean(data(exp).data(trial).occupancy.occ(c_frames,well_loc),'omitnan');
+            raw_h(t,trial) = mean(data(exp).data(trial).occupancy.occ(h_frames,well_loc),'omitnan');
+        end
+    end
+
+    % find the avg and err and save to group structure
+    grouped(exp).occ.increasing.raw = raw_h;
+    grouped(exp).occ.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).occ.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).occ.decreasing.raw = raw_c;
+    grouped(exp).occ.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).occ.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).occ.temps = temps;
+end
 
 
 
