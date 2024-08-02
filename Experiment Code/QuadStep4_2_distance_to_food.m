@@ -1472,7 +1472,12 @@ plotData = struct;
 for exp = 1:num.exp
     i = expOrder(exp);
     disp(expNames{i})
-
+    if data(i).hold_exp
+        [plotData(exp).rho, plotData(exp).pval]  = deal(nan);
+        plotData(exp).groupName = expNames(i);
+        plotData(exp).color =  grouped(i).color;
+        continue
+    end
     pooled_temp = [];
     pooled_dist = [];
     % get speed / distance information

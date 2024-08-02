@@ -290,140 +290,138 @@ for i = 1:num.exp
   end
 end
 
-%% FIGURES: COM of postions for each trial divided by heating / cooling periods
 
-
-%% ANALYSIS: normalize fly position within arena 
-clearvars('-except',initial_vars{:})
-OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy');
-
-for i = 1:num.exp
-  % BINNED
-  [tempRates,decreasing,increasing,temperatures] = deal([]);
-  % Pull temperature and rate information for the temp protocol
-  temp_rates = data(i).G(1).TR.rates;
-  temp_list = data(i).G(1).TR.temps;
-  nrates = data(i).G(1).TR.nRates;
-  ntemps = data(i).G(1).TR.nTemps;
-  rate_idx = data(i).G(1).TR.rateIdx;
-  temp_idx = data(i).G(1).TR.tempIdx;
-  loc_mat = struct;
-
-  % find frame index for each temp bin & rate of change
-  for tt = 1:ntemps
-    for rr = 1:nrates
-        rateAligned = rate_idx==rr;
-        tempAligned = temp_idx==tt;
-        loc = find(rateAligned & tempAligned);
-        if isempty(loc)
-            loc = nan;
-        end
-        loc_mat(rr,tt).frames = loc;
-        loc_mat(rr,tt).x = []; %set empty space for appending
-        loc_mat(rr,tt).y = [];
-    end
-  end
-  wellXY = [];
-  for trial = 1:num.trial(i)
-    trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
-    % get arena information
-    well_loc = data(i).T.foodLoc(trial);
-    wells = data(i).data(trial).data.wellcenters;
-    % find offset to make the food well the origin
-    x_offset = wells(1,well_loc);
-    y_offset = wells(2,well_loc);
-    wells_x = wells(1,:)-x_offset;
-    wells_y = wells(2,:)-y_offset;
-
-    X = data(i).data(trial).data.x_loc;
-    Y = data(i).data(trial).data.y_loc;
-    X = X-x_offset;
-    Y = Y-y_offset;
-    % save the position normalized data into the grouped structure or
-    % something
-
-    [WELLS,x_data,y_data] = deal([]);
-    if trial_date > OG_Orientation %new camera orientation
-        % Rotate to correct orientation
-        switch well_loc
-            case 1
-                x_data = X;
-                y_data = Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = wells_y;
-            case 2
-                x_data = Y;
-                y_data = -X;
-                WELLS(:,1) = wells_y;
-                WELLS(:,2) = -wells_x;
-            case 3
-                x_data = X;
-                y_data = -Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = -wells_y;
-            case 4
-                x_data = -Y;
-                y_data = X;
-                WELLS(:,1) = -wells_y;
-                WELLS(:,2) = wells_x;
-        end
-    else % Rotate to correct orientation with older camera arrangement            
-        switch well_loc
-            case 1
-                x_data = Y;
-                y_data = -X;
-                WELLS(:,1) = wells_y;
-                WELLS(:,2) = -wells_x;
-            case 2
-                x_data = X;
-                y_data = -Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = -wells_y;
-            case 3
-                x_data = -Y;
-                y_data = X;
-                WELLS(:,1) = -wells_y;
-                WELLS(:,2) = wells_x;
-            case 4
-                x_data = X;
-                y_data = Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = wells_y;
-        end
-
-    end
-    
-    wellXY.x(:,trial) = WELLS(:,1);
-    wellXY.y(:,trial) = WELLS(:,2);
-
-    % For each temp and rate, pool all (now normalized) fly positions
-    for tt = 1:ntemps
-      for rr = 1:nrates
-        frame_idx = loc_mat(rr,tt).frames;
-        % shift positions for food well as origin
-        if ~isnan(frame_idx)
-            x = x_data(frame_idx,:);
-            y = y_data(frame_idx,:);
-            
-            % save data into structure:
-            loc_mat(rr,tt).data(trial).pos = [x(:),y(:)];
-            loc_mat(rr,tt).x = [loc_mat(rr,tt).x; x(:)];
-            loc_mat(rr,tt).y = [loc_mat(rr,tt).y; y(:)];
-        else
-            loc_mat(rr,tt).data(trial).pos = [nan nan];
-            loc_mat(rr,tt).x = nan;
-            loc_mat(rr,tt).y = nan;
-        end
-      end
-    end
-  end
-  
-  % save trial data into broad structure
-  grouped(i).position.loc = loc_mat;
-  grouped(i).position.temp_rates = temp_rates;
-  grouped(i).position.temp_list = temp_list;
-  grouped(i).position.well_pos = wellXY;
-end
+% %% ANALYSIS: normalize fly position within arena 
+% clearvars('-except',initial_vars{:})
+% OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy');
+% 
+% for i = 1:num.exp
+%   % BINNED
+%   [tempRates,decreasing,increasing,temperatures] = deal([]);
+%   % Pull temperature and rate information for the temp protocol
+%   temp_rates = data(i).G(1).TR.rates;
+%   temp_list = data(i).G(1).TR.temps;
+%   nrates = data(i).G(1).TR.nRates;
+%   ntemps = data(i).G(1).TR.nTemps;
+%   rate_idx = data(i).G(1).TR.rateIdx;
+%   temp_idx = data(i).G(1).TR.tempIdx;
+%   loc_mat = struct;
+% 
+%   % find frame index for each temp bin & rate of change
+%   for tt = 1:ntemps
+%     for rr = 1:nrates
+%         rateAligned = rate_idx==rr;
+%         tempAligned = temp_idx==tt;
+%         loc = find(rateAligned & tempAligned);
+%         if isempty(loc)
+%             loc = nan;
+%         end
+%         loc_mat(rr,tt).frames = loc;
+%         loc_mat(rr,tt).x = []; %set empty space for appending
+%         loc_mat(rr,tt).y = [];
+%     end
+%   end
+%   wellXY = [];
+%   for trial = 1:num.trial(i)
+%     trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
+%     % get arena information
+%     well_loc = data(i).T.foodLoc(trial);
+%     wells = data(i).data(trial).data.wellcenters;
+%     % find offset to make the food well the origin
+%     x_offset = wells(1,well_loc);
+%     y_offset = wells(2,well_loc);
+%     wells_x = wells(1,:)-x_offset;
+%     wells_y = wells(2,:)-y_offset;
+% 
+%     X = data(i).data(trial).data.x_loc;
+%     Y = data(i).data(trial).data.y_loc;
+%     X = X-x_offset;
+%     Y = Y-y_offset;
+%     % save the position normalized data into the grouped structure or
+%     % something
+% 
+%     [WELLS,x_data,y_data] = deal([]);
+%     if trial_date > OG_Orientation %new camera orientation
+%         % Rotate to correct orientation
+%         switch well_loc
+%             case 1
+%                 x_data = X;
+%                 y_data = Y;
+%                 WELLS(:,1) = wells_x;
+%                 WELLS(:,2) = wells_y;
+%             case 2
+%                 x_data = Y;
+%                 y_data = -X;
+%                 WELLS(:,1) = wells_y;
+%                 WELLS(:,2) = -wells_x;
+%             case 3
+%                 x_data = X;
+%                 y_data = -Y;
+%                 WELLS(:,1) = wells_x;
+%                 WELLS(:,2) = -wells_y;
+%             case 4
+%                 x_data = -Y;
+%                 y_data = X;
+%                 WELLS(:,1) = -wells_y;
+%                 WELLS(:,2) = wells_x;
+%         end
+%     else % Rotate to correct orientation with older camera arrangement            
+%         switch well_loc
+%             case 1
+%                 x_data = Y;
+%                 y_data = -X;
+%                 WELLS(:,1) = wells_y;
+%                 WELLS(:,2) = -wells_x;
+%             case 2
+%                 x_data = X;
+%                 y_data = -Y;
+%                 WELLS(:,1) = wells_x;
+%                 WELLS(:,2) = -wells_y;
+%             case 3
+%                 x_data = -Y;
+%                 y_data = X;
+%                 WELLS(:,1) = -wells_y;
+%                 WELLS(:,2) = wells_x;
+%             case 4
+%                 x_data = X;
+%                 y_data = Y;
+%                 WELLS(:,1) = wells_x;
+%                 WELLS(:,2) = wells_y;
+%         end
+% 
+%     end
+% 
+%     wellXY.x(:,trial) = WELLS(:,1);
+%     wellXY.y(:,trial) = WELLS(:,2);
+% 
+%     % For each temp and rate, pool all (now normalized) fly positions
+%     for tt = 1:ntemps
+%       for rr = 1:nrates
+%         frame_idx = loc_mat(rr,tt).frames;
+%         % shift positions for food well as origin
+%         if ~isnan(frame_idx)
+%             x = x_data(frame_idx,:);
+%             y = y_data(frame_idx,:);
+% 
+%             % save data into structure:
+%             loc_mat(rr,tt).data(trial).pos = [x(:),y(:)];
+%             loc_mat(rr,tt).x = [loc_mat(rr,tt).x; x(:)];
+%             loc_mat(rr,tt).y = [loc_mat(rr,tt).y; y(:)];
+%         else
+%             loc_mat(rr,tt).data(trial).pos = [nan nan];
+%             loc_mat(rr,tt).x = nan;
+%             loc_mat(rr,tt).y = nan;
+%         end
+%       end
+%     end
+%   end
+% 
+%   % save trial data into broad structure
+%   grouped(i).position.loc = loc_mat;
+%   grouped(i).position.temp_rates = temp_rates;
+%   grouped(i).position.temp_list = temp_list;
+%   grouped(i).position.well_pos = wellXY;
+% end
 
 %% FIGURE: plot heatmap of fly position within arena
 clearvars('-except',initial_vars{:})

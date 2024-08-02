@@ -439,7 +439,7 @@ switch expGroup
         colors = {'blueviolet', 'white'};
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
-        colors = {'white','DarkOrchid'};
+        colors = {'grey','DarkOrchid'};
     case 'Berlin LTS 15-35 caviar vs empty'
         expOrder = [2,1];
         colors = {'Black','Teal'};
@@ -875,6 +875,57 @@ end
 %% ANALYSIS: calculate group occupancy
 clearvars('-except',initial_vars{:})
 
+% Pull the data together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    all_occ = [];
+    % combine all the occupancy for a given temp bin across trials:
+    idx = 0;
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        else idx = idx + 1;
+        end
+        for trial = 1:num.trial(exp)
+            % pull locations for temp and speed bins
+            well_loc = data(exp).T.foodLoc(trial);
+            y = data(exp).data(trial).occupancy.occ(:,well_loc);
+            raw_c(t,trial) = mean(y(c_frames),'omitnan');
+            raw_h(t,trial) = mean(y(h_frames),'omitnan');
+            if idx == 1
+                all_occ = autoCat(all_occ, y,false);
+            end
+        end
+    end
+    
+    % find the avg and err and save to group structure
+    grouped(exp).occ.increasing.raw = raw_h;
+    grouped(exp).occ.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).occ.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).occ.decreasing.raw = raw_c;
+    grouped(exp).occ.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).occ.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).occ.temps = temps;
+    grouped(exp).occ.all = all_occ;
+    grouped(exp).occ.avg = mean(all_occ,2,'omitnan');
+    grouped(exp).occ.std = std(all_occ,0,2,'omitnan');
+end
+
+
+
+
+%% ANALYSIS: pull binned speed
+clearvars('-except',initial_vars{:})
+
 % Pull the data together:
 for exp = 1:num.exp
     temps = grouped(exp).position.temp_list; % pre-binned temperatures
@@ -893,28 +944,20 @@ for exp = 1:num.exp
         if all(isnan(c_frames)) || all(isnan(h_frames))
             continue
         end
-        for trial = 1:num.trial(exp)
-            % pull locations for temp and speed bins
-            well_loc = data(exp).T.foodLoc(trial);
-            raw_c(t,trial) = mean(data(exp).data(trial).occupancy.occ(c_frames,well_loc),'omitnan');
-            raw_h(t,trial) = mean(data(exp).data(trial).occupancy.occ(h_frames,well_loc),'omitnan');
-        end
+        % pull locations for temp and speed bins
+        raw_c(t,:) = mean(grouped(exp).speed.all(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).speed.all(h_frames,:),1,'omitnan');
     end
 
     % find the avg and err and save to group structure
-    grouped(exp).occ.increasing.raw = raw_h;
-    grouped(exp).occ.increasing.avg = mean(raw_h, 2, 'omitnan');
-    grouped(exp).occ.increasing.err = std(raw_h, 0, 2, 'omitnan');
-    grouped(exp).occ.decreasing.raw = raw_c;
-    grouped(exp).occ.decreasing.avg = mean(raw_c, 2, 'omitnan');
-    grouped(exp).occ.decreasing.err = std(raw_c, 0, 2, 'omitnan');
-    grouped(exp).occ.temps = temps;
+    grouped(exp).speed.increasing.raw = raw_h;
+    grouped(exp).speed.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).speed.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).speed.decreasing.raw = raw_c;
+    grouped(exp).speed.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).speed.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).speed.temps = temps;
 end
-
-
-
-
-
 
 
  
