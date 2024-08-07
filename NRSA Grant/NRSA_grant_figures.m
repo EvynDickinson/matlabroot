@@ -125,6 +125,199 @@ ylabel('Relative activity (a.u.)')
 formatFig(fig, false);
 save_figure(fig,[figDir 'Range of TRN inhibition'],'-png',false,false);
 
+%% Plot out examples of ORN-PN transformation
+clear
+
+% folder = getCloudPath;
+figDir = [getCloudPath, 'Electrophysiology Modeling\'];
+
+% raw start data
+PN_base = [0.1, 0.6, 0.8, 0.85, 0.85];
+ORN = 1:5;
+temp_impact = [0.5,1,1.5]; % putative effects of temp on biophysics 
+LN_value = 1.5; % amplification from release of inhibition
+fakeNoise = 1.03;
+% formatting
+ylimits = [0,2];
+xlimits = [ORN(1),ORN(end)];
+xLab = 'ORN (Hz)';
+yLab = 'PN (Hz)';
+
+
+% upsample the data
+N = 100;
+freq = linspace(ORN(1),ORN(end),N); % range of input output frequencies to emulate
+
+% FIGURE:
+r = 2;
+c = 2;
+LW = 2;
+
+fig = getfig('',1,[215,215]); 
+
+% 1) NO TRN input 15 degrees
+subplot(r,c,1); hold on
+    PN_temp = PN_base*temp_impact(1);
+    PN_temp_GABA = PN_base.*LN_value*temp_impact(1);
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+    
+% 2) TRN input 15 degrees
+subplot(r,c,2); hold on
+    PN_temp = PN_base*temp_impact(1);
+    PN_temp_GABA = PN_base.*fakeNoise*temp_impact(1);
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+
+% 3) NO TRN input 35 degrees
+subplot(r,c,3); hold on
+    PN_temp = PN_base*temp_impact(3);
+    PN_temp_GABA = PN_base.*LN_value*temp_impact(3);
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+
+% 4) TRN input 35 degrees
+subplot(r,c,4); hold on
+    PN_temp = PN_base*temp_impact(3);
+    PN_temp_GABA = PN_base.*fakeNoise*temp_impact(3);
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+
+formatFig(fig, false,[r c]);
+for i = 1:4
+    subplot(r,c,i); 
+    % Labels
+    xlabel('ORN (Hz)')
+    ylabel('PN (Hz)')
+    ylim(ylimits)
+    xlim(xlimits)
+    set(gca, 'TickDir','out','xtick', [], 'ytick', [])
+    axis square
+    set(gca, 'FontName','arial','FontSize',8)
+end
+
+save_figure(fig,[figDir 'ORN-PN projected activity'],'-pdf',false,false);
+
+
+%% Plot out examples of SUBTRACTIVE ORN-PN transformation
+clear
+
+% folder = getCloudPath;
+figDir = [getCloudPath, 'Electrophysiology Modeling\'];
+
+% raw start data
+PN_base = [0.1, 0.6, 0.8, 0.85, 0.85];
+ORN = 1:5;
+temp_impact = [0.5,1,1.5]; % putative effects of temp on biophysics 
+LN_value = -0.4; % amplification from release of inhibition
+offset = 1.15;
+fakeNoise = 1.03;
+% formatting
+ylimits = [];
+xlimits = [ORN(1),ORN(end)];
+xLab = 'ORN (Hz)';
+yLab = 'PN (Hz)';
+
+
+% upsample the data
+N = 100;
+freq = linspace(ORN(1),ORN(end),N); % range of input output frequencies to emulate
+
+% FIGURE:
+r = 2;
+c = 2;
+LW = 2;
+
+fig = getfig('',1,[215,215]); 
+
+% 1) NO TRN input 15 degrees
+subplot(r,c,1); hold on
+    PN_temp = PN_base*temp_impact(1);
+    PN_temp_GABA = PN_base*temp_impact(1)-LN_value.*offset;
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+    ylimits = [ylimits; ylim];
+    
+% 2) TRN input 15 degrees
+subplot(r,c,2); hold on
+    PN_temp = PN_base*temp_impact(1);
+    PN_temp_GABA = PN_base.*fakeNoise*temp_impact(1);
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+    ylimits = [ylimits; ylim];
+
+% 3) NO TRN input 35 degrees
+subplot(r,c,3); hold on
+    PN_temp = PN_base*temp_impact(3);
+    PN_temp_GABA = PN_base.*temp_impact(3)-LN_value.*offset;
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+    ylimits = [ylimits; ylim];
+
+% 4) TRN input 35 degrees
+subplot(r,c,4); hold on
+    PN_temp = PN_base*temp_impact(3);
+    PN_temp_GABA = PN_base.*fakeNoise*temp_impact(3);
+    PN = interp1(ORN,PN_temp, freq,'spline');
+    PN(PN<0) = 0; % rectification
+    PN_disinhib = interp1(ORN,PN_temp_GABA, freq,'spline');
+    PN_disinhib(PN_disinhib<0) = 0; % rectification
+    % plot
+    plot(freq, PN, 'color', 'k','linewidth', LW) % upsampled PN activity
+    plot(freq, PN_disinhib, 'color', 'r','linewidth', LW) % upsampled  GABA released PN activity
+    ylimits = [ylimits; ylim];
+
+formatFig(fig, false,[r c]);
+for i = 1:4
+    subplot(r,c,i); 
+    % Labels
+    xlabel('ORN (Hz)')
+    ylabel('PN (Hz)')
+    ylim([0, max(ylimits(:,2))])
+    xlim(xlimits)
+    set(gca, 'TickDir','out','xtick', [], 'ytick', [])
+    axis square
+    set(gca, 'FontName','arial','FontSize',8)
+end
+
+save_figure(fig,[figDir 'ORN-PN projected activity'],'-pdf',false,false);
+
+
 
 
 %% FIGURE: heating and cooling separated vertical temp colored OCCUPATION PROBABILITY
