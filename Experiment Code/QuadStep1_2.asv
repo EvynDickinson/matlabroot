@@ -1,4 +1,7 @@
- clear
+%  DataTransferGUI
+% download_raw_data_from_server
+
+clear
  clc
 
 %% --------------------- Select Date & Experiment to Process ------------------------------
@@ -11,7 +14,7 @@ switch questdlg('Use Excel sheet to select experiment?')
         loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
         loc = loc1 & loc2;
         rownums = find(loc)+1;
-        if isempty(rownums)
+        if isempty(rownums) 
             warndlg('No available experiments')
             return
         end
@@ -20,8 +23,8 @@ switch questdlg('Use Excel sheet to select experiment?')
         fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);   
         if isempty(fileIdx) % abort if there are no files selected (e.g. cancel button or esc pressed)
             return
-        end
-        % get file info:
+        end 
+        % get file info: 
         baseFolder = getDataPath(2,0); % select raw data from a user defined location
         % baseFolder = getCloudPath;
         folder = eligible_files{fileIdx,1};
@@ -745,40 +748,12 @@ searchPath = [baseFolder folder '/' expName '*_1.avi'];
 videoList = dir(searchPath);
 videoStartTime = videoList(1).date(end-7:end);
 
-% write the time into the excel sheet
-try
-    [~, ~, ~] = xlsread(XL);
-catch ME
-    if strcmp(ME.identifier, 'MATLAB:xlsread:FileOpen')
-        disp(['File ', filename, ' is open.']);
-    else
-        % Handle other errors if needed
-        rethrow(ME);
-    end
-end
-
-
-try writecell({videoStartTime},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.starttime) num2str(XLrow(arena))])
-     writecell({facility},XL,'Sheet','Exp List','Range', [Alphabet(Excel.facility) num2str(XLrow)])
-catch
-    h = warndlg('Close Experiment Summary excel file and then close this warning box');
-    uiwait(h)
-    writecell({videoStartTime},XL,'Sheet','Exp List','Range',[Alphabet(Excel.starttime) num2str(XLrow)])
-    writecell({facility},XL,'Sheet','Exp List','Range',[Alphabet(Excel.facility) num2str(XLrow)])
-end
-
-
-% write processed step 1 into the excel file for this experiment
-try
-    for arena = 1:4
-        writecell({'Y'}, xlFile, 'Sheet','Exp List','Range',[Alphabet(Excel.step1) num2str(XLrow(arena))]);
-    end
-catch
-    h = warndlg('Close Experiment Summary excel file and then close this warning box');
-    uiwait(h)
-    for arena = 1:4
-        writecell({'Y'}, xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.step1) num2str(XLrow(arena))]);
-    end
+% write the experiment details into the excel sheet
+isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
+writecell({videoStartTime},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.starttime) num2str(XLrow(arena))])
+writecell({facility},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.facility) num2str(XLrow)])
+for arena = 1:4
+    writecell({'Y'}, xlFile, 'Sheet','Exp List','Range',[Alphabet(Excel.step1) num2str(XLrow(arena))]);
 end
 
 clearvars('-except',initial_vars{:})

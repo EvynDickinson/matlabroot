@@ -23,7 +23,7 @@ switch questdlg('Use Excel sheet to select experiment?')
         fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);   
         if isempty(fileIdx) % abort if there are no files selected (e.g. cancel button or esc pressed)
             return
-        end
+        end 
         % get file info:
         baseFolder = getDataPath(2,0); % select raw data from a user defined location
         % baseFolder = getCloudPath;
