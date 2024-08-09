@@ -15,7 +15,7 @@ switch questdlg('Use Excel sheet to select experiment?')
         loc = loc1 & loc2;
         rownums = find(loc)+1;
         if isempty(rownums)
-            warndlg('No available experiments')
+            warndlg('No available experiments') 
             return
         end
         eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]); 
