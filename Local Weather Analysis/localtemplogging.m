@@ -7,6 +7,9 @@ folder = [folder(1:end-5) 'Temp logging/'];
 fileList = dir([folder '*.csv']);
 fileList = {fileList(:).name};
 idx = listdlg("ListString",fileList,'PromptString','Select the temp log to load', 'ListSize',[300,300]);
+if isempty(idx)
+    return
+end
 fileName = fileList{idx};
 % fileName = 'D3_-_2814794_Aug_11_2024_6_03_49_PM.csv';
 % fileName = 'D3_-_2814794_Aug_11_2024_3_53_14_PM.csv';
@@ -82,7 +85,7 @@ end
 
 
 
-%%
+%% Compile data logs
 
 % sampling intrinsic features: 
 % 2 second sampling, 0.
