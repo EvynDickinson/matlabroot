@@ -37,7 +37,7 @@ std_data = zscore(raw_data);
 
 % 4) Analyze the results
 
-  = cumsum(explained);
+cumulative_explained = cumsum(explained);
 
 figure;
 scatter3(score(:,1), score(:,2),score(:,3));
