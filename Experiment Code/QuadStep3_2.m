@@ -218,7 +218,7 @@ ylabel('Temp (\circ)')
 title({'temperature alignment across experiments';...
       ['N = ' num2str(ntrials)]})
 formatFig(fig, true);
-
+%    save_figure(fig, [figDir 'temperature alignment'], '-pdf');
 save_figure(fig, [figDir 'temperature alignment'], '-png',0,1,'-r100');
 
 clearvars('-except',initial_vars{:})

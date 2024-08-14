@@ -85,14 +85,102 @@ end
 
 
 
+%% Smoothed vs fully sampled
+
+x = cumsum(T.time_diff,'omitnan');
+y = T.tempRate;
+
+% find 5-min period temp rate change
+per = mean(T.time_diff,'omitnan'); %sample period
+sSpan = ((1/per)*5);
+y_smooth = smooth(T.temperature_C,sSpan, 'moving');
+
+tempRange = range(T.temperature_C);
+tempSTD = std(T.temperature_C);
+title_str = {['Range: ' num2str(tempRange) '\circC | STD: ' num2str(tempSTD) '\circC'];...
+        [T.timeStrings{1} T.AMPM{1} ' to ' T.timeStrings{end} T.AMPM{end}]};
+
+% Plot zoomed in timecourse
+fig = getfig('',1,[772 556]); 
+
+% temp rate histogram
+subplot(r,c,sb(2).idx)
+    histogram(y,'FaceColor',kolor,'FaceAlpha',1); 
+
+
+    v_line(mean(y),'r')
+    %labels
+    xlabel('temp rate (\circC/min)'); 
+    ylabel('count'); 
+    
+% temperature timecourse
+subplot(r,c,sb(1).idx); hold on
+    plot(x,T.temperature_C,'color', kolor,'linewidth', 1.5)
+    plot(x,y_smooth,'color', Color('black'),'linewidth', 1)%5 min smoothed
+    %labels
+    xlabel('time (min)')
+    ylabel('temp (\circC)')
+    xlim(xlimits)
+% formatting and title    
+formatFig(fig, false,[r,c],sb); subplot(r,c,sb(1).idx)
+title(title_str,'fontsize', 12)
+
+save_figure(fig, [temp_log(1:end-4) ' timecourse'],'-pdf');
+
+
 %% Compile data logs
 
-% sampling intrinsic features: 
-% 2 second sampling, 0.
+xlimits = [1,600]; %[215, 232]; %
+x = cumsum(T.time_diff,'omitnan'); % cumulative time for whole time course
+ROI = find(x<=xlimits(2) & x>=xlimits(1)); % find index for desired range
+x_temp = x(ROI);
 
-%% try a 5 minute smoothing of the data
+% fully sampled temp rate:
+yF_rate = T.tempRate(ROI); 
+yF_temp = T.temperature_C(ROI);
+
+% find 5-min period temp rate change
+per = mean(T.time_diff,'omitnan'); %sample period
+sSpan = ((1/per)*5);
+yS_temp = smooth(T.temperature_C(ROI),sSpan, 'moving');
+yS_rate = (diff(yS_temp)./T.time_diff(ROI(2:end)));
+
+tempRange = range(T.temperature_C(ROI));
+tempSTD = std(T.temperature_C(ROI));
+title_str = {['Range: ' num2str(tempRange) '\circC | STD: ' num2str(tempSTD) '\circC'];...
+        [T.timeStrings{ROI(1)} T.AMPM{ROI(1)} ' to ' T.timeStrings{ROI(end)} T.AMPM{ROI(end)}]};
+
+% Plot zoomed in timecourse
+fig = getfig('',1,[772 556]); 
+
+% temp rate histogram
+subplot(r,c,sb(2).idx); hold on
+    h = histogram(yF_rate,'FaceColor',kolor,'FaceAlpha',0.5,'EdgeColor',kolor); 
+    histogram(yS_rate,'FaceColor',Color('grey'),'FaceAlpha',0.3,'EdgeColor',Color('grey')); 
+    % v_line(mean(y),'r')
+    %labels
+    xlabel('temp rate (\circC/min)'); 
+    ylabel('count'); 
+    xlim([-25,25])
+    
+% temperature timecourse
+subplot(r,c,sb(1).idx); hold on
+    plot(x_temp,yF_temp,'color', kolor,'linewidth', 1.5)
+    plot(x_temp,yS_temp,'color', Color('black'),'linewidth', 1)%5 min smoothed
+    %labels
+    xlabel('time (min)')
+    ylabel('temp (\circC)')
+    % xlim(xlimits)
+% formatting and title    
+formatFig(fig, false,[r,c],sb); subplot(r,c,sb(1).idx)
+title(title_str,'fontsize', 12)
+
+save_figure(fig, [temp_log(1:end-4) ' timecourse ROI ' num2str(xlimits(1)) '-' num2str(xlimits(2))],'-png');
 
 
-% test = data;
+
+
+
+
 
 

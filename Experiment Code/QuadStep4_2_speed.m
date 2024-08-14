@@ -179,6 +179,7 @@ save_figure(fig,[saveDir expGroup ' speed CDF'],fig_type,autoSave);
 %% FIGURE & STATS: speed hysteresis across groups
 clearvars('-except',initial_vars{:})
 plotSig = true;
+plot_err = true;
 LW = 1;
 buff = 0.2;
 alpha = 0.05;
@@ -224,9 +225,15 @@ for ii = 1:num.exp
 
     % plot heat and cooling lines
     subplot(r,c,1); hold on
+        %heating
         heat_y = mean(h_speed,2,'omitnan');
-        cool_y = mean(c_speed,2,'omitnan');
+        heat_err = std(h_speed, 0,2, 'omitnan');
+        plot_error_fills(plot_err, x, heat_y, heat_err, kolor,  fig_type, 0.35);
         plot(x,heat_y,'color',kolor,'linewidth',LW,'linestyle',h_style)
+        % cooling
+        cool_y = mean(c_speed,2,'omitnan');
+        cool_err = std(c_speed, 0,2, 'omitnan');
+        plot_error_fills(plot_err, x, cool_y, cool_err, kolor,  fig_type, 0.35);
         plot(x,cool_y,'color',kolor,'linewidth',LW,'linestyle',c_style)
 
     % plot speed hysteresis for each temp bin

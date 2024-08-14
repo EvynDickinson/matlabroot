@@ -1867,16 +1867,6 @@ end
 %% FIGURES: eccentricity across time
 clearvars('-except',initial_vars{:})
 
-% Pull data together
-for i = 1:num.exp
-    ecent = [];
-    for trial = 1:num.trial(i)
-        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
-        ecent = autoCat(ecent,y,false);
-    end
-    grouped(i).ecent.all = ecent;
-end
-
 % Cluster the sleeping flies by temperature
 for i = 1:num.exp
     temps = unique(data(i).G(1).TR.temps);
@@ -1917,12 +1907,13 @@ for i = 1:num.exp
     grouped(i).ecent.temps = temps;
 end
 
-plot_err = false;
+plot_err = true;
 equalLim = true;
 LW = 1.5;
 r = 1;
 c = 2;
 nMax = num.exp;
+
 
 % FIGURE:
 fig = getfig('',true);
@@ -1930,24 +1921,21 @@ fig = getfig('',true);
 subplot(r,c,1)
 hold on
 for i = 1:nMax
+    arena_radius = (data(i).data(1).data.r/pix2mm); 
     kolor = grouped(i).color;
     x = grouped(i).ecent.temps;
-    y = grouped(i).ecent.temp_all(:,1);
+    y = arena_radius-grouped(i).ecent.temp_all(:,1);
     y_err = grouped(i).ecent.temp_all(:,2);
-    loc = isnan(y)|isnan(y_err);
-    x(loc) = [];
-    y(loc) = [];
-    y_err(loc) = [];
-
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2)
     plot(x,y,'color',kolor,'linewidth',LW+1)
-    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
 end
 xlabel('Temperature (\circC)')
-ylabel('eccentricity (mm)')
+ylabel('distance to arena edge (mm)')
 % SEP HEAT / COOL
 subplot(r,c,2)
 hold on
 for i = 1:nMax
+    arena_radius = (data(i).data(1).data.r/pix2mm); 
     kolor = grouped(i).color;
     for type = 1:2 %increasing | decreasing
         switch type
@@ -1959,25 +1947,14 @@ for i = 1:nMax
                 l_style = '--';
         end
         x = grouped(i).ecent.temps;
-        y = grouped(i).ecent.(section_type)(:,1);
+        y = arena_radius-grouped(i).ecent.(section_type)(:,1);
         y_err = grouped(i).ecent.(section_type)(:,2);
-        loc = isnan(y)|isnan(y_err);
-        x(loc) = [];
-        y(loc) = [];
-        y_err(loc) = [];
-        if plot_err && ~strcmpi(fig_type,'-pdf')
-            fill_data = error_fill(x, y, y_err);
-            h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-            set(h, 'facealpha', 0.2)
-        elseif plot_err && strcmpi(fig_type,'-pdf')
-                plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
-                plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
-        end
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2)
         plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle',l_style)
     end
 end
 xlabel('Temperature (\circC)')
-ylabel('eccentricity (mm)')
+ylabel('distance to arena edge (mm)')
 
 % FORMATING AND LABELS
 formatFig(fig,blkbgd,[r,c]);
@@ -1989,10 +1966,6 @@ else
     subplot(r,c,2)
     ylim([16 30])
 end
-%
-
-% ylim(num_temp_lim)
-
 
 % save figure
 save_figure(fig,[saveDir  'Eccentricity by temp'],fig_type);
@@ -2609,8 +2582,8 @@ dataString = cell([1,num.exp]);
 
 % Find the max temp and min temp of all the experiments %TODO update this to
 % autocheck the min/max temps for all the experiments
-temp_min = 16; 
-temp_max = 26;
+temp_min = 15; 
+temp_max = 35;
 temp_bin = 0.5;
 cMapRange = temp_min:temp_bin:temp_max;
 ntemps = length(cMapRange);
@@ -2693,4 +2666,267 @@ ax.XColor = backColor;
 
 save_figure(fig,[comp_saveDir expGroup ' occupancy vertical warm cool split'],fig_type);
 
+%% FIGURE:  OCCUPATION timecourse standard figure
+clearvars('-except',initial_vars{:})
 
+combined_dt = false; 
+% Fast temp protocols:
+% x_limit = [17,25];
+% stepSize = 2;
+% % giant ramp protocols: 
+x_limit = [15,35];
+stepSize = 5;
+
+plot_err = true;
+autoLim = true;
+% Y limit ranges
+dist_lim = [0, 60];       %distance
+dt_lim = [0, 60];        %distance-temp
+auto_time = true;      % automated time axis limits
+time_lim = [0,400];     %time limit (x-axis)
+show_exp = 1:2; %[2,4];
+[~,backColor] = formattingColors(blkbgd); %get background colors
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 360;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = show_exp % 1:nMax
+%     i = expOrder(ii);
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        y = smooth(grouped(i).occ.avg,'moving',sSpan)*100;
+%         y_err = smooth(grouped(i).dist.err,'moving',sSpan);
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+    if combined_dt
+            x = grouped(i).occ.temps; 
+            y1 = [grouped(i).occ.increasing.raw, grouped(i).occ.decreasing.raw];
+            y =  mean(y1,2,'omitnan').*100;
+            y_err = std(y1,0,2,'omitnan').*100;
+            loc = isnan(y)|isnan(y_err);
+            x(loc) = [];
+            y(loc) = [];
+            y_err(loc) = [];
+            plot(x,y,'color',kolor,'linewidth',LW+1)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            dataString{i} = grouped(i).name;
+    else
+        for type = 1:2
+            x = grouped(i).occ.temps; 
+            switch type
+                case 1
+                    y1 = grouped(i).occ.increasing.raw;
+                    LS = '-';
+                case 2 
+                    y1 = grouped(i).occ.decreasing.raw;
+                    LS = '--';
+            end
+            y =  mean(y1,2,'omitnan').*100;
+            y_err = std(y1,0,2,'omitnan').*100;
+            loc = isnan(y)|isnan(y_err);
+            x(loc) = [];
+            y(loc) = [];
+            y_err(loc) = [];
+    
+            plot(x,y,'color',kolor,'linewidth',LW+1,'LineStyle',LS)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            dataString{i} = grouped(i).name;
+        end
+    end
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+if ~auto_time
+    xlim(time_lim)
+end
+% distance
+subplot(r,c,sb(2).idx)
+ylabel('flies in food region (%)')
+xlabel('time (min)')
+set(gca,'ydir','reverse')
+if ~auto_time
+    xlim(time_lim)
+end
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel('flies in food region (%)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dt_lim)
+end
+h_line(14.4,'grey',':',1) %36.2
+xlim(x_limit)
+% ylim([10,80])
+set(gca, 'tickdir', 'out')
+set(gca, 'xtick', x_limit(1):stepSize:x_limit(2))
+
+
+% save figure
+if combined_dt
+    fig_title = ' H C combined';
+else 
+    fig_title = ' H C separated';
+end
+
+save_figure(fig,[saveDir expGroup ' occupation percent' fig_title ' timecourse summary'],fig_type);
+
+%% FIGURE:  ...
+
+clearvars('-except',initial_vars{:})
+
+combined_dt = false; 
+% Fast temp protocols:
+% x_limit = [17,25];
+% stepSize = 2;
+% % giant ramp protocols: 
+x_limit = [15,35];
+stepSize = 5;
+
+plot_err = true;
+autoLim = true;
+% Y limit ranges
+dist_lim = [0, 60];       %distance
+dt_lim = [0, 60];        %distance-temp
+auto_time = true;      % automated time axis limits
+time_lim = [0,400];     %time limit (x-axis)
+show_exp = 1:2; %[2,4];
+[~,backColor] = formattingColors(blkbgd); %get background colors
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+sb(3).idx = 3:c:r*c; %binned distance alignment
+
+LW = 0.75;
+sSpan = 360;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = show_exp % 1:nMax
+%     i = expOrder(ii);
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+    %distance
+    subplot(r,c,sb(2).idx); hold on
+        y = smooth(grouped(i).occ.avg,'moving',sSpan)*100;
+%         y_err = smooth(grouped(i).dist.err,'moving',sSpan);
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+    if combined_dt
+            x = grouped(i).occ.temps; 
+            y1 = [grouped(i).occ.increasing.raw, grouped(i).occ.decreasing.raw];
+            y =  mean(y1,2,'omitnan').*100;
+            y_err = std(y1,0,2,'omitnan').*100;
+            loc = isnan(y)|isnan(y_err);
+            x(loc) = [];
+            y(loc) = [];
+            y_err(loc) = [];
+            plot(x,y,'color',kolor,'linewidth',LW+1)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            dataString{i} = grouped(i).name;
+    else
+        for type = 1:2
+            x = grouped(i).occ.temps; 
+            switch type
+                case 1
+                    y1 = grouped(i).occ.increasing.raw;
+                    LS = '-';
+                case 2 
+                    y1 = grouped(i).occ.decreasing.raw;
+                    LS = '--';
+            end
+            y =  mean(y1,2,'omitnan').*100;
+            y_err = std(y1,0,2,'omitnan').*100;
+            loc = isnan(y)|isnan(y_err);
+            x(loc) = [];
+            y(loc) = [];
+            y_err(loc) = [];
+    
+            plot(x,y,'color',kolor,'linewidth',LW+1,'LineStyle',LS)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            dataString{i} = grouped(i).name;
+        end
+    end
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+if ~auto_time
+    xlim(time_lim)
+end
+% distance
+subplot(r,c,sb(2).idx)
+ylabel('flies in food region (%)')
+xlabel('time (min)')
+set(gca,'ydir','reverse')
+if ~auto_time
+    xlim(time_lim)
+end
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel('flies in food region (%)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dt_lim)
+end
+h_line(14.4,'grey',':',1) %36.2
+xlim(x_limit)
+% ylim([10,80])
+set(gca, 'tickdir', 'out')
+set(gca, 'xtick', x_limit(1):stepSize:x_limit(2))
+
+
+% save figure
+if combined_dt
+    fig_title = ' H C combined';
+else 
+    fig_title = ' H C separated';
+end
+
+save_figure(fig,[saveDir expGroup ' occupation percent' fig_title ' timecourse summary'],fig_type);

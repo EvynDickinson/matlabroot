@@ -1714,7 +1714,7 @@ ylabel('Count')
 formatFig(fig, blackbackground);
 title(['Avg daily temp range: ' num2str(y_avg)])
 
-save_figure(fig,[rootdir 'Figures/temperature range histogram all cities'],'-pdf');
+
 
 %% Temperature Range plotted by latitude
 % WORKING HERE: NEED TO FIGURE OUT WHY THE DAY LENGTH ISN'T MATCHING

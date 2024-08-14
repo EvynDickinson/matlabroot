@@ -960,4 +960,14 @@ for exp = 1:num.exp
 end
 
 
+% Add eccentricity data
+for i = 1:num.exp
+    ecent = [];
+    for trial = 1:num.trial(i)
+        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
+        ecent = autoCat(ecent,y,false);
+    end
+    grouped(i).ecent.all = ecent;
+end
+
  

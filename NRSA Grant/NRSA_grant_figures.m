@@ -494,16 +494,16 @@ end
 
 clearvars('-except',initial_vars{:})
 
-combined_dt = true; 
+combined_dt = false; 
 % Fast temp protocols:
 % x_limit = [17,25];
 % stepSize = 2;
 % % giant ramp protocols: 
-x_limit = [10,35];
+x_limit = [15,35];
 stepSize = 5;
 
 plot_err = true;
-autoLim = false;
+autoLim = true;
 % Y limit ranges
 dist_lim = [0, 60];       %distance
 dt_lim = [0, 60];        %distance-temp

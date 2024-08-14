@@ -1090,7 +1090,7 @@ LW = 2;
 temps_idx = [3, 9, 15, 19];  % 17,20,23,25 [temp locations that match the assigned hold temps]
 temp_actual = grouped(4).position.temp_list(temps_idx);
 
-dyn_exp = [5]; %start with just the caviar trial
+dyn_exp = [4,5]; %start with just the caviar trial
 stat_idx = [1,2,3,6]; % experiment index for the static trials
 
 arena_radius = (data(1).data(1).data.r/pix2mm); 
@@ -1124,22 +1124,22 @@ for tt = 1:length(temps_idx)
         plot(x_line,[y_line,y_line],'color', Color('dodgerblue'), 'linewidth', LW)
     end
 
-    % % plot concordant static trial
-    % static_color = Color('black');
-    % i = stat_idx(tt);
-    % y_all = grouped(i).ecent.all([frames_up; frames_down],:);
-    % y_mean = arena_radius - mean(y_all, 1,'omitnan');
-    % y_line = mean(y_mean);
-    % x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
-    % scatter(x,y_mean, sz, static_color,'filled')
-    % plot(x_line,[y_line,y_line],'color', static_color, 'linewidth', LW,'LineStyle','-')
+    % plot concordant static trial
+    static_color = Color('black');
+    i = stat_idx(tt);
+    y_all = grouped(i).ecent.all([frames_up; frames_down],:);
+    y_mean = mean(y_all, 1,'omitnan');
+    y_line = mean(y_mean);
+    x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+    scatter(x,y_mean, sz, static_color,'filled')
+    plot(x_line,[y_line,y_line],'color', static_color, 'linewidth', LW,'LineStyle','-')
 end
 % 
 % Figure formatting
 formatFig(fig, blkbgd);
 
 xlim([16,26])
-ylim([6,20])
+ylim([14,28])
 ylabel('distance to edge (mm)')
 xlabel('temperature (\circC)')
 ax = gca;
@@ -1147,7 +1147,7 @@ set(gca,'tickdir','out','XTick',temp_actual)
 ax.FontSize = 18;
 
 % save_figure(fig,[saveDir 'static vs dynamic occupancy caviar and waxed'],fig_type);
-save_figure(fig,[saveDir 'scatter eccentricity ' grouped(i).name],fig_type);
+save_figure(fig,[saveDir 'scatter speed static temps'],fig_type);
 
  %% ANALYSIS AND FIGURE: Sleep quantity per fly for ENTIRE experiment
 clearvars('-except',initial_vars{:})
