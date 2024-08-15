@@ -1,0 +1,37 @@
+
+%% load a sample data set
+
+
+
+
+%% Simple linear integrator model
+
+% Define the model function with time delay
+modelFunc = @(params, t) ...
+    params(1) * exp(-t / params(2)) - params(3) * exp(-(t - params(5)) / params(4)) .* heaviside(t - params(5));
+
+% Time vector (e.g., from 0 to 10 seconds in 0.01-second increments)
+t = 0:0.01:10;
+
+% Example stimulus (replace this with your actual stimulus)
+stimulus = sin(2 * pi * 0.5 * t);  % Example stimulus
+
+% Initial parameter guesses [A1, tau1, A2, tau2, delta_t]
+initialParams = [1, 1, 1, 1, 0.5];  % Initial guesses including time delay
+
+% Fit the model to the stimulus using a non-linear fitting approach
+options = optimset('Display', 'off');  % Suppress output
+fitParams = lsqcurvefit(modelFunc, initialParams, t, stimulus, [], [], options);
+
+% Generate model response with fitted parameters
+modelResponse = modelFunc(fitParams, t);
+
+% Plot the stimulus and model response
+figure;
+plot(t, stimulus, 'b', 'DisplayName', 'Stimulus');
+hold on;
+plot(t, modelResponse, 'r', 'DisplayName', 'Fitted Model Response');
+legend;
+xlabel('Time (s)');
+ylabel('Response');
+title('Stimulus and Fitted Model Response with Time Delay');
