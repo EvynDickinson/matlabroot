@@ -1,7 +1,4 @@
 
-
-
-
 function [availableDrives, availablePaths] = getDataFolderOptions
 % path = getDataPath(rawORsingle, localORserver, promptString)
 % 
