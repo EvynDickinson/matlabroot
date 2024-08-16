@@ -23,6 +23,7 @@ coeffc = [3.9894	1150.207	-63.904;...
 nOdors = length(odors);
 CList = jet(nOdors);
 
+
 fold_change = [];
 VP = [];
 c = 3; 
@@ -59,7 +60,8 @@ set(ax, 'xtick', 1:nOdors,'xticklabel', odors)
 ylabel('fold change from 15\circC to 35\circC')
 formatFig(fig, false,[r,c],sb);
 
-save_figure(fig,[bFolder 'Electrophysiology Modeling/Temperature pressure curves'],'-png',true);
+
+
 
 %% Use Henry's Law for Ideal Dilute Solutions to determine the change in odor concentration across temps
 % assuming ideal conditions, so solubitily = 1 across this range of temps
