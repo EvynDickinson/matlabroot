@@ -608,15 +608,15 @@ hold on
      ylim(ylimits)
  end
 
-% Perform the Mann-Whitney U test (Wilcoxon rank-sum test)
+% % Perform the Mann-Whitney U test (Wilcoxon rank-sum test)
 % [p, h, stats] = ranksum(plotData(1).rho, plotData(3).rho); % caviar (1) vs waxed (3)
-% Display the results
-fprintf('p-value: %.4f\n', p);
-if h == 0
-    fprintf('The null hypothesis cannot be rejected: The two groups are not significantly different.\n');
-else
-    fprintf('The null hypothesis is rejected: The two groups are significantly different.\n');
-end
+% % Display the results
+% fprintf('p-value: %.4f\n', p);
+% if h == 0
+%     fprintf('The null hypothesis cannot be rejected: The two groups are not significantly different.\n');
+% else
+%     fprintf('The null hypothesis is rejected: The two groups are significantly different.\n');
+% end
 
 
 % save figure
