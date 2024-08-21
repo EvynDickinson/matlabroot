@@ -11,7 +11,7 @@ load(inputPath);
 disp(['Starting figures for ' folder ' ' expName])
 
 % pull the current base data pathway for the raw data
-components = strsplit(inputPath,{'\','/'});
+components = strsplit(inputPath,{'\','/'}); % split the pathway into the component parts
 baseFolder = [];
 for i = 1:length(components)-1
     baseFolder = [baseFolder components{i} '/'];

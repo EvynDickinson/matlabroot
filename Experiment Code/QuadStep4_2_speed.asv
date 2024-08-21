@@ -451,7 +451,7 @@ sb(2).idx = 3;
 for i = 1:num.exp
     % get speed / distance information
     speed = grouped(i).speed.all;   %speed for each trial within the exp.
-    fly_dist = grouped(i).ecent.all; %dist for each trial within the exp
+    fly_dist = grouped(i).ecc.all; %dist for each trial within the exp
 
     for trial = 1:num.trial(i)
         temp = [];
@@ -473,7 +473,7 @@ subplot(r,c,sb(1).idx); hold on
 
         % get speed / distance information
         speed = grouped(i).speed.all;   %speed for each trial within the exp.
-        fly_dist = grouped(i).ecent.all; %dist for each trial within the exp
+        fly_dist = grouped(i).ecc.all; %dist for each trial within the exp
         % reshape & remove NaNs
         y = [];
         y(:,1) = speed(:);
@@ -529,7 +529,7 @@ subplot(r,c,sb(2).idx)
 set(gca,'xcolor',backColor)
 
 % save figure
-save_figure(fig,[saveDir expGroup ' speed eccentricity correlation'],fig_type);
+save_figure(fig,[saveDir expGroup ' speed distance correlation'],fig_type);
 
 %% FIGURE: Temperature -- speed correlation
 % correlation ONLY during ramps

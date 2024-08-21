@@ -2931,14 +2931,10 @@ end
 
 save_figure(fig,[saveDir expGroup ' occupation percent' fig_title ' timecourse summary'],fig_type);
 
-%% FIGURE: percent of flies in the 'outer rim' of the arena aka outter 50% of the arena
+%% FIGURE: percent of flies in the 'outer rim' of the arena
 
 R = data(1).data(1).data.r; % radius of the arena in pixels
 innerR = R/sqrt(2); % radius of the inner 50% occupancy space
-dist_from_edge = (R - innerR)/pix2mm;
-
-
-
 
 
 

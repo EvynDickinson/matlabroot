@@ -440,15 +440,17 @@ blkbgd = false;
 r = data(1).data(1).data.r; %pixel radius of the arena
 n = 26; % number of spatial bins
 autoLim = false;
-axis_limits = [0, 0.02];
+axis_limits = [0, 0.01];
+
+expList = 1:num.exp;
 
 % Set Temperature
-for temp = 15:35  %[17,18, 20,30,32]%16:2:35 %(17:2:25)
+for temp = [15:4:35] %[17,18, 20,30,32]%16:2:35 %(17:2:25)
 
 plotData = [];
 max_occ = [];
 % GROUP DATA
-for i = 1:num.exp
+for i = expList
     % get the 'square' units for partitioning space
     Cx = mean(grouped(i).position.well_pos.x(5,:)); %center X
     Cy = mean(grouped(i).position.well_pos.y(5,:)); %center Y
@@ -505,7 +507,7 @@ disp(['Max occupancy: ' num2str(max_occ)])
 % PLOT 
 fig_W = 20 + (400*nRates);
 
-for i = 1:num.exp
+for i = expList
     fig = getfig('',false,[fig_W, 340]); 
     for rr = 1:nRates
         subplot(1,nRates,rr)

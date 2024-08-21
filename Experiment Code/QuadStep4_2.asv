@@ -498,7 +498,7 @@ switch expGroup
         expOrder = 4:-1:1; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue'};
     case 'Berlin LRR 25-17 temp rate no food'
-        expOrder = [5 3 2 1 4]; % slow to fast
+        expOrder = [4 3 2 1 5]; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
     case 'Berlin LRR temprate comp no food'
         expOrder = 4:-1:1; % slow to fast

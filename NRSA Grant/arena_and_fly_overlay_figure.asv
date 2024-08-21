@@ -280,10 +280,10 @@ viscircles(well_center', data(exp).data(trial).data.radii, 'color', 'w');
 % Show 50% edge circle: 
 R = data(exp).data(trial).data.r; % radius of the arena in pixels
 innerR = R/sqrt(2); % radius of the inner 50% occupancy space
-% innerR = R*sqrt(3/4);
+innerR = R*sqrt(1/4)
 viscircles(centre', innerR, 'color', 'w');
 
-save_figure(fig, [getCloudPath, 'FlyRampVideos/' data(exp).T.ExperimentID{trial} ' still frame ' num2str(exp_idx)], '-pdf')
+save_figure(fig, [getCloudPath, 'FlyRampVideos/' expName ' still frame ' num2str(exp_idx)], '-pdf')
 
 
 
