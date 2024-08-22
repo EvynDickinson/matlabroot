@@ -2529,43 +2529,10 @@ if ~xlim_auto
 end
 
 
-
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 %% FIGURE: heating and cooling separated vertical temp colored OCCUPATION PROBABILITY
@@ -2933,9 +2900,8 @@ save_figure(fig,[saveDir expGroup ' occupation percent' fig_title ' timecourse s
 
 %% FIGURE: percent of flies in the 'outer rim' of the arena aka outter 50% of the arena
 
-R = data(1).data(1).data.r; % radius of the arena in pixels
-innerR = R/sqrt(2); % radius of the inner 50% occupancy space
-dist_from_edge = (R - innerR)/pix2mm;
+
+
 
 
 

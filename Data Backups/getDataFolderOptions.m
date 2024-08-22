@@ -34,7 +34,7 @@ paths = getPathNames;
 if ismac
     [~, result] = system('hostname');
     computerName = strtrim(result);
-    if contains(computerName,'its.yale.internal')
+    if contains(computerName,'yale')
         computerName = 'Yale VPN';
     end
 else
