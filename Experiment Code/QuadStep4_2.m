@@ -1003,7 +1003,6 @@ for exp = 1:num.exp
     grouped(exp).ring.avg = mean(ring_per,2,'omitnan');
 end
 
-
 % Pull the data together: 
 for exp = 1:num.exp
     temps = grouped(exp).position.temp_list; % pre-binned temperatures
@@ -1015,28 +1014,18 @@ for exp = 1:num.exp
     [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
     all_ring = [];
     
-    % working here -- update the averages for temp bins 
-    idx = 0;
+    % Update the averages for the classic temperature bins 
     for t = 1:nTemp
         % cooling frames for this temp
         c_frames = locs(cIdx,t).frames;
         h_frames = locs(hIdx,t).frames;
         if all(isnan(c_frames)) || all(isnan(h_frames))
             continue
-        else idx = idx + 1;
         end
-        for trial = 1:num.trial(exp)
-            % pull locations for temp and speed bins
-            well_loc = data(exp).T.foodLoc(trial);
-            y = data(exp).data(trial).occupancy.occ(:,well_loc);
-            raw_c(t,trial) = mean(y(c_frames),'omitnan');
-            raw_h(t,trial) = mean(y(h_frames),'omitnan');
-            if idx == 1
-                all_occ = autoCat(all_occ, y,false);
-            end
-        end
+        raw_c(t,:) = mean(grouped(exp).ring.percent(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).ring.percent(h_frames,:),1,'omitnan');
     end
-    
+
     % find the avg and err and save to group structure
     grouped(exp).ring.increasing.raw = raw_h;
     grouped(exp).ring.increasing.avg = mean(raw_h, 2, 'omitnan');
@@ -1045,7 +1034,16 @@ for exp = 1:num.exp
     grouped(exp).ring.decreasing.avg = mean(raw_c, 2, 'omitnan');
     grouped(exp).ring.decreasing.err = std(raw_c, 0, 2, 'omitnan');
     grouped(exp).ring.temps = temps;
-    grouped(exp).ring.all = all_occ;
-    grouped(exp).ring.avg = mean(all_occ,2,'omitnan');
-    grouped(exp).ring.std = std(all_occ,0,2,'omitnan');
 end
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2899,22 +2899,129 @@ end
 save_figure(fig,[saveDir expGroup ' occupation percent' fig_title ' timecourse summary'],fig_type);
 
 %% FIGURE: percent of flies in the 'outer rim' of the arena aka outter 50% of the arena
+clearvars('-except',initial_vars{:})
+plot_err = true;
+autoLim = false;
+plot_singles = false;
+% Y limit ranges
+dist_lim = [0 100];        %ring occupancy limit
+auto_time = true;      % automated time axis limits
+time_lim = [0,400];     %time limit (x-axis)
+nMax =  num.exp;%
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
-R = data(1).data(1).data.r; % radius of the arena in pixels
-innerR = R/sqrt(2); % radius of the inner 50% occupancy space
-dist_from_edge = (R - innerR)/pix2mm;
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; 
+sb(3).idx = 3:c:r*c; %binned distance alignment
 
+LW = 0.75;
+sSpan = 360;
+dataString = cell([1,num.exp]);
 
+% FIGURE:
+fig = getfig('',true);
+for i = 1:nMax
+%     i = expOrder(ii);
+    x = grouped(i).time;
+    kolor = grouped(i).color;
 
+    %temperatur over time
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
 
+    %ring occupancy over time
+    subplot(r,c,sb(2).idx); hold on
+        x = grouped(i).time;
+        if plot_singles
+            for trial = 1:num.trial(i)
+                y = smooth(grouped(i).ring.percent(:,trial),'moving',sSpan);
+                plot(x,y,'LineWidth',0.5,'Color',kolor)
+            end
+        end
+        y = smooth(grouped(i).ring.avg,'moving',sSpan);
+        plot(x,y,'LineWidth',LW,'Color',kolor)
+        if ~autoLim
+            ylim(dist_lim)
+        end
+       dataString{i} = grouped(i).name;
 
+    %temp dependent distance
+    subplot(r,c,sb(3).idx); hold on
+        x = grouped(i).ring.temps;  
+        % increasing temps
+        y = grouped(i).ring.increasing.avg;
+        y_err = grouped(i).ring.increasing.err;
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        dataString{i} = grouped(i).name;
+        % decreasing temps
+        y = grouped(i).ring.decreasing.avg;
+        y_err = grouped(i).ring.decreasing.err;
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+        plot(x,y,'color',kolor,'linewidth',LW+1,'linestyle', '--')
+        
+end
 
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+if ~auto_time
+    xlim(time_lim)
+end
+% ring timecourse
+subplot(r,c,sb(2).idx)
+ylabel('flies in outer ring (%)')
+xlabel('time (min)')
+if ~auto_time
+    xlim(time_lim)
+end
+if ~autoLim
+    ylim(dist_lim)
+end
+h_line(50,'grey',':',1) 
+legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off','fontsize', 5)
+% temp-ring relationship
+subplot(r,c,sb(3).idx)
+ylabel('flies in outer ring (%)')
+xlabel('temp (\circC)')
+if ~autoLim
+    ylim(dist_lim)
+end
+h_line(50,'grey',':',1)
 
+% save figure
+save_figure(fig,[saveDir 'timecourse summary ring occupancy'],fig_type);
 
+%% FIGURE: plot food occupancy vs ring occupancy but color coded by temperature
+clearvars('-except',initial_vars{:})
+sz = 50;
 
+exp = 1;
+temp = grouped(exp).occ.temps;
 
+cmap = [Color('blue', 'grey', sum(temp<=25)); Color('grey','red', sum(temp>25))];
 
+figure; hold on
 
+x = grouped(exp).occ.increasing.avg.*100;
+y = grouped(exp).ring.increasing.avg;
+plot(x,y,'color', grouped(i).color, 'linewidth', 1)
+scatter(x,y,sz, cmap,'filled')
+
+x = grouped(exp).occ.decreasing.avg.*100;
+y = grouped(exp).ring.decreasing.avg;
+plot(x,y,'color', grouped(i).color, 'linewidth', 1,'linestytle')
+scatter(x,y,sz, cmap,'filled')
+
+xlim([0,100])
+ylim([0, 100])
 
 
 
