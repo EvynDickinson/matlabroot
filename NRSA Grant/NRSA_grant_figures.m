@@ -402,11 +402,7 @@ else
     sig_comp = table(Group1,Group2,P_Value);
     disp(sig_comp)
 end
-
-
-
-
-%% 
+ 
 %% FIGURE: scattered OCCUPATION PROBABILITY for selected temperatures
 % load data from QuadStep4.2 first (specifically, data with waxed antenna / MP vs
 % control caviar data ('Berlin F LRR 25-17 sensory components')
@@ -900,7 +896,7 @@ save_figure(fig,[saveDir expGroup ' temp speed correlation ramps only'],'-pdf',t
 %%  statistical comparison on two correlations: 
 
 
-%% Determine the area contained within the 
+%% Determine the area contained within the food region ROI
 
 pix2mm = 12.8; %conversion from pixels to mm for these videos
 radii = 165; %well surround regions
