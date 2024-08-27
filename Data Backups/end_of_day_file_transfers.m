@@ -10,7 +10,6 @@ start_dir = 'F:\Evyn\DATA\'; %'C:\Users\jeannelab\Documents\Evyn\DATA\';
 %get base folder pathway  
 baseFolder = 'S:\Evyn\DATA\'; % G:\My Drive\Jeanne Lab\DATA\';  
 
-
 %select folder date    
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
@@ -23,10 +22,9 @@ if strcmpi(folderNames{indx}, 'Today')==true
     dir_sel = date_today;
 else
     dir_sel = folderNames{indx};
-end
+end 
 folder = fullfile(start_dir, dir_sel);
 targetDir = [baseFolder dir_sel];
-
 
 % COPY TEMPERATURE LOG FOR SECOND EXPERIMENT FILE
 % 1) get the list of experiments in the date folder

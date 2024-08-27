@@ -1,8 +1,8 @@
-%  DataTransferGUI
+%   
 % download_raw_data_from_server
 
 clear
- clc
+clc
 
 %% --------------------- Select Date & Experiment to Process ------------------------------
 %load excel file:
@@ -14,8 +14,8 @@ switch questdlg('Use Excel sheet to select experiment?')
         loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
         loc = loc1 & loc2;
         rownums = find(loc)+1;
-        if isempty(rownums) 
-            warndlg('No available experiments')
+        if isempty(rownums)
+            warndlg('No available experiments') 
             return
         end
         eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]); 
@@ -24,7 +24,7 @@ switch questdlg('Use Excel sheet to select experiment?')
         if isempty(fileIdx) % abort if there are no files selected (e.g. cancel button or esc pressed)
             return
         end 
-        % get file info: 
+        % get file info:
         baseFolder = getDataPath(2,0); % select raw data from a user defined location
         % baseFolder = getCloudPath;
         folder = eligible_files{fileIdx,1};
@@ -94,55 +94,62 @@ initial_vars = who; initial_vars{end+1} = 'initial_vars';
 fprintf('\nNext\n')
 
 %% Determine the outlines for each arena % TODO
-movieInfo = VideoReader([baseFolder folder '/' expName '_1.avi']); %read in video
-demoImg = rgb2gray(read(movieInfo,1));
+% Load the well location data 
+well_loc_file = [baseFolder folder '/' expName ' well_locations'];
+load(well_loc_file);
 
-%give well order hint:
-demo_well_label = [];
-for i = 1:16; demo_well_label{i} = num2str(i); end
-demo_well_loc = load([baseFolder(1:end-6) '/demo_well_loc.mat']);
-RGB = insertText(demoImg,demo_well_loc.demo_well_loc,demo_well_label,'FontSize', 15);
+% copy the files to the new analysis folder
+copyfile(well_loc_file, [analysisDir expName ' well_locations.mat']);
 
-radii = 165; %well surround regions
-r = 435; % radius of the arena
+% movieInfo = VideoReader([baseFolder folder '/' expName '_1.avi']); %read in video
+% demoImg = rgb2gray(read(movieInfo,1));
+% 
+% %give well order hint:
+% demo_well_label = [];
+% for i = 1:16; demo_well_label{i} = num2str(i); end
+% demo_well_loc = load([baseFolder(1:end-6) '/demo_well_loc.mat']);
+% RGB = insertText(demoImg,demo_well_loc.demo_well_loc,demo_well_label,'FontSize', 15);
+
+% radii = 165; %well surround regions
+% r = 435; % radius of the arena
 arenaIdx = {'A', 'B', 'C', 'D'};
 
-% get experiment date for later comparison to arena rearrangement timelines
-try curr_date = datetime(expData.parameters.date, 'InputFormat', 'MM.dd.yy');
-catch;  curr_date = datetime(expData.parameters.date, 'InputFormat', 'mm.dd.yyyy');
-end
+% % get experiment date for later comparison to arena rearrangement timelines
+% try curr_date = datetime(expData.parameters.date, 'InputFormat', 'MM.dd.yy');
+% catch;  curr_date = datetime(expData.parameters.date, 'InputFormat', 'mm.dd.yyyy');
+% end
 
-% Select the well centers from top right corner and go clockwise:
-if all([~exist([analysisDir 'well_locations.mat'],'file'), ~exist([analysisDir expName ' well_locations.mat'],'file')])
-    h = warndlg('Start at top left arena and click wells in clockwise order starting at 12. Proceed clockwise through the arenas.'); 
-    uiwait(h)
-    % add text hints for outline order:
-
-    well_loc = readPoints(RGB,16); % get locations of the wells from the image
-
-     
-    % Allocate well locations from manually selected locations
-    decoder_new = [11, 12, 9, 10, 15, 16, 13, 14, 7, 8, 5, 6, 3, 4, 1, 2];
-    decoder_old = [16 13 14 15 4 1 2 3 12 9 10 11 8 5 6 7];
-    wellcenters = zeros(2,16); %blank locations to fill with coordinates
-    for arena = 1:4
-        % Divide well centers by arena
-        roi = (arena-1)*4 + 1 : (arena-1)*4 + 4;
-        % check if the experiment is from the previous version for arena alignment
-        if curr_date > datetime('9.05.23', 'InputFormat', 'MM.dd.yy') %date of switch to new duel quad setup
-                wellcenters(:,roi) =  well_loc(:,decoder_new(roi));
-       else
-                wellcenters(:,roi) = well_loc(:,decoder_old(roi));
-        end
-    end
-    % save the arena well locations:
-    save([analysisDir expName ' well_locations.mat'], 'wellcenters','arenaIdx','r');
- else
-    try load([analysisDir expName ' well_locations.mat']);
-    catch 
-        load([analysisDir 'well_locations.mat']);
-    end
-end   
+% % Select the well centers from top right corner and go clockwise:
+% if all([~exist([analysisDir 'well_locations.mat'],'file'), ~exist([analysisDir expName ' well_locations.mat'],'file')])
+%     h = warndlg('Start at top left arena and click wells in clockwise order starting at 12. Proceed clockwise through the arenas.'); 
+%     uiwait(h)
+%     % add text hints for outline order:
+% 
+%     well_loc = readPoints(RGB,16); % get locations of the wells from the image
+% 
+% 
+%     % Allocate well locations from manually selected locations
+%     decoder_new = [11, 12, 9, 10, 15, 16, 13, 14, 7, 8, 5, 6, 3, 4, 1, 2];
+%     decoder_old = [16 13 14 15 4 1 2 3 12 9 10 11 8 5 6 7];
+%     wellcenters = zeros(2,16); %blank locations to fill with coordinates
+%     for arena = 1:4
+%         % Divide well centers by arena
+%         roi = (arena-1)*4 + 1 : (arena-1)*4 + 4;
+%         % check if the experiment is from the previous version for arena alignment
+%         if curr_date > datetime('9.05.23', 'InputFormat', 'MM.dd.yy') %date of switch to new duel quad setup
+%                 wellcenters(:,roi) =  well_loc(:,decoder_new(roi));
+%        else
+%                 wellcenters(:,roi) = well_loc(:,decoder_old(roi));
+%         end
+%     end
+%     % save the arena well locations:
+%     save([analysisDir expName ' well_locations.mat'], 'wellcenters','arenaIdx','r');
+%  else
+%     try load([analysisDir expName ' well_locations.mat']);
+%     catch 
+%         load([analysisDir 'well_locations.mat']);
+%     end
+% end   
     
 % Find the arena centers:
 arenaData = struct;
