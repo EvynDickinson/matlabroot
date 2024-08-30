@@ -388,7 +388,7 @@ end
 %% SAVE: data stored in each subfolder for arenas
 
 % Save group data into combo folder: 
-save([baseFolder folder '/analysis/' expName ' speed data.mat'],'speed', 'trackROI');
+save([baseFolder expName ' speed data.mat'],'speed', 'trackROI');
 
 % Save into each group folder:
 SPEED = speed;
