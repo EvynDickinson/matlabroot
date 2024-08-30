@@ -20,7 +20,7 @@ for i = 1:length(components)-1
     baseFolder = [baseFolder components{i} '/'];
 end
 clear components i
-analysisDir = [baseFolder folder '/analysis/']; %just for preformed data (halfway point save)
+analysisDir = baseFolder; %just for preformed data (halfway point save)
 nArenas = 4;
 initial_vars{end+1} = 'nArenas';
 initial_vars{end+1} = 'figDir';

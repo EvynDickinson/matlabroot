@@ -539,6 +539,7 @@ clearvars('-except',initial_vars{:})
 
 %% Find number of flies within each well sphere & fly distance to wells
 pix2mm = 12.8; %conversion from pixels to mm for these videos
+radii = 165; %well surround regions
 for arena = 1:4
     % Pull fly coordinate position data for this arena 
     X = T.(['x' arenaIdx{arena}]);
@@ -640,9 +641,9 @@ videoStartTime = videoList(1).date(end-7:end);
 
 % write the experiment details into the excel sheet
 isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
-writecell({videoStartTime},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.starttime) num2str(XLrow(arena))])
-writecell({facility},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.facility) num2str(XLrow)])
 for arena = 1:4
+    writecell({videoStartTime},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.starttime) num2str(XLrow(arena))])
+    writecell({facility},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.facility) num2str(XLrow(arena))])
     writecell({'Y'}, xlFile, 'Sheet','Exp List','Range',[Alphabet(Excel.step1) num2str(XLrow(arena))]);
 end
 
