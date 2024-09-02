@@ -46,12 +46,12 @@ if strcmp(h, 'Cancel') || isempty(h)
 end
 disp('Select single trial data location:')
 outputFolder = getDataPath(1,0); 
-
+ 
 % ===============================================================================
 for ii = 1:length(fileIdx)
     trial_ID = [List.date{ii} '_' List.expID{ii} '_' List.arena{ii}];
 
-    % Proccess basic and speed data 
+    % Proccess basic and speed data  
     inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat']; 
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
         results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder); % Run the basic figures
