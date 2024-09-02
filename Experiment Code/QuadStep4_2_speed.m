@@ -623,3 +623,181 @@ hold on
 save([saveDir expGroup ' temp speed correlation ramps only'],'plotData');
 save_figure(fig,[saveDir expGroup ' temp speed correlation ramps only'],'-png',true,false);
 save_figure(fig,[saveDir expGroup ' temp speed correlation ramps only'],'-pdf',true,true);
+
+%% FIGURE: Speed - outter ring eccentricity correlation [for FULL experiment]
+clearvars('-except',initial_vars{:})
+plot_err = true;
+corr_coef = [];
+num_points = 300;
+buff = 0.2;
+speedLim = [0,15];
+SZ = 50;
+LW = 1.5;
+[foreColor,backColor] = formattingColors(blkbgd);
+r = 1;
+c = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
+
+% get correlation data
+for i = 1:num.exp
+    % get speed / distance information
+    speed = grouped(i).speed.all;   %speed for each trial within the exp.
+    fly_dist = grouped(i).ring.all; %dist for each trial within the exp
+
+    for trial = 1:num.trial(i)
+        temp = [];
+        temp(:,1) = speed(:,trial);
+        temp(:,2) = fly_dist(:,trial);
+        loc = any(isnan(temp),2);
+        temp(loc,:) = [];
+        % speed-occupancy correlation
+        rho = corr(temp);
+        corr_coef(i).all(trial) = rho(1,2);
+    end
+ end
+
+% PLOT FIGURE
+fig = getfig('',true);
+% linear fit of speed-distance to food|source
+subplot(r,c,sb(1).idx); hold on
+    for i = 1:num.exp
+
+        % get speed / distance information
+        speed = grouped(i).speed.all;   %speed for each trial within the exp.
+        fly_dist = grouped(i).ring.all; %dist for each trial within the exp
+        % reshape & remove NaNs
+        y = [];
+        y(:,1) = speed(:);
+        y(:,2) = fly_dist(:);
+        loc = any(isnan(y),2);
+        y(loc,:) = [];
+
+        % speed-distance correlation
+        rho = corr(y);
+        corr_coef(i).group = rho(1,2);
+
+        % sort by speed
+        sorted_data = sortrows(y,1);
+        idx = randi(length(y),[num_points,1]);
+        X = sorted_data(idx,1);
+        Y = sorted_data(idx,2);
+
+        % Plot random selection of points & linear regression line of best fit
+        kolor = grouped(i).color;
+        scatter(X,Y,10,kolor)
+        fitX = sorted_data(:,1);
+        [p,S] = polyfit(fitX,sorted_data(:,2),1);
+        [y_fit,delta] = polyval(p,fitX,S);
+        plot(fitX,y_fit,'color',kolor,'linestyle','-','linewidth',1)
+        if plot_err
+            plot(fitX,y_fit+2*delta,'color',kolor,'linestyle','--','linewidth',1)
+            plot(fitX,y_fit-2*delta,'color',kolor,'linestyle','--','linewidth',1)
+        end
+    end
+    xlim(speedLim)
+    xlabel('Speed (mm/s)')
+    ylabel('Ring occupancy (%)')
+
+% correlation coefficients
+subplot(r,c,sb(2).idx); hold on
+     for ii = 1:num.exp
+       i = expOrder(ii);
+       kolor = grouped(i).color;
+       xlow = ii-buff-0.1;
+       xhigh = ii+buff+0.1;
+       x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+       y = corr_coef(i).all;
+       y_avg = mean(corr_coef(i).all);
+       scatter(x,y,SZ,kolor,'filled')
+       plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
+       plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',LW)
+     end
+     xlim([0.5,num.exp+.5])
+     ylabel('correlation coefficient')
+     h_line(0,foreColor,':',1)
+formatFig(fig,blkbgd,[r,c],sb);
+subplot(r,c,sb(2).idx)
+set(gca,'xcolor',backColor)
+
+% save figure
+save_figure(fig,[saveDir expGroup ' speed ring occupancy correlation'],fig_type);
+
+
+%% FIGURE: Speed - outter ring eccentricity correlation [for RAMPS only]
+clearvars('-except',initial_vars{:})
+plot_err = true;
+corr_coef = [];
+num_points = 300;
+buff = 0.2;
+speedLim = [0,15];
+SZ = 50;
+LW = 1.5;
+[foreColor,backColor] = formattingColors(blkbgd);
+r = 1;
+c = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
+
+% Select the temperature protocol for ramp comparison (if not all the protocols are the same)
+protocolList = unique({data(:).temp_protocol});
+if length(protocolList)>1
+    idx = listdlg('PromptString', 'Select the temperature protocol for time ROI selection', 'ListString',['Respective protocols'; protocolList(:)]);
+    if idx>1
+        t_proto = cell(num.exp,1);
+        t_proto(:) = protocolList(idx-1);
+    else
+        t_proto = {data(:).temp_protocol};
+    end
+else
+     t_proto = {data(:).temp_protocol};
+end
+        
+% get correlation data
+for i = 1:num.exp
+    tp = getTempTurnPoints(t_proto{i});
+    ROI = [tp.UpROI, tp.DownROI];
+
+    % get speed / distance information
+    speed = grouped(i).speed.all(ROI,:);     %speed for each trial within the exp.
+    fly_dist = grouped(i).ring.all(ROI,:);         %dist for each trial within the exp
+
+    for trial = 1:num.trial(i)
+        temp = [];
+        temp(:,1) = speed(:,trial);
+        temp(:,2) = fly_dist(:,trial);
+        loc = any(isnan(temp),2);
+        temp(loc,:) = [];
+        % speed-occupancy correlation
+        rho = corr(temp);
+        corr_coef(i).all(trial) = rho(1,2);
+    end
+ end
+
+pixWidth = 60; % additional figure pixel size for image for each extra experiment group
+figSize = [pixWidth + (pixWidth*num.exp),590];
+
+% PLOT FIGURE correlation coefficients
+fig = getfig('',true);
+hold on
+     for ii = 1:num.exp
+           i = expOrder(ii);
+           kolor = grouped(i).color;
+           xlow = ii-buff-0.1;
+           xhigh = ii+buff+0.1;
+           x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+           y = corr_coef(i).all;
+           y_avg = mean(corr_coef(i).all);
+           scatter(x,y,SZ,kolor,'filled')
+           plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',LW,'HandleVisibility','off')
+     end
+     xlim([0.5,num.exp+.5])
+     ylabel('speed-ecentricity correlation')
+     h_line(0,foreColor,':',1)
+formatFig(fig,blkbgd);
+legend({grouped(:).name},'fontsize', 8,'box', 'off')
+
+% save figure
+save_figure(fig,[saveDir expGroup ' speed-eccentricity ramp only correlation'],fig_type);
+
+

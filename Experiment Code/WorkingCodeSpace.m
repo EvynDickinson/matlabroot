@@ -1441,110 +1441,15 @@ end
 % disp(expNames')
 
 
-%%
+%% Can we pair speed and position?
+% use the trackROI data to determine the location or distance from center to
+% calculate speed for each location?
 
-baseFolder = getCloudPath;
-[expName, expPath] = uigetfile([baseFolder, '*timecourse data.mat'],'select data file for experiment to quantify');
-app.expParams = load([expPath, expName]);
-set(app.VideoPathEditField.Value)
-[baseFolder,app.expParams.expData.parameters.date '/' app.expParams.expName '_']
+temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2load{:});
 
-
-% load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena C\caviar_recovery_rampC timecourse data.mat');
-%     % load('G:\My Drive\Jeanne Lab\DATA\09.19.2022\Arena D\caviar_recovery_rampD timecourse data.mat');
-%     % load('G:\MyDrive\Jeanne')
-%     baseFolder = getCloudPath;
-%     vidDir = [baseFolder expData.parameters.date '/' expName '_'];
-%     dataDir = [baseFolder 'Manual Tracking\'];
-%     T = data.T;
-%     % Set axis limits for the selected arena
-%     x = data.centre(1);
-%     y = data.centre(2);
-%     r = data.r;
-%     xlimit = [x-(r+50),x+(r+50)];
-%     ylimit = [y-(r+50),y+50+r];
-% 
-%     % check for existing data structures
-%     SaveFile = [dataDir expName ' manual tracks.mat'];
-%     if ~exist(SaveFile,'file')
-%        trackPoints = nan([2,size(data.x_loc,1),data.nflies]);
-%        saveData(app);
-%     else
-%         load(SaveFile);
-%     end
-% 
-%     % Load fly options
-%     nflies = data.nflies;
-%     flyList = strsplit(num2str(1:nflies));
-%     app.FliesListBox.Items = flyList;
-% 
-%     % Bring up frame image
-%     displayImage(app);
-%     set(fig,'pos',[724 67 1101 922]);
-%     figure(app.UIFigure);
-% else
-%     close all
-%     app.VideoEditField_2.Value = '';
-%     switch questdlg('Save Data?')
-%         case 'Yes'
-%            saveData(app); 
-%     end
-% end
-
-
-
-
-
-
-
-
-
-
-
-
-% 
-% % Assume you have a video file named 'myVideo.mp4'
-% videoFile = 'myVideo.mp4';
-% v = VideoReader(videoFile);
-% 
-% % Initialize a flag for pause/resume
-% isPaused = false;
-% 
-% % Display Loop
-% while hasFrame(v) % reads and displays each frame of the video.
-%     frame = readFrame(v);
-%     image(frame, 'Parent', app.UIAxes); % Assuming app.UIAxes is the axes where you display the video
-%     drawnow;
-% 
-%     % Check if the pause button was pressed
-%     while isPaused
-%         pause(0.1); % Small pause to prevent MATLAB from becoming unresponsive
-%     end
-% 
-%     % You might want to include a small pause here to control the playback speed
-%     % pause(1/v.FrameRate); % Uncomment to control playback speed
-% end
-% 
-% % Callback function for the Pause/Resume Button
-% function PauseButtonPushed(app)
-%     if strcmp(app.PauseButton.Text, 'Pause')
-%         app.PauseButton.Text = 'Resume';
-%         isPaused = true; % Pause the video
-%     elseif strcmp(app.PauseButton.Text, 'Resume')
-%         app.PauseButton.Text = 'Pause';
-%         isPaused = false; % Resume the video
-%     end
-% end
-% 
-% 
-
-
-%% 
-
-
-% path = getDataPath(rawORsingle, localORserver);
-path = getDataPath(2,3);
-
+% load speed data
+            temp = load([filePath expID{trial} ' speed data.mat']);
+            data(trial).speed = temp.speed;
 
 
 

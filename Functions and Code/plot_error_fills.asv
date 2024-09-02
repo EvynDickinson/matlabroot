@@ -1,6 +1,6 @@
 
 function h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA)
-% h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+% h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FaceAlpha);
 % h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type);
 %
 % ==== INPUTS ====
@@ -24,22 +24,35 @@ if ~plot_err
 end
 
 % check for nans that would cancel the error...
-% set the orientation to the same :
-if size(x)(1)
+% set the orientation to be the same :
+z = size(x);
+if ~(z(2)==1 && z(1)>1)
+    x = x';
+end
+z = size(y);
+if ~(z(2)==1 && z(1)>1)
+    y = y';
+end
+z = size(y_err);
+if ~(z(2)==1 && z(1)>1)
+    y_err = y_err';
+end
 
-    loc = isnan(x) | isnan(y) |isnan(y_err);
-    x(loc) = [];
-    y(loc) = [];
-    y_err(loc) = [];
+% remove nans so that the error fill will plot
+loc = isnan(x) | isnan(y) |isnan(y_err);
+x(loc) = [];
+y(loc) = [];
+y_err(loc) = [];
 
-% if plot_err && ~strcmpi(fig_type,'-pdf')
-        fill_data = error_fill(x, y, y_err);
-        h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
-        set(h, 'facealpha', FA)     
+if plot_err && ~strcmpi(fig_type,'-pdf')
+    fill_data = error_fill(x, y, y_err);
+    h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
+    set(h, 'facealpha', FA)
+elseif 
 
-    % % turned off the pdf style line outline since we can change the alpha level of
-    % % the object in adobe with the current settings and it isn't an issue 
-    % elseif plot_err && strcmpi(fig_type,'-pdf')
-    %         plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
-    %         plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
-% end
+elseif plot_err && strcmpi(fig_type,'-pdf')
+            plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
+            plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
+end
+
+

@@ -977,7 +977,7 @@ for i = 1:num.exp
     grouped(i).ecent.all = ecent;
 end
 
-%% Calculate flies within the outer ring of the region
+%% ANALYSIS: Calculate flies within the outer ring of the region
 clearvars('-except',initial_vars{:})
 
 R = data(1).data(1).data.r; % radius of the arena in pixels
@@ -1041,6 +1041,122 @@ end
 
 
 
+
+
+
+
+
+
+%% ANALYSIS: Cluster eccentricity temperature
+clearvars('-except',initial_vars{:})
+
+for i = 1:num.exp
+    temps = unique(data(i).G(1).TR.temps);
+    rateIdx = data(i).G(1).TR.rateIdx;
+    tempIdx = data(i).G(1).TR.tempIdx;
+    % find rate index
+    heatRate = find(data(i).G(1).TR.rates>0);
+    coolRate = find(data(i).G(1).TR.rates<0);
+    try
+        holdRate = find(data(i).G(1).TR.rates==0);
+        ntypes = 3;
+    catch
+        ntypes = 2;
+    end
+    for temp = 1:length(temps)
+        for type = 1:ntypes
+            switch type
+                case 1 %heating
+                    g_name = 'increasing';
+                    idxSex = heatRate;
+                case 2 %cooling
+                    g_name = 'decreasing';
+                    idxSex = coolRate;
+                case 3 %holding
+                    g_name = 'holding';
+                    idxSex = holdRate;
+            end
+            % Divided by heating / cooling
+            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
+            grouped(i).ecent.(g_name)(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg
+            grouped(i).ecent.(g_name)(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+        end
+        % Clustered by temp (regardless of heating/cooling)
+        loc = tempIdx==temp; %temp align only
+        grouped(i).ecent.temp_all(temp,1) = mean(mean(grouped(i).ecent.all(loc,:),2,'omitnan'),'omitnan'); %avg
+        grouped(i).ecent.temp_all(temp,2) = std(mean(grouped(i).ecent.all(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
+    end
+    grouped(i).ecent.temps = temps;
+end
+
+
+%% ANALYSIS: Event aligned signals  -- food occupancy
+clearvars('-except',initial_vars{:})
+data_types = {'occ', 'dist', 'speed', 'ring'};
+for i = 1:num.exp
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    if tp.nHold>0 % account for protocols with no holding period
+        sections = {'decreasing','increasing','holding'};
+    else
+        sections = {'decreasing','increasing'};
+    end
+    for ss = 1:length(sections)
+        switch sections{ss}
+            case 'increasing'
+                tpBin = 'up';
+                nrr = tp.nUp;
+            case 'decreasing'
+                tpBin = 'down';
+                nrr = tp.nDown;
+            case 'holding'
+                tpBin = 'hold';
+                nrr = tp.nHold;
+        end
+        [speed, occ,dist,ring,temperature] = deal([]);
+        duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); %get shortest ramp period
+        time = 1:duration;
+        time = time./(tp.fps*60);
+        for rr = 1:nrr % for each ramp...
+            % ROI and temperaure:
+            ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
+            temperature(:,rr) = grouped(i).temp(ROI);
+            % food occupancy:
+            occ(:,:,rr) = grouped(i).occ.all(ROI,:).*100;
+            % distance to food: 
+            dist(:,:,rr) = grouped(i).dist.all(ROI,:);
+            % speed
+            speed(:,:,rr) = grouped(i).speed.all(ROI,:);
+            % ring occupancy
+            ring(:,:,rr) = grouped(i).ring.percent(ROI,:);
+        end
+        % loop through all the data types to extract
+        for type = 1:length(data_types)
+            switch data_types{type}
+                case 'dist' % DISTANCE: 
+                    y_all = dist;
+                case 'occ' % FOOD OCCUPANCY
+                    y_all = occ;
+                case 'speed' % SPEED
+                    y_all = speed;
+                case 'ring' % RING OCCUPANCY
+                    y_all = ring;
+            end
+            % calculate the cross-ramp means and normalization
+            y = mean(y_all,3);        
+            y_norm = y_all-mean(y_all(1:10,:,:),'omitnan'); %normalize to zero distance
+            y_norm = mean(y_norm,3); %this is now the avg over the different temp ramps within a trial
+            % add to the grouped data
+            grouped(i).aligned.(sections{ss}).(data_types{type}).all = y; 
+            grouped(i).aligned.(sections{ss}).(data_types{type}).mean = mean(y,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).std = std(y,0,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.all = y_norm; 
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.mean = mean(y_norm,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.std = std(y_norm,0,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).temp = mean(temperature,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).time = time;
+        end
+    end
+end
 
 
 
