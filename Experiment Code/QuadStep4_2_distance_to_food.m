@@ -706,19 +706,34 @@ sb(7).idx = 16:3:(r*c); sb(8).idx = 17:3:(r*c);  sb(9).idx = 18:3:(r*c); % absol
 LW = 1.5;
 STD_shading = false;
 % sSpan = 1; 
- 
+
 % Plotting
 fig = getfig('',false,[1525 1000]);
 for i = 1:num.exp
-    tp = getTempTurnPoints(data(i).temp_protocol);
+    tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
     f2m = tp.fps * 60; % number of frames in a minute span (fps * 60 sec/min)
     space = dwnsmple*tp.fps;
-    if tp.nHold>0 % account for protocols with no holding period
-        sections = {'decreasing','increasing','holding'};
-    else
-        sections = {'decreasing','increasing'};
+    
+    sectIDX = false(1,3);
+    sections = {'decreasing', 'increasing', 'holding'};
+    if tp.nDown >= 1
+       sectIDX(1) = true;
     end
-    for ss = 1:length(sections)
+    if tp.nUp >= 1
+        sectIDX(2) = true;
+    end
+    if tp.nHold >= 1
+        sectIDX(3) = true;
+    end
+    % if tp.nHold>0 % account for protocols with no holding period
+    %     sections = {'decreasing','increasing','holding'};
+    % else %for large temp sweeps basically
+    %     sections = {'decreasing','increasing'};
+    % end
+    for ss = 1:3
+        if ~sectIDX(ss) 
+            continue  % skip groups without the temp regime type
+        end
         % Get the appropriate time and ROI:
         y = grouped(i).aligned.(sections{ss}).temp;
         maxTime = length(y)/f2m;

@@ -1093,14 +1093,46 @@ end
 %% ANALYSIS: Event aligned signals  -- food occupancy
 clearvars('-except',initial_vars{:})
 data_types = {'occ', 'dist', 'speed', 'ring'};
-for i = 1:num.exp
-    tp = getTempTurnPoints(data(i).temp_protocol);
-    if tp.nHold>0 % account for protocols with no holding period
-        sections = {'decreasing','increasing','holding'};
-    else
-        sections = {'decreasing','increasing'};
+
+% account for any temperature hold groups
+if any([data(:).hold_exp])
+     result = questdlg(['There are temperature hold experiments, '...
+         'do you want to assign them a fictive temperature protocol for '...
+         'temperature event aligned comparisons?']);
+    if strcmp(result, 'Yes') % offer a selection from the other trials within the grouping
+        protocol_options = unique({data(:).temp_protocol});
+        idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[175, 150]);
+        fictive_protocol = protocol_options{idx};
+        fictive_proto = true;
     end
-    for ss = 1:length(sections)
+end
+
+for i = 1:num.exp
+    if fictive_proto && data(i).hold_exp
+        grouped(i).aligned.temp_protocol = fictive_protocol;
+    else
+        grouped(i).aligned.temp_protocol = data(i).temp_protocol;
+    end
+    tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
+    % TODO: working here 9/3 -- checking the temp 
+    sections = []; sectIDX = false(1,3);
+    sections = {'decreasing', 'increasing', ''}
+    if tp.nDown >= 1
+        sections{end+1} = 'decreasing';
+    end
+    if tp.nUp >= 1
+        sections{end+1} = 'increasing';
+    end
+    if tp.nHold >= 1
+        sections{end+1} = 'holding';
+    end
+    % if tp.nHold>0 % account for protocols with no holding period
+    %     sections = {'decreasing','increasing','holding'};
+    % else
+    %     sections = {'decreasing','increasing'};
+    % end
+    for ss = 1:3
+        if 
         switch sections{ss}
             case 'increasing'
                 tpBin = 'up';
@@ -1115,7 +1147,7 @@ for i = 1:num.exp
         [speed, occ,dist,ring,temperature] = deal([]);
         duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); %get shortest ramp period
         time = 1:duration;
-        time = teim
+        time = time./(tp.fps*60);
         for rr = 1:nrr % for each ramp...
             % ROI and temperaure:
             ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
@@ -1127,7 +1159,7 @@ for i = 1:num.exp
             % speed
             speed(:,:,rr) = grouped(i).speed.all(ROI,:);
             % ring occupancy
-            ring(:,:,rr) = grouped(i).ring.all(ROI,:).*100;
+            ring(:,:,rr) = grouped(i).ring.percent(ROI,:);
         end
         % loop through all the data types to extract
         for type = 1:length(data_types)
@@ -1146,19 +1178,17 @@ for i = 1:num.exp
             y_norm = y_all-mean(y_all(1:10,:,:),'omitnan'); %normalize to zero distance
             y_norm = mean(y_norm,3); %this is now the avg over the different temp ramps within a trial
             % add to the grouped data
-            grouped(i).aligned.(data_types{type}).(sections{ss}).all = y; 
-            grouped(i).aligned.(data_types{type}).(sections{ss}).mean = mean(y,2,'omitnan');
-            grouped(i).aligned.(data_types{type}).(sections{ss}).std = std(y,0,2,'omitnan');
-            grouped(i).aligned.(data_types{type}).(sections{ss}).norm.all = y_norm; 
-            grouped(i).aligned.(data_types{type}).(sections{ss}).norm.mean = mean(y_norm,2,'omitnan');
-            grouped(i).aligned.(data_types{type}).(sections{ss}).norm.std = std(y_norm,0,2,'omitnan');
-            grouped(i).aligned.temp = mean(temperature,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).all = y; 
+            grouped(i).aligned.(sections{ss}).(data_types{type}).mean = mean(y,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).std = std(y,0,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.all = y_norm; 
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.mean = mean(y_norm,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.std = std(y_norm,0,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).temp = mean(temperature,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).time = time;
         end
     end
 end
-
-
-
 
 
 

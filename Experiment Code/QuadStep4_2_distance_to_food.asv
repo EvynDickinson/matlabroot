@@ -706,16 +706,29 @@ sb(7).idx = 16:3:(r*c); sb(8).idx = 17:3:(r*c);  sb(9).idx = 18:3:(r*c); % absol
 LW = 1.5;
 STD_shading = false;
 % sSpan = 1; 
- 
+
 % Plotting
 fig = getfig('',false,[1525 1000]);
 for i = 1:num.exp
     tp = getTempTurnPoints(data(i).temp_protocol);
     f2m = tp.fps * 60; % number of frames in a minute span (fps * 60 sec/min)
     space = dwnsmple*tp.fps;
+    
+    sections = [];
+    if tp.nDown > 1
+        sections{end+1} = 'decreasing';
+    end
+    if tp.nUp >= 1
+        sections{end+1} = 'increasing';
+    end
+    if tp.nHold >= 1
+        sections{end+1} = 'holding';
+    end
+
+
     if tp.nHold>0 % account for protocols with no holding period
         sections = {'decreasing','increasing','holding'};
-    else
+    else %for large temp sweeps basically
         sections = {'decreasing','increasing'};
     end
     for ss = 1:length(sections)

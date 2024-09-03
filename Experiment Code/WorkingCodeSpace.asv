@@ -1455,9 +1455,7 @@ temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2lo
 %% 
 
 for i = 1:num.exp
-    exp = expOrder(i)
-    disp(grouped(exp).name)
-end
+    exp = r
 
 
 

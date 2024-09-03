@@ -1093,14 +1093,48 @@ end
 %% ANALYSIS: Event aligned signals  -- food occupancy
 clearvars('-except',initial_vars{:})
 data_types = {'occ', 'dist', 'speed', 'ring'};
-for i = 1:num.exp
-    tp = getTempTurnPoints(data(i).temp_protocol);
-    if tp.nHold>0 % account for protocols with no holding period
-        sections = {'decreasing','increasing','holding'};
-    else
-        sections = {'decreasing','increasing'};
+
+% account for any temperature hold groups
+if any([data(:).hold_exp])
+     result = questdlg(['There are temperature hold experiments, '...
+         'do you want to assign them a fictive temperature protocol for '...
+         'temperature event aligned comparisons?']);
+    if strcmp(result, 'Yes') % offer a selection from the other trials within the grouping
+        protocol_options = unique({data(:).temp_protocol});
+        idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[175, 150]);
+        fictive_protocol = protocol_options{idx};
+        fictive_proto = true;
     end
-    for ss = 1:length(sections)
+end
+
+for i = 1:num.exp
+    if fictive_proto && data(i).hold_exp
+        grouped(i).aligned.temp_protocol = fictive_protocol;
+    else
+        grouped(i).aligned.temp_protocol = data(i).temp_protocol;
+    end
+    tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
+
+    sectIDX = false(1,3);
+    sections = {'decreasing', 'increasing', 'holding'};
+    if tp.nDown >= 1
+       sectIDX(1) = true;
+    end
+    if tp.nUp >= 1
+        sectIDX(2) = true;
+    end
+    if tp.nHold >= 1
+        sectIDX(3) = true;
+    end
+    % if tp.nHold>0 % account for protocols with no holding period
+    %     sections = {'decreasing','increasing','holding'};
+    % else
+    %     sections = {'decreasing','increasing'};
+    % end
+    for ss = 1:3
+        if ~sectIDX(ss) % skip groups that don't have a section
+            continue
+        end
         switch sections{ss}
             case 'increasing'
                 tpBin = 'up';
