@@ -78,6 +78,9 @@ switch computerName
     case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
         serverPath = [];
         permanentPath = [];
+    case 'DENALI'
+        serverPath = paths.denaliServerPath;
+        permanentPath = [];
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;
