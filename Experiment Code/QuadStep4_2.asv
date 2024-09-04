@@ -1095,6 +1095,7 @@ clearvars('-except',initial_vars{:})
 data_types = {'occ', 'dist', 'speed', 'ring'};
 
 % account for any temperature hold groups
+fictive_proto = false;
 if any([data(:).hold_exp])
      result = questdlg(['There are temperature hold experiments, '...
          'do you want to assign them a fictive temperature protocol for '...
@@ -1114,17 +1115,17 @@ for i = 1:num.exp
         grouped(i).aligned.temp_protocol = data(i).temp_protocol;
     end
     tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
-    % TODO: working here 9/3 -- checking the temp 
-    sections = []; sectIDX = false(1,3);
-    sections = {'decreasing', 'increasing', ''}
+
+    sectIDX = false(1,3);
+    sections = {'decreasing', 'increasing', 'holding'};
     if tp.nDown >= 1
-        sections{end+1} = 'decreasing';
+       sectIDX(1) = true;
     end
     if tp.nUp >= 1
-        sections{end+1} = 'increasing';
+        sectIDX(2) = true;
     end
     if tp.nHold >= 1
-        sections{end+1} = 'holding';
+        sectIDX(3) = true;
     end
     % if tp.nHold>0 % account for protocols with no holding period
     %     sections = {'decreasing','increasing','holding'};
@@ -1132,7 +1133,9 @@ for i = 1:num.exp
     %     sections = {'decreasing','increasing'};
     % end
     for ss = 1:3
-        if 
+        if ~sectIDX(ss) % skip groups that don't have a section
+            continue
+        end
         switch sections{ss}
             case 'increasing'
                 tpBin = 'up';

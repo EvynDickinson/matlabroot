@@ -1095,6 +1095,7 @@ clearvars('-except',initial_vars{:})
 data_types = {'occ', 'dist', 'speed', 'ring'};
 
 % account for any temperature hold groups
+fictive_proto = false;
 if any([data(:).hold_exp])
      result = questdlg(['There are temperature hold experiments, '...
          'do you want to assign them a fictive temperature protocol for '...
