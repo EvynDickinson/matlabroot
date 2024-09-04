@@ -21,7 +21,7 @@ figurehandle=figure
 hold on
 
 trials=[1:8]
-clist=Color('blue','yellow',length(trials))
+clist=Color('black','yellow',length(trials))
 idx=0;
 
 for trial=trials
@@ -31,12 +31,10 @@ location=T.foodLoc(trial)
 
 x=data(trial).data.occupancy.temp;
 y=data(trial).data.occupancy.dist2wells(:,location);
-scatter(x,y,7,clist(idx,:))
+scatter(x,y,15,clist(idx,:),'filled')
 end 
 
-formatFig(figurehandle,false)
-xlabel('Temperature\circC')
-ylabel('Distance\mm')
+formatFig(figurehandle,true)
 
 % trial=trials(2)
 % location=T.foodLoc(trial)
