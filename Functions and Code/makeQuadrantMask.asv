@@ -39,6 +39,7 @@ title('Circle Divided into Quadrants Forming an X');
 clearvars('-except',initial_vars{:})
 
 for exp = 1:num.exp
+    quad_occ = [];
     for trial = 1:num.trial(exp)
         center = data(exp).data(trial).data.centre;
         x_loc = data(exp).data(trial).data.x_loc;
@@ -75,63 +76,87 @@ for exp = 1:num.exp
         fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
         foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
         nflies = data(exp).T.NumFlies(trial);
-        quad_occ = sum(foodQuad,2)./nflies)
+        y = (sum(foodQuad,2)./nflies).*100;
+        quad_occ = autoCat(quad_occ, y,false);
 
-        switch quad_loc
-            case 1
-                foodQuad = 
-            case 2
-            case 3
-            case 4
-        end
-
-        % Assign quadrant values to the quadrant matrix
-        quadrantMatrix(Q1Mask) = 1;  % Quadrant 1 (Top-left)
-        quadrantMatrix(Q2Mask) = 2;  % Quadrant 2 (Top-right)
-        quadrantMatrix(Q3Mask) = 3;  % Quadrant 3 (Bottom-right)
-        quadrantMatrix(Q4Mask) = 4;  % Quadrant 4 (Bottom-left)
-        
-        % Display the quadrant classification matrix
-        disp('Quadrant classification matrix:');
-        disp(quadrantMatrix);
-
-
-% test where the current food wells to determine which quadrant is which well! (this
-% is dynamic and doesn't require a set rule, but allows for the variable well
-% locations. 
-
-
-
-
-
-
-
-
-
-% Set axis limits for the selected arena
-x = data.centre(1);
-y = data.centre(2);
-r = data.r;
-xlimit = [x-(r+50),x+(r+50)];
-ylimit = [y-(r+50),y+50+r];
-
-% load the image
-currentImg = rgb2gray(read(movieInfo,frame_num));
-
-
-% PLOT image:
-fig = getfig('',1);
-set(fig,'color','k')
-imshow(currentImg)
-xlim(xlimit); ylim(ylimit); 
-hold on
-imcontrast
+        %  A = quad_occ;
+        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
+        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
+        % 
+        % figure; hold on
+        % plot(A,'color', Color('red'));
+        % plot(C,'color', 'k')
+        % yyaxis right 
+        % plot(B, 'color', 'y')
+        % R = corrcoef(A,B);
+        % disp(['Distance: ' num2str(R(2))])
+        %  R = corrcoef(A,C);
+        % disp(['ROI: ' num2str(R(2))])
     
-% plot a yellow point for each fly
-x = data.x_loc(exp_idx,:);
-y = data.y_loc(exp_idx,:);
-scatter(x,y,50,'y','filled')
-scatter(x,y,10,'r','filled')
+    end
+
+    % save the data to a larger structure
+    grouped(exp).quadrant.all = quad_occ;
+    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
+end
+          
+% Pool the data for heating and cooling together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    all_quad = [];
+    
+    % Update the averages for the classic temperature bins 
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        raw_c(t,:) = mean(grouped(exp).quadrant.all(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).quadrant.all(h_frames,:),1,'omitnan');
+    end
+
+    % find the avg and err and save to group structure
+    grouped(exp).quadrant.increasing.raw = raw_h;
+    grouped(exp).quadrant.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).quadrant.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).quadrant.decreasing.raw = raw_c;
+    grouped(exp).quadrant.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).quadrant.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).quadrant.temps = temps;
+end
+
+%% FIGURE: compare the arena quadrant occupancy with food well occupancy
+
+% 1) Show the correlation between full quadrant occupancy and food well ROI occupancy
+r = 2;
+c = 3;
+fig = getfig('',1);
+
+for exp = 1:num.exp
+subplot(r,c,exp)
+  
+
+    x = grouped(exp).time;
+    quad = grouped(exp).quadrant.avg;
+    foodROI = grouped(exp).occ.avg.*100;
+
+    plot(x, quad, 'color', 'r')
+    hold on
+    plot(x, foodROI, 'color', 'k')
+
+end
+
+
+% what are the correlations between the two ROI measures?
 
 
 
@@ -139,36 +164,14 @@ scatter(x,y,10,'r','filled')
 
 
 
-%% 
 
-% Example matrices of points (16x200) for X and Y coordinates
-X_points = randi([0, 256], 16, 200);  % Replace with your X points
-Y_points = randi([0, 256], 16, 200);  % Replace with your Y points
 
-% Define the center of the circle (different X and Y values)
-center = [100, 150];  % Example non-centered circle (X_center = 100, Y_center = 150)
 
-% Adjust the X and Y coordinates relative to the new center
-adjustedX = X_points - center(1);
-adjustedY = Y_points - center(2);
 
-% Initialize matrix to hold quadrant classification (same size as input matrices)
-quadrantMatrix = zeros(size(X_points));
 
-% Define quadrant masks based on the new center
-Q1Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Top-left
-Q2Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top-right
-Q3Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom-right
-Q4Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Bottom-left
 
-% Assign quadrant values to the quadrant matrix
-quadrantMatrix(Q1Mask) = 1;  % Quadrant 1 (Top-left)
-quadrantMatrix(Q2Mask) = 2;  % Quadrant 2 (Top-right)
-quadrantMatrix(Q3Mask) = 3;  % Quadrant 3 (Bottom-right)
-quadrantMatrix(Q4Mask) = 4;  % Quadrant 4 (Bottom-left)
 
-% Display the quadrant classification matrix
-disp('Quadrant classification matrix:');
-disp(quadrantMatrix);
+
+
 
 

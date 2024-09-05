@@ -133,6 +133,7 @@ if questdlg('Save loaded data?')
     save([figDir ExpGroup ' raw.mat'],'-v7.3')
 end
 fprintf('Data loaded\n')
+disp('next section')
 
 %% ANALYSIS: General data organization (forward and backwards compatability)
 if ~exist('pix2mm','var')
@@ -205,6 +206,7 @@ nfoods = length(foodNames);
 initial_vars{end+1} = 'nfoods';
 initial_vars{end+1} = 'foodNames';
 clearvars('-except',initial_vars{:})
+disp('next section')
 
 %% FIGURE: visual check of temperature alignment across the experiments:
 fig = figure; set(fig, 'position', [107 595 1150 235]); hold on
@@ -780,6 +782,7 @@ for trial = 1:ntrials
 
 clearvars('-except',vars{:}) 
 end
+disp('next section')
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
 clearvars('-except',vars{:}) 
