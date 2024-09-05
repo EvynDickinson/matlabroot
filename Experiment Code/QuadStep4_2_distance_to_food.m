@@ -858,7 +858,7 @@ for i = 1:num.exp
         plot([loc-line_buff, loc+line_buff],[y_mean, y_mean],'color', foreColor, 'handlevisibility', 'off', 'linewidth',LW)
         h_line(0,'grey', '--')
         
-        % change per change in temp
+        % change per change in temp  
         subplot(r,c,ss+3); hold on
         temp = grouped(i).aligned.(sections{ss}).temp; 
         temp_diff = abs(mean(temp(ROI_end))-mean(temp(ROI_start))); % change in temp over the ROI

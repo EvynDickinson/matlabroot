@@ -75,21 +75,100 @@ for exp = 1:num.exp
         fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
         foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
         nflies = data(exp).T.NumFlies(trial);
-        quad_occ = (sum(foodQuad,2)./nflies).*100;
+        quad_occ = sum(foodQuad,2)./nflies)
 
-         A = quad_occ;
-         B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
+        switch quad_loc
+            case 1
+                foodQuad = 
+            case 2
+            case 3
+            case 4
+        end
 
-        figure; hold on
-        plot(quad_occ);
-        yyaxis right 
-        plot(data(exp).data(trial).data.occupancy.dist2wells(:,foodWell))
-        R = corrcoef(A,B);
+        % Assign quadrant values to the quadrant matrix
+        quadrantMatrix(Q1Mask) = 1;  % Quadrant 1 (Top-left)
+        quadrantMatrix(Q2Mask) = 2;  % Quadrant 2 (Top-right)
+        quadrantMatrix(Q3Mask) = 3;  % Quadrant 3 (Bottom-right)
+        quadrantMatrix(Q4Mask) = 4;  % Quadrant 4 (Bottom-left)
+        
+        % Display the quadrant classification matrix
+        disp('Quadrant classification matrix:');
+        disp(quadrantMatrix);
 
-        % Working here: run this and save the R for each of the trials and then
-        % compare it to the ring occupancy value as well. 
 
-    end
-end
+% test where the current food wells to determine which quadrant is which well! (this
+% is dynamic and doesn't require a set rule, but allows for the variable well
+% locations. 
+
+
+
+
+
+
+
+
+
+% Set axis limits for the selected arena
+x = data.centre(1);
+y = data.centre(2);
+r = data.r;
+xlimit = [x-(r+50),x+(r+50)];
+ylimit = [y-(r+50),y+50+r];
+
+% load the image
+currentImg = rgb2gray(read(movieInfo,frame_num));
+
+
+% PLOT image:
+fig = getfig('',1);
+set(fig,'color','k')
+imshow(currentImg)
+xlim(xlimit); ylim(ylimit); 
+hold on
+imcontrast
+    
+% plot a yellow point for each fly
+x = data.x_loc(exp_idx,:);
+y = data.y_loc(exp_idx,:);
+scatter(x,y,50,'y','filled')
+scatter(x,y,10,'r','filled')
+
+
+
+
+
+
+
+%% 
+
+% Example matrices of points (16x200) for X and Y coordinates
+X_points = randi([0, 256], 16, 200);  % Replace with your X points
+Y_points = randi([0, 256], 16, 200);  % Replace with your Y points
+
+% Define the center of the circle (different X and Y values)
+center = [100, 150];  % Example non-centered circle (X_center = 100, Y_center = 150)
+
+% Adjust the X and Y coordinates relative to the new center
+adjustedX = X_points - center(1);
+adjustedY = Y_points - center(2);
+
+% Initialize matrix to hold quadrant classification (same size as input matrices)
+quadrantMatrix = zeros(size(X_points));
+
+% Define quadrant masks based on the new center
+Q1Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Top-left
+Q2Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top-right
+Q3Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom-right
+Q4Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Bottom-left
+
+% Assign quadrant values to the quadrant matrix
+quadrantMatrix(Q1Mask) = 1;  % Quadrant 1 (Top-left)
+quadrantMatrix(Q2Mask) = 2;  % Quadrant 2 (Top-right)
+quadrantMatrix(Q3Mask) = 3;  % Quadrant 3 (Bottom-right)
+quadrantMatrix(Q4Mask) = 4;  % Quadrant 4 (Bottom-left)
+
+% Display the quadrant classification matrix
+disp('Quadrant classification matrix:');
+disp(quadrantMatrix);
 
 
