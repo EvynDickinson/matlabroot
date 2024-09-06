@@ -12,7 +12,11 @@ imshowpair(Img1, Img2,'montage'); title('Paint weathering')
 
 save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', '-png');
 
-
+%% change genotype
+parameters.ArenaA.genotype
+parameters.ArenaB.genotype
+parameters.ArenaC.genotype
+parameters.Arena.genotype
 
 %% get base folder pathway
 % baseFolder = getCloudPath;
@@ -1455,7 +1459,9 @@ temp = load([filePath expID{trial} arenas{trial} ' timecourse data.mat'], var2lo
 %% 
 
 for i = 1:num.exp
-    exp = r
+    exp = expOrder(i)
+    disp(grouped(exp).name)
+end
 
 
 

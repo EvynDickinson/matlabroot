@@ -12,7 +12,11 @@ imshowpair(Img1, Img2,'montage'); title('Paint weathering')
 
 save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', '-png');
 
-
+%% change genotype
+parameters.ArenaA.genotype = 'UAS-Kir2.1_TM6B_A';
+parameters.ArenaB.genotype = 'UAS-Kir2.1_TM2_E';
+parameters.ArenaC.genotype = 'UAS-Kir2.1_TM6B_A';
+parameters.ArenaD.genotype = 'UAS-Kir2.1_TM2_E';
 
 %% get base folder pathway
 % baseFolder = getCloudPath;

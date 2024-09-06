@@ -103,6 +103,7 @@ end
 h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
 %
+dataString = strrep(dataString, '_', ' ');
 legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off','fontsize', 5)
 
 % save figure
@@ -907,7 +908,7 @@ end
 save_figure(fig,[fig_dir title_str ' change over ' num2str(dispROI) ' min'],fig_type);
 
 
-%% FIGURE: Event aligned with preceding data before event
+%% FIGURE: NOT WORKING Event aligned with preceding data before event
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 

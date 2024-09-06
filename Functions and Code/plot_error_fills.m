@@ -53,8 +53,8 @@ elseif strcmpi(getenv('COMPUTERNAME'),'EvynPC')
     h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none','HandleVisibility','off');
     set(h, 'facealpha', FA);
 elseif plot_err && strcmpi(fig_type,'-pdf')
-            plot(x,y-y_err,'color',kolor, 'linewidth', 0.5)
-            plot(x,y+y_err,'color',kolor, 'linewidth', 0.5)
+            plot(x,y-y_err,'color',kolor, 'linewidth', 0.5,'HandleVisibility','off');
+            plot(x,y+y_err,'color',kolor, 'linewidth', 0.5,'HandleVisibility','off');
 end
 
 
