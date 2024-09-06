@@ -3036,7 +3036,7 @@ plot_singles = false;
 dist_lim = [0 100];        %ring occupancy limit
 auto_time = false;      % automated time axis limits
 time_lim = [0,400];     %time limit (x-axis)
-show_exp = 9:12; % EXPERIMENTS TO PLOT
+show_exp = 1:num.exp; % EXPERIMENTS TO PLOT
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments

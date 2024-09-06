@@ -103,6 +103,7 @@ end
 h_line(18.1,'grey',':',1) %36.2
 set(gca,'ydir','reverse')
 %
+dataString = strrep(dataString, '_', ' ');
 legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off','fontsize', 5)
 
 % save figure
@@ -710,28 +711,30 @@ STD_shading = false;
 % Plotting
 fig = getfig('',false,[1525 1000]);
 for i = 1:num.exp
-    tp = getTempTurnPoints(data(i).temp_protocol);
+    tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
     f2m = tp.fps * 60; % number of frames in a minute span (fps * 60 sec/min)
     space = dwnsmple*tp.fps;
     
-    sections = [];
-    if tp.nDown > 1
-        sections{end+1} = 'decreasing';
+    sectIDX = false(1,3);
+    sections = {'decreasing', 'increasing', 'holding'};
+    if tp.nDown >= 1
+       sectIDX(1) = true;
     end
     if tp.nUp >= 1
-        sections{end+1} = 'increasing';
+        sectIDX(2) = true;
     end
     if tp.nHold >= 1
-        sections{end+1} = 'holding';
+        sectIDX(3) = true;
     end
-
-
-    if tp.nHold>0 % account for protocols with no holding period
-        sections = {'decreasing','increasing','holding'};
-    else %for large temp sweeps basically
-        sections = {'decreasing','increasing'};
-    end
-    for ss = 1:length(sections)
+    % if tp.nHold>0 % account for protocols with no holding period
+    %     sections = {'decreasing','increasing','holding'};
+    % else %for large temp sweeps basically
+    %     sections = {'decreasing','increasing'};
+    % end
+    for ss = 1:3
+        if ~sectIDX(ss) 
+            continue  % skip groups without the temp regime type
+        end
         % Get the appropriate time and ROI:
         y = grouped(i).aligned.(sections{ss}).temp;
         maxTime = length(y)/f2m;
@@ -856,7 +859,7 @@ for i = 1:num.exp
         plot([loc-line_buff, loc+line_buff],[y_mean, y_mean],'color', foreColor, 'handlevisibility', 'off', 'linewidth',LW)
         h_line(0,'grey', '--')
         
-        % change per change in temp
+        % change per change in temp  
         subplot(r,c,ss+3); hold on
         temp = grouped(i).aligned.(sections{ss}).temp; 
         temp_diff = abs(mean(temp(ROI_end))-mean(temp(ROI_start))); % change in temp over the ROI
@@ -905,7 +908,7 @@ end
 save_figure(fig,[fig_dir title_str ' change over ' num2str(dispROI) ' min'],fig_type);
 
 
-%% FIGURE: Event aligned with preceding data before event
+%% FIGURE: NOT WORKING Event aligned with preceding data before event
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 
@@ -3033,7 +3036,7 @@ plot_singles = false;
 dist_lim = [0 100];        %ring occupancy limit
 auto_time = false;      % automated time axis limits
 time_lim = [0,400];     %time limit (x-axis)
-show_exp = 9:12; % EXPERIMENTS TO PLOT
+show_exp = 1:num.exp; % EXPERIMENTS TO PLOT
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
