@@ -1198,3 +1198,101 @@ end
 
 
 
+%% ANALYSIS: Food quadrant occupation
+clearvars('-except',initial_vars{:})
+
+for exp = 1:num.exp
+    quad_occ = [];
+    for trial = 1:num.trial(exp)
+        center = data(exp).data(trial).data.centre;
+        x_loc = data(exp).data(trial).data.x_loc;
+        y_loc = data(exp).data(trial).data.y_loc;
+        r = data(exp).data(trial).data.r;
+        foodWell = data(exp).T.foodLoc(trial);
+
+        % Adjust the X and Y coordinates relative to the new center
+        adjustedX = x_loc - center(1);
+        adjustedY = y_loc - center(2);
+        
+        % Initialize matrix to hold quadrant classification (same size as input matrices)
+        quadrantMatrix = zeros(size(x_loc));
+        
+        % Define quadrant masks based on the new center
+        Q = [];
+        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
+        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
+        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
+        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+        
+        % Determine the well locations (which determine quadrant assignment):
+        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
+        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
+        
+        idx_loc = false(1,4);
+        % Find the food quadrant (find location with the food well coordinates included)
+        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
+        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
+        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
+        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
+        quad_loc = find(idx_loc);
+
+        fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
+        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+        nflies = data(exp).T.NumFlies(trial);
+        y = (sum(foodQuad,2)./nflies).*100;
+        quad_occ = autoCat(quad_occ, y,false);
+
+        %  A = quad_occ;
+        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
+        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
+        % 
+        % figure; hold on
+        % plot(A,'color', Color('red'));
+        % plot(C,'color', 'k')
+        % yyaxis right 
+        % plot(B, 'color', 'y')
+        % R = corrcoef(A,B);
+        % disp(['Distance: ' num2str(R(2))])
+        %  R = corrcoef(A,C);
+        % disp(['ROI: ' num2str(R(2))])
+    
+    end
+
+    % save the data to a larger structure
+    grouped(exp).quadrant.all = quad_occ;
+    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
+end
+          
+% Pool the data for heating and cooling together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    all_quad = [];
+    
+    % Update the averages for the classic temperature bins 
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        raw_c(t,:) = mean(grouped(exp).quadrant.all(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).quadrant.all(h_frames,:),1,'omitnan');
+    end
+
+    % find the avg and err and save to group structure
+    grouped(exp).quadrant.increasing.raw = raw_h;
+    grouped(exp).quadrant.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).quadrant.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).quadrant.decreasing.raw = raw_c;
+    grouped(exp).quadrant.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).quadrant.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).quadrant.temps = temps;
+end

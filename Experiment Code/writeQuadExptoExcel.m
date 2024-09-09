@@ -26,14 +26,16 @@ nrow = size(excelfile,1)+1;
 % params.arena
 % params.(arena).sex
 % params.(arena).starved_hours
+% params.experimenter
 
 base_paramList = {'date', 'expID', 'protocol'};
 arena_paramList = {'genotype','well_1', 'well_2', 'well_3', 'well_4', 'sex','starved_hours'};
 
-
 rows = [];
 for arena = 1:4
     rows(arena) = nrow;
+    % experimenter:
+     xlswrite(xlFile, {params.experimenter}, sheet, [Alphabet(Excel.experimenter),num2str(nrow)]);
     % arena:
     xlswrite(xlFile, {Alphabet(arena)}, sheet, [Alphabet(Excel.arena),num2str(nrow)]);
     % trial name:
@@ -51,7 +53,6 @@ for arena = 1:4
     nrow = nrow+1;
 end
 fprintf('done \n')
-
 
 
 end

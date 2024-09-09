@@ -51,6 +51,8 @@ Excel.facility = find(strcmpi('Facility', Excel.headers)==1);
 Excel.trialID = find(strcmpi('Trial_ID', Excel.headers)==1);
 Excel.step1 = find(strcmpi('Step 1', Excel.headers)==1);
 
+Excel.experimenter = find(strcmpi('Experimenter', Excel.headers)==1);
+
 end
 
 

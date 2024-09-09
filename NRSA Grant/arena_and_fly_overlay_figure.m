@@ -187,6 +187,8 @@ imshow(currentImg)
 xlim(xlimit); ylim(ylimit); 
 hold on
 imcontrast
+
+% a = imadjust(currentImg,[53/255,149/255]); % adjust the contrast
     
 % plot a yellow point for each fly
 x = data.x_loc(exp_idx,:);
