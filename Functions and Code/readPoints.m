@@ -20,7 +20,7 @@ end
 f = figure; set(f, 'color', 'k');
 imshow(image);     % display image
 if strcmp(getenv('COMPUTERNAME'),'TOGIAK')
-  set(f, 'pos', [341 50 1101 946])
+  set(f, 'pos', [2 49 1101 946])
 end 
 xold = 0;
 yold = 0;

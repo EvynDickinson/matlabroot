@@ -15,7 +15,7 @@ demo_well_label = [];
 for i = 1:16
     demo_well_label{i} = num2str(i);
 end
-RGB = insertText(img,demo_well_loc.demo_well_loc,demo_well_label,'FontSize', 18); % previously 15
+RGB = insertText(img,demo_well_loc.demo_well_loc,demo_well_label,'FontSize', 24); % previously 15
 
 % get numbers for arena sizes / labels
 radii = 165; %well surround regions
