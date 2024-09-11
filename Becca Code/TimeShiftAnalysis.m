@@ -1,25 +1,115 @@
 
-%% Histogram of experiment start times
+%% Pull start time data
+
+clearvars('-except',initial_vars{:})
 
 % load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 
-% make unique trial ID
-expstarttime = []
-expstarttime_sec = []
-ntrials = size(T,1)
+initial_vars{end + 1} = 'expstarttime';
+initial_vars{end + 1} = 'expstarttime_hr';
+initial_vars{end + 1} = 'groupix';
+
+%% Make unique trial ID
+expstarttime = [];
+expstarttime_hr = [];
+ntrials = size(T,1);
 
 for trial = 1:ntrials
     unqID = [T.Date{trial} '_' T.ExperimentID{trial} '_' T.Arena{trial}];
     explist = excelfile(:,Excel.trialID);
     rownumber = find(strcmp(explist, unqID));
     t = excelfile{rownumber,Excel.starttime};
+    dn = excelfile{rownumber,Excel.daynight};
+
     % create contingency plan for non-duration values
-    % if...
-    tsec = (t*24*60*60);
-    expstarttime_sec(trial) = tsec;
-    t = seconds(t*24*60*60);
-    t.Format = 'hh:mm:ss';
-    expstarttime{trial} = t;
+    if ischar(t)
+       startdur = duration(t);
+    else
+        newTime = datetime(t,"ConvertFrom", "excel");
+        [h,m,s] = hms(newTime); % Get the hour, minute, and second values
+        startdur = duration(h,m,s); % Get the output as a duration() array
+    end
+
+    if strcmpi(dn,'N')
+        startdur = startdur - duration(7,0,0);
+    end
+
+    expstarttime{trial} = startdur;
+    expstarttime_hr(trial) = hours(expstarttime{trial});
 end
+
+
+
+%% Histogram of experiment start times
+
+clearvars('-except',initial_vars{:})
+
+fig = figure;
+histogram(expstarttime_hr)
+
+%% Split trials into before noon and after noon
+
+clearvars('-except',initial_vars{:})
+
+% Split trials into before and after noon
+
+binedges = [7,12,17];
+groupix = discretize(expstarttime_hr,binedges);
+
+
+%% Compare distance to food between groups
+
+clearvars('-except',initial_vars{:})
+plot_err = true;
+[~,backColor] = formattingColors(true); % get background colors
+
+ntrials = size(T,1);
+
+% set up figure aligments
+r = 4; %rows
+c = 1; %columns
+sb(1).idx = [1]; %temp timecourse
+sb(2).idx = [2,3,4]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+
+LW = 1.5; %linewidth
+sSpan = 360; %smoothing function
+dataString = {'before noon', 'after noon'}; %legend]
+
+% FIGURE:
+fig = getfig('',true);
+subplot(r,c,sb(2).idx)
+hold on
+g = [];
+g(1).name = 'before noon';
+g(2).name = 'after noon';
+g(1).raw = [];
+g(2).raw = [];
+for trial = 1:ntrials
+
+loc = data(trial).data.foodwell;
+y = data(trial).data.dist2well(:,loc);
+idx = groupix(trial);
+g(idx).raw = autoCat(g(idx).raw,y,false);
+end
+
+for i = 1:2
+    g(i).avg = mean(g(i).raw,2,'omitnan');
+    g(i).std = std(g(i).raw,0,2,'omitnan');
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
