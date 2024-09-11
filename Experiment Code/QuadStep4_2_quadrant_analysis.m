@@ -1,0 +1,167 @@
+
+
+
+
+%% FIGURE: Basic over-lap of time-trials and temperature protocols w/ SPEED
+clearvars('-except',initial_vars{:})
+
+fig_dir = [saveDir, 'Quad Comparisons/'];
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+plot_err = true;
+
+autoLim = true;
+% Y limit ranges
+speed_lim = [0,10]; %speed
+dist_lim = [5, 30]; %distance
+dt_lim = [12, 34];      %distance-temp
+% dt_lim = [10, 30];        %distance-temp
+nMax =  num.exp;%
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+% subplot organization
+r = 7; c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:3;
+sb(3).idx = 4:5;
+sb(4).idx = 6:7;
+
+LW = 0.75;
+sSpan = 360; % 2 minute smoothing 
+dataString = cell([1,num.exp]);
+
+for i = 1:num.exp
+
+    % FIGURE:  
+    fig = getfig('',true);
+        x = grouped(i).time;   
+        kolor = grouped(i).color;
+    
+        %temp
+        subplot(r,c,sb(1).idx); hold on
+            y = grouped(i).temp;
+            plot(x,y,'LineWidth',1,'Color',kolor)
+            ylabel('Temp (\circC)')
+            title(grouped(i).name)
+    
+        %distance
+        subplot(r,c,sb(2).idx); hold on
+            y = smooth(grouped(i).dist.avg,'moving',sSpan);
+            y_err = smooth(grouped(i).dist.err,'moving',sSpan);
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
+            plot(x,y,'color',kolor,'linewidth',LW+1)
+            set(gca, 'ydir', 'reverse')
+            ylabel('distance (mm)')
+    
+        % circle ROI occupancy
+        subplot(r,c,sb(3).idx); hold on
+            y = smooth(grouped(i).occ.avg.*100,'moving',sSpan);
+            y_err = smooth(grouped(i).occ.std.*100,'moving',sSpan);
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
+            plot(x,y,'color',kolor,'linewidth',LW+1)
+            ylabel('circle (%)')
+            h_line(14.4,'grey',':',1) %36.2
+            
+        % qaudrant occupancy
+        subplot(r,c,sb(4).idx); hold on
+            y = smooth(grouped(i).quadrant.avg,'moving',sSpan);
+            y_err = smooth(grouped(i).quadrant.std,'moving',sSpan);
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
+            plot(x,y,'color',kolor,'linewidth',LW+1)
+            ylabel('quadrant (%)')
+            xlabel('time (min)')
+            h_line(25,'grey',':',1) %36.2
+    
+    
+    % FORMATING AND LABELS
+    formatFig(fig,blkbgd,[r,c],sb);
+    for ii = 1:3
+        subplot(r,c,sb(ii).idx); hold on
+        set(gca, 'XColor', backColor)
+    end
+    
+    % save figure
+    save_figure(fig,[fig_dir grouped(i).name ' food related measures timecourse summary'],fig_type);
+
+end
+
+%% Correlation between two occupation measures across all trials
+clearvars('-except',initial_vars{:})
+fig_dir = [saveDir, 'Quad Comparisons/'];
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+% 1) Show the correlation between full quadrant occupancy and food well ROI occupancy
+r = 2;
+c = 3;
+fig = getfig('',1);
+
+for i = 1:num.exp
+    exp = expOrder(i);
+    subplot(r,c,i)
+  
+
+    x = grouped(exp).time;
+    quad = grouped(exp).quadrant.avg;
+    foodROI = grouped(exp).occ.avg.*100;
+
+    plot(x, quad, 'color', 'r')
+    hold on
+    plot(x, foodROI, 'color', foreColor)
+    xlabel('time (min)')
+    ylabel('Occupancy (%)')
+    ylim([0,90])
+
+    R = corrcoef(quad,foodROI);
+    title({grouped(exp).name; ['R = ' num2str(R(2))]})    
+end
+formatFig(fig, blkbgd,[r,c]);
+
+
+% save figure
+save_figure(fig,[fig_dir 'ROI vs Quadrant timecourse with correlation'],fig_type);
+
+
+%% Trial by trial correlation
+clearvars('-except',initial_vars{:})
+fig_dir = [saveDir, 'Quad Comparisons/'];
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+fig = getfig('',1,[394 680]); hold on
+for i = 1:num.exp
+    exp = expOrder(i);
+    stats = [];
+    for trial = 1:num.trial(exp)
+        x = grouped(exp).quadrant.all(:,trial);
+        y = grouped(exp).occ.all(:,trial);
+        % remove NaNs
+        loc = isnan(x) | isnan(y);
+        x(loc) = [];
+        y(loc) = [];
+        R = corrcoef(x,y);
+        stats(trial) = R(1,2);
+    end
+    
+    % plot the correlations
+    scatter(i*ones(1, num.trial(exp)), stats,45, grouped(exp).color,'filled', 'XJitter','density')
+    plot([i-0.4,i+0.4], [mean(stats), mean(stats)], 'linewidth', 1.5, 'Color',foreColor)
+end
+
+formatFig(fig, blkbgd);
+set(gca, 'xcolor', backColor)
+ylabel('Pearson Correlation circle vs quad occupancy')
+
+% save figure
+save_figure(fig,[fig_dir 'ROI vs Quadrant correlation'],fig_type);
+
+
+

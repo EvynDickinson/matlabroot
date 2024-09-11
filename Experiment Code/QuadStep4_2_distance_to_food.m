@@ -67,10 +67,10 @@ for i = 1:nMax
         x = grouped(i).dist.distavgbytemp(:,1);
         y = grouped(i).dist.distavgbytemp(:,2);
         y_err = grouped(i).dist.distavgbytemp_err(:,2);
-        loc = isnan(y)|isnan(y_err);
-        x(loc) = [];
-        y(loc) = [];
-        y_err(loc) = [];
+        % loc = isnan(y)|isnan(y_err);
+        % x(loc) = [];
+        % y(loc) = [];
+        % y_err(loc) = [];
         plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
         plot(x,y,'color',kolor,'linewidth',LW+1)
 
