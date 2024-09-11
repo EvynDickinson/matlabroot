@@ -27,6 +27,7 @@ nrow = size(excelfile,1)+1;
 % params.(arena).sex
 % params.(arena).starved_hours
 % params.experimenter
+% params.day_night
 
 base_paramList = {'date', 'expID', 'protocol'};
 arena_paramList = {'genotype','well_1', 'well_2', 'well_3', 'well_4', 'sex','starved_hours'};
@@ -35,7 +36,9 @@ rows = [];
 for arena = 1:4
     rows(arena) = nrow;
     % experimenter:
-     xlswrite(xlFile, {params.experimenter}, sheet, [Alphabet(Excel.experimenter),num2str(nrow)]);
+    xlswrite(xlFile, {params.experimenter}, sheet, [Alphabet(Excel.experimenter),num2str(nrow)]);
+    % day or night incubator:
+    xlswrite(xlFile, {params.day_night}, sheet, [Alphabet(Excel.daynight),num2str(nrow)]);
     % arena:
     xlswrite(xlFile, {Alphabet(arena)}, sheet, [Alphabet(Excel.arena),num2str(nrow)]);
     % trial name:
