@@ -54,17 +54,17 @@ clearvars('-except',initial_vars{:})
 
 % Split trials into before and after noon
 
-binedges = [7,12,17];
+binedges = [4,12,20];
 groupix = discretize(expstarttime_hr,binedges);
 
 
 %% Compare distance to food between groups
 
-clearvars('-except',initial_vars{:})
-plot_err = true;
-[~,backColor] = formattingColors(true); % get background colors
+clearvars('-except',initial_vars{:}) %clear all variables except initial ones
+plot_err = true; %plot error region
+[foreColor,backColor] = formattingColors(true); % get background colors
 
-ntrials = size(T,1);
+ntrials = size(T,1); %number of trials to include
 
 % set up figure aligments
 r = 4; %rows
@@ -74,29 +74,68 @@ sb(2).idx = [2,3,4]; %distance from food timecourse %TODO: normalize this to som
 
 LW = 1.5; %linewidth
 sSpan = 360; %smoothing function
-dataString = {'before noon', 'after noon'}; %legend]
+dataString = {'before noon', 'after noon'}; %legend
 
 % FIGURE:
-fig = getfig('',true);
-subplot(r,c,sb(2).idx)
-hold on
-g = [];
-g(1).name = 'before noon';
-g(2).name = 'after noon';
-g(1).raw = [];
-g(2).raw = [];
-for trial = 1:ntrials
+fig = getfig('Distance to food',true); %create a figure with customizable size and position on screen
+subplot(r,c,sb(2).idx) %dimensions and location of subplot
+    hold on %keep what is there to add multiple things
+    g = []; %empty variable to add to later and not override things
+    g(1).name = 'before noon'; %group 1 = before noon
+    g(2).name = 'after noon'; %group 2 = after noon
+    g(1).raw = []; %empty variable
+    g(2).raw = []; %empty variable
+    g(1).time = [];
+    g(2).time = [];
+    g(1).temp = [];
+    g(2).temp = [];
 
-loc = data(trial).data.foodwell;
-y = data(trial).data.dist2well(:,loc);
-idx = groupix(trial);
-g(idx).raw = autoCat(g(idx).raw,y,false);
-end
+    for trial = 1:ntrials
+        
+        loc = data(trial).data.foodwell; %column number that has the food
+        y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
+        idx = groupix(trial); %group identity for each trial (before or after noon)
+        g(idx).raw = autoCat(g(idx).raw,y,false); %organize data into one big data matrix
+        x = data(trial).occupancy.time;
+        g(idx).time = autoCat(g(idx).time,x,false);
 
-for i = 1:2
+        z = data(trial).occupancy.temp;
+        g(idx).temp = autoCat(g(idx).temp,z,false);
+    end
+    
+    for i = 1:2 %loop through each group
+        g(i).distavg = mean(g(i).raw,2,'omitnan'); %mean distance for each group across time
+        g(i).std = std(g(i).raw,0,2,'omitnan'); %error for each group 
+        g(i).timeavg = mean(g(i).time,2,'omitnan');
+         g(i).tempavg = mean(g(i).temp,2,'omitnan');
+    end
+
+    clist = {'blue','lime'};
+
+    for i = 1:2 
+    plot(g(i).timeavg,g(i).distavg,'color',Color(clist{i}))
+    end
+
+   
+
+subplot(r,c,sb(1).idx)
+    hold on
+    for i = 1:2
+    plot(g(i).timeavg,g(i).tempavg,'color',Color(clist{i}))
+    end
+    
+    ylabel('Temperature (\circC)')
 
 
+    formatFig(fig,true,[r,c],sb)
 
+subplot(r,c,sb(2).idx) 
+ legend(dataString,'Location','northwest','color',backColor,'box','off','textColor',foreColor)
+    xlabel('Time (min)')
+    ylabel('Distance to food (mm)')
+
+subplot(r,c,sb(1).idx)
+    set(gca,'xcolor',backColor)
 
 
 

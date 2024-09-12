@@ -376,6 +376,10 @@ switch expGroup
         expOrder = [4, 1:3, 5];
         colors = {'DeepSkyBlue','DimGrey','Gray','DarkGrey','Gainsboro'};
 
+    case 'Berlin vs UAS-Kir2.1 backcross F LRR 25-17 caviar'
+        expOrder = [1,4:6,2,3];
+        colors = {'DarkOrchid','LightSkyBlue','Blue','DeepSkyBlue','Yellow','Orange'};
+
 % ---- WILD TYPE COMPARISONS ----
     case 'WT linear recovery caviar'
         expOrder = [];
