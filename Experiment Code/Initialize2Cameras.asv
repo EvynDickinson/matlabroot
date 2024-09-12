@@ -52,7 +52,7 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
                 src.Shutter = 11.6188; %7.420205;
                 vid.FramesPerTrigger = inf;
                 vid.ROIPosition = partial_ROI;
-                disp('Purple BACK camera initialized')
+                disp('Purple camera initialized')
                 
         end
     
