@@ -40,12 +40,10 @@ for trial = 1:ntrials
 end
 
 
-
 %% Histogram of experiment start times
 
 clearvars('-except',initial_vars{:})
-
-fig = figure;
+figure;
 histogram(expstarttime_hr)
 
 %% Split trials into before noon and after noon
