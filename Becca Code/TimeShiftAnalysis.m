@@ -53,10 +53,24 @@ end
 %% Histogram of experiment start times
 
 clearvars('-except',initial_vars{:})
-figure;
-histogram(expstarttime_hr, 1:24)
 
-%% Split trials into before noon and after noon
+x = expstarttime_hr;
+edges = [4,8,12,16,20]; %move binedges variable up here and add to initial variables
+
+fig = figure('Name','Experiment start time');
+h = histogram(expstarttime_hr,edges);
+h.FaceColor = Color('Plum');
+h.FaceAlpha = 1;
+h.EdgeColor = 'w';
+h.LineWidth = 1.5;
+xlabel('Time of day')
+ylabel('Count')
+formatFig(fig,true)
+
+%Save figure
+save_figure(fig, [figdirectory 'Experiment start times'], '-png')
+
+%% Split trials into time bins
 
 clearvars('-except',initial_vars{:})
 
@@ -116,7 +130,8 @@ for i = 1:ngroups %loop through each group
     g(i).tempavg = mean(g(i).temp,2,'omitnan');
 end
 
-clist = {'blue','lime','gold','plum'};
+clist = {'DeepPink','Orange','Lime','DodgerBlue'};
+
 
  % FIGURE:
 fig = getfig('Distance to food',true); %create a figure with customizable size and position on screen
