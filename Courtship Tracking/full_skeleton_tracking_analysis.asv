@@ -1,0 +1,19 @@
+
+
+%% Load tracking points for courtship
+
+baseFolder = '/Users/evyndickinson/Documents/Courtship Videos/';
+dataFile = 'labels.v000.analysis.h5';
+filePath = [baseFolder, dataFile];
+
+occupancy_matrix = h5read(filePath,'/track_occupancy');
+tracks = h5read(filePath,'/tracks');
+
+%% Create data labels and structure organization 
+
+frame_loc = find(occupancy_matrix==1);
+nframes = length(frame_loc);
+
+% tracks organization = frames, body position, fly instance
+
+frame_loc(1)
