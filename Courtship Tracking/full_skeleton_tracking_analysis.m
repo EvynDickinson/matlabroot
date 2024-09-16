@@ -2,31 +2,86 @@
 
 %% Load tracking points for courtship
 clear; clc;
-baseFolder = '/Users/evyndickinson/Documents/Courtship Videos/';
-dataFile = 'labels.v001.000_Courtship 0001.analysis.h5';
+baseFolder = getDataPath(5,0);
+baseFolder = [baseFolder, 'Courtship Videos/'];
+% baseFolder =  '/Users/evyndickinson/Documents/Courtship Videos/';
+dataFile = 'labels.v001.analysis.h5';
 filePath = [baseFolder, dataFile];
 
 occupancy_matrix = h5read(filePath,'/track_occupancy');
 tracks = h5read(filePath,'/tracks');
 node_names = h5read(filePath, '/node_names');
-edge_names = h5read(filePath, '/edge_names');
+% edge_names = h5read(filePath, '/edge_names');
 track_names = h5read(filePath, '/track_names');
 
 
 %% Create data labels and structure organization 
+nframes = 1:length(occupancy_matrix);
 
-frame_loc = find(occupancy_matrix==1);
-nframes = length(frame_loc);
+% tracks (frame, body points, XY, fly)
+m = squeeze(tracks(:,:,:,2)); %male fly
+f = squeeze(tracks(:,:,:,3)); %female fly
 
-% tracks organization = frames, body position, fly instance
-fig = getfig('', false);
+pix2mm = 0.0305;
 
-scatter()
-frame_loc(1)
+initial_var = who;
+initial_var{end+1} = 'pix2mm'; 
 
 
-frame = frame_loc(1);
+%% Determine the conversion between pixels to mm
 
-figure;
-scatter(tracks(frame,:,1), tracks(frame,:,1))
+% vidpath = "S:\Evyn\Courtship Videos\9.12.2024\Courtship 0001.avi";
+% movieInfo = VideoReader(vidpath); %read in video
+% demoImg = (read(movieInfo,1));
+% well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
+% 
+% % distance between well 1 and 3
+% d = [];
+% well_1 = well_loc(:,1);
+% well_3 = well_loc(:,3);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% % distance between well 2 and 4
+% well_1 = well_loc(:,2);
+% well_3 = well_loc(:,4);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% 
+% pixelsbetweenwells = mean(d); %pixels
+% actualdistance =  31.2; %mm
+% pix2mm = actualdistance/pixelsbetweenwells; % multiplier
 
+%% Plot fly positions for a given frame
+
+frame = 1;
+
+% plot fly positions: 
+fig = getfig('',1,[560 420]);
+    hold on
+    plotFlySkeleton(fig, m(frame, :,1),m(frame, :,2),Color('dodgerblue'),true);
+    plotFlySkeleton(fig, f(frame, :,1),f(frame, :,2),Color('deeppink'),true);
+    axis square equal
+set(gca, 'xcolor', 'w','ycolor', 'w')
+
+%% Distance between flies over full video course
+% use the center body point
+x1 = m(:,2,1);
+y1 = m(:,2,2);
+x2 = f(:,2,1);
+y2 = f(:,2,2);
+
+inputData = [arenaData(arena).x_loc(frame,:)',arenaData(arena).y_loc(frame,:)'];
+inputData(isnan(inputData(:,1)),:) = [];
+
+D = pdist();
+
+% d =[sum((well_1-well_3).^2).^0.5];
+
+
+
+
+%% PARAMETERS TO SHOW: 
+
+% 1) distance between flies
+    % need to find the pixel to mm conversion
+% 2) each fly speed
+% 3) body angle between flies
+% 4) male fly wing angle
