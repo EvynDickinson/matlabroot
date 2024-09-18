@@ -30,22 +30,22 @@ List.arena = eligible_files(fileIdx,2);
 finishedFiles = []; 
 
 % Select data location: 
-h = questdlg('Select the location of data from Step 1 processing','', 'Okay', 'Cancel', 'Okay');
-if strcmp(h, 'Cancel') || isempty(h)
-    disp('Selection canceled')
-    return
-end
+% h = questdlg('Select the location of data from Step 1 processing','', 'Okay', 'Cancel', 'Okay');
+% if strcmp(h, 'Cancel') || isempty(h)
+%     disp('Selection canceled')
+%     return
+% end
 disp('Select folder for the data processed in Step 1')
-baseFolder = getDataPath(2,0); 
+baseFolder = getDataPath(2,0,'Select the location of data from Step 1 processing'); 
 
 % Select saving data location: 
-h = questdlg('Select the SAVE TO trial location','', 'Okay', 'Cancel', 'Okay');
-if strcmp(h, 'Cancel') || isempty(h)
-    disp('Selection canceled')
-    return
-end
+% h = questdlg('Select the SAVE TO trial location','', 'Okay', 'Cancel', 'Okay');
+% if strcmp(h, 'Cancel') || isempty(h)
+%     disp('Selection canceled')
+%     return
+% end
 disp('Select single trial data location:')
-outputFolder = getDataPath(1,0); 
+outputFolder = getDataPath(1,0,'Select the SAVE TO trial location'); 
  
 % ===============================================================================
 for ii = 1:length(fileIdx)

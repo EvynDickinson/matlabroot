@@ -19,6 +19,7 @@ clearvars('-except',initial_vars{:})
 initial_vars{end + 1} = 'expstarttime';
 initial_vars{end + 1} = 'expstarttime_hr';
 initial_vars{end + 1} = 'groupix';
+initial_vars{end + 1} = 'binedges';
 
 %% Make unique trial ID
 expstarttime = [];
@@ -55,10 +56,10 @@ end
 clearvars('-except',initial_vars{:})
 
 x = expstarttime_hr;
-edges = [4,8,12,16,20]; %move binedges variable up here and add to initial variables
+binedges = [4:4:20];
 
 fig = figure('Name','Experiment start time');
-h = histogram(expstarttime_hr,edges);
+h = histogram(expstarttime_hr,binedges);
 h.FaceColor = Color('Plum');
 h.FaceAlpha = 1;
 h.EdgeColor = 'w';
@@ -68,7 +69,7 @@ ylabel('Count')
 formatFig(fig,true)
 
 %Save figure
-save_figure(fig, [figdirectory 'Experiment start times'], '-png')
+save_figure(fig, [figdirectory 'Experiment start times'], '-png');
 
 %% Split trials into time bins
 
@@ -76,10 +77,10 @@ clearvars('-except',initial_vars{:})
 
 % Split trials into before and after noon
 
-binedges = [4,8,12,16,20];
+
 groupix = discretize(expstarttime_hr,binedges);
 
-initial_vars{end + 1} = 'binedges';
+
 
 %% Compare distance to food between groups
 
@@ -130,11 +131,7 @@ for i = 1:ngroups %loop through each group
     g(i).tempavg = mean(g(i).temp,2,'omitnan');
 end
 
-clist = {'LightCyan','Cyan','DodgerBlue','DarkBlue'};
-
-Orange
-Lime
-DodgerBlue
+clist = {'DeepPink','Orange','Lime','DodgerBlue'};
 
 
  % FIGURE:
@@ -165,6 +162,107 @@ subplot(r,c,sb(1).idx)
 
 % Save figure
 save_figure(fig, [figdirectory 'Distance to food'], '-png')
+
+
+%% Trial by trial scatterplot
+
+clearvars('-except',initial_vars{:}) %clear all variables except initial ones
+plot_err = true; %plot error region
+[foreColor,backColor] = formattingColors(true); % get background colors
+
+plotdata = nan([ntrials,2]); %create empty variable of a specific size
+
+for trial = 1:ntrials
+    z = data(trial).occupancy.temp;
+    loc = data(trial).data.foodwell; %column number that has the food
+    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
+    tdmat = [z,y]; %matrix of temperature and distance to food well
+    tempPoints = getTempTurnPoints(temp_protocol);
+    ROI = [tempPoints.DownROI,tempPoints.UpROI];
+
+    tdmat = tdmat(ROI,:);
+    nanloc = isnan(tdmat);
+    a = any(nanloc,2);
+    tdmat(a,:) = [];
+
+    corr1 = corrcoef(tdmat(:,1),tdmat(:,2));
+    plotdata(trial,2) = corr1(1,2);
+    plotdata(trial,1) = expstarttime_hr(trial);
+end
+
+fig = getfig('Temp distance correlation',true);
+    scatter(plotdata(:,1),plotdata(:,2))
+
+
+%% other figure
+
+clearvars('-except',initial_vars{:}) 
+plot_err = true; 
+[foreColor,backColor] = formattingColors(true); 
+
+plotdata = nan([ntrials,2]);
+windowsize = 1; %in minutes
+
+clist = {'DeepPink','Orange','grey','Purple'};
+
+r = 1;
+c = 2;
+
+fig = getfig('Ramp distance difference',true);
+hold on
+
+for trial = 1:ntrials
+    subplot(r,c,1)
+    hold on
+    loc = data(trial).data.foodwell; %column number that has the food
+    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
+    tempPoints = getTempTurnPoints(temp_protocol);
+
+    nframes = tempPoints.fps*60*windowsize;
+    r1start = tempPoints.hold(1,2)-nframes:tempPoints.hold(1,2);
+    r1end = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
+    r3start = tempPoints.hold(3,2)-nframes:tempPoints.hold(3,2);
+    r3end = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
+   
+    r1startavg = mean(y(r1start)); %average distance within r1start area
+    r1endavg = mean(y(r1end));
+    r3startavg = mean(y(r3start));
+    r3endavg = mean(y(r3end));
+
+    r1diff = r1endavg-r1startavg;
+    r3diff = r3endavg-r3startavg;
+
+    scatter(1,r1diff,35,Color(clist{groupix(trial)}),"filled")
+    scatter(3,r3diff,35,Color(clist{groupix(trial)}),"filled")
+    plot([1,3],[r1diff,r3diff],'color',Color(clist{groupix(trial)}),'LineWidth',2)
+
+    subplot(r,c,2)
+    hold on
+    slope = r3diff-r1diff;
+    scatter(expstarttime_hr(trial),slope,35,Color(clist{groupix(trial)}),"filled")
+
+end
+
+subplot(r,c,1)
+    xlim([0.5,3.5])
+    set(gca,'XTick',[1,3])
+    xlabel('Ramp')
+    ylabel('\Delta Distance during cooling')
+
+subplot(r,c,2)
+    xlim([5,20])
+    set(gca,'XTick',binedges)
+    h_line(0,'Gray','--')
+    xlabel('Start time')
+    ylabel('Difference between ramp 1 and ramp 3')
+    
+formatFig(fig,true,[r,c])
+
+
+
+
+
+
 
 
 

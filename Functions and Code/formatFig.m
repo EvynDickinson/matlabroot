@@ -19,7 +19,7 @@ txtSize = 16; % text size
 axisLW = 2; % axis line width
 txtFont = 'Arial'; % all fonts
 tickMarkSize = 14;    
-tickDir = 'in'; 
+tickDir = 'out'; 
 
 % SET PLOT BACKGROUND COLOR
 backColor = 'w';
@@ -84,7 +84,7 @@ else    % single plot
     labelHandles = findall(ax, 'type', 'text', 'handlevisibility', 'off');
     set(labelHandles,'FontSize', txtSize, 'color', labelColor)
     set(gca,'fontsize',tickMarkSize,'FontWeight','normal')
-    
+    set(ax,'tickdir',tickDir)
     
 end
 
