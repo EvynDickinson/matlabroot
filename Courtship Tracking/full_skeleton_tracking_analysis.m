@@ -421,6 +421,8 @@ movieInfo = VideoReader(vidpath); %read in video
 % zoom in on the fly skeleton?
 
 frame = 5100;
+sz = 50;
+frame_skip = 5;
 demoImg = (read(movieInfo,frame));
 img = imadjust(demoImg,[72/255, 180/255]);
 
@@ -431,16 +433,16 @@ fig = getfig;
     % plot the center points of the flies from the past 10 seconds
     windowsize = 4; % seconds
     roi = windowsize*80;
-    ROI = frame-roi:frame;
+    ROI = frame-roi:frame_skip:frame;
     %MALE
     x1 = m(ROI, 1,1);
     y1 = m(ROI, 1,2);
     hold on
-    scatter(x1,y1,5,Color('dodgerblue'), "filled")
+    scatter(x1,y1,sz,Color('dodgerblue'), "filled")
     %FEMALE
     x2 = f(ROI, 1,1);
     y2 = f(ROI, 1,2);
-    scatter(x2,y2,5,Color('deeppink'), "filled")
+    scatter(x2,y2,sz,Color('deeppink'), "filled")
 
 save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
 
@@ -448,7 +450,7 @@ save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(
     xlimits(1) = min([x1;x2]);
     xlimits(2) = max([x1;x2]);
     ylimits(1) = min([y1;y2]);
-    ylimits(2) = max([y1;y2]);
+    ylimits(2) = max([y1;y2]); 
     buff = 50;
     xlim([xlimits(1)-buff, xlimits(2)+buff])
     ylim([ylimits(1)-buff, ylimits(2)+buff])
@@ -456,19 +458,19 @@ save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(
     % overlay the current body position of the male fly
     x = m(frame, :,1);
     y = m(frame, :,2);
-    scatter(x,y,15,Color('black'), "filled")
+    scatter(x,y,sz,Color('black'), "filled")
     skeleton = [1,2; 2,3; 2,4; 2,5];
     for i = 1:size(skeleton,1)
-        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'))
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
     end
 
     % overlay the current body position of the female fly
     x = f(frame, :,1);
     y = f(frame, :,2);
-    scatter(x,y,15,Color('black'), "filled")
+    scatter(x,y,sz,Color('black'), "filled")
     skeleton = [1,2; 2,3; 2,4; 2,5];
     for i = 1:size(skeleton,1)
-        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'))
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
     end
 
 save_figure(fig,[baseFolder 'Figures/zoom frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);

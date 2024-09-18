@@ -38,7 +38,7 @@ if ismac
         computerName = 'Yale VPN';
     end
 else
-    computerName = getenv('COMPUTERNAME');
+    computerName = 
 end
 paths.computerName = computerName;
 % note: the computer name is a host VPN on a mac when there is a VPN connection
