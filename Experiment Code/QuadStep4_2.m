@@ -337,11 +337,11 @@ switch questdlg('Select data saving format:','','new structure','existing struct
         save([saveDir expGroup ' data.mat'],'-v7.3');
         disp([expGroup ' saved'])
     case 'existing structure'
-        % TODO check if there is an existing folder and then offer that as the base selection
         list_dirs = dir([baseFolder paths.group_comparision]);
         list_dirs = {list_dirs(:).name};
         list_dirs(1:2) = [];
-        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+        guessLoc = strcmp(expGroup,list_dirs); % TODO check if there is an existing folder and then offer that as the base selection
+        dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450], 'InitialValue',includedIdx,guessLoc);
         expGroup = list_dirs{dirIdx}; %name of experiment groups selected
         saveDir = [baseFolder paths.group_comparision expGroup '/'];
         save([saveDir expGroup ' data.mat'],'-v7.3');

@@ -256,9 +256,15 @@ subplot(r,c,2)
     xlabel('Start time')
     ylabel('Difference between ramp 1 and ramp 3')
     
-formatFig(fig,true,[r,c])
+ formatFig(fig,true,[r,c])
 
+%% TODO Distance Analyses
 
+% 1) Is there a difference in the initial distance flies
+% are from the food for the 1 & 3rd trial across time? 
+% -- learn about running statistica tests in Matlab
+
+% 2) For di
 
 
 

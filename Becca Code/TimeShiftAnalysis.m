@@ -1,8 +1,8 @@
 
 %% Load data
-
-path = getDataPath(3, 0, 'Select data structure');
-folderSelected = selectFolder(path);
+clear; clc; close all
+path = getDataPath(3, 0, 'Select location of data structure');
+folderSelected = selectFolder(path,'Single', 'Select data structure');
 figdirectory = [path,folderSelected{:} '/'];
 load([figdirectory, folderSelected{:} ' ' 'post 3.1 data.mat'])
 
@@ -77,10 +77,7 @@ clearvars('-except',initial_vars{:})
 
 % Split trials into before and after noon
 
-
 groupix = discretize(expstarttime_hr,binedges);
-
-
 
 %% Compare distance to food between groups
 
@@ -164,7 +161,7 @@ subplot(r,c,sb(1).idx)
 save_figure(fig, [figdirectory 'Distance to food'], '-png')
 
 
-%% Trial by trial scatterplot
+%% Trial by trial scatterplot : TODO -- format this figure
 
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
@@ -258,9 +255,19 @@ subplot(r,c,2)
     
  formatFig(fig,true,[r,c])
 
+%% TODO Distance Analyses
 
+% 1) Is there a difference in the initial distance flies are from the food for the 1 & 3rd ramp across time? 
+% -- learn about running statistica tests in Matlab
 
+% 2) How does the return to food change during warming between the 1 & 3rd ramps?
+% -- what are the implications if they return to different distances for different start times? 
 
+% 3) s there a correlation between start time and distance traveled during cooling? 
+
+% 4) Is there a correlation between start time and the distance to food in the 1&3rd ramps?
+
+%% 
 
 
 
