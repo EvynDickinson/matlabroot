@@ -81,6 +81,9 @@ switch computerName
     case 'DENALI'
         serverPath = paths.denaliServerPath;
         permanentPath = [];
+    case 'CHILKAT'
+        serverPath = paths.chilkatServerPath;
+        permanentPath = [];
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;

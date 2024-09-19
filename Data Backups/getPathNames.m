@@ -26,4 +26,5 @@ paths.EvynMacServerPath = '/Volumes/shared/Evyn/';
 paths.denaliServerPath = 'Z:\Evyn\';
 paths.acadiaLocalPath = 'D:\Evyn Lab Data\';
 paths.EvynPCLocalPath = 'K:\';
+paths.chilkatServerPath = 'S:\Evyn\';
 
