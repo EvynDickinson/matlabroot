@@ -59,9 +59,9 @@ for trial = 1:num.trial(exp)
                     % draw 
             end
 
-     
+                 
 
-            
+
 end
 
 
@@ -80,8 +80,12 @@ plot(speed)
 
 
 
+%% Tracking cleaning
 
+% may want to clean up the tracks manually before screening? 
 
+temp = load("S:\Evyn\Trial Data\02.04.2023_linear_recovery_F_caviar_C\linear_recovery_F_caviar speed data.mat");
+load(inputPath);
 
 
 
