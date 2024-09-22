@@ -30,20 +30,10 @@ List.arena = eligible_files(fileIdx,2);
 finishedFiles = []; 
 
 % Select data location: 
-% h = questdlg('Select the location of data from Step 1 processing','', 'Okay', 'Cancel', 'Okay');
-% if strcmp(h, 'Cancel') || isempty(h)
-%     disp('Selection canceled')
-%     return
-% end
 disp('Select folder for the data processed in Step 1')
 baseFolder = getDataPath(2,0,'Select the location of data from Step 1 processing'); 
 
 % Select saving data location: 
-% h = questdlg('Select the SAVE TO trial location','', 'Okay', 'Cancel', 'Okay');
-% if strcmp(h, 'Cancel') || isempty(h)
-%     disp('Selection canceled')
-%     return
-% end
 disp('Select single trial data location:')
 outputFolder = getDataPath(1,0,'Select the SAVE TO trial location'); 
  
@@ -51,25 +41,36 @@ outputFolder = getDataPath(1,0,'Select the SAVE TO trial location');
 for ii = 1:length(fileIdx)
     trial_ID = [List.date{ii} '_' List.expID{ii} '_' List.arena{ii}];
 
-    % Proccess basic and speed data  
-    inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat']; 
-    if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
-        results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder); % Run the basic figures
-        results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder); % Run the speed figures
-    end
-  
-    % Process sleep data:
-    results3 = runQuadStep2_2_sleep([outputFolder trial_ID '/'], List.arena{ii}, List.expID{ii});
+    % % Proccess basic and speed data  
+    % inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat']; 
+    % if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
+    %     results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder); % Run the basic figures
+    %     results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder); % Run the speed figures
+    % end
+    % 
+    % % Process sleep data:
+    % results3 = runQuadStep2_2_sleep([outputFolder trial_ID '/'], List.arena{ii}, List.expID{ii});
+    % 
+    % finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
+    % if excelWrite == true
+    %     if strcmpi(results, 'Saved Data')
+    %         XLrow = rownums(fileIdx(ii));
+    %         % write processed 'Y' into the excel sheet
+    %         isExcelFileOpen(XL);
+    %         writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
+    %     end
+    % end
+    
+    % Calculate and write circadian start time value for experiments
+    XLrow = rownums(fileIdx(ii));
+    expTime = excelfile{XLrow,Excel.starttime}; %start time of the experiment
+    incubator = excelfile{XLrow,Excel.daynight}; %day or night incubator
+    expDate = excelfile{XLrow,Excel.date}; %exp date
+    time_string = getCircadianTime(expTime, incubator, expDate);
+    % write zeitgeber time into the excel sheet
+    isExcelFileOpen(XL);
+    writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
 
-    finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
-    if excelWrite == true
-        if strcmpi(results, 'Saved Data')
-            XLrow = rownums(fileIdx(ii));
-            % write processed 'Y' into the excel sheet
-            isExcelFileOpen(XL);
-            writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
-        end
-    end
     % 
 disp(['Finished ' FileNames(fileIdx(ii))])         
 end

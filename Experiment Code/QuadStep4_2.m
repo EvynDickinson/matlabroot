@@ -931,9 +931,6 @@ for exp = 1:num.exp
     grouped(exp).occ.std = std(all_occ,0,2,'omitnan');
 end
 
-
-
-
 %% ANALYSIS: pull binned speed
 clearvars('-except',initial_vars{:})
 
@@ -1039,16 +1036,6 @@ for exp = 1:num.exp
     grouped(exp).ring.decreasing.err = std(raw_c, 0, 2, 'omitnan');
     grouped(exp).ring.temps = temps;
 end
-
-
-
-
-
-
-
-
-
-
 
 
 %% ANALYSIS: Cluster eccentricity temperature

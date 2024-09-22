@@ -30,20 +30,10 @@ List.arena = eligible_files(fileIdx,2);
 finishedFiles = []; 
 
 % Select data location: 
-% h = questdlg('Select the location of data from Step 1 processing','', 'Okay', 'Cancel', 'Okay');
-% if strcmp(h, 'Cancel') || isempty(h)
-%     disp('Selection canceled')
-%     return
-% end
 disp('Select folder for the data processed in Step 1')
 baseFolder = getDataPath(2,0,'Select the location of data from Step 1 processing'); 
 
 % Select saving data location: 
-% h = questdlg('Select the SAVE TO trial location','', 'Okay', 'Cancel', 'Okay');
-% if strcmp(h, 'Cancel') || isempty(h)
-%     disp('Selection canceled')
-%     return
-% end
 disp('Select single trial data location:')
 outputFolder = getDataPath(1,0,'Select the SAVE TO trial location'); 
  
@@ -57,19 +47,28 @@ for ii = 1:length(fileIdx)
         results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder); % Run the basic figures
         results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder); % Run the speed figures
     end
-  
+
     % Process sleep data:
     results3 = runQuadStep2_2_sleep([outputFolder trial_ID '/'], List.arena{ii}, List.expID{ii});
 
     finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
+    XLrow = rownums(fileIdx(ii));
     if excelWrite == true
         if strcmpi(results, 'Saved Data')
-            XLrow = rownums(fileIdx(ii));
             % write processed 'Y' into the excel sheet
             isExcelFileOpen(XL);
             writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
         end
     end
+    
+    % Calculate and write circadian start time value for experiments
+    expStart = excelfile{XLrow,Excel.starttime};
+    incubator = excelfile{XLrow,Excel.daynight}; %day or night incubator
+    time_string = getCircadianTime(expStart, incubator, List.date{ii});
+    % write zeitgeber time into the excel sheet
+    isExcelFileOpen(XL);
+    writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
+
     % 
 disp(['Finished ' FileNames(fileIdx(ii))])         
 end
