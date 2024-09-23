@@ -8,7 +8,7 @@ date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 start_dir = 'F:\Evyn\DATA\'; %'C:\Users\jeannelab\Documents\Evyn\DATA\';
 
 %get base folder pathway  
-baseFolder = 'S:\Evyn\DATA\'; % G:\My Drive\Jeanne Lab\DATA\';  
+baseFolder = 'S:\Evyn\Raw Data\DATA'; % G:\My Drive\Jeanne Lab\DATA\';  
 
 %select folder date    
 list_dirs = dir(start_dir);
