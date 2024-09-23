@@ -85,7 +85,9 @@ plot(speed)
 % may want to clean up the tracks manually before screening? 
 
 temp = load("S:\Evyn\Trial Data\02.04.2023_linear_recovery_F_caviar_C\linear_recovery_F_caviar speed data.mat");
-load(inputPath);
+
+% speedTracks structure contains the x-y positions of the flies as well as
+% the speed for each set of points 
 
 
 
