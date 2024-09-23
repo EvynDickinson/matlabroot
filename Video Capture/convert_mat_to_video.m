@@ -1,0 +1,77 @@
+
+clear
+
+tic
+
+% load matrix data file
+baseFolder = 'F:\Evyn\DATA\09.23.2024\output_1\';
+load([baseFolder 'file1.mat']);
+
+% convert matrix to video file
+v = VideoWriter([baseFolder 'file1.avi'],'Motion JPEG AVI');
+v.Quality = 95;
+open(v)
+writeVideo(v, data)
+close(v)
+
+toc
+
+%% Initialize camera
+vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
+    partial_ROI = [0 0 2048 2048];
+    src = getselectedsource(vid);
+    % camera parameters
+    src.Brightness = 29; %11.127068;
+    src.Exposure  = 1.5648;
+    src.FrameRate = 30;
+    src.Gain = 1.752491; %6;
+    src.Gamma = 1.5338; % 1.502002;
+    src.Shutter = 11.6188; %7.420205;
+    vid.FramesPerTrigger = inf;
+    vid.ROIPosition = partial_ROI;
+    disp('Purple BACK camera initialized')
+
+%% Open folder with videos and load the time points, check to see 
+%if they match the expected save time. 
+
+baseFolder = 'F:\Evyn\DATA\09.23.2024\Video Testing\';
+% save videos
+cd(baseFolder) % set path to video folder
+
+hz = 30; %FPS 
+trial = 5; %recording length
+totalLength = 16;
+nsamples = ceil((totalLength*60)/trial);
+
+get_samples_v3(trial*hz*nsamples,(trial*hz)) % vid duration, frames per vid
+    
+
+
+%% How long can we write to buffer without crapping the memory?
+fold = 3;
+baseDir = [baseFolder 'output_' num2str(fold) '/'];
+fileList = dir([baseDir 'file*.mat']);
+
+temp = [];
+for i = 1:length(fileList)
+    temp(i).data = load([baseDir, 'file' num2str(i) '.mat'],'timestamp');
+end
+
+% find difference in time between the video saves: 
+timestamps = [];
+for i = 1:length(temp)
+    [h,m,s] = hms(temp(i).data.timestamp);
+    timestamps(i) = seconds(duration(h,m,s));
+end
+
+y = diff(timestamps);
+
+fig = getfig('',false,[1123 601]); 
+scatter(1:length(y),y,50,Color('black'),'filled')
+h_line(trial,'red')
+formatFig(fig)
+xlabel('Video Number')
+ylabel('Video record and save time (s)')
+
+
+
