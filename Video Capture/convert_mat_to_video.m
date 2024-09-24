@@ -1,54 +1,24 @@
 
-clear
+% clear
+% 
+% tic
+% 
+% % load matrix data file
+% baseFolder = 'F:\Evyn\DATA\09.23.2024\output_1\';
+% load([baseFolder 'file1.mat']);
+% 
+% % convert matrix to video file
+% v = VideoWriter([baseFolder 'file1.avi'],'Motion JPEG AVI');
+% v.Quality = 95;
+% open(v)
+% writeVideo(v, data)
+% close(v)
+% 
+% toc
 
-tic
-
-% load matrix data file
-baseFolder = 'F:\Evyn\DATA\09.23.2024\output_1\';
-load([baseFolder 'file1.mat']);
-
-% convert matrix to video file
-v = VideoWriter([baseFolder 'file1.avi'],'Motion JPEG AVI');
-v.Quality = 95;
-open(v)
-writeVideo(v, data)
-close(v)
-
-toc
-
-%% Initialize camera
-vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
-    partial_ROI = [0 0 2048 2048];
-    src = getselectedsource(vid);
-    % camera parameters
-    src.Brightness = 29; %11.127068;
-    src.Exposure  = 1.5648;
-    src.FrameRate = 30;
-    src.Gain = 1.752491; %6;
-    src.Gamma = 1.5338; % 1.502002;
-    src.Shutter = 11.6188; %7.420205;
-    vid.FramesPerTrigger = inf;
-    vid.ROIPosition = partial_ROI;
-    disp('Purple BACK camera initialized')
-
-%% Open folder with videos and load the time points, check to see 
-%if they match the expected save time. 
-
-baseFolder = 'F:\Evyn\DATA\09.23.2024\Video Testing\';
-% save videos
-cd(baseFolder) % set path to video folder
-
-hz = 30; %FPS 
-trial = 5; %recording length
-totalLength = 16;
-nsamples = ceil((totalLength*60)/trial);
-
-get_samples_v3(trial*hz*nsamples,(trial*hz)) % vid duration, frames per vid
-    
 
 
 %% How long can we write to buffer without crapping the memory?
-
 
 rootDir = getDataPath(5, 2, 'Select location for data');
 paths = getPathNames;
@@ -88,7 +58,7 @@ tic
 
 % Loop through all the video files 
 % baseFolder = 'F:\Evyn\DATA\09.23.2024\output_1\';
-for i = 2:length(fileList)
+for i = 1:length(fileList)
     % lad data matrix
     data = load([baseDir fileList(i).name],'data');
     
@@ -101,4 +71,83 @@ for i = 2:length(fileList)
     disp(['Finished ' fileList(i).name])
 end
 toc
+
+%% convert files to a single video file (or an 8-minute segment)
+
+newVidLength = 4; % four minutes
+% need to know the total video length & the video frequency & individual
+% vid lengths
+tot_vids = length(fileList);
+vid_length = 5;
+compile_size = (newVidLength*60)/vid_length;
+vid_rois = 1:compile_size:tot_vids;
+if vid_rois(end)<tot_vids
+    vid_rois = [vid_rois, tot_vids];
+end
+nVids = length(vid_rois)-1; % how many compiled videos there will be
+vROI = [vid_rois(1),vid_rois(2)];
+for i = 2:nVids
+    vROI(i,:) = [vid_rois(i)+1, vid_rois(i+1)];
+end
+
+% This is something that can be parallized and run in multiples! %TODO
+tic
+for vid = 1:nVids
+    % Loop through all the video files 
+    vidPath = [baseDir  'compiled video_' num2str(vid)];
+    parameters = {};
+    % convert matrix to video file
+    v = VideoWriter([vidPath '.avi'],'Motion JPEG AVI');
+    v.Quality = 95;
+    open(v)
+    for i = vROI(vid,1):vROI(vid,2)
+        % lad data matrix
+        data = load([baseDir, 'file' num2str(i) '.mat']'); 
+        parameters{end+1} = data.timestamp;
+        writeVideo(v, data.data)
+        disp(['Finished ' 'file' num2str(i) '.mat'])
+    end
+    close(v)
+    save([vidPath ' parameters.mat'],'parameters')
+end
+disp('Finished all videos')
+toc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
