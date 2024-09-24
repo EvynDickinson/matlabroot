@@ -14,6 +14,8 @@ vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
     vid.ROIPosition = partial_ROI;
     disp('Purple BACK camera initialized')
 
+    preview(vid)
+    
 %% Open folder and run trials
 
 baseFolder = 'F:\Evyn\DATA\09.23.2024\Video Testing\';
@@ -25,4 +27,10 @@ trial = 5; %recording length
 totalLength = 16;
 nsamples = ceil((totalLength*60)/trial);
 
-get_samples_v3(trial*hz*nsamples,(trial*hz)) % vid duration, frames per vid
+get_samples_v3(trial*hz*nsamples,(trial*hz)) % vid duration,frames per vid
+
+
+
+
+
+

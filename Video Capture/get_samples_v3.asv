@@ -1,12 +1,11 @@
 
 % get_samples_v3(120)
 
-function get_samples_v3(nframes,fpf,vidName,tempLogName)
+function get_samples_v3(nframes,fpf,vidName)
 
 % If you run this function in a loop, the output files will be stored in
 % different directories
 persistent dirname
-% persistent tempLogName
 persistent count
 if isempty(count)
     count = 1;
@@ -28,7 +27,7 @@ vi1 = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
 vi1.UserData = 1; 
 
 % Set Parameters
-set(vi1,'FramesAcquiredFcn',{@FrameSave,dirname,tempLogName},'FramesAcquiredFcnCount',fpf);
+set(vi1,'FramesAcquiredFcn',{@FrameSave,dirname},'FramesAcquiredFcnCount',fpf);
 set(vi1,'FramesPerTrigger',nframes,'LoggingMode','memory');
 set(vi1,'Timeout',fpf);
 
@@ -38,40 +37,39 @@ wait(vi1);
 
 
 % Callback every fpf frames
-function FrameSave(vi1,~,dirname,tempLogName)
+function FrameSave(vi1,event,dirname)
     disp(vi1.FramesAcquired);
     data = getdata(vi1,vi1.FramesAcquiredFcnCount);
     filename = ['file',num2str(vi1.UserData),'.mat'];
     timestamp = datetime('now');
-
-    % log current temp information
-    A = readmatrix(tempLogName);
-    tempLog = [size(A,1), A(end,:)];
+    A = strsplit(dirname,'_');
     
-    % save the video file and temp and time
-    save([pwd '\' dirname '\' filename],'data','timestamp','tempLog','-v6');
+    B = readmatrix([A(1)]
+    tempLog = 
+    
+    save([pwd '\' dirname '\' filename],'data','timestamp','-v6');
     vi1.UserData = vi1.UserData + 1;
-
+end
  % -v6 option speeds up save process to help prevent the buffer 
     % from filling during file write operation
 
+
+function tempLog = logTempNow(searchPath)
+% tempLog = logTempNow(searchPath)
 % 
-% function tempLog = logTempNow(searchPath)
-% % tempLog = logTempNow(searchPath)
-% % 
-% % 
-% % ES Dickinson, Yale Univeristy, Aug 2021
 % 
-%     list_dirs = dir(searchPath); % only videos
-%     %I contains the index to the biggest number which is the latest file
-%     [~,I] = max([list_dirs(:).datenum]);
-%     if ~isempty(I)
-%         logName = [list_dirs(I).folder, '\' list_dirs(I).name];
-%     end
-%     A = readmatrix(logName);
-%     tempLog = [size(A,1), A(end,:)]; %index, timepoint, currtemp, settemp, %loading
-% 
-% end
+% ES Dickinson, Yale Univeristy, Aug 2021
+
+    list_dirs = dir(searchPath); % only videos
+    %I contains the index to the biggest number which is the latest file
+    [~,I] = max([list_dirs(:).datenum]);
+    if ~isempty(I)
+        logName = [list_dirs(I).folder, '\' list_dirs(I).name];
+    end
+    A = readmatrix(logName);
+    tempLog = [size(A,1), A(end,:)]; %index, timepoint, currtemp, settemp, %loading
+
+end
 
 
 
