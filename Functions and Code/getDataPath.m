@@ -10,6 +10,7 @@ function path = getDataPath(dataType, dataLocation, promptString)
 % 3) pooled trial data structures 
 % 4) grouped data structures
 % 5) base folder only! -- no path ending
+% 
 %
 % dataLocation options: 
 % 0) user select (default)

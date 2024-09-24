@@ -48,6 +48,13 @@ get_samples_v3(trial*hz*nsamples,(trial*hz)) % vid duration, frames per vid
 
 
 %% How long can we write to buffer without crapping the memory?
+
+
+rootDir = getDataPath(5, 2, 'Select location for data');
+paths = getPathNames;
+dateDir = selectFolder([rootDir, paths.courtship]);
+baseFolder = [rootDir paths.courtship  dateDir{1} '\Video Testing\'];
+
 fold = 3;
 baseDir = [baseFolder 'output_' num2str(fold) '/'];
 fileList = dir([baseDir 'file*.mat']);
@@ -68,10 +75,26 @@ y = diff(timestamps);
 
 fig = getfig('',false,[1123 601]); 
 scatter(1:length(y),y,50,Color('black'),'filled')
-h_line(trial,'red')
+h_line(5,'red')
 formatFig(fig)
 xlabel('Video Number')
-ylabel('Video Duration ')
+ylabel('Video record and save time (s)')
 
 
+%% convert files to videos
+
+tic
+
+% load matrix data file
+baseFolder = 'F:\Evyn\DATA\09.23.2024\output_1\';
+load([baseFolder 'file1.mat']);
+
+% convert matrix to video file
+v = VideoWriter([baseFolder 'file1.avi'],'Motion JPEG AVI');
+v.Quality = 95;
+open(v)
+writeVideo(v, data)
+close(v)
+
+toc
 

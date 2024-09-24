@@ -13,6 +13,7 @@ function paths = getPathNames
 % paths.acadiaLocalPath = 'D:\';
 % paths.EvynPCLocalPath = 'K:\';
 
+paths.courtship = 'Courtship Videos\';
 paths.removableDrive = 'OnTheGoData';
 paths.single_trial = 'Trial Data/';
 paths.raw_data = 'Raw Data/';
