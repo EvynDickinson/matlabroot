@@ -83,7 +83,7 @@ newVidLength = 4; % four minutes
 tot_vids = length(fileList);
 vid_length = 5;
 compile_size = (newVidLength*60)/vid_length;
-vid_rois = 1:compile_size:tot_vids;
+vid_rois = 1:compile_size:tot_vids;  
 if vid_rois(end)<tot_vids
     vid_rois = [vid_rois, tot_vids];
 end
