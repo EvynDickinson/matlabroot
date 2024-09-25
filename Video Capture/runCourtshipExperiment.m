@@ -65,7 +65,7 @@ src = getselectedsource(vid);
 % camera parameters
 src.Brightness = 29;
 src.Exposure  = 1.5648;
-src.FrameRate = hz;
+src.FrameRate = num2str(hz);
 src.Gain = 1.752491; 
 src.Gamma = 1.5338; 
 src.Shutter = 11.6188; 

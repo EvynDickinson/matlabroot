@@ -23,16 +23,14 @@
 rootDir = getDataPath(5, 2, 'Select location for data');
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
-baseFolder = [rootDir paths.courtship  dateDir{1} '\Video Testing\'];
+rampName = selectFolder([rootDir paths.courtship  dateDir{1}]);
+baseDir = [rootDir paths.courtship  dateDir{1} '\' rampName{:} '\'];
+% baseFolder = [rootDir paths.courtship  dateDir{1} '\Video Testing\'];
 
-fold = 3;
-baseDir = [baseFolder 'output_' num2str(fold) '/'];
+% fold = 3;
+% baseDir = [baseFolder 'output_' num2str(fold) '/'];
 fileList = dir([baseDir 'file*.mat']);
-
-temp = [];
-for i = 1:length(fileList)
-    temp(i).data = load([baseDir, 'file' num2str(i) '.mat'],'timestamp');
-end
+ 
 
 % find difference in time between the video saves: 
 timestamps = [];
@@ -51,6 +49,7 @@ formatFig(fig)
 xlabel('Video Number')
 ylabel('Video record and save time (s)')
 
+save_figure(fig, [base])
 
 %% convert files to videos
 % This is something that can be parallized and run in multiples! %TODO
@@ -100,7 +99,7 @@ for vid = 1:nVids
     v = VideoWriter([vidPath '.avi'],'Motion JPEG AVI');
     v.Quality = 95;
     open(v)
-    for i = vid_rois(vid):vid_rois(vid+1)
+    for i = vROI(vid,1):vROI(vid,2)
         % lad data matrix
         data = load([baseDir, 'file' num2str(i) '.mat']'); 
         parameters{end+1} = data.timestamp;
