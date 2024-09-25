@@ -23,16 +23,19 @@
 rootDir = getDataPath(5, 2, 'Select location for data');
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
-baseFolder = [rootDir paths.courtship  dateDir{1} '\Video Testing\'];
+rampName = selectFolder([rootDir paths.courtship  dateDir{1}]);
+baseDir = [rootDir paths.courtship  dateDir{1} '\' rampName{:} '\'];
+% baseFolder = [rootDir paths.courtship  dateDir{1} '\Video Testing\'];
 
-fold = 3;
-baseDir = [baseFolder 'output_' num2str(fold) '/'];
+% fold = 3;
+% baseDir = [baseFolder 'output_' num2str(fold) '/'];
 fileList = dir([baseDir 'file*.mat']);
-
+tic
 temp = [];
 for i = 1:length(fileList)
     temp(i).data = load([baseDir, 'file' num2str(i) '.mat'],'timestamp');
 end
+toc
 
 % find difference in time between the video saves: 
 timestamps = [];
@@ -80,7 +83,7 @@ newVidLength = 4; % four minutes
 tot_vids = length(fileList);
 vid_length = 5;
 compile_size = (newVidLength*60)/vid_length;
-vid_rois = 1:compile_size:tot_vids;
+vid_rois = 1:compile_size:tot_vids;  
 if vid_rois(end)<tot_vids
     vid_rois = [vid_rois, tot_vids];
 end
