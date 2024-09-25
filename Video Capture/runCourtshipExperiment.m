@@ -10,10 +10,10 @@ if ~exist(baseFolder)
 end
 cd(baseFolder) % set current path to video folder
 
-expName = 'Berlin_courtship_F_LRR_caviar';
+expName = 'Berlin_courtship_F_LRR_caviar_ramp1';
 
-start_pause = 0.5; % min delay before recording should start
-totalLength = 5; %16*4; % 16 min pre, 16 down, 16 up, 16 post.
+start_pause = 5; % min delay before recording should start
+totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post.
 hz = 30; % camera FPS 
 trial = 5; % fragment recording durations (sec)
 numSections = 1;
@@ -78,7 +78,7 @@ h = preview(vid);
 disp('Ready to star the experiment')
     
 %% Run the experiment   
-
+disp('Start temp protocol')
 tempLogStart = [];
 
 % start delay on the experiment
