@@ -9,10 +9,10 @@ if ~exist(baseFolder)
 end
 cd(baseFolder) % set current path to video folder
 
-expName = 'Berlin_courtship_F_LRR_caviar_test';
+expName = 'Berlin_courtship_F_LRR_caviar';
 
 start_pause = 5; % min delay before recording should start
-totalLength = 1; %16*4; % 16 min pre, 16 down, 16 up, 16 post.
+totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post.
 hz = 30; % camera FPS 
 trial = 5; % fragment recording durations (sec)
 numSections = 1;
@@ -56,7 +56,6 @@ tempLogPath = [parameters.videoName '_RampLog.csv'];
 fclose(fopen(tempLogPath, 'w+'));
 
 disp('Parameters saved')
-
 
 %% Initialize camera
 vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
