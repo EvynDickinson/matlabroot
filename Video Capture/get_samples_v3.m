@@ -1,7 +1,7 @@
 
 % get_samples_v3(120)
 
-function get_samples_v3(nframes,fpf,vidName,tempLogName)
+function get_samples_v3(nframes,fpf,vidName,tempLogName,hz)
 
 % If you run this function in a loop, the output files will be stored in
 % different directories
@@ -24,10 +24,9 @@ delete(imaqfind)
 % Create Video Object
 vi1 = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
 
-%  % Set Frame Rate (adjust value as necessary)
-% desiredFrameRate = 30;  % Example: 30 frames per second
-% src = getselectedsource(vi1);  % Get the camera source properties
-% src.FrameRate = num2str(desiredFrameRate);  % Set the desired frame rate
+% Set Frame Rate (adjust value as necessary)
+src = getselectedsource(vi1);  % Get the camera source properties
+src.FrameRate = hz; %num2str(hz);  % Set the desired frame rate
 
 % Initialize Counter
 vi1.UserData = 1; 

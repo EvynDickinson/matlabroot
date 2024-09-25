@@ -1,4 +1,6 @@
 
+clear; clc
+imaqreset
 
 %% Set up the experiment parameters
 dateStr = char(datetime('now','Format','MM.dd.yyyy'));
@@ -38,10 +40,10 @@ parameters.videoName = expName;
 parameters.ArenaA.genotype = 'Berlin';% TODO: get genotype information here 
 parameters.ArenaA.sex = 'mixed';
 parameters.ArenaA.starved_hours = 0;
-parameters.ArenaA.well_1 = 'Caviar';
+parameters.ArenaA.well_1 = 'Empty';
 parameters.ArenaA.well_2 = 'Empty';
 parameters.ArenaA.well_3 = 'Empty';
-parameters.ArenaA.well_4 = 'Empty';
+parameters.ArenaA.well_4 = 'Caviar';
 
 % save parameter file
 if isfile([baseFolder expName 'dataMat.mat']) %prevent overwriting the file
@@ -56,7 +58,6 @@ fclose(fopen(tempLogPath, 'w+'));
 
 disp('Parameters saved')
 
-
 %% Initialize camera
 vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
 partial_ROI = [0 0 2048 2048];
@@ -64,7 +65,7 @@ src = getselectedsource(vid);
 % camera parameters
 src.Brightness = 29;
 src.Exposure  = 1.5648;
-src.FrameRate = hz;
+src.FrameRate = num2str(hz);
 src.Gain = 1.752491; 
 src.Gamma = 1.5338; 
 src.Shutter = 11.6188; 
@@ -78,33 +79,33 @@ disp('Ready to star the experiment')
     
 %% Run the experiment   
 
-[tempLogStart_1, tempLogStart_2, tempLogEnd1, tempLogEnd2] = deal([]);
+tempLogStart = [];
 
-for n = 1:numSections
-    % save start temp log information
-    A = readmatrix(tempLogPath);
-    tempLog = [size(A,1), A(end,:)]; %index, timepoint, currtemp, settemp, %loading
-    % start delay on the experiment
-    pause(start_pause*60) 
-    tempLogStart_1(n,:) = [n, logTempNow(tempLogPath)];
-    % save start temp log information
-    A = readmatrix(tempLogPath);
-    tempLog = [size(A,1), A(end,:)]; %index, timepoint, currtemp, settemp, %loading
+% start delay on the experiment
+pause(start_pause*60)
+% pause(10)
     
+for n = 1:numSections
+    % save start temp log information    
+    tempLogStart(n,:) = [n, logTempNow(tempLogPath)];
+
     % acquire videos
     nFrames = trial*hz*nsamples;
     get_samples_v3(nFrames,trial*hz,expName,tempLogPath)
     
     % pause for ITI (if more than 1 section)
-    if numSections>1
+    if numSections>1 && n<numSections
         pause(ITI*60) % pause for the duration of each video
+    elseif n==numSections
+        pause(start_pause*60)
     end
 end
 
-fprintf(['\n' 'Done' '\n']) 
-app.Lamp.Color = 'green';
+save([expName ' RampStartTempLog.mat'],'tempLogStart')
 
-% 
+fprintf(['\n' 'Experiment Done' '\n']) 
+
+
 % 
 % %% Open folder and run trials
 % 

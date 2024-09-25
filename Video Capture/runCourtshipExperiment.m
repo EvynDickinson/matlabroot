@@ -1,5 +1,6 @@
 
 clear; clc
+imaqreset
 
 %% Set up the experiment parameters
 dateStr = char(datetime('now','Format','MM.dd.yyyy'));
@@ -11,8 +12,8 @@ cd(baseFolder) % set current path to video folder
 
 expName = 'Berlin_courtship_F_LRR_caviar';
 
-start_pause = 5; % min delay before recording should start
-totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post.
+start_pause = 0.5; % min delay before recording should start
+totalLength = 5; %16*4; % 16 min pre, 16 down, 16 up, 16 post.
 hz = 30; % camera FPS 
 trial = 5; % fragment recording durations (sec)
 numSections = 1;
@@ -39,10 +40,10 @@ parameters.videoName = expName;
 parameters.ArenaA.genotype = 'Berlin';% TODO: get genotype information here 
 parameters.ArenaA.sex = 'mixed';
 parameters.ArenaA.starved_hours = 0;
-parameters.ArenaA.well_1 = 'Caviar';
+parameters.ArenaA.well_1 = 'Empty';
 parameters.ArenaA.well_2 = 'Empty';
 parameters.ArenaA.well_3 = 'Empty';
-parameters.ArenaA.well_4 = 'Empty';
+parameters.ArenaA.well_4 = 'Caviar';
 
 % save parameter file
 if isfile([baseFolder expName 'dataMat.mat']) %prevent overwriting the file
@@ -64,7 +65,7 @@ src = getselectedsource(vid);
 % camera parameters
 src.Brightness = 29;
 src.Exposure  = 1.5648;
-src.FrameRate = num2str(hz);
+src.FrameRate = hz;
 src.Gain = 1.752491; 
 src.Gamma = 1.5338; 
 src.Shutter = 11.6188; 
@@ -90,7 +91,7 @@ for n = 1:numSections
 
     % acquire videos
     nFrames = trial*hz*nsamples;
-    get_samples_v3(nFrames,trial*hz,expName,tempLogPath)
+    get_samples_v3(nFrames,trial*hz,expName,tempLogPath,hz)
     
     % pause for ITI (if more than 1 section)
     if numSections>1 && n<numSections
@@ -103,17 +104,6 @@ end
 save([expName ' RampStartTempLog.mat'],'tempLogStart')
 
 fprintf(['\n' 'Experiment Done' '\n']) 
-
-
-% 
-% %% Open folder and run trials
-% 
-% baseFolder = 'F:\Evyn\DATA\09.23.2024\Video Testing\';
-% % save videos
-% cd(baseFolder) % set path to video folder
-% 
-% 
-% get_samples_v3(trial*hz*nsamples,(trial*hz)) % VidDuration,FramesPerVid,VidBaseName
 
 
 
