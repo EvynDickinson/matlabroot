@@ -56,13 +56,14 @@ save_figure(fig, [baseDir 'Video fragment length'],'-png');
 tic
 
 % Loop through all the video files 
-% baseFolder = 'F:\Evyn\DATA\09.23.2024\output_1\';
-for i = 1:length(fileList)
+baseFolder = 'F:\Evyn\Courtship Tracking\09.26.2024\Berlin_courtship_F_LRR_caviar_lighttest_1\';
+fileList = dir([baseFolder 'file*.mat']);
+for i = 1:1%length(fileList)
     % lad data matrix
-    data = load([baseDir fileList(i).name],'data');
+    data = load([baseFolder fileList(i).name],'data');
     
     % convert matrix to video file
-    v = VideoWriter([baseDir  fileList(i).name(1:end-3) 'avi'],'Motion JPEG AVI');
+    v = VideoWriter([baseFolder  fileList(i).name(1:end-3) 'avi'],'Motion JPEG AVI');
     v.Quality = 95;
     open(v)
     writeVideo(v, data.data)

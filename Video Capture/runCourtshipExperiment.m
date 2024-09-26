@@ -10,10 +10,10 @@ if ~exist(baseFolder)
 end
 cd(baseFolder) % set current path to video folder
 
-expName = 'Berlin_courtship_F_LRR_caviar_ramp1';
+expName = 'Berlin_courtship_F_LRR_caviar_ramp';
 
 start_pause = 5; % min delay before recording should start
-totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post.
+totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post
 hz = 30; % camera FPS 
 trial = 5; % fragment recording durations (sec)
 numSections = 1;
@@ -60,18 +60,19 @@ disp('Parameters saved')
 
 %% Initialize camera
 vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
-partial_ROI = [0 0 2048 2048];
+% partial_ROI = [0 0 2048 2048];
 src = getselectedsource(vid);
-% camera parameters
-src.Brightness = 29;
-src.Exposure  = 1.5648;
-src.FrameRate = hz;
-src.Gain = 1.752491; 
-src.Gamma = 1.5338; 
-src.Shutter = 11.6188; 
-vid.FramesPerTrigger = inf;
-vid.ROIPosition = partial_ROI;
-disp('Purple BACK camera initialized')
+[src, vid] = initialize_CourtshipCamera(src,vid,hz);
+% % camera parameters
+% src.Brightness = 29;
+% src.Exposure  = 1.5648;
+% src.FrameRate = hz;
+% src.Gain = 1.752491; 
+% src.Gamma = 1.5338; 
+% src.Shutter = 11.6188; 
+% vid.FramesPerTrigger = inf;
+% vid.ROIPosition = partial_ROI;
+% disp('Purple BACK camera initialized')
 
 h = preview(vid);
     

@@ -1,10 +1,12 @@
 
 % courtship step 1
+clear; clc;
 
 %% Load the data
 
 % TODO -- update this to read from the Courtship Experiments.xlsx file
 rootDir = getDataPath(5, 2, 'Select location for data');
+rootDir = uigetdir;
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
 rampName = selectFolder([rootDir paths.courtship  dateDir{1}]);

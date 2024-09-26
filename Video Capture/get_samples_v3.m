@@ -23,10 +23,11 @@ delete(imaqfind)
 
 % Create Video Object
 vi1 = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
-
-% Set Frame Rate (adjust value as necessary)
 src = getselectedsource(vi1);  % Get the camera source properties
-src.FrameRate = hz; %num2str(hz);  % Set the desired frame rate
+
+[~, vi1] = initialize_CourtshipCamera(src,vi1,hz);
+% Set Frame Rate (adjust value as necessary)
+% src.FrameRate = hz; %num2str(hz);  % Set the desired frame rate
 
 % Initialize Counter
 vi1.UserData = 1; 
