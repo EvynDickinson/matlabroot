@@ -9,16 +9,16 @@ dateDir = selectFolder([rootDir, paths.courtship]);
 rampName = selectFolder([rootDir paths.courtship  dateDir{1}]);
 baseDir = [rootDir paths.courtship  dateDir{1} '\' rampName{:} '\'];
 
-expName = rampName{:};
-
-% A = strsplit(rampName{:}, '_');
-% expName = strjoin(A(1:end-1), '_');
+A = strsplit(rampName{:}, '_');
+expName = strjoin(A(1:end-1), '_');
 
 %% convert files to a single video file (or an 8-minute segment)
 
 % load parameters:
 
 load([baseDir, expName ' alignment table.mat'],'parameters')
+'S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\Berlin_courtship_F_LRR_caviar alignment table.mat'.
+S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp/Berlin_courtship_F_LRR_caviar_ramp alignment table
 nVids = parameters.nVids;
 vROI = parameters.vROI;
 

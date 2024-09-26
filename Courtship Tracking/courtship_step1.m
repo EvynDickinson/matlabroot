@@ -10,8 +10,9 @@ rootDir = getDataPath(5, 2, 'Select location for data');
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
 rampName = selectFolder([rootDir paths.courtship  dateDir{1}]);
-A = strsplit(rampName{:}, '_');
-expName = strjoin(A(1:end-1), '_');
+% A = strsplit(rampName{:}, '_');
+% expName = strjoin(A(1:end-1), '_');
+expName = rampName{:};
 
 baseDir = [rootDir paths.courtship  dateDir{1} '\' rampName{:} '\'];
 
