@@ -7,7 +7,7 @@
 %% Load tracking points for courtship
 clear; clc;
 baseFolder = getDataPath(5,0);
-baseFolder = [baseFolder, 'Courtship Videos/'];
+baseFolder = [baseFolder, 'Courtship Videos/Jaime Grant Figure/'];
 % baseFolder =  '/Users/evyndickinson/Documents/Courtship Videos/';
 dataFile = 'labels.v001.analysis.h5';
 filePath = [baseFolder, dataFile];
@@ -348,9 +348,15 @@ fig_type = '-pdf';
 blkbnd = false;
 [foreColor,backColor] = formattingColors(blkbnd); %get background colors
 
+frame = 5100;
+sz = 50;
+frame_skip = 5;
+windowsize = 4; % seconds
+roi = windowsize*80;
+ROI = frame-roi:frame_skip:frame;
 
 r = 5; c = 1;
-xlimit = [50,70];
+% xlimit = [50,70];
 xlimit = [time(ROI(1)),time(ROI(end))];
 
 fig = getfig('',1,[1032 1042]);
