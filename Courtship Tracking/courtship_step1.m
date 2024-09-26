@@ -6,7 +6,7 @@ clear; clc;
 
 % TODO -- update this to read from the Courtship Experiments.xlsx file
 rootDir = getDataPath(5, 2, 'Select location for data');
-rootDir = uigetdir;
+% rootDir = uigetdir;
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
 rampName = selectFolder([rootDir paths.courtship  dateDir{1}]);
@@ -92,7 +92,7 @@ for frag = 1:parameters.numFrag
 end
 
 % % Time count
-% time = (linspace(1, (frame(end)/parameters.FPS)/60, frame(end)))';
+time = (linspace(1, (frame(end)/parameters.FPS)/60, frame(end)))';
 % figure; plot(time,temperature,'color',Color('black'))
 
 % Data table with continuous variables:
@@ -144,10 +144,10 @@ set(gca, 'xcolor', 'none')
 subplot(r,c,2)
 set(gca, 'xcolor', 'none')
 
-for i = 1:3
-    subplot(r,c,i)
-    xlim([30,37])
-end
+% for i = 1:3
+%     subplot(r,c,i)
+%     xlim([30,37])
+% end
 
 save_figure(fig, [baseDir, 'Video Alignments'],'-png');
 
