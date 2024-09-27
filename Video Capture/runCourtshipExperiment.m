@@ -10,7 +10,7 @@ if ~exist(baseFolder)
 end
 cd(baseFolder) % set current path to video folder
 
-expName = 'Berlin_courtship_F_LRR_caviar_ramp';
+expName = 'Berlin_courtship_F_LRR_caviar_ramp2';
 
 start_pause = 5; % min delay before recording should start
 totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post
@@ -40,10 +40,10 @@ parameters.videoName = expName;
 parameters.ArenaA.genotype = 'Berlin';% TODO: get genotype information here 
 parameters.ArenaA.sex = 'mixed';
 parameters.ArenaA.starved_hours = 0;
-parameters.ArenaA.well_1 = 'Empty';
+parameters.ArenaA.well_1 = 'Caviar';
 parameters.ArenaA.well_2 = 'Empty';
 parameters.ArenaA.well_3 = 'Empty';
-parameters.ArenaA.well_4 = 'Caviar';
+parameters.ArenaA.well_4 = 'Empty';
 
 % save parameter file
 if isfile([baseFolder expName 'dataMat.mat']) %prevent overwriting the file
