@@ -41,7 +41,8 @@ isExcelFileOpen(xlFile); % test that excel file is not open before writing to it
 %             backUp: 28
 %           facility: 30
 
-   
+             
+            
 
 sheet = 'Exp List'; % excel sheet to write into       
 fprintf('\n Writing to excel...')
@@ -53,17 +54,36 @@ base_paramList = {'date', 'expID', 'protocol','genotype','experimenter',...
                   'sex','daynight','numflies','well_1', 'well_2', 'well_3', 'well_4',...
                   'ramplength', 'ramps', 'ITI', 'fragmentlength', 'FPS'};
 
-% TODO update here to check that the excel sheet is writable ...
+% make this update a new row for each ramp? (yes...)
 
 rows = [];
-for ramp = 1:params.ramps
-    rows(ramp) = nrow;
+for ramps = 1:params.ramps
+    rows(ramps) = nrow;
     
     for i = 1:length(base_paramList)
-        xlswrite(xlFile, {params.(base_paramList{i})}, sheet, [Alphabet(Excel.(base_paramList{i})),num2str(nrow)]);
+        xlswrite(xlFile, params.(base_paramList(i)), sheet, [Alphabet(Excel.experimenter),num2str(nrow)]);
     end
-    xlswrite(xlFile, {ramp}, sheet, [Alphabet(Excel.ramp),num2str(nrow)]);
-
+    
+    
+    
+    % experimenter:
+    xlswrite(xlFile, {params.experimenter}, sheet, [Alphabet(Excel.experimenter),num2str(nrow)]);
+    % day or night incubator:
+    xlswrite(xlFile, {params.day_night}, sheet, [Alphabet(Excel.daynight),num2str(nrow)]);
+    % arena:
+    xlswrite(xlFile, {Alphabet(arena)}, sheet, [Alphabet(Excel.arena),num2str(nrow)]);
+    % trial name:
+    trial_name = [params.date '_' params.expID '_' Alphabet(arena)];
+    xlswrite(xlFile, {trial_name}, sheet, [Alphabet(Excel.trialID),num2str(nrow)]);
+    % shared data:
+    for ii = 1:length(base_paramList)
+        xlswrite(xlFile, {params.(base_paramList{ii})}, sheet, [Alphabet(Excel.(base_paramList{ii})),num2str(nrow)]);
+    end
+    % arena specific data:
+    for ii = 1:length(arena_paramList)
+        xlswrite(xlFile, {params.(['Arena' Alphabet(arena)]).(arena_paramList{ii})},...
+                 sheet, [Alphabet(Excel.(arena_paramList{ii})),num2str(nrow)]);
+    end
     nrow = nrow+1;
 end
 fprintf('done \n')

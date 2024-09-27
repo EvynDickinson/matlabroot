@@ -54,6 +54,7 @@ Excel.fragmentlength = find(strcmpi('Fragment Length',Excel.headers) == 1);
 Excel.FPS = find(strcmpi('FPS',Excel.headers) == 1);
 Excel.backUp = find(strcmpi('Backed Up',Excel.headers) == 1);
 Excel.facility = find(strcmpi('Facility', Excel.headers)==1);
+Excel.ramp = find(strcmpi('Ramp', Excel.headers)==1);
 
 end
 
