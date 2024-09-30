@@ -340,7 +340,7 @@ save_figure(fig,[baseFolder 'Figures/angle between flies'],'-png');
 
 
 
-%% Distance, speed, and speed correcation between flies over full video course
+%% Distance, speed, and speed correlation between flies over full video course
 % use the center body point to determine between-fly distance
 clearvars('-except',initial_var{:})
 
@@ -420,7 +420,7 @@ save_figure(fig,[baseFolder 'Figures/full timecourse zoom in'], fig_type);
 %%  Plot a frame with tracked points overlaid AND maybe a zoom in of the the behavior at that point?
 clearvars('-except',initial_var{:})
 
-vidpath = "S:\Evyn\Courtship Videos\9.12.2024\Courtship 0001.avi";
+vidpath = "S:\Evyn\DATA\Courtship Videos\Jaime Grant Figure\9.12.2024\Courtship 0001.avi";
 movieInfo = VideoReader(vidpath); %read in video
 
 % plot image with selected number of previously tracked points -- have a
@@ -449,6 +449,8 @@ fig = getfig;
     x2 = f(ROI, 1,1);
     y2 = f(ROI, 1,2);
     scatter(x2,y2,sz,Color('deeppink'), "filled")
+
+    lineROI = drawline(gca);
 
 save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
 

@@ -17,7 +17,6 @@ expName = rampName{:};
 %% convert files to a single video file (or an 8-minute segment)
 
 % load parameters:
-
 load([baseDir, expName ' alignment table.mat'],'parameters')
 nVids = parameters.nVids;
 vROI = parameters.vROI;
@@ -32,6 +31,7 @@ iStart = vROI(:,1);
 iEnd = vROI(:,2);
 N = (iEnd-iStart)+1;
 hz = parameters.FPS;
+
 
 tic
 parfor vid = 1:nVids

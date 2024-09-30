@@ -22,7 +22,11 @@ tempLog = readmatrix([baseDir expName '_RampLog']); % TECA LOG full timecourse t
 
 % Create a 'compile' list
 compileLength = 3; %  minutes
-compile_size = floor((compileLength*60)/parameters.fragmentduration);
+try fragDur = parameters.fragmentlength;
+catch
+    fragDur = parameters.fragmentduration;
+end
+compile_size = floor((compileLength*60)/fragDur);
 vid_rois = 0:compile_size:parameters.numFrag;
 vid_rois(1) = 1;
 if vid_rois(end) < parameters.numFrag
@@ -50,9 +54,9 @@ for i = 1:parameters.numFrag
 end
 
 % frames are LOCKED in the recording so we can use this to create a duration matrix
-total_frames = parameters.numFrag * parameters.fragmentduration * parameters.FPS;
+total_frames = parameters.numFrag * fragDur * parameters.FPS;
 [vidNums, vidFrame, temperature, tempWork,fragNum] = deal(nan(total_frames,1));
-frames = parameters.fragmentduration * parameters.FPS; % frames per fragment
+frames = fragDur * parameters.FPS; % frames per fragment
 frame = (1:total_frames)'; % total frame count
 
 % For each of the fragments, get the information to concatenate
