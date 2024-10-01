@@ -764,7 +764,7 @@ save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png')
 
 % compare sleep across hold periods
 % average sleep per fly by start time (scatter plot)
-% distance to food while sleeping (histogram)
+% distance to food while sleeping
 
 
 
