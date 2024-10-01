@@ -457,7 +457,8 @@ clearvars('-except',initial_vars{:})
 % save_figure(fig, ['G:\My Drive\Presentations\SRT May 2022\Temp vs ' inputVar ' bin size ' num2str(binSpace)], '-pdf');
 % clearvars('-except',initial_vars{:})
 
-%% FIGURE: Average movement | cluserting | eccentricity vs temp across trials:
+%% FIGURE: Average movement | cluserting | eccentricity 
+% vs temp across trials:
 
 inputVar =  questdlg('Which data type to compare?','','movement','clustering','eccentricity','movement');
 switch inputVar

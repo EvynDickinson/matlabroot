@@ -8,6 +8,8 @@ load([figdirectory, folderSelected{:} ' ' 'post 3.1 data.mat'])
 
 initial_vars{end + 1} = 'figdirectory';
 
+disp('next section')
+
 %"S:\Evyn\Data structures\Berlin F LRR caviar time shift\Berlin F LRR caviar time shift post 3.1 data.mat"
 %% Pull start time data
 
@@ -20,6 +22,8 @@ initial_vars{end + 1} = 'expstarttime';
 initial_vars{end + 1} = 'expstarttime_hr';
 initial_vars{end + 1} = 'groupix';
 initial_vars{end + 1} = 'binedges';
+
+disp('next section')
 
 %% Make unique trial ID
 expstarttime = [];
@@ -50,8 +54,9 @@ for trial = 1:ntrials
     expstarttime_hr(trial) = hours(expstarttime{trial});
 end
 
+disp('next section')
 
-%% FIGURE: Histogram of experiment start times
+%% FIGURE: Histogram of start times
 
 clearvars('-except',initial_vars{:})
 
@@ -71,6 +76,63 @@ formatFig(fig,true)
 %Save figure
 save_figure(fig, [figdirectory 'Experiment start times'], '-png');
 
+
+%% FIGURE: Polar plot of start times
+
+clearvars('-except',initial_vars{:})
+
+% Convert the 24 hours into a circular radian value
+theta = (24-(expstarttime_hr/24)) * 2 * pi; 
+
+% show the experiment start times as a polar plot
+fig = getfig('Polar Histogram', 1);
+    h = polarhistogram(theta);
+    set(h,'FaceColor',Color('teal'), 'EdgeColor', 'k','FaceAlpha',0.8)
+    % set labels and formats
+    ax = gca;
+    set(ax, 'ThetaZeroLocation', 'top')
+    set(ax, 'ThetaTick',0:45:359,'ThetaTickLabel', {'0','21','18','15','12','9','6','3'})
+
+% OVERLAY NIGHT SHADING
+ax_cart = axes('Position', ax.Position, 'Color', 'none');  % Create an overlay Cartesian axes
+
+% Step 5: Shade the left half (90° to 270°)
+hold(ax_cart, 'on');
+
+% Define the angles and radius for shading the left half
+shading_theta = linspace(pi/2, 3*pi/2, 100);  % Angles from 90° to 270°
+shading_r = max(ax.RLim) * ones(size(shading_theta));  % Use maximum radius of polar plot
+
+% Convert polar coordinates to Cartesian for the shading
+[x_shade, y_shade] = pol2cart(shading_theta, shading_r);
+
+% Add the center point to complete the patch
+x_shade = [0 x_shade 0];  % Include the origin (0,0)
+y_shade = [0 y_shade 0];
+
+% Create the filled patch in grey
+fill(ax_cart, x_shade, y_shade, [0.8 0.8 0.8], 'FaceAlpha', 0.5, 'EdgeColor', 'none');  % Grey with transparency
+
+% Adjust Cartesian axis limits to match polar plot
+axis(ax_cart, 'equal');  % Ensure equal scaling on both axes
+r_max = max(ax.RLim);  % Get the maximum radius from the polar plot
+ax_cart.XLim = [-r_max r_max];
+ax_cart.YLim = [-r_max r_max];
+
+% Remove the Cartesian axis ticks
+ax_cart.XTick = [];
+ax_cart.YTick = [];
+ax_cart.XColor = 'none';
+ax_cart.YColor = 'none';
+
+% Bring the polar plot to the front  %TODO: see if there is a way to do
+% this without blocking the new shading
+uistack(ax, 'top');
+
+
+% TODO: update the label sizes and add some titles etc, 
+% TODO: try making the binsizes for each hour
+
 %% Split trials into time bins
 
 clearvars('-except',initial_vars{:})
@@ -78,6 +140,8 @@ clearvars('-except',initial_vars{:})
 % Split trials into before and after noon
 
 groupix = discretize(expstarttime_hr,binedges);
+
+disp('next section')
 
 %% FIGURE: Distance to food between groups with temperature log
 
@@ -98,15 +162,17 @@ LW = 1.5; %linewidth
 sSpan = 360; %smoothing function
 
 dataString = [];
-for i = 1:ngroups
-    bincenter = mean(binedges(i:i+1));
-    binwidth = binedges(i+1)-bincenter;
-    dataString{i} = [num2str(bincenter) '+-' num2str(binwidth)];
+dummy = unique(groupix);
+for idx = 1:length(dummy)
+    i = dummy(idx);
+    % bincenter = mean(binedges(i:i+1));
+    % binwidth = binedges(i+1)-bincenter;
+    dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
 end
 
 g = []; %empty variable to add to later and not override things
 for i = 1:ngroups
-    g(i).name = dataString{i}; 
+    g(i).name = [num2str(binedges(i)) '-' num2str(binedges(i+1))]; 
     [g(i).raw,g(i).temp,g(i).time] = deal([]); %empty variable
 end
 
@@ -128,8 +194,8 @@ for i = 1:ngroups %loop through each group
     g(i).tempavg = mean(g(i).temp,2,'omitnan');
 end
 
-clist = {'DeepPink','Orange','Lime','DodgerBlue'};
-
+% clist = {'DeepPink','Orange','Lime','DodgerBlue'};
+clist = {'LemonChiffon','Gold','Tomato','Blue'};
 
  % FIGURE:
 fig = getfig('Distance to food',true); %create a figure with customizable size and position on screen
@@ -207,7 +273,7 @@ plot_err = true;
 plotdata = nan([ntrials,2]);
 windowsize = 1; %in minutes
 
-clist = {'DeepPink','Orange','grey','Purple'};
+clist = {'LemonChiffon','Gold','Tomato','Blue'};
 
 r = 1;
 c = 2;
@@ -275,7 +341,7 @@ plot_err = true;
 plotdata = nan([ntrials,2]);
 windowsize = 1; %in minutes
 
-clist = {'DeepPink','Red','Green','Blue'};
+clist = {'LemonChiffon','Gold','Tomato','Blue'};
 
 r = 1;
 c = 2;
@@ -334,7 +400,7 @@ subplot(r,c,2)
  % Save figure
 save_figure(fig, [figdirectory 'Distance difference across start times during heating'], '-png')
 
-%% FIGURE: Intitial distance from food before cooling across start times
+%% FIGURE: Intitial distance from food before cooling across start times : TODO -- stats formatting
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
@@ -351,7 +417,7 @@ c = 2;
 
 fig = getfig;
 
-clist = {'DeepPink','Orange','grey','Purple'};
+clist = {'LemonChiffon','Gold','Tomato','Blue'};
 
 for trial = 1:ntrials
     subplot(r,c,1)
@@ -458,6 +524,129 @@ end
 [p1,tbl] = anova1(r1);
 [p2,tbl2] = anova1(r3);
 
+%% FIGURE: Intitial distance from food before heating across start times : TODO -- stats formatting
+
+clearvars('-except',initial_vars{:}) 
+plot_err = true; 
+[foreColor,backColor] = formattingColors(true); 
+
+xtickloc = [];
+for i = 1:length(binedges)-1
+    stats(i).data = [];
+end
+
+windowsize = 1; %in minutes
+r = 1;
+c = 2;
+
+fig = getfig;
+
+clist = {'LemonChiffon','Gold','Tomato','Blue'};
+
+for trial = 1:ntrials
+    subplot(r,c,1)
+    hold on
+    loc = data(trial).data.foodwell; %column number that has the food
+    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
+    tempPoints = getTempTurnPoints(temp_protocol);
+
+    nframes = tempPoints.fps*60*windowsize;
+    r1start = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
+    r1end = tempPoints.up(1,2):tempPoints.up(1,2)+nframes;
+    r3start = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
+    r3end = tempPoints.up(3,2):tempPoints.up(3,2)+nframes;
+   
+    r1startavg = mean(y(r1start)); %average distance within r1start area
+    r3startavg = mean(y(r3start));
+
+    stats(groupix(trial)).data(end+1,:) = [r1startavg,r3startavg];
+    
+    xramp1 = (groupix(trial)*2)-1;
+    xramp3 = groupix(trial)*2;
+
+    scatter(xramp1,r1startavg,35,Color(clist{groupix(trial)}),"filled")
+    scatter(xramp3,r3startavg,35,Color(clist{groupix(trial)}),"filled")
+    plot([xramp1,xramp3],[r1startavg,r3startavg],'color',Color(clist{groupix(trial)}),'LineWidth',2)
+
+    subplot(r,c,2)
+    hold on
+
+    xramp1 = groupix(trial);
+    xramp3 = groupix(trial) + max(groupix) + 1;
+
+    buff = 0.3;
+    nincr = 50;
+    poss = linspace(-buff,buff,nincr);
+    idx = randi(nincr,1); %random number between 1 and nincrement
+    b = poss(idx);
+
+    scatter(xramp1+b,r1startavg,35,Color(clist{groupix(trial)}),"filled")
+    scatter(xramp3+b,r3startavg,35,Color(clist{groupix(trial)}),"filled")
+
+    xtickloc = [xtickloc;xramp1;xramp3];
+end
+
+buff = 0.5;
+xmax = max(unique(groupix))*2 + buff;
+xmin = min(unique(groupix))*2 - 1 - buff;
+
+
+
+subplot(r,c,1)
+    set(gca,'XTick',1:8,'XTickLabel',{'1','3','1','3','1','3'}) %TODO: make tick range dynamic
+    xlim([xmin,xmax])
+    xlabel('Ramp')
+    ylabel('Distance from food (mm)')
+
+dataString = [];
+dummy = unique(groupix);
+for idx = 1:length(dummy)
+    i = dummy(idx);
+    % bincenter = mean(binedges(i:i+1));
+    % binwidth = binedges(i+1)-bincenter;
+    dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
+end
+
+xticklabels = repmat(dataString,[1,2]);
+
+subplot(r,c,2)
+    set(gca,'XTick',unique(xtickloc),'XTickLabel',xticklabels,'XTickLabelRotation',30) %TODO: make tick range dynamic
+    xlabel('Start time (hr)')
+    ylabel('Distance from food (mm)')
+
+formatFig(fig,true,[r,c]);
+
+ % Save figure
+save_figure(fig, [figdirectory 'Starting distance from food before cooling'], '-png')
+
+% Stats
+h = [];
+p = [];
+for i = 1:length(binedges)-1 %TODO make into variable 
+    z = stats(i).data;
+    if isempty(z)
+        h(i) = false;
+        p(i) = nan;
+    else
+        [h(i),p(i)] = ttest(z(:,1),z(:,2));
+        if h(i)
+            disp(['Group ' num2str(i) ' p = ' num2str(p(i))])
+        end
+    end
+end
+
+[r1,r3] = deal([]);
+
+for i = 1:length(binedges)-1
+    z = stats(i).data;
+    if ~isempty(z)
+        r1 = autoCat(r1,z(:,1),false);
+        r3 = autoCat(r3,z(:,2),false);
+    end
+end
+
+[p1,tbl] = anova1(r1);
+[p2,tbl2] = anova1(r3);
 
 %% TODO Distance Analyses
 
@@ -467,7 +656,7 @@ end
 % 2) How does the return to food change during warming between the 1 & 3rd ramps?
 % -- what are the implications if they return to different distances for different start times? 
 
-% 3) s there a correlation between start time and distance traveled during cooling? 
+% 3) Is there a correlation between start time and distance traveled during cooling? 
 
 % 4) Is there a correlation between start time and the distance to food in the 1&3rd ramps?
 
