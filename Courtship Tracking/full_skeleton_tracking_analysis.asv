@@ -1,3 +1,15 @@
+
+
+%% TODOs 
+% load data
+% load the parameter files
+% check the number of tracks
+% check that the same fly is aligned across vidoes
+% add position data to the temperature matrix
+% calculate new parameters from the data
+% plot data
+% create predictions of courtship periods
+
 %% PARAMETERS TO SHOW: 
 
 % 2) each fly speed
@@ -6,9 +18,155 @@
 
 %% Load tracking points for courtship
 clear; clc;
-baseFolder = getDataPath(5,0);
-baseFolder = [baseFolder, 'Courtship Videos/Jaime Grant Figure/'];
-% baseFolder =  '/Users/evyndickinson/Documents/Courtship Videos/';
+baseFolder = getDataPath(6,0);
+dateDir = (selectFolder(baseFolder));
+trialDir = selectFolder([baseFolder, dateDir{:}]);
+baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
+
+fileList = dir([baseDir '*alignment table.mat']);
+load([baseDir, fileList(1).name]) % load the parameters and temp table
+nvids = parameters.nVids; % number of videos
+nBP = 5; % num of body parts
+
+
+% load the video tracks
+fileList = dir([baseDir '*.h5']);
+data = [];
+% TODO: quick check to make sure this matches the expected number of videos...
+for vid = 1:nvids
+    filePath = [baseDir, 'compiled_video_' num2str(vid) '.avi.predictions.slp.h5'];
+    data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+    data(vid).tracks = h5read(filePath,'/tracks');
+    data(vid).node_names = h5read(filePath, '/node_names');
+    data(vid).track_names = h5read(filePath, '/track_names');
+    dataIn = true; %log successful data load
+end
+
+node_names = {'head', 'center', 'abdomen', 'right_wing', 'left_wing'}; % currently assuming these are stable across all videos
+
+% for vid = 1:nvids
+%    vidBase = [baseFolder folder '/' expName '_' num2str(vid)]; 
+%    fp_endings = {'.h5', '.avi.predictions.slp.h5', '.avi.predictions.analysis.h5'};
+%    dataIn = false; % switch for logging data
+%    for suf = 1:length(fp_endings)
+%        filePath = [vidBase fp_endings{suf}];
+%        if exist(filePath,'file')
+%            data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+%            data(vid).tracks = h5read(filePath,'/tracks');
+%            dataIn = true; %log successful data load
+%             continue
+%        end
+%    end
+%    if ~dataIn
+%         disp(vidBase)
+%         h = warndlg('Warning: file not found');
+%         uiwait(h)
+%         return
+%         % If file is corrupt or permanently missing...fill with blank NaN
+%         % data
+% %         data(vid).occupancy_matrix = [];
+% %         data(vid).tracks = [];
+%    end
+% end; clear filePath fp_endings suf vidBase
+
+%% Quality control
+
+ntracks = [];
+for vid = 1:parameters.nVids
+    ntracks(vid) = size(data(vid).occupancy_matrix,1);
+end
+
+
+
+%% 
+% tracks (frame, body points, XY, fly)
+
+%% Find the x-y coordinates for each fly
+
+% Set up empty tracks for each of the body parts that are being labeled?
+w = 0;
+for vid = 1:nvids
+    if isempty(data(vid).occupancy_matrix)
+        continue
+    end
+    w = max([size(data(vid).occupancy_matrix,1),w]);
+end
+
+% load fly locations into the X & Y matrices
+positions = [];
+for i = 1:nBP
+    [positions.(node_names{i}).X, positions.(node_names{i}).Y]  = deal([]);
+end
+for vid = 1:nvids
+    if isempty(data(vid).occupancy_matrix)
+        continue
+    end
+    % ---- fly tracked locations -------
+    for bp = 1:length(data(vid).node_names)
+        raw = squeeze(data(vid).tracks(:,bp,:,:));
+        % x-y coordinates of flies for each frame
+        x_loc = squeeze(raw(:,1,:));
+        y_loc = squeeze(raw(:,2,:));
+        data(vid).(node_names{bp}).x =  x_loc;
+        data(vid).(node_names{bp}).y =  y_loc;
+        positions.(node_names{bp}).X = autoCat(positions.(node_names{bp}).X, x_loc,true);
+        positions.(node_names{bp}).Y = autoCat(positions.(node_names{bp}).Y, y_loc,true);
+    end
+end
+
+%% Targeted look at heating and cooling
+pix2mm = 0.0305; %conversion from pixels to mm for these videos
+IFD = [];
+speed = [];
+for vid = 1:nvids
+% TODO determine which track is likely the male and which is likely the female :
+% do this by comparing the avg size of the flies
+    % inter-fly-distance from the fly's center point
+    x1 = data(vid).center.x(:,1);
+    y1 = data(vid).center.y(:,1);
+    x2 = data(vid).center.x(:,2);
+    y2 = data(vid).center.y(:,2);
+    IFD = [IFD; (sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm];
+
+    % speeds
+    D1 = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; 
+    speed(:,1) = (D./(1/fps));
+    D2 = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm;
+    speed(:,2) = (D./(1/fps));
+end
+
+% fly speed
+speed = [];
+D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; % male speed
+speed(:,1) = (D./(1/fps));
+D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % male speed
+speed(:,2) = (D./(1/fps));
+clear x1 x2 y1 y2 D
+
+
+
+fig = getfig('',1); 
+
+plot(T.time,IFD,'color', Color('teal'),'linewidth', 1)
+h_line(5,'r','--',1)
+
+
+
+% Add X and Y to the data table:
+T = addvars(T,X,Y);
+% head(T,5)
+
+clearvars('-except',initial_vars{:})
+fprintf('Next\n')
+
+
+
+
+
+
+%%
+
+
 dataFile = 'labels.v001.analysis.h5';
 filePath = [baseFolder, dataFile];
 
@@ -25,7 +183,7 @@ fig_type = '-pdf';
 
 %% Create data labels and structure organization 
 frames = 1:length(occupancy_matrix);
-nframes =frames(end);
+nframes = frames(end);
 
 % tracks (frame, body points, XY, fly)
 m = squeeze(tracks(:,:,:,2)); %male fly
@@ -340,7 +498,7 @@ save_figure(fig,[baseFolder 'Figures/angle between flies'],'-png');
 
 
 
-%% Distance, speed, and speed correcation between flies over full video course
+%% Distance, speed, and speed correlation between flies over full video course
 % use the center body point to determine between-fly distance
 clearvars('-except',initial_var{:})
 
@@ -348,12 +506,15 @@ fig_type = '-pdf';
 blkbnd = false;
 [foreColor,backColor] = formattingColors(blkbnd); %get background colors
 
+frame = 5100;
+sz = 50;
+frame_skip = 5;
 windowsize = 4; % seconds
 roi = windowsize*80;
 ROI = frame-roi:frame_skip:frame;
 
 r = 5; c = 1;
-xlimit = [50,70];
+% xlimit = [50,70];
 xlimit = [time(ROI(1)),time(ROI(end))];
 
 fig = getfig('',1,[1032 1042]);
@@ -417,7 +578,7 @@ save_figure(fig,[baseFolder 'Figures/full timecourse zoom in'], fig_type);
 %%  Plot a frame with tracked points overlaid AND maybe a zoom in of the the behavior at that point?
 clearvars('-except',initial_var{:})
 
-vidpath = "S:\Evyn\Courtship Videos\9.12.2024\Courtship 0001.avi";
+vidpath = "S:\Evyn\DATA\Courtship Videos\Jaime Grant Figure\9.12.2024\Courtship 0001.avi";
 movieInfo = VideoReader(vidpath); %read in video
 
 % plot image with selected number of previously tracked points -- have a
@@ -446,6 +607,8 @@ fig = getfig;
     x2 = f(ROI, 1,1);
     y2 = f(ROI, 1,2);
     scatter(x2,y2,sz,Color('deeppink'), "filled")
+
+    lineROI = drawline(gca);
 
 save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
 
