@@ -55,6 +55,8 @@ for trial = 1:ntrials
     expstarttime_hr(trial) = hours(expstarttime{trial});
 end
 
+binedges = [4:4:20];
+
 disp('next section')
 
 %% FIGURE: Histogram of start times
@@ -62,7 +64,6 @@ disp('next section')
 clearvars('-except',initial_vars{:})
 
 x = expstarttime_hr;
-binedges = [4:4:20];
 
 fig = figure('Name','Experiment start time');
 h = histogram(expstarttime_hr,binedges);
@@ -141,6 +142,8 @@ clearvars('-except',initial_vars{:})
 % Split trials into before and after noon
 
 groupix = discretize(expstarttime_hr,binedges);
+ntrials = size(T,1); %number of trials to include
+ngroups = length(binedges)-1;
 
 disp('next section')
 
@@ -149,9 +152,6 @@ disp('next section')
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
 [foreColor,backColor] = formattingColors(true); % get background colors
-
-ntrials = size(T,1); %number of trials to include
-ngroups = length(binedges)-1;
 
 % set up figure aligments
 r = 4; %rows
@@ -713,7 +713,7 @@ end
 for trial = 1:ntrials
     y = data(trial).sleep.sleepNum;
     y = (y/T.NumFlies(trial))*100;
-    idx = groupix(trial); %group identity for each trial (before or after noon)
+    idx = groupix(trial); 
     g(idx).raw = autoCat(g(idx).raw,y,false); %organize data into one big data matrix
     x = data(trial).occupancy.time;
     g(idx).time = autoCat(g(idx).time,x,false);
@@ -721,14 +721,13 @@ for trial = 1:ntrials
     g(idx).temp = autoCat(g(idx).temp,z,false);
 end
 
-for i = 1:ngroups %loop through each group
-    g(i).sleepavg = mean(g(i).raw,2,'omitnan'); %mean distance for each group across time
-    g(i).std = std(g(i).raw,0,2,'omitnan'); %error for each group 
+for i = 1:ngroups 
+    g(i).sleepavg = mean(g(i).raw,2,'omitnan');
+    g(i).std = std(g(i).raw,0,2,'omitnan');  
     g(i).timeavg = mean(g(i).time,2,'omitnan');
     g(i).tempavg = mean(g(i).temp,2,'omitnan');
 end
 
-% clist = {'DeepPink','Orange','Lime','DodgerBlue'};
 clist = {'LemonChiffon','Gold','Tomato','DodgerBlue'};
 
  % FIGURE:
@@ -763,12 +762,33 @@ save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png')
 
 
 % compare sleep across hold periods
-% average sleep per fly by start time (scatter plot)
 % distance to food while sleeping (histogram)
 
+%% Average sleep per fly by start time
 
+clearvars('-except',initial_vars{:}) 
+plot_err = true; 
+[foreColor,backColor] = formattingColors(true); 
 
+plotdata = nan([ntrials,2]); %create empty variable of a specific size
 
+for trial = 1:ntrials
+    y = data(trial).sleep.sleepNum;
+    y = (y/T.NumFlies(trial))*100;
+    sleepavg = mean(y);
+    plotdata(trial,2) = sleepavg;
+    plotdata(trial,1) = expstarttime_hr(trial);
+end
+
+fig = getfig('Percent flies sleeping across start times',true);
+    scatter(plotdata(:,1),plotdata(:,2),50,'y',"filled")
+    xlabel('Time of day (hr)')
+    ylabel('Percentage of flies sleeping')
+
+formatFig(fig,true)
+
+% Save figure
+save_figure(fig, [figdirectory 'Distance to temp correlation across start times'], '-png')
 
 
 
