@@ -10,6 +10,7 @@ function path = getDataPath(dataType, dataLocation, promptString)
 % 3) pooled trial data structures 
 % 4) grouped data structures
 % 5) base folder only! -- no path ending
+% 6) courtship folder
 % 
 %
 % dataLocation options: 
@@ -55,7 +56,7 @@ end
 % Pull the type of data path name (e.g. final folder)
 switch dataType
     case 0 % user select
-        optionList = {'Raw Data', 'Single Trial', 'Grouped Trials', 'Grouped Structures'};
+        optionList = {'Raw Data', 'Single Trial', 'Grouped Trials', 'Grouped Structures','Courtship'};
         idx = listdlg('PromptString', 'Select type of data desired:', 'ListString', optionList, 'ListSize',[160,200]);
         if isempty(idx)
             disp('No data selected')
@@ -70,6 +71,8 @@ switch dataType
                  path_end = paths.grouped_trials;
              case 'Grouped Structures'
                  path_end = paths.group_comparision;
+             case 'Courtship'
+                 path_end = paths.courtship;
          end
     case 1 % single trial data
         path_end = paths.single_trial;
@@ -81,6 +84,8 @@ switch dataType
         path_end = paths.group_comparision;
     case 5 % no path ending -- user just wants the base folder
         path_end = '';
+    case 6 % courtship
+        path_end = paths.courtship;
 end
 
 % BASE DRIVE LOCATION SELECTION
@@ -111,7 +116,7 @@ end
 % Appropriate drive location selection
 if dataLocation==0 % USER INPUT SELECTION
     if permanentDrive && portableDrive && serverDrive % choice of all three locations
-        switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'On The Go','Local')
+        switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'On The Go','Server')
             case 'Local' 
                     drive_loc_sel = 1; 
             case 'Server'
@@ -123,7 +128,7 @@ if dataLocation==0 % USER INPUT SELECTION
                 return
         end
     elseif permanentDrive && portableDrive && ~serverDrive % local options only
-        switch questdlg(promptString, 'Drive Location', 'Local', 'On The Go', 'Cancel','Local')
+        switch questdlg(promptString, 'Drive Location', 'Local', 'On The Go', 'Cancel','Server')
             case 'Local' 
                     drive_loc_sel = 1;
             case 'On The Go'
@@ -133,7 +138,7 @@ if dataLocation==0 % USER INPUT SELECTION
                  return
         end
     elseif permanentDrive && ~portableDrive && serverDrive % no portable drive
-        switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'Cancel','Local')
+        switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'Cancel','Server')
             case 'Local' 
                     drive_loc_sel = 1;
             case 'Server'
@@ -143,7 +148,7 @@ if dataLocation==0 % USER INPUT SELECTION
                  return
         end
     elseif ~permanentDrive && portableDrive && serverDrive % server and portable
-        switch questdlg(promptString, 'Drive Location', 'On The Go', 'Server', 'Cancel', 'On The Go')
+        switch questdlg(promptString, 'Drive Location', 'On The Go', 'Server', 'Cancel', 'Server')
             case 'On The Go' 
                     drive_loc_sel = 3;
             case 'Server'
@@ -179,174 +184,6 @@ if ~(exist('path','var')==1)
     path = [];
 end
 
-
-
-
-% paths = getPathNames; 
-% 
-% path = [];
-% 
-% % Get computer name
-% if ismac
-%     [~, result] = system('hostname');
-%     computerName = strtrim(result);
-% else
-%     computerName = getenv('COMPUTERNAME');
-% end
-% 
-% % the computer name is a host VPN on a mac when there is a VPN connection
-% 
-% % default values -- single trial data, user selected drive
-% switch nargin
-%     case 0
-%         rawORsingle = 0;
-%         localORserver = 0;
-%         promptString = 'Select desired type of data folder : ';
-%     case 1 
-%         localORserver = 0;
-%         promptString = 'Select desired type of data folder : ';
-%     case 2
-%         promptString = 'Select desired type of data folder : ';
-% end
-% 
-% 
-% % RAW OR SINGLE DATA PATH ENDING SELECTION
-% switch rawORsingle
-%     case 0 % user select
-%          switch questdlg('Select the type of desired data:', '', 'Single Trial', 'Raw Data','Cancel','Single Trial')
-%              case {'Cancel',''}
-%                  disp('Data type selection canceled')
-%                  return
-%              case 'Single Trial'
-%                  path_end = paths.single_trial;
-%              case 'Raw Data'
-%                  path_end = paths.raw_data;
-%          end
-%     case 1 % single trial data
-%         path_end = paths.single_trial;
-%     case 2 % raw data
-%         path_end = paths.raw_data;
-% end
-% 
-% % BASE DRIVE LOCATION SELECTION
-% 
-% % portable drive test
-% [serverDrive, portableDrive] = deal(false);
-% matchingDrives = findDriveByName(paths.removableDrive); % test if there is a removable drive attached
-% if ~isempty(matchingDrives)
-%     portableDrive = true;
-% end
-% % permanent drive test
-% permanentDrive = any(strcmp(computerName, paths.fixedDriveLocations)); % fixed drive yes or no
-% % server drive test
-% switch computerName
-%     case 'ACADIA'
-%         serverPath = paths.acadiaServerPath;
-%         permanentPath = paths.acadiaLocalPath;
-%     case 'TOGIAK'
-%         serverPath = paths.togiakServerPath;
-%         permanentPath =[];
-%     case 'EVYNPC'
-%         serverPath = paths.EvynPCServerPath;
-%         permanentPath = paths.EvynPCLocalPath;
-%     case 'vpn1722513182.its.yale.internal' % VPN into Yale on Mac
-%         serverPath = paths.EvynMacServerPath;
-%         permanentPath = [];
-%     case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
-%         serverPath = [];
-%         permanentPath = [];
-% end 
-% if exist(serverPath, 'dir') == 7
-%     serverDrive = true;
-% end
-% 
-% % Return error if there aren't available drives
-% if ~permanentDrive && ~serverDrive && ~portableDrive
-%     warndlg({'No local, portable, or server directories available';...
-%              'Try reestablishing a VPN connection and/or checking the OnTheGoDrive'})
-%     path = [];
-%     return
-% end
-% 
-% % if the coded drive isn't available, switch to manual selection: 
-% if localORserver==1 && ~permanentDrive
-%     localORserver = 0;
-% elseif localORserver==2 && ~serverDrive
-%      localORserver = 0;
-% elseif localORserver==3 && ~portableDrive
-%     localORserver = 0;
-% end
-% 
-% % Appropriate drive location selection
-% if localORserver==0 % USER INPUT SELECTION
-%         if permanentDrive && portableDrive && serverDrive % choice of all three locations
-%             switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'On The Go','Local')
-%                 case 'Local' 
-%                         drive_loc_sel = 1; 
-%                 case 'Server'
-%                         drive_loc_sel = 2;
-%                 case 'On The Go'
-%                         drive_loc_sel = 3;
-%                 case ''
-%                         disp('Path selection canceled')
-%                     return
-%             end
-%         elseif permanentDrive && portableDrive && ~serverDrive % local options only
-%             switch questdlg(promptString, 'Drive Location', 'Local', 'On The Go', 'Cancel','Local')
-%                 case 'Local' 
-%                         drive_loc_sel = 1;
-%                 case 'On The Go'
-%                         drive_loc_sel = 3;
-%                  case {'Cancel',''}
-%                      disp('Path selection canceled')
-%                      return
-%             end
-%         elseif permanentDrive && ~portableDrive && serverDrive % no portable drive
-%             switch questdlg(promptString, 'Drive Location', 'Local', 'Server', 'Cancel','Local')
-%                 case 'Local' 
-%                         drive_loc_sel = 1;
-%                 case 'Server'
-%                         drive_loc_sel = 2;
-%                  case {'Cancel',''}
-%                      disp('Path selection canceled')
-%                      return
-%             end
-%         elseif ~permanentDrive && portableDrive && serverDrive % server and portable
-%             switch questdlg(promptString, 'Drive Location', 'On The Go', 'Server', 'Cancel', 'On The Go')
-%                 case 'On The Go' 
-%                         drive_loc_sel = 3;
-%                 case 'Server'
-%                         drive_loc_sel = 2;
-%                  case {'Cancel',''}
-%                      disp('Path selection canceled')
-%                      return
-%             end
-%          elseif ~permanentDrive && ~portableDrive && serverDrive % server only
-%                 drive_loc_sel = 2;
-%          elseif permanentDrive && ~portableDrive && ~serverDrive % permanent local drive only
-%                 drive_loc_sel = 1;
-%          elseif ~permanentDrive && portableDrive && ~serverDrive % portable drive only
-%                 drive_loc_sel = 3;
-%         end
-%         localORserver = drive_loc_sel;
-% end
-% 
-% 
-% % CONSTRUCT THE DATA PATH
-% switch localORserver
-%     case 1 % local permanent path
-%         path = [permanentPath, path_end];
-%     case 2 % server path
-%         path = [serverPath, path_end];
-%     case 3 % portable drive
-%         path = [matchingDrives{:}, '/', path_end];
-% end
-% 
-% % disp(path)
-% if ~(exist('path','var')==1)
-%     disp('Warning: selected path not found')
-%     path = [];
-% end
 
 
 
