@@ -269,7 +269,7 @@ save_figure(fig, [figdirectory 'Distance to temp correlation across start times'
 %% FIGURE: Change in distance during cooling | heating across start times
 
 % TODO:
-% display means on right figure
+% find means for right figure
 % separate by start time for left figure
 % average lines for each start time
 
@@ -333,7 +333,6 @@ for trial = 1:ntrials
     subplot(r,c,2)
         hold on
         slope = r3diff-r1diff;
-        avgslope(trial) = mean(slope);
         scatter(expstarttime_hr(trial),slope,35,Color(clist{groupix(trial)}),"filled")
 
 end
@@ -742,7 +741,7 @@ end
 [p1,tbl] = anova1(r1);
 [p2,tbl2] = anova1(r3);
 
-%% ***TODO Distance Analyses
+%% TODO Distance Analyses
 
 % 1) Is there a difference in the initial distance flies are from the food for the 1 & 3rd ramp across time? 
 % -- learn about running statistica tests in Matlab
