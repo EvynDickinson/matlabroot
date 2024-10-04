@@ -24,6 +24,7 @@ initial_vars{end + 1} = 'groupix';
 initial_vars{end + 1} = 'binedges';
 initial_vars{end + 1} = 'ngroups';
 initial_vars{end + 1} = 'clist';
+initial_vars{end + 1} = 'bkgrd_color';
 
 disp('next section')
 
@@ -65,6 +66,8 @@ disp('next section')
 
 clearvars('-except',initial_vars{:})
 
+bkgrd_color = false;
+
 x = expstarttime_hr;
 
 fig = figure('Name','Experiment start time');
@@ -75,7 +78,7 @@ h.EdgeColor = 'w';
 h.LineWidth = 1.5;
 xlabel('Time of day')
 ylabel('Count')
-formatFig(fig,true)
+formatFig(fig,bkgrd_color)
 
 %Save figure
 save_figure(fig, [figdirectory 'Experiment start times histogram'], '-png');
