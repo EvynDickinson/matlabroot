@@ -57,8 +57,8 @@ for trial = 1:ntrials
     expstarttime_hr(trial) = hours(expstarttime{trial});
 end
 
-binedges = [4:4:20];
-clist = {'LemonChiffon','Gold','Tomato','DodgerBlue'};
+binedges = [4:2:20];
+clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','Purple'};
 
 disp('next section')
 
@@ -154,7 +154,7 @@ ngroups = length(binedges)-1;
 
 disp('next section')
 
-%% FIGURE: Distance to food between groups with temperature log
+%% FIGURE: Distance to food across start times with temperature log
 
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
@@ -232,7 +232,7 @@ subplot(r,c,sb(1).idx)
 save_figure(fig, [figdirectory 'Distance to food'], '-png')
 
 
-%% FIGURE: Distance from food/temperature correlation
+%% FIGURE: Distance to food/temperature correlation
 
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
@@ -504,7 +504,7 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(true); 
 
 xtickloc = [];
-for i = 1:length(binedges)-1
+for i = 1:ngroups
     stats(i).data = [];
 end
 
@@ -589,13 +589,15 @@ subplot(r,c,2)
 
 formatFig(fig,true,[r,c]);
 
- % Save figure
-save_figure(fig, [figdirectory 'Starting distance from food before cooling'], '-png')
+% Save figure
+% save_figure(fig, [figdirectory 'Starting distance from food before cooling'], '-png')
 
 % Stats
 h = [];
 p = [];
-for i = 1:length(binedges)-1 %TODO make into variable 
+
+% Compare ramp 1 and ramp 3 for each start time
+for i = 1:ngroups %TODO make into variable 
     z = stats(i).data;
     if isempty(z)
         h(i) = false;
@@ -610,7 +612,8 @@ end
 
 [r1,r3] = deal([]);
 
-for i = 1:length(binedges)-1
+% Compare each start time for ramp 1 and ramp 3
+for i = 1:ngroups
     z = stats(i).data;
     if ~isempty(z)
         r1 = autoCat(r1,z(:,1),false);
@@ -618,8 +621,34 @@ for i = 1:length(binedges)-1
     end
 end
 
-[p1,tbl] = anova1(r1);
-[p2,tbl2] = anova1(r3);
+[p1,tbl] = anova1(r1,unique(groupix),'off');
+[p2,tbl2] = anova1(r3,unique(groupix),'off');
+
+% Add stats to figure
+
+figure(fig)
+subplot(r,c,1)
+y = rangeLine(fig,2,true);
+
+for i = 1:ngroups
+    xramp1 = (i*2)-1;
+    xramp3 = i*2;
+    % Plot average line
+    avgchange = mean(stats(i).data);
+    plot([xramp1,xramp3],avgchange,'color',foreColor,'LineWidth',4,'Marker','o')
+    if h(i) % h is a logical, h(i) = 1 = true
+        scatter((xramp1+xramp3)/2,y,150,foreColor,"filled","*","MarkerEdgeColor",foreColor)
+    end
+end
+
+
+
+
+
+
+
+
+
 
 %% FIGURE: Intitial distance from food before heating across start times : TODO -- stats formatting
 
@@ -628,7 +657,7 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(true); 
 
 xtickloc = [];
-for i = 1:length(binedges)-1
+for i = 1:ngroups
     stats(i).data = [];
 end
 
@@ -719,7 +748,7 @@ save_figure(fig, [figdirectory 'Starting distance from food before cooling'], '-
 % Stats
 h = [];
 p = [];
-for i = 1:length(binedges)-1 %TODO make into variable 
+for i = 1:ngroups %TODO make into variable 
     z = stats(i).data;
     if isempty(z)
         h(i) = false;
@@ -734,7 +763,7 @@ end
 
 [r1,r3] = deal([]);
 
-for i = 1:length(binedges)-1
+for i = 1:ngroups
     z = stats(i).data;
     if ~isempty(z)
         r1 = autoCat(r1,z(:,1),false);
@@ -882,8 +911,35 @@ formatFig(fig,true)
 save_figure(fig, [figdirectory 'Distance to temp correlation across start times'], '-png')
 
 
+%% FIGURE
 
+clearvars('-except',initial_vars{:}) 
+plot_err = true; 
+[foreColor,backColor] = formattingColors(true); 
+toffset = [100/60, 212/60, 324/60];
+windowsize = 5; %in minutes
 
+fig = getfig;
+hold on
+
+for trial = 1:ntrials
+    hold on
+    loc = data(trial).data.foodwell; %column number that has the food
+    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
+    tempPoints = getTempTurnPoints(temp_protocol);
+    
+    nframes = tempPoints.fps*60*windowsize;
+    for r = 1:3
+        r1start = tempPoints.hold(r,2)-nframes:tempPoints.hold(r,2);
+        r1end = tempPoints.down(r,2)-floor(nframes/2):tempPoints.down(r,2)+ceil(nframes/2);
+        r1startavg = mean(y(r1start));
+        zeit = expstarttime_hr(trial) - 8 + toffset(r);
+        scatter(zeit,r1startavg,30,Color(clist{groupix(trial)}),'filled')
+    end
+
+end
+
+formatFig(fig,true);
 
 
 
