@@ -609,7 +609,7 @@ subplot(r,c,2)
 formatFig(fig,true,[r,c]);
 
 % Save figure
-% save_figure(fig, [figdirectory 'Starting distance from food before '. inputVar], '-png')
+save_figure(fig, [figdirectory 'Starting distance from food before '. inputVar], '-png')
 
 % Stats
 h = [];
@@ -665,7 +665,7 @@ end
 
 
 
-%% ***OLD FIGURE: Intitial distance from food before cooling across start times : TODO -- stats formatting
+%% FIGURE: Intitial distance from food before cooling across start times : TODO -- stats formatting
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
@@ -818,7 +818,7 @@ end
 
 
 
-%% ***OLD FIGURE: Intitial distance from food before heating across start times : TODO -- stats formatting
+%% FIGURE: Intitial distance from food before heating across start times : TODO -- stats formatting
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
