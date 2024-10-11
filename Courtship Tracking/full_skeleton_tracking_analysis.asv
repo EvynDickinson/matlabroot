@@ -77,7 +77,6 @@ for vid = 1:parameters.nVids
 end
 
 
-
 %% 
 % tracks (frame, body points, XY, fly)
 
@@ -114,6 +113,85 @@ for vid = 1:nvids
     end
 end
 
+
+%% Align the tracks from video to video: 
+% display image of fly postion at the end of the first video and then the
+% next chunk for the subsequent video to see if they align
+buff = 4;
+vid_align = false([1,nvids]);
+vid_align(1) = true;
+for vid = 1:nvids-1
+    frame_end = size(data(vid).occupancy_matrix,2);
+    eROI = frame_end-buff:frame_end;
+    sROI = 1:1+buff;
+    
+    fig = figure;
+    hold on
+    for i = eROI
+        plotFlySkeleton(fig, data(vid).tracks(i,:,1,1),data(vid).tracks(i,:,2,1),Color('dodgerblue'),true);
+        plotFlySkeleton(fig, data(vid).tracks(i,:,1,2),data(vid).tracks(i,:,2,2),Color('deeppink'),true); 
+    end
+    for i = sROI
+        plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,1),data(vid+1).tracks(i,:,2,1),Color('blue'),false);
+        plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,2),data(vid+1).tracks(i,:,2,2),Color('pink'),false); 
+    end
+    axis square
+    switch questdlg('Are the tracks aligned?')
+        case 'Yes'
+        vid_align(vid+1) = true;
+        case 'Cancel'
+            return
+        case ''
+            return
+    end
+    close(fig)
+    disp([num2str(vid) '/' num2str(nvids-1)])
+end
+
+state_switch = false;
+state = true;
+for i = 2:6%nvids
+    a = vid_align(i)
+    b = state
+    if a && b
+        state_switch(i) = false;
+    elseif ~a && ~b
+        state_switch(i) = false;
+        state = ~state;
+    elseif ~a && b
+        state_switch(i) = true;
+        state = ~state;
+    elseif a && ~b
+        state_switch(i) = true;
+         state = ~state;
+    end
+    % disp(state);
+end
+disp(state_switch)
+
+i = i+1
+
+
+
+
+output = xor(vid_align(1:end-1), vid_align(2:end));
+output = [0, output];  % Add a 0 at the start
+
+
+% Align the tracks to the correct spot now....
+dummy = vid_align;
+for i = 2:nvids
+    diff(dummy)
+
+
+
+correctly_aligned = [1 1 0 0 0 1];
+
+realign = xor(vid_align(1:end-1), vid_align(2:end));
+realign = [0, realign];  % Add a 0 at the beginning, as there is no switch at the first step
+
+
+
 %% Targeted look at heating and cooling
 pix2mm = 0.0305; %conversion from pixels to mm for these videos
 IFD = [];
@@ -130,19 +208,9 @@ for vid = 1:nvids
 
     % speeds
     D1 = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; 
-    speed(:,1) = (D./(1/fps));
     D2 = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm;
-    speed(:,2) = (D./(1/fps));
+    speed = [speed; (D1./(1/parameters.FPS)),(D2./(1/parameters.FPS))];
 end
-
-% fly speed
-speed = [];
-D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; % male speed
-speed(:,1) = (D./(1/fps));
-D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % male speed
-speed(:,2) = (D./(1/fps));
-clear x1 x2 y1 y2 D
-
 
 
 fig = getfig('',1); 
@@ -151,15 +219,62 @@ plot(T.time,IFD,'color', Color('teal'),'linewidth', 1)
 h_line(5,'r','--',1)
 
 
-
-% Add X and Y to the data table:
-T = addvars(T,X,Y);
-% head(T,5)
-
-clearvars('-except',initial_vars{:})
-fprintf('Next\n')
+%%
 
 
+
+
+
+
+%% Distance, speed, and speed correcation between flies over full video course
+% use the center body point to determine between-fly distance
+fps = parameters.FPS;
+time = T.time;
+sSpan = 90; % 3 seconds
+[foreColor,backColor] = formattingColors(false); %get background colors
+
+r = 3; c = 1;
+xlimit = [0,120];
+
+fig = getfig('',1,[1032 1042]);
+% INTERFLY DISTANCE
+subplot(r,c,1) 
+    plot(T.time,IFD,'color', foreColor,'LineWidth', 1.5)
+    % xlabel('time (s)')
+    ylabel('inter-fly distance (mm)')
+    % xlim(xlimit)
+% FLY SPEED
+subplot(r,c,2); hold on 
+    sSpan = fps; %single second smoothing
+    x = time(1:end-1);
+    y1 = smooth(speed(:,1),sSpan,'moving');
+    y2 = smooth(speed(:,2),sSpan,'moving');
+    plot(x, y1, 'color', Color('dodgerblue'),'LineWidth', 2)
+    plot(x, y2, 'color', Color('deeppink'),'LineWidth', 2)
+    ylabel('fly speed (mm/s)')
+    xlim(xlimit)
+
+% FLY SPEED CORRELATION
+subplot(r,c,3); hold on 
+    tSpan = 3; % time window in seconds
+    pSpan = tSpan * fps; % frames in the sliding window
+    y = runningCorrelation(speed, pSpan);
+    y = smooth(y,pSpan,'moving');
+    offset = ceil(pSpan/2);
+    x = time(offset:offset+length(y)-1)';
+    plot(x, y, 'color', foreColor,'LineWidth', 2)
+    xlabel('time (s)')
+    ylabel('M & F speed correlation')
+    h_line(0,'r','--',1)
+    xlim(xlimit)
+
+formatFig(fig, blkbnd,[r,c]);
+subplot(r,c,1)
+set(gca, 'xcolor', backColor)
+subplot(r,c,2)
+set(gca, 'xcolor', backColor)
+
+save_figure(fig,[baseFolder 'Figures/speed and distance timecourse'], fig_type);
 
 
 

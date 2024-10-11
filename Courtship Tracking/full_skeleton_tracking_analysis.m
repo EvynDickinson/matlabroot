@@ -77,7 +77,6 @@ for vid = 1:parameters.nVids
 end
 
 
-
 %% 
 % tracks (frame, body points, XY, fly)
 
@@ -113,6 +112,67 @@ for vid = 1:nvids
         positions.(node_names{bp}).Y = autoCat(positions.(node_names{bp}).Y, y_loc,true);
     end
 end
+
+
+%% Align the tracks from video to video: 
+% display image of fly postion at the end of the first video and then the
+% next chunk for the subsequent video to see if they align
+buff = 4;
+vid_align = false([1,nvids]);
+vid_align(1) = true;
+for vid = 1:nvids-1
+    frame_end = size(data(vid).occupancy_matrix,2);
+    eROI = frame_end-buff:frame_end;
+    sROI = 1:1+buff;
+    
+    fig = figure;
+    hold on
+    for i = eROI
+        plotFlySkeleton(fig, data(vid).tracks(i,:,1,1),data(vid).tracks(i,:,2,1),Color('dodgerblue'),true);
+        plotFlySkeleton(fig, data(vid).tracks(i,:,1,2),data(vid).tracks(i,:,2,2),Color('deeppink'),true); 
+    end
+    for i = sROI
+        plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,1),data(vid+1).tracks(i,:,2,1),Color('blue'),false);
+        plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,2),data(vid+1).tracks(i,:,2,2),Color('pink'),false); 
+    end
+    axis square
+    switch questdlg('Are the tracks aligned?')
+        case 'Yes'
+        vid_align(vid+1) = true;
+        case 'Cancel'
+            return
+        case ''
+            return
+    end
+    close(fig)
+    disp([num2str(vid) '/' num2str(nvids-1)])
+end
+
+state_switch = false;
+state = true;
+for i = 2:nvids
+    a = vid_align(i);
+    b = state(i-1);
+    if a && b
+        state_switch(i) = false;
+        state(i) = true;
+    elseif ~a && ~b
+        state_switch(i) = false;
+        state(i) = true;
+    elseif ~a && b
+        state_switch(i) = true;
+        state(i) = false;
+    elseif a && ~b
+        state_switch(i) = true;
+         state(i) = false;
+    end
+    % disp(state);
+end
+disp(state)
+switch_state = ~state;
+
+
+
 
 %% Targeted look at heating and cooling
 pix2mm = 0.0305; %conversion from pixels to mm for these videos

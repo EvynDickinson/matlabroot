@@ -2999,7 +2999,7 @@ end
 subplot(r,c,sb(2).idx)
 ylabel('flies in food region (%)')
 xlabel('time (min)')
-set(gca,'ydir','reverse')
+% set(gca,'ydir','reverse')
 if ~auto_time
     xlim(time_lim)
 end
