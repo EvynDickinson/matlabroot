@@ -1,4 +1,3 @@
-
 %% LOAD: data
 clear; clc; close all
 path = getDataPath(3, 0, 'Select location of data structure');
@@ -18,6 +17,7 @@ clearvars('-except',initial_vars{:})
 % load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 
+% initial variables
 initial_vars{end + 1} = 'expstarttime';
 initial_vars{end + 1} = 'expstarttime_hr';
 initial_vars{end + 1} = 'groupix';
@@ -28,7 +28,7 @@ initial_vars{end + 1} = 'bkgrd_color';
 
 disp('start time data loaded')
 
-%% Make unique trial ID
+%% ANALYSIS: make unique trial ID
 expstarttime = [];
 expstarttime_hr = [];
 ntrials = size(T,1);
@@ -59,14 +59,13 @@ end
 
 binedges = [4:2:20];
 clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','Purple'};
+bkgrd_color = true;
 
 disp('next section')
 
 %% FIGURE: Histogram of start times
 
 clearvars('-except',initial_vars{:})
-
-bkgrd_color = false;
 
 x = expstarttime_hr;
 
@@ -84,7 +83,7 @@ formatFig(fig,bkgrd_color)
 save_figure(fig, [figdirectory 'Experiment start times histogram'], '-png');
 
 
-%% FIGURE: Polar plot of start times
+%% FIGURE: Polar plot of start times -- TODO: make background color dynamic
 
 clearvars('-except',initial_vars{:})
 
@@ -94,7 +93,7 @@ theta = (24-(expstarttime_hr/24)) * 2 * pi;
 % show the experiment start times as a polar plot
 fig = getfig('Polar Histogram', 1);
     h = polarhistogram(theta);
-    set(h,'FaceColor',Color('teal'), 'EdgeColor', 'k','FaceAlpha',0.8)
+    set(h,'FaceColor',Color('Plum'), 'EdgeColor', 'k','FaceAlpha',0.8)
     % set labels and formats
     ax = gca;
     set(ax, 'ThetaZeroLocation', 'top')
@@ -142,12 +141,11 @@ save_figure(fig, [figdirectory 'Experiment start times polar plot'], '-png');
 % TODO: update the label sizes and add some titles etc, 
 % TODO: try making the binsizes for each hour
 
-%% Split trials into time bins
+%% ANALYSIS: split trials into time bins
 
 clearvars('-except',initial_vars{:})
 
 % Split trials into before and after noon
-
 groupix = discretize(expstarttime_hr,binedges);
 ntrials = size(T,1); %number of trials to include
 ngroups = length(binedges)-1;
@@ -158,7 +156,7 @@ disp('next section')
 
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
-[foreColor,backColor] = formattingColors(true); % get background colors
+[foreColor,backColor] = formattingColors(bkgrd_color); % get background colors
 
 % set up figure aligments
 r = 4; %rows
@@ -171,6 +169,7 @@ sSpan = 360; %smoothing function
 
 dataString = [];
 dummy = unique(groupix);
+
 for idx = 1:length(dummy)
     i = dummy(idx);
     % bincenter = mean(binedges(i:i+1));
@@ -179,6 +178,7 @@ for idx = 1:length(dummy)
 end
 
 g = []; %empty variable to add to later and not override things
+
 for i = 1:ngroups
     g(i).name = [num2str(binedges(i)) '-' num2str(binedges(i+1))]; 
     [g(i).raw,g(i).temp,g(i).time] = deal([]); %empty variable
@@ -204,20 +204,20 @@ end
 
  % FIGURE:
 fig = getfig('Distance to food',true); %create a figure with customizable size and position on screen
-for i = 1:ngroups
-subplot(r,c,sb(1).idx)
-    hold on
-    plot(g(i).timeavg,g(i).tempavg,'color',Color(clist{i}),'LineWidth',LW)
-subplot(r,c,sb(2).idx) %dimensions and location of subplot
-    hold on %keep what is there to add multiple things
-        x = g(i).timeavg;
-        y = g(i).distavg;
-        y_err =  g(i).std;
-       plot(x,y,'color',Color(clist{i}))
-       h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
-end
+    for i = 1:ngroups
+        subplot(r,c,sb(1).idx)
+            hold on
+            plot(g(i).timeavg,g(i).tempavg,'color',Color(clist{i}),'LineWidth',LW)
+        subplot(r,c,sb(2).idx) %dimensions and location of subplot
+            hold on %keep what is there to add multiple things
+                x = g(i).timeavg;
+                y = g(i).distavg;
+                y_err =  g(i).std;
+               plot(x,y,'color',Color(clist{i}))
+               h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+    end
     
-formatFig(fig,true,[r,c],sb)
+formatFig(fig,bkgrd_color,[r,c],sb)
 
 subplot(r,c,sb(1).idx)
     set(gca,'xcolor',backColor)
@@ -236,7 +236,7 @@ save_figure(fig, [figdirectory 'Distance to food'], '-png')
 
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
-[foreColor,backColor] = formattingColors(true); % get background colors
+[foreColor,backColor] = formattingColors(bkgrd_color); % get background colors
 
 plotdata = nan([ntrials,2]); %create empty variable of a specific size
 
@@ -263,7 +263,7 @@ fig = getfig('Temp distance correlation',true);
     xlabel('Time of day (hr)')
     ylabel('Correlation between distance and temp')
 
-formatFig(fig,true)
+formatFig(fig,bkgrd_color)
 
 % Save figure
 save_figure(fig, [figdirectory 'Distance to temp correlation across start times'], '-png')
@@ -278,7 +278,7 @@ save_figure(fig, [figdirectory 'Distance to temp correlation across start times'
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
-[foreColor,backColor] = formattingColors(true);
+[foreColor,backColor] = formattingColors(bkgrd_color);
 
 inputVar =  questdlg('Which data type to compare?','','Cooling','Heating','Cancel');
 
@@ -291,7 +291,6 @@ switch inputVar
         return
 end
 
-plotdata = nan([ntrials,2]);
 windowsize = 1; %in minutes
 
 r = 1;
@@ -326,7 +325,7 @@ for trial = 1:ntrials
         r3startavg = mean(y(r3start));
         r3endavg = mean(y(r3end));
     
-        r1diff = r1endavg-r1startavg;
+        r1diff = r1endavg-r1startavg; %TODO: show only mean difference line for each time bin
         r3diff = r3endavg-r3startavg;
     
         scatter(1,r1diff,35,Color(clist{groupix(trial)}),"filled")
@@ -355,164 +354,19 @@ subplot(r,c,2)
     xlabel('Start time')
     ylabel('Difference between ramp 1 and ramp 3')
     
- formatFig(fig,true,[r,c])
+ formatFig(fig,bkgrd_color,[r,c])
 
- % Save figure
+% Save figure
 save_figure(fig, [figdirectory 'Distance difference across start times during ', inputVar], '-png')
 
 
-%% ***OLD FIGURE: Change in distance during cooling across start times 
+%% FIGURE: Intitial distance to food before cooling | heating across start times -- TODO: fix ramp x axis labels
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
-
-plotdata = nan([ntrials,2]);
-windowsize = 1; %in minutes
-
-% clist = {'LemonChiffon','Gold','Tomato','Blue'};
-
-r = 1;
-c = 2;
-
-fig = getfig('Cooling ramp distance difference',true);
-hold on
-
-for trial = 1:ntrials
-    subplot(r,c,1)
-    hold on
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tempPoints = getTempTurnPoints(temp_protocol);
-
-    nframes = tempPoints.fps*60*windowsize;
-    r1start = tempPoints.hold(1,2)-nframes:tempPoints.hold(1,2);
-    r1end = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
-    r3start = tempPoints.hold(3,2)-nframes:tempPoints.hold(3,2);
-    r3end = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
-   
-    r1startavg = mean(y(r1start)); %average distance within r1start area
-    r1endavg = mean(y(r1end));
-    r3startavg = mean(y(r3start));
-    r3endavg = mean(y(r3end));
-
-    r1diff = r1endavg-r1startavg;
-    r3diff = r3endavg-r3startavg;
-
-    scatter(1,r1diff,35,Color(clist{groupix(trial)}),"filled")
-    scatter(3,r3diff,35,Color(clist{groupix(trial)}),"filled")
-    plot([1,3],[r1diff,r3diff],'color',Color(clist{groupix(trial)}),'LineWidth',2)
-
-    subplot(r,c,2)
-    hold on
-    slope = r3diff-r1diff;
-    scatter(expstarttime_hr(trial),slope,35,Color(clist{groupix(trial)}),"filled")
-
-end
-
-subplot(r,c,1)
-    xlim([0.5,3.5])
-    set(gca,'XTick',[1,3])
-    xlabel('Ramp')
-    ylabel('\Delta Distance during cooling')
-    title('Cooling')
-
-subplot(r,c,2)
-    xlim([5,20])
-    set(gca,'XTick',binedges)
-    h_line(0,'Gray','--')
-    xlabel('Start time')
-    ylabel('Difference between ramp 1 and ramp 3')
-    
- formatFig(fig,true,[r,c])
-
- % Save figure
-save_figure(fig, [figdirectory 'Distance difference across start times during cooling'], '-png')
-
-%% ***OLD FIGURE: Change in distance during heating across start times
-
-clearvars('-except',initial_vars{:}) 
-plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
-
-plotdata = nan([ntrials,2]);
-windowsize = 1; %in minutes
-
-% clist = {'LemonChiffon','Gold','Tomato','Blue'};
-
-r = 1;
-c = 2;
-
-fig = getfig('Heating ramp distance difference',true);
-hold on
-
-for trial = 1:ntrials
-    subplot(r,c,1)
-    hold on
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tempPoints = getTempTurnPoints(temp_protocol);
-
-    nframes = tempPoints.fps*60*windowsize;
-    r1start = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
-    r1end = tempPoints.up(1,2):tempPoints.up(1,2)+nframes;
-    r3start = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
-    r3end = tempPoints.up(3,2):tempPoints.up(3,2)+nframes;
-   
-    r1startavg = mean(y(r1start)); %average distance within r1start area
-    r1endavg = mean(y(r1end));
-    r3startavg = mean(y(r3start));
-    r3endavg = mean(y(r3end));
-
-    r1diff = r1endavg-r1startavg;
-    r3diff = r3endavg-r3startavg;
-
-    scatter(1,r1diff,35,Color(clist{groupix(trial)}),"filled")
-    scatter(3,r3diff,35,Color(clist{groupix(trial)}),"filled")
-    plot([1,3],[r1diff,r3diff],'color',Color(clist{groupix(trial)}),'LineWidth',2)
-
-    subplot(r,c,2)
-    hold on
-    slope = r3diff-r1diff;
-    scatter(expstarttime_hr(trial),slope,35,Color(clist{groupix(trial)}),"filled")
-
-end
-
-subplot(r,c,1)
-    xlim([0.5,3.5])
-    set(gca,'XTick',[1,3])
-    xlabel('Ramp')
-    ylabel('\Delta Distance during heating')
-    title('Heating')
-
-subplot(r,c,2)
-    xlim([5,20])
-    set(gca,'XTick',binedges)
-    h_line(0,'Gray','--')
-    xlabel('Start time')
-    ylabel('Difference between ramp 1 and ramp 3')
-    
- formatFig(fig,true,[r,c])
-
- % Save figure
-save_figure(fig, [figdirectory 'Distance difference across start times during heating'], '-png')
-
-%% FIGURE: Intitial distance from food before cooling | heating across start times
-
-clearvars('-except',initial_vars{:}) 
-plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
+[foreColor,backColor] = formattingColors(bkgrd_color); 
 
 inputVar =  questdlg('Which data type to compare?','','Cooling','Heating','Cancel');
-
-% switch inputVar
-%     case 'Cooling'
-%         ylab = '\Delta Distance during cooling';
-%     case 'Heating'
-%         ylab = '\Delta Distance during heating';
-%     case 'Cancel'
-%         return
-% end
 
 xtickloc = [];
 for i = 1:ngroups
@@ -589,6 +443,7 @@ subplot(r,c,1)
     xlim([xmin,xmax])
     xlabel('Ramp')
     ylabel('Distance from food (mm)')
+    title(inputVar)
 
 dataString = [];
 dummy = unique(groupix);
@@ -606,10 +461,7 @@ subplot(r,c,2)
     xlabel('Start time (hr)')
     ylabel('Distance from food (mm)')
 
-formatFig(fig,true,[r,c]);
-
-% Save figure
-save_figure(fig, [figdirectory 'Starting distance from food before '. inputVar], '-png')
+formatFig(fig,bkgrd_color,[r,c]);
 
 % Stats
 h = [];
@@ -661,286 +513,43 @@ for i = 1:ngroups
 end
 
 
+% Save figure
+save_figure(fig, [figdirectory 'Starting distance to food before ', inputVar], '-png')
 
 
-
-
-%% FIGURE: Intitial distance from food before cooling across start times : TODO -- stats formatting
+%% FIGURE: Distance to food at start of each ramp across Zeitgeber time
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
-
-xtickloc = [];
-for i = 1:ngroups
-    stats(i).data = [];
-end
-
-windowsize = 1; %in minutes
-r = 1;
-c = 2;
+[foreColor,backColor] = formattingColors(bkgrd_color); 
+toffset = [100/60, 212/60, 324/60];
+windowsize = 5; %in minutes
 
 fig = getfig;
-
-% clist = {'LemonChiffon','Gold','Tomato','Blue'};
+hold on
 
 for trial = 1:ntrials
-    subplot(r,c,1)
     hold on
     loc = data(trial).data.foodwell; %column number that has the food
     y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
     tempPoints = getTempTurnPoints(temp_protocol);
-
-    nframes = tempPoints.fps*60*windowsize;
-    r1start = tempPoints.hold(1,2)-nframes:tempPoints.hold(1,2);
-    r1end = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
-    r3start = tempPoints.hold(3,2)-nframes:tempPoints.hold(3,2);
-    r3end = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
-   
-    r1startavg = mean(y(r1start)); %average distance within r1start area
-    r3startavg = mean(y(r3start));
-
-    stats(groupix(trial)).data(end+1,:) = [r1startavg,r3startavg];
     
-    xramp1 = (groupix(trial)*2)-1;
-    xramp3 = groupix(trial)*2;
+    nframes = tempPoints.fps*60*windowsize;
+    for r = 1:3
+        rstart = tempPoints.hold(r,2)-nframes:tempPoints.hold(r,2);
+        rstartavg = mean(y(rstart));
+        zeit = expstarttime_hr(trial) - 8 + toffset(r); %Zeitgeber time (hrs) since start of experiment
+        scatter(zeit,rstartavg,30,Color(clist{groupix(trial)}),'filled')
+    end
 
-    scatter(xramp1,r1startavg,35,Color(clist{groupix(trial)}),"filled")
-    scatter(xramp3,r3startavg,35,Color(clist{groupix(trial)}),"filled")
-    plot([xramp1,xramp3],[r1startavg,r3startavg],'color',Color(clist{groupix(trial)}),'LineWidth',2)
-
-    subplot(r,c,2)
-    hold on
-
-    xramp1 = groupix(trial);
-    xramp3 = groupix(trial) + max(groupix) + 1;
-
-    buff = 0.3;
-    nincr = 50;
-    poss = linspace(-buff,buff,nincr);
-    idx = randi(nincr,1); %random number between 1 and nincrement
-    b = poss(idx);
-
-    scatter(xramp1+b,r1startavg,35,Color(clist{groupix(trial)}),"filled")
-    scatter(xramp3+b,r3startavg,35,Color(clist{groupix(trial)}),"filled")
-
-    xtickloc = [xtickloc;xramp1;xramp3];
 end
 
-buff = 0.5;
-xmax = max(unique(groupix))*2 + buff;
-xmin = min(unique(groupix))*2 - 1 - buff;
-
-
-
-subplot(r,c,1)
-    set(gca,'XTick',1:8,'XTickLabel',{'1','3','1','3','1','3'}) %TODO: make tick range dynamic
-    xlim([xmin,xmax])
-    xlabel('Ramp')
-    ylabel('Distance from food (mm)')
-
-dataString = [];
-dummy = unique(groupix);
-for idx = 1:length(dummy)
-    i = dummy(idx);
-    % bincenter = mean(binedges(i:i+1));
-    % binwidth = binedges(i+1)-bincenter;
-    dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
-end
-
-xticklabels = repmat(dataString,[1,2]);
-
-subplot(r,c,2)
-    set(gca,'XTick',unique(xtickloc),'XTickLabel',xticklabels,'XTickLabelRotation',30) %TODO: make tick range dynamic
-    xlabel('Start time (hr)')
-    ylabel('Distance from food (mm)')
-
-formatFig(fig,true,[r,c]);
+xlabel('Zeitgeber time')
+ylabel('Distance to food (mm)')
+formatFig(fig,bkgrd_color);
 
 % Save figure
-% save_figure(fig, [figdirectory 'Starting distance from food before cooling'], '-png')
-
-% Stats
-h = [];
-p = [];
-
-% Compare ramp 1 and ramp 3 for each start time
-for i = 1:ngroups %TODO make into variable 
-    z = stats(i).data;
-    if isempty(z)
-        h(i) = false;
-        p(i) = nan;
-    else
-        [h(i),p(i)] = ttest(z(:,1),z(:,2));
-        if h(i)
-            disp(['Group ' num2str(i) ' p = ' num2str(p(i))])
-        end
-    end
-end
-
-[r1,r3] = deal([]);
-
-% Compare each start time for ramp 1 and ramp 3
-for i = 1:ngroups
-    z = stats(i).data;
-    if ~isempty(z)
-        r1 = autoCat(r1,z(:,1),false);
-        r3 = autoCat(r3,z(:,2),false);
-    end
-end
-
-[p1,tbl] = anova1(r1,unique(groupix),'off');
-[p2,tbl2] = anova1(r3,unique(groupix),'off');
-
-% Add stats to figure
-
-figure(fig)
-subplot(r,c,1)
-y = rangeLine(fig,2,true);
-
-for i = 1:ngroups
-    xramp1 = (i*2)-1;
-    xramp3 = i*2;
-    % Plot average line
-    avgchange = mean(stats(i).data);
-    plot([xramp1,xramp3],avgchange,'color',foreColor,'LineWidth',4,'Marker','o')
-    if h(i) % h is a logical, h(i) = 1 = true
-        scatter((xramp1+xramp3)/2,y,150,foreColor,"filled","*","MarkerEdgeColor",foreColor)
-    end
-end
-
-
-
-
-
-
-
-
-
-
-%% FIGURE: Intitial distance from food before heating across start times : TODO -- stats formatting
-
-clearvars('-except',initial_vars{:}) 
-plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
-
-xtickloc = [];
-for i = 1:ngroups
-    stats(i).data = [];
-end
-
-windowsize = 1; %in minutes
-r = 1;
-c = 2;
-
-fig = getfig;
-
-% clist = {'LemonChiffon','Gold','Tomato','Blue'};
-
-for trial = 1:ntrials
-    subplot(r,c,1)
-    hold on
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tempPoints = getTempTurnPoints(temp_protocol);
-
-    nframes = tempPoints.fps*60*windowsize;
-    r1start = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
-    r1end = tempPoints.up(1,2):tempPoints.up(1,2)+nframes;
-    r3start = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
-    r3end = tempPoints.up(3,2):tempPoints.up(3,2)+nframes;
-   
-    r1startavg = mean(y(r1start)); %average distance within r1start area
-    r3startavg = mean(y(r3start));
-
-    stats(groupix(trial)).data(end+1,:) = [r1startavg,r3startavg];
-    
-    xramp1 = (groupix(trial)*2)-1;
-    xramp3 = groupix(trial)*2;
-
-    scatter(xramp1,r1startavg,35,Color(clist{groupix(trial)}),"filled")
-    scatter(xramp3,r3startavg,35,Color(clist{groupix(trial)}),"filled")
-    plot([xramp1,xramp3],[r1startavg,r3startavg],'color',Color(clist{groupix(trial)}),'LineWidth',2)
-
-    subplot(r,c,2)
-    hold on
-
-    xramp1 = groupix(trial);
-    xramp3 = groupix(trial) + max(groupix) + 1;
-
-    buff = 0.3;
-    nincr = 50;
-    poss = linspace(-buff,buff,nincr);
-    idx = randi(nincr,1); %random number between 1 and nincrement
-    b = poss(idx);
-
-    scatter(xramp1+b,r1startavg,35,Color(clist{groupix(trial)}),"filled")
-    scatter(xramp3+b,r3startavg,35,Color(clist{groupix(trial)}),"filled")
-
-    xtickloc = [xtickloc;xramp1;xramp3];
-end
-
-buff = 0.5;
-xmax = max(unique(groupix))*2 + buff;
-xmin = min(unique(groupix))*2 - 1 - buff;
-
-
-
-subplot(r,c,1)
-    set(gca,'XTick',1:8,'XTickLabel',{'1','3','1','3','1','3'}) %TODO: make tick range dynamic
-    xlim([xmin,xmax])
-    xlabel('Ramp')
-    ylabel('Distance from food (mm)')
-
-dataString = [];
-dummy = unique(groupix);
-for idx = 1:length(dummy)
-    i = dummy(idx);
-    % bincenter = mean(binedges(i:i+1));
-    % binwidth = binedges(i+1)-bincenter;
-    dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
-end
-
-xticklabels = repmat(dataString,[1,2]);
-
-subplot(r,c,2)
-    set(gca,'XTick',unique(xtickloc),'XTickLabel',xticklabels,'XTickLabelRotation',30) %TODO: make tick range dynamic
-    xlabel('Start time (hr)')
-    ylabel('Distance from food (mm)')
-
-formatFig(fig,true,[r,c]);
-
- % Save figure
-save_figure(fig, [figdirectory 'Starting distance from food before cooling'], '-png')
-
-% Stats
-h = [];
-p = [];
-for i = 1:ngroups %TODO make into variable 
-    z = stats(i).data;
-    if isempty(z)
-        h(i) = false;
-        p(i) = nan;
-    else
-        [h(i),p(i)] = ttest(z(:,1),z(:,2));
-        if h(i)
-            disp(['Group ' num2str(i) ' p = ' num2str(p(i))])
-        end
-    end
-end
-
-[r1,r3] = deal([]);
-
-for i = 1:ngroups
-    z = stats(i).data;
-    if ~isempty(z)
-        r1 = autoCat(r1,z(:,1),false);
-        r3 = autoCat(r3,z(:,2),false);
-    end
-end
-
-[p1,tbl] = anova1(r1);
-[p2,tbl2] = anova1(r3);
+save_figure(fig, [figdirectory 'Distance to food across Zeitgeber time'], '-png')
 
 %% ***TODO Distance Analyses
 
@@ -967,11 +576,13 @@ for trial = 1:ntrials
     disp( T.ExperimentID{trial})
 end
 
+disp('sleep data loaded')
+
 %% FIGURE: Percentage of flies sleeping over time
 
 clearvars('-except',initial_vars{:}) %clear all variables except initial ones
 plot_err = true; %plot error region
-[foreColor,backColor] = formattingColors(true); % get background colors
+[foreColor,backColor] = formattingColors(bkgrd_color); % get background colors
 
 % set up figure aligments
 r = 4; %rows
@@ -1016,7 +627,7 @@ for i = 1:ngroups
     g(i).tempavg = mean(g(i).temp,2,'omitnan');
 end
 
-clist = {'LemonChiffon','Gold','Tomato','DodgerBlue'};
+% clist = {'LemonChiffon','Gold','Tomato','DodgerBlue'};
 
  % FIGURE:
 fig = getfig('Percentage of flies sleeping',true); %create a figure with customizable size and position on screen
@@ -1030,10 +641,10 @@ subplot(r,c,sb(2).idx) %dimensions and location of subplot
         y = g(i).sleepavg;
         y_err =  g(i).std;
        plot(x,y,'color',Color(clist{i}))
-       h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+       h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
 end
     
-formatFig(fig,true,[r,c],sb)
+formatFig(fig,bkgrd_color,[r,c],sb)
 
 subplot(r,c,sb(1).idx)
     set(gca,'xcolor',backColor)
@@ -1052,11 +663,11 @@ save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png')
 % compare sleep across hold periods
 % distance to food while sleeping (histogram)
 
-%% FIGURE: Average sleep per fly by start time
+%% FIGURE: Average sleep per trial by start time
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
+[foreColor,backColor] = formattingColors(bkgrd_color); 
 
 plotdata = nan([ntrials,2]); %create empty variable of a specific size
 
@@ -1068,47 +679,220 @@ for trial = 1:ntrials
     plotdata(trial,1) = expstarttime_hr(trial);
 end
 
-fig = getfig('Percent flies sleeping across start times',true);
-    scatter(plotdata(:,1),plotdata(:,2),50,'y',"filled")
+fig = getfig('Average sleep per trial by start time',true);
+    scatter(plotdata(:,1),plotdata(:,2),50,'c',"filled")
     xlabel('Time of day (hr)')
     ylabel('Percentage of flies sleeping')
 
-formatFig(fig,true)
+formatFig(fig,bkgrd_color)
 
 % Save figure
-save_figure(fig, [figdirectory 'Distance to temp correlation across start times'], '-png')
+save_figure(fig, [figdirectory 'Average sleep per trial by start time'], '-png')
 
+%% ANALYSIS: pull binned speed
+clearvars('-except',initial_vars{:})
 
-%% FIGURE
+% Pull the data together:
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
 
-clearvars('-except',initial_vars{:}) 
-plot_err = true; 
-[foreColor,backColor] = formattingColors(true); 
-toffset = [100/60, 212/60, 324/60];
-windowsize = 5; %in minutes
-
-fig = getfig;
-hold on
-
-for trial = 1:ntrials
-    hold on
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tempPoints = getTempTurnPoints(temp_protocol);
-    
-    nframes = tempPoints.fps*60*windowsize;
-    for r = 1:3
-        r1start = tempPoints.hold(r,2)-nframes:tempPoints.hold(r,2);
-        r1end = tempPoints.down(r,2)-floor(nframes/2):tempPoints.down(r,2)+ceil(nframes/2);
-        r1startavg = mean(y(r1start));
-        zeit = expstarttime_hr(trial) - 8 + toffset(r);
-        scatter(zeit,r1startavg,30,Color(clist{groupix(trial)}),'filled')
+    % combine all the occupancy for a given temp bin across trials:
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        % pull locations for temp and speed bins
+        raw_c(t,:) = mean(grouped(exp).speed.all(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).speed.all(h_frames,:),1,'omitnan');
     end
 
+    % find the avg and err and save to group structure
+    grouped(exp).speed.increasing.raw = raw_h;
+    grouped(exp).speed.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).speed.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).speed.decreasing.raw = raw_c;
+    grouped(exp).speed.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).speed.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).speed.temps = temps;
 end
 
-formatFig(fig,true);
+
+% Add eccentricity data
+for i = 1:num.exp
+    ecent = [];
+    for trial = 1:num.trial(i)
+        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
+        ecent = autoCat(ecent,y,false);
+    end
+    grouped(i).ecent.all = ecent;
+end
+
+%% ANALYSIS: Calculate flies within the outer ring of the region
+clearvars('-except',initial_vars{:})
+
+R = data(1).data(1).data.r; % radius of the arena in pixels
+innerR = R/sqrt(2); % radius of the inner 50% occupancy space
+dist_from_edge = (R - innerR)/pix2mm;
+
+% Find the percent of the flies that are in the outer ring
+for exp = 1:num.exp
+    counts = []; ring_per = [];
+    for trial = 1:num.trial(exp)
+        x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
+        y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
+        centre = data(exp).data(trial).data.centre; %distance to center of arena 
+        D = sqrt(((x-centre(1)).^2 + (y-centre(2)).^2)); %distance from center of arena
+        loc = D<=R & D>=innerR; % find the locations that are between edge and inner R
+        ringCount = sum(loc,2);
+        counts = autoCat(counts, ringCount, false); %count #flies in the outer ring
+        ring_per = autoCat(ring_per,(ringCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
+    end
+    % pool the data
+    grouped(exp).ring.all = counts;
+    grouped(exp).ring.percent = ring_per; 
+    grouped(exp).ring.avg = mean(ring_per,2,'omitnan');
+end
+
+% Pull the data together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    all_ring = [];
+    
+    % Update the averages for the classic temperature bins 
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        raw_c(t,:) = mean(grouped(exp).ring.percent(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).ring.percent(h_frames,:),1,'omitnan');
+    end
+
+    % find the avg and err and save to group structure
+    grouped(exp).ring.increasing.raw = raw_h;
+    grouped(exp).ring.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).ring.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).ring.decreasing.raw = raw_c;
+    grouped(exp).ring.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).ring.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).ring.temps = temps;
+end
+
+
+
+%% FIGURE AND STATS: average experiment speed
+clearvars('-except',initial_vars{:})
+autoSave = false;
+plot_err = true;
+[foreColor,backColor] = formattingColors(bkgrd_color);
+LW = 1.5;
+r = 1;
+c = 3;
+sb(1).idx = 1:2; %avg speed per temp
+sb(2).idx = 3;   %avg speed
+
+dataString = [];
+dummy = unique(groupix);
+
+for idx = 1:length(dummy)
+    i = dummy(idx);
+    % bincenter = mean(binedges(i:i+1));
+    % binwidth = binedges(i+1)-bincenter;
+    dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
+end
+
+g = []; %empty variable
+
+matsize = [];
+for trial = 1:ntrials
+    y = data(trial).speed.avg;
+    matsize(trial,:) = size(y);
+end
+
+mt = nan([max(matsize,[],'all')],ntrials);
+
+for i = 1:ngroups
+    g(i).name = [num2str(binedges(i)) '-' num2str(binedges(i+1))]; 
+    [g(i).raw,g(i).temp] = deal(mt); %empty variable
+end
+
+
+tic
+matsize = [];
+tempsize = [];
+for trial = 1:ntrials
+    y = data(trial).speed.avg;
+    x = data(trial).occupancy.temp;
+    idx = groupix(trial); %group identity for each trial (before or after noon)
+    g(idx).raw = autoCat(g(idx).raw,y,false); %organize data into one big data matrix
+    g(idx).temp = autoCat(g(idx).temp,x,false);
+    g(trial).count
+end
+toc
+
+for i = 1:ngroups 
+    g(i).speedavg = mean(g(i).raw,2,'omitnan'); 
+    g(i).std = std(g(i).raw,0,2,'omitnan'); %error
+    g(i).tempavg = mean(g(i).temp,2,'omitnan');
+end
+
+fig = getfig('Average speed',true);
+    for i = 1:ngroups
+        subplot(r,c,sb(1).idx)
+            hold on
+                x = g(i).tempavg;
+                y = g(i).speedavg;
+                y_err =  g(i).std;
+            plot(x,y,'color',Color(clist{i}))
+            h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+        subplot(r,c,sb(2).idx)
+            hold on 
+                x = groupix(trial);
+                y = g(i).speedavg;
+                % y = mean(y);
+                buff = 0.3;
+                nincr = 50;
+                poss = linspace(-buff,buff,nincr);
+                idx = randi(nincr,1); %random number between 1 and nincrement
+                b = poss(idx);
+            scatter(x,y,35,Color(clist{groupix(trial)}),"filled")      
+    end
+    
+formatFig(fig,bkgrd_color,[r,c],sb)
+
+subplot(r,c,sb(1).idx)
+    legend(dataString,'Location','northwest','color',backColor,'box','off','textColor',foreColor)
+    xlabel('Temperature (\circC)')
+    ylabel('Speed (mm/s)')
+    xlim([17,25])
+
+ subplot(r,c,sb(2).idx) 
+    set(gca,'xcolor',backColor)
+    ylabel('Average speed (mm/s')
 
 
 
 
+
+        
+        
+        
+        
+ 
