@@ -3573,15 +3573,10 @@ x = [grouped(exp).decreasing.temps; flip(grouped(exp).increasing.temps)];
 loc = isnan(y);
 y(loc) = [];
 x(loc) = [];
-
-% convert the temps to *degrees*
 tRange = [min(x),max(x)];
-deg2deg = 180/range(tRange); % temp degrees to circle degrees
-x = (grouped(exp).decreasing.temps-tRange(1))*deg2deg;
-x = [x; ((flip(grouped(exp).increasing.temps)-tRange(1))*deg2deg)] % TODO HERE -- get temp to loop up f to 360
-; ]
-X = x-tRange(1);
-X*deg2deg
+% convert the temps to *degrees*
+deg2180/range(tRange);
+
 
 x = grouped(i).dist.distavgbytemp(:,1);
 y = grouped(i).dist.distavgbytemp(:,2);
