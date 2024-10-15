@@ -811,6 +811,7 @@ sb(2).idx = 3;   %avg speed
 dataString = [];
 dummy = unique(groupix);
 
+% make group names for figure legend and labels
 for idx = 1:length(dummy)
     i = dummy(idx);
     % bincenter = mean(binedges(i:i+1));
@@ -828,26 +829,31 @@ end
 
 mt = nan([max(matsize,[],'all')],ntrials);
 
+%create matrices with dimensions of num trials and max size of y
 for i = 1:ngroups
     g(i).name = [num2str(binedges(i)) '-' num2str(binedges(i+1))]; 
     [g(i).raw,g(i).temp] = deal(mt); %empty variable
-    g(i).count = 
+    g(i).count = 1;
 end
 
-
-tic
-matsize = [];
-tempsize = [];
+%add data into matrices and add onto group index count
 for trial = 1:ntrials
     y = data(trial).speed.avg;
     x = data(trial).occupancy.temp;
     idx = groupix(trial); %group identity for each trial (before or after noon)
-    g(idx).raw = autoCat(g(idx).raw,y,false); %organize data into one big data matrix
-    g(idx).temp = autoCat(g(idx).temp,x,false);
-    g(trial).count
+    yend = size(y,1);
+    g(idx).raw(1:yend,g(idx).count) = y;
+    g(idx).temp(1:yend,g(idx).count) = x;
+    g(idx).count = g(idx).count + 1;
 end
-toc
 
+%remove empty columns in each group
+for idx = 1:ngroups
+    g(idx).raw(:,g(idx).count:end) = [];
+    g(idx).temp(:,g(idx).count:end) = [];
+end
+
+%plot data and error
 for i = 1:ngroups 
     g(i).speedavg = mean(g(i).raw,2,'omitnan'); 
     g(i).std = std(g(i).raw,0,2,'omitnan'); %error
@@ -856,24 +862,29 @@ end
 
 fig = getfig('Average speed',true);
     for i = 1:ngroups
+        if g(i).count==1
+            continue
+        end
         subplot(r,c,sb(1).idx)
             hold on
                 x = g(i).tempavg;
                 y = g(i).speedavg;
                 y_err =  g(i).std;
             plot(x,y,'color',Color(clist{i}))
-            h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
-        subplot(r,c,sb(2).idx)
-            hold on 
-                x = groupix(trial);
-                y = g(i).speedavg;
-                % y = mean(y);
-                buff = 0.3;
-                nincr = 50;
-                poss = linspace(-buff,buff,nincr);
-                idx = randi(nincr,1); %random number between 1 and nincrement
-                b = poss(idx);
-            scatter(x,y,35,Color(clist{groupix(trial)}),"filled")      
+            plot(x, y-y_err,'color',Color(clist{i}))
+            plot(x, y+y_err,'color',Color(clist{i}))
+            % h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-pdf', 0.2);
+        % subplot(r,c,sb(2).idx)
+        %     hold on 
+        %         x = groupix(trial);
+        %         y = g(i).speedavg;
+        %         % y = mean(y);
+        %         buff = 0.3;
+        %         nincr = 50;
+        %         poss = linspace(-buff,buff,nincr);
+        %         idx = randi(nincr,1); %random number between 1 and nincrement
+        %         b = poss(idx);
+        %     scatter(x,y,35,Color(clist{groupix(trial)}),"filled")      
     end
     
 formatFig(fig,bkgrd_color,[r,c],sb)
@@ -888,7 +899,9 @@ subplot(r,c,sb(1).idx)
     set(gca,'xcolor',backColor)
     ylabel('Average speed (mm/s')
 
-
+% TODO: change x axis to be time and add temperature over time as a
+% separate graph. Problem is we're plotting multiple y values for each x
+% temperature value
 
 
 
