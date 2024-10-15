@@ -3562,106 +3562,72 @@ end
 
 save_figure(fig,[saveDir expGroup ' 10 occupation percent' fig_title ' timecourse summary'],fig_type);
 
-%% FIGURE: polar plot for distance to food over the temp cycle
+%% FIGURE: polar plot for distance to food over the temp cycle [only for comparisons within the same temp range]
 clearvars('-except',initial_vars{:})
-
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
 % Cooling will be 'right side' of polar plot (12-6)
 % Heating will be left side of polar plot (6-12)
-exp = 1;
-y = [grouped(exp).decreasing.avg; flip(grouped(exp).increasing.avg)];
-x = [grouped(exp).decreasing.temps; flip(grouped(exp).increasing.temps)];
-loc = isnan(y);
-y(loc) = [];
-x(loc) = [];
+plotData = []; 
 
-% convert the temps to *degrees*
-tRange = [min(x),max(x)];
-deg2deg = 180/range(tRange); % temp degrees to circle degrees
-x = (grouped(exp).decreasing.temps-tRange(1))*deg2deg;
-x = [x; ((flip(grouped(exp).increasing.temps)-tRange(1))*deg2deg)] % TODO HERE -- get temp to loop up f to 360
-; ]
-X = x-tRange(1);
-X*deg2deg
+for exp = 1:num.exp
+    y = [flip(grouped(exp).decreasing.avg); (grouped(exp).increasing.avg)];
+    x = [flip(grouped(exp).decreasing.temps); (grouped(exp).increasing.temps)];
+    loc = isnan(y);
+    y(loc) = [];
+    x(loc) = [];
+    
+    % convert the temps to *degrees*
+    tRange = [min(x),max(x)];
+    deg2deg = 180/range(tRange); % temp degrees to circle degrees
+    
+    % decreasing temperatures
+    x1 = flip((grouped(exp).decreasing.temps-tRange(2))*-deg2deg); 
+    y1 = flip(grouped(exp).decreasing.avg);
+    % increasing temperatures
+    x2 = (grouped(exp).increasing.temps-tRange(1))*deg2deg + 180;
+    y2 = grouped(exp).increasing.avg;
+    X = [x1;x2];
+    Y = [y1;y2];
+    loc = isnan(Y);
+    X(loc) = [];
+    Y(loc) = [];
+    
+    theta = deg2rad(X);  % Convert to radians if necessary
 
-x = grouped(i).dist.distavgbytemp(:,1);
-y = grouped(i).dist.distavgbytemp(:,2);
-y_err = grouped(i).dist.distavgbytemp_err(:,2);
-plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
-plot(x,y,'color',kolor,'linewidth',LW+1)
+    plotData(exp).theta = theta;
+    plotData(exp).Y = Y;
+    plotData(exp).X = X;
+    plotData(exp).x  = x;
+end
 
+LW = 1.5;
 
-% Example data
-x = grouped(i).dist.distavgbytemp(:,1);  % Assuming this is in degrees
-y = grouped(i).dist.distavgbytemp(:,2);
-y_err = grouped(i).dist.distavgbytemp_err(:,2);
+fig = getfig('',1); set(fig, 'color', backColor) 
+for exp = 1:num.exp
+    kolor = grouped(exp).color;
+    polarplot(plotData(exp).theta, plotData(exp).Y, 'color', kolor, 'linewidth', LW+1);
+    hold on
+end
+% set labels and formats
+tickLocs = linspace(0,360, length(unique(X)));
+tickLocs(end) = []; % remove the duplicate 0|360
+[~,idx] = min(x);
+tempList = x(1:end-1);
+tempList(idx) = [];
+tick_lab = [];
+for i = 1:length(tickLocs)
+    tick_lab{i} = num2str(tempList(i));
+end
 
-% Convert to radians if x is in degrees
-theta = deg2rad(x);  % Convert to radians if necessary
+ax = gca;
+set(ax, 'ThetaZeroLocation', 'top','ThetaDir', 'clockwise')
+set(ax, 'ThetaTick', tickLocs(1:2:end),'ThetaTickLabel', tick_lab(1:2:end))
+set(ax,'FontSize',20,'Color', backColor,'ThetaColor',foreColor,'RColor', foreColor)
+set(ax,'MinorGridColor', foreColor,'MinorGridAlpha',0.5)
 
-% Overlay the main polar plot without error bars
-polarplot(theta, y, 'color', kolor, 'linewidth', LW+1);
-
-
-
-
-
-
-
-% Convert the 24 hours into a circular radian value
-theta = (24-(expstarttime_hr/24)) * 2 * pi; 
-
-
-
-
-
-
-% show the experiment start times as a polar plot
-fig = getfig('Polar Histogram', 1);
-    h = polarhistogram(theta);
-    set(h,'FaceColor',Color('Plum'), 'EdgeColor', 'k','FaceAlpha',0.8)
-    % set labels and formats
-    ax = gca;
-    set(ax, 'ThetaZeroLocation', 'top')
-    set(ax, 'ThetaTick',0:45:359,'ThetaTickLabel', {'0','21','18','15','12','9','6','3'})
-
-% OVERLAY NIGHT SHADING
-ax_cart = axes('Position', ax.Position, 'Color', 'none');  % Create an overlay Cartesian axes
-
-% Step 5: Shade the left half (90° to 270°)
-hold(ax_cart, 'on');
-
-% Define the angles and radius for shading the left half
-shading_theta = linspace(pi/2, 3*pi/2, 100);  % Angles from 90° to 270°
-shading_r = max(ax.RLim) * ones(size(shading_theta));  % Use maximum radius of polar plot
-
-% Convert polar coordinates to Cartesian for the shading
-[x_shade, y_shade] = pol2cart(shading_theta, shading_r);
-
-% Add the center point to complete the patch
-x_shade = [0 x_shade 0];  % Include the origin (0,0)
-y_shade = [0 y_shade 0];
-
-% Create the filled patch in grey
-fill(ax_cart, x_shade, y_shade, [0.8 0.8 0.8], 'FaceAlpha', 0.5, 'EdgeColor', 'none');  % Grey with transparency
-
-% Adjust Cartesian axis limits to match polar plot
-axis(ax_cart, 'equal');  % Ensure equal scaling on both axes
-r_max = max(ax.RLim);  % Get the maximum radius from the polar plot
-ax_cart.XLim = [-r_max r_max];
-ax_cart.YLim = [-r_max r_max];
-
-% Remove the Cartesian axis ticks
-ax_cart.XTick = [];
-ax_cart.YTick = [];
-ax_cart.XColor = 'none';
-ax_cart.YColor = 'none';
-
-% Bring the polar plot to the front  %TODO: see if there is a way to do
-% this without blocking the new shading
-uistack(ax, 'top');
 
 %Save figure
-save_figure(fig, [figdirectory 'Experiment start times polar plot'], '-png');
+save_figure(fig,[saveDir 'distance to food polar plot'],fig_type);
 
 
 
