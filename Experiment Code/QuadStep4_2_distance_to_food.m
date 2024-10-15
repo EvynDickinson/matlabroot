@@ -155,10 +155,6 @@ for i = 1:nMax
         x = grouped(i).dist.distavgbytemp(:,1);
         y = grouped(i).dist.distavgbytemp(:,2);
         y_err = grouped(i).dist.distavgbytemp_err(:,2);
-        loc = isnan(y)|isnan(y_err);
-        x(loc) = [];
-        y(loc) = [];
-        y_err(loc) = [];
 
         plot(x,y,'color',kolor,'linewidth',LW+1)
         plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
@@ -210,6 +206,159 @@ set(gca,'ydir','reverse')
 
 % save figure
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
+
+%% FIGURE: Time Course for single parameter -- select your metric
+clearvars('-except',initial_vars{:})
+
+plot_err = true;
+autoLim = true;
+xlim_auto = true; % change the time range for the x axis
+time_limits = [50,365]; % time limits if manual control over x-axis range
+nMax =  num.exp;%
+[~,backColor] = formattingColors(blkbgd); %get background colors
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(true);
+switch questdlg('Plot error?','','True','False', 'Cancel','True')
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
+if isempty(title_str)
+    return
+end
+fig_dir = [saveDir, dir_end];
+% set figure folder
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
+sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
+
+LW = 0.75;
+sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = num.exp:-1:1
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+   % selected parameter time course
+    subplot(r,c,sb(2).idx); hold on
+        switch dType
+            case 1 % single trial lines
+                for trial = 1:num.trial(i)
+                    y = smooth(grouped(i).(pName).all(:,trial),sSpan, 'moving')*scaler;
+                    plot(x,y,'LineWidth',LW,'Color',kolor)
+                end
+            case {2, 3} % avg line
+                y = smooth(grouped(i).(pName).avg,sSpan, 'moving')*scaler;
+                plot(x,y,'LineWidth',LW,'Color',kolor)
+        end
+
+    %temp vs dependent variable tuning curve
+    subplot(r,c,sb(3).idx); hold on
+    
+     switch dType
+         case 1 % single trial lines
+            for trial = 1:num.trial(i)
+                if strcmp(pName, 'dist')
+                    x = grouped(i).(pName).distavgbytemp(:,1);
+                    rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
+                else
+                    x = grouped(i).(pName).temps;
+                    rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
+                end
+                y = mean(rawY,2,'omitnan')*scaler;
+                plot(x,y,'color',kolor,'linewidth',1.25)
+            end
+
+         case 2 % avg lines (combined heating and cooling)
+            if strcmp(pName, 'dist')
+                x = grouped(i).(pName).distavgbytemp(:,1);
+                rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
+            else
+                x = grouped(i).(pName).temps;
+                rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
+            end
+            y = mean(rawY,2,'omitnan')*scaler;
+            y_err = std(rawY,0,2,'omitnan')*scaler;
+            plot(x,y,'color',kolor,'linewidth',1.25)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+
+         case 3 % separated heating and cooling
+            if strcmp(pName, 'dist')
+                x = grouped(i).(pName).distavgbytemp(:,1);
+                YC = grouped(i).decreasing.all;
+                YH = grouped(i).increasing.all;
+            else
+                x = grouped(i).(pName).temps;
+                YC = grouped(i).(pName).decreasing.raw;
+                YH = grouped(i).(pName).increasing.raw;
+            end
+            % cooling
+            y = mean(YC,2,'omitnan')*scaler;
+            y_err = std(YC,0,2,'omitnan')*scaler;
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
+            % heating
+            y = mean(YH,2,'omitnan')*scaler;
+            y_err = std(YH,0,2,'omitnan')*scaler;
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
+     end
+     dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+% distance
+subplot(r,c,sb(2).idx)
+ylabel(y_lab)
+xlabel('time (min)')
+set(gca,'ydir',y_dir)
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel(y_lab)
+xlabel('temp (\circC)')
+% if ~autoLim
+%     ylim(dt_lim)
+% end
+h_line(nullD,'grey',':',2) %36.2
+set(gca,'ydir',y_dir)
+
+% if ~xlim_auto
+%     subplot(r,c,sb(1).idx)
+%     set(gca, 'xlim', time_limits)
+%     subplot(r,c,sb(2).idx)
+%     set(gca, 'xlim', time_limits)
+% end
+
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
 %% FIGURE: WORKING highlight specific trials within the grouped data:
 
@@ -1651,7 +1800,7 @@ end
 
 save_figure(fig,[saveDir expGroup ' min and max ranges'],fig_type);
 
-%% FIGURE: Temperature - distance correlation
+%% FIGURE: Temp - distance correlation
 clearvars('-except',initial_vars{:})
 [foreColor,backColor] = formattingColors(blkbgd);
 corr_coef = [];
@@ -1709,7 +1858,7 @@ hold on
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation'],fig_type);
 
-%% FIGURE: Temp-distance ramps only correlation
+%% FIGURE: Temp - distance ramps only correlation
 % correlation ONLY during ramps
 
 clearvars('-except',initial_vars{:})
@@ -2700,96 +2849,6 @@ ylabel('# flies')
 
 formatFig(fig,true);
 
-
-%% FIGURE: SINGLE TRIAL LINES over-lap of time-trials and temperature protocols NO SPEED
-clearvars('-except',initial_vars{:})
-plot_err = true;
-autoLim = true;
-% Y limit ranges
-dist_lim = [10,35];       %distance
-dt_lim = [14, 32];        %distance-temp
-xlim_auto = true; % change the time range for the x axis
-time_limits = [50,365]; % time limits if manual control over x-axis range
-nMax =  num.exp;%
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
-
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = [1,2]; %temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14]; %distance from food timecourse %TODO: normalize this to something more intuitive?
-sb(3).idx = 3:c:r*c; %binned distance alignment
-
-LW = 0.75;
-sSpan = 180;
-dataString = cell([1,num.exp]);
-
-% FIGURE:
-fig = getfig('',true);
-for i = num.exp:-1:1
-    x = grouped(i).time;
-    kolor = grouped(i).color;
-
-    %temp
-    subplot(r,c,sb(1).idx); hold on
-        y = grouped(i).temp;
-        plot(x,y,'LineWidth',2,'Color',kolor)
-
-    %distance
-    subplot(r,c,sb(2).idx); hold on
-        for trial = 1:num.trial(i)
-            y = smooth(grouped(i).dist.all(:,trial),sSpan, 'moving');
-            plot(x,y,'LineWidth',LW,'Color',kolor)
-            if ~autoLim
-                ylim(dist_lim)
-            end
-        end
-
-    %temp dependent distance
-    subplot(r,c,sb(3).idx); hold on
-        for trial = 1:num.trial(i)
-            x = grouped(i).dist.tempList(trial,:);
-            y = grouped(i).dist.tempBinned(trial,:);
-            loc = isnan(y);
-            x(loc) = [];  y(loc) = [];
-            plot(x,y,'color',kolor,'linewidth',1.25)
-        end
-        dataString{i} = grouped(i).name;
-end
-
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx)
-ylabel('\circC')
-set(gca,"XColor",backColor)
-% distance
-subplot(r,c,sb(2).idx)
-ylabel('proximity to food (mm)')
-xlabel('time (min)')
-set(gca,'ydir','reverse')
-% temp-distance relationship
-subplot(r,c,sb(3).idx)
-ylabel('proximity to food (mm)')
-xlabel('temp (\circC)')
-if ~autoLim
-    ylim(dt_lim)
-end
-h_line(18.1,'grey',':',1) %36.2
-set(gca,'ydir','reverse')
-
-if ~xlim_auto
-    subplot(r,c,sb(1).idx)
-    set(gca, 'xlim', time_limits)
-    subplot(r,c,sb(2).idx)
-    set(gca, 'xlim', time_limits)
-end
-
-
-% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
-
-% save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary all trial lines'],fig_type);
 
 
 %% FIGURE: heating and cooling separated vertical temp colored OCCUPATION PROBABILITY
