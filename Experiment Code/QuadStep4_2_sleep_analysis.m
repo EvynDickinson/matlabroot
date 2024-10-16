@@ -549,7 +549,7 @@ for i = 1:num.exp
         kolor = grouped(i).color;
         plot(time, temp, 'color',kolor, 'linewidth', LW)
         ylabel('temp (\circC)')
-        xlim([0,365])
+        % xlim([0,365])
     subplot(r,c,sb(2).idx); hold on
         y = smooth(sleep(i).sleepfract_avg,sSpan,'moving');
         y_err = smooth(sleep(i).sleepfract_err,sSpan,'moving');
@@ -557,7 +557,7 @@ for i = 1:num.exp
         plot(time,y,'color',kolor,'linewidth',LW)
         ylabel('fraction of flies sleeping')
         xlabel('time (min)')
-        xlim([0,365])
+        % xlim([0,365])
 end
 
 formatFig(fig,blkbgd,[r,c],sb);
@@ -2287,6 +2287,10 @@ for i = 1:length(stats)
     % display results:
     fprintf('Wilcoxon rank-sum test (%s)): h = %d, p = %f\n', stats(i).name, h(i), p(i));
 end
+
+
+%% How does 'post-prandial sleep' change compared to post-temperature sleep? 
+% Compare the 'quantity' of sleep between trials with food and without food
 
 
 

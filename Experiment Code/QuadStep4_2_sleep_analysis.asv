@@ -2284,18 +2284,13 @@ for i = 1:length(stats)
     idx = randi(length(null_dist.distance),[1,length(stats(i).data)]);
     [p(i), ~, stats(i).results] = ranksum(stats(i).data, null_dist.distance(idx));
     h(i) = p(i)<adjustedAlpha;  % Bonferroni correction
-    if h(i)
-        fprintf('Wilcoxon rank-sum test (' stats(i).name '): h = %d, p = %f\n', h(i), p(i));
+    % display results:
+    fprintf('Wilcoxon rank-sum test (%s)): h = %d, p = %f\n', stats(i).name, h(i), p(i));
 end
 
 
-
-
-% Display results
-fprintf('Wilcoxon rank-sum test (Data1 vs Data2): h = %d, p = %f, Adjusted h = %d\n', h12, p12, h12_adj);
-fprintf('Wilcoxon rank-sum test (Data1 vs Data3): h = %d, p = %f, Adjusted h = %d\n', h13, p13, h13_adj);
-fprintf('Wilcoxon rank-sum test (Data2 vs Data3): h = %d, p = %f, Adjusted h = %d\n', h23, p23, h23_adj);
-
+%% How does 'post-prandial sleep' change compared to post-temperature sleep? 
+% Compare the temp to the sd fsdf sd sdf sd sdf sdf s dfsf 
 
 
 

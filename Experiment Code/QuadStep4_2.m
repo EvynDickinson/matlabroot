@@ -326,39 +326,7 @@ end
 
 paths = getPathNames;
 
-if UpdatedFlag
-  switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','existing structure')
-    case 'new structure'
-        expGroup = char(inputdlg('Structure name:'));
-        saveDir = [baseFolder paths.group_comparision expGroup '/'];
-        if ~exist(saveDir,'dir')
-            mkdir(saveDir);
-        end 
-        save([saveDir expGroup ' data.mat'],'-v7.3');
-        disp([expGroup ' saved'])
-    case 'existing structure'
-        list_dirs = dir([baseFolder paths.group_comparision]);
-        list_dirs = {list_dirs(:).name};
-        list_dirs(1:2) = [];
-        if exist('expGroup','var')
-            guessLoc = find(strcmp(expGroup,list_dirs)); % TODO check if there is an existing folder and then offer that as the base selection
-            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450], 'InitialValue',guessLoc);
-        else
-            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
-        end
-        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
-        saveDir = [baseFolder paths.group_comparision expGroup '/'];
-        save([saveDir expGroup ' data.mat'],'-v7.3');
-        disp([expGroup ' saved'])
-    case 'cancel'
-        return
-  end
-else % append the dataList structure to the existing file if nothing else changed
-    saveDir = [baseFolder paths.group_comparision expGroup '/'];
-    % save([saveDir expGroup ' data.mat'], 'dataList','-append');
-end
-
-disp(expNames')
+ 
 
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
@@ -452,15 +420,18 @@ switch expGroup
     case 'Berlin giant ramp food vs no food'
         expOrder = [1,2];
         colors = {'grey','DarkOrchid'};
-    case 'Berlin LTS 15-35 caviar vs empty'
-        expOrder = [2,1];
-        colors = {'Black','Teal'};
+    % case 'Berlin LTS 15-35 caviar vs empty'
+    %     expOrder = [2,1];
+    %     colors = {'Black','Teal'};
     case 'CantonS LRR food vs no food'
         expOrder = [1,2];
         colors = {'white','DarkOrchid'};
     case 'Berlin F hold 25C food vs no food'
         expOrder = 1:2;
         colors = {'slategrey', 'white'};
+    case 'Berlin LRR Temp-Shift Trials caviar vs empty'
+        expOrder = [2 3 5 6 4 1];
+        colors = {'Blue','DodgerBlue','LightSkyBlue','Plum','MediumPurple','BlueViolet'};
 
 % ---- FOOD GROUP COMPARISIONS ----
     case 'Berlin F LRR 25-17 ACV'
@@ -1351,206 +1322,206 @@ for exp = 1:num.exp
     grouped(exp).foodcircle.decreasing.err = std(raw_c, 0, 2, 'omitnan');
     grouped(exp).foodcircle.temps = temps;
 end
-%% ANALYSIS: Load previously created sleep data files and process data:
-paths = getPathNames;
-sleep = struct;
-for i = 1:num.exp
-    T = data(i).T;
-    for trial = 1:num.trial(i)
-        trial_ID = [T.Date{trial} '_' T.ExperimentID{trial} '_' T.Arena{trial}];
-        sleep_file = [baseFolder paths.single_trial '/' trial_ID  '/' T.ExperimentID{trial} ' sleeping data.mat'];  
-
-        if exist(sleep_file,"file")
-            load(sleep_file,'sleeping');
-            sleep(i).trial(trial) = sleeping;
-            clear sleeping
-        else
-            h = warndlg(['Warning: missing sleep data for ' expNames{i}]);
-            uiwait(h)
-        end
-    end
-end
-disp('Loaded all sleep data')
-
-% Process and prep the data for further analysis
-for i = 1:num.exp
-    [sleep(i).num, sleep(i).fract_sleep] = deal(zeros(length(grouped(i).temp),num.trial(i)));
-    sleep(i).distance = nan(length(grouped(i).temp),num.trial(i));
-    for trial = 1:num.trial(i)
-        %number of sleeping flies
-        inputdata = sleep(i).trial(trial).sleepNum;
-        sleep(i).num(1:length(inputdata),trial) = inputdata;
-        sleep(i).fract_sleep(1:length(inputdata),trial) = inputdata/data(i).T.NumFlies(trial);
-        %distance to food for sleeping flies
-        inputdata = sleep(i).trial(trial).dist_avg;
-        sleep(i).distance(1:length(inputdata),trial) = inputdata;
-    end
-    sleep(i).sleepfract_avg = mean(sleep(i).fract_sleep,2,'omitnan');
-    sleep(i).sleepfract_err = std(sleep(i).fract_sleep,0,2,'omitnan');
-end
-
-% Cluster the sleeping flies by temperature
-for i = 1:num.exp  
-    temps = unique(data(i).G(1).TR.temps);
-    rateIdx = data(i).G(1).TR.rateIdx;
-    tempIdx = data(i).G(1).TR.tempIdx;
-    % find rate index
-    heatRate = find(data(i).G(1).TR.rates>0);
-    coolRate = find(data(i).G(1).TR.rates<0);
-    try 
-        holdRate = find(data(i).G(1).TR.rates==0);
-        ntypes = 3;
-    catch
-        ntypes = 2;
-    end
-    
-    for temp = 1:length(temps)
-        for type = 1:ntypes
-            switch type
-                case 1 %heating
-                    g_name = 'increasing';
-                    idxSex = heatRate;
-                case 2 %cooling
-                    g_name = 'decreasing';
-                    idxSex = coolRate;
-                case 3 %holding
-                    g_name = 'holding';
-                    idxSex = holdRate;
-            end
-            %fraction of flies sleeping
-            loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
-            sleep(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-            sleep(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
-            %distance of sleeping flies
-            sleep(i).([g_name '_dist'])(temp,1) = mean(mean(sleep(i).distance(loc,:),2,'omitnan'),'omitnan');
-            sleep(i).([g_name '_dist'])(temp,2) = std(mean(sleep(i).distance(loc,:),1,'omitnan'),'omitnan');
-        end
-        % Clustered by temp (regardless of heating/cooling)
-        loc = tempIdx==temp; %temp align only
-        sleep(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
-        sleep(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
-        %distance
-        sleep(i).tempBinDist(temp,1) = mean(mean(sleep(i).distance(loc,:),2,'omitnan'),'omitnan');
-        sleep(i).tempBinDist(temp,2) = std(mean(sleep(i).distance(loc,:),1,'omitnan'),'omitnan')./num.trial(i);
-    end
-    sleep(i).temps = temps;
-end
-
-% Thermal threat quantification and avg sleep quantity
-for i = 1:num.exp
-    tempProto = data(i).temp_protocol;
-    if data(i).hold_exp
-        temp_protocol  = 'linear_ramp_F_25-17';
-    else
-        temp_protocol = data(i).temp_protocol;
-    end
-    tPoints = getTempTurnPoints(temp_protocol); 
-    fps = tPoints.fps; 
-
-    if strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35') ||...
-       strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35_FPS6') 
-       sleep(i).avg_quant = nan;
-       sleep(i).thermalThreat = nan;
-       disp(['Skipping thermal threat for ' grouped(i).name])
-       continue
-    end
-    
-    demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2); % points for a full ramp down and up
-    
-    % Thermal threat
-    temp_ramp = grouped(i).temp(demoRamp_idx);
-    thermalThreat = (sum(25-temp_ramp)/fps)/1000; % quant of time not at 25 *only punishes cold though...
-    
-    % Sleep duration
-    
-    nFlies = zeros(1,num.trial(i));
-    nRamps = size(tPoints.up,1);
-    for ramp = 1:nRamps
-        rampROI = tPoints.down(ramp,1):tPoints.up(ramp,2);
-        nFlies = nFlies + sum(sleep(i).num(rampROI,:),1);
-    end
-    avg_sleepDuration = ((nFlies/nRamps)./(data(i).T.NumFlies'))./fps; % avg fly sleep duration (in sec) during a single temp ramp
-    % save data to sleep structure
-    sleep(i).avg_quant = avg_sleepDuration;
-    sleep(i).thermalThreat = thermalThreat;
-end
-
-initial_vars{end+1} = 'sleep';
-initial_vars{end+1} = 'fps';
-clearvars('-except',initial_vars{:})
-
-%ANALYSIS: Sleep duration & start and stop of sleep
-% Avg sleep duration
-for i = 1:num.exp
-    timing = struct;
-    [sleepON,sleepOFF,sleepLength] = deal([]);
-    for trial = 1:num.trial(i)
-        dist_avg = sleep(i).trial(trial).all_distance;
-        loc = diff(dist_avg)==0; % find frames where flies are stationary (where the distance to food does not change)
-        duration_matrix = zeros(size(loc));
-        duration_matrix = [zeros(1,size(loc,2)); duration_matrix]; %account for the first step where there is no sleep
-        old_row = loc(1,:);
-        for frame = 2:size(loc,1) % add frame count for each next moment of sleep
-            curr_row = loc(frame,:);
-            addLoc = ~(curr_row==0);
-            duration_matrix(frame,addLoc) = old_row(addLoc) + curr_row(addLoc);
-            old_row = duration_matrix(frame,:);
-        end
-        
-        sleepDurationMatrix = duration_matrix./(fps*60); %sleep duration in minutes
-        timing(trial).sleepduration = sleepDurationMatrix;
-        % what is the max sleep length for these segments? 
-        sleepDurationMatrix(sleepDurationMatrix==0)=nan;
-%         fig = getfig('',1);
-%         hold on
-%         time = data(i).data(trial).occupancy.time;
-%         for trial = 1:num.trial(i)
-%             scatter(time, sleepDurationMatrix(:,trial),10)
+% %% ANALYSIS: Load previously created sleep data files and process data:
+% paths = getPathNames;
+% sleep = struct;
+% for i = 1:num.exp
+%     T = data(i).T;
+%     for trial = 1:num.trial(i)
+%         trial_ID = [T.Date{trial} '_' T.ExperimentID{trial} '_' T.Arena{trial}];
+%         sleep_file = [baseFolder paths.single_trial '/' trial_ID  '/' T.ExperimentID{trial} ' sleeping data.mat'];  
+% 
+%         if exist(sleep_file,"file")
+%             load(sleep_file,'sleeping');
+%             sleep(i).trial(trial) = sleeping;
+%             clear sleeping
+%         else
+%             h = warndlg(['Warning: missing sleep data for ' expNames{i}]);
+%             uiwait(h)
 %         end
-%         xlabel('time (min)')
-%         ylabel('sleep duration (min)')
-%         formatFig(fig,true);
-%         title(expNames{i},'color','w')
-%         xlim([0,1000])
-
-        % Find the 'end' of sleep duration and stop location (time)
-        startLoc = (diff(diff(duration_matrix)))<0; % Find the start of sleep (time)
-        stopLoc = (diff(duration_matrix))<0;
-        total_duration = duration_matrix(stopLoc)/(fps*60); %duration in minutes
-
-        [sleepStoppedFrame, sleepStartFrame] = deal([]); %when in time (frame) did the end of sleep occur?
-        for fly = 1:size(stopLoc,2)
-              sleepStoppedFrame = autoCat(sleepStoppedFrame,find(stopLoc(:,fly)),false);
-              sleepStartFrame = autoCat(sleepStartFrame,find(startLoc(:,fly)),false);
-        end
-        % save individual start / stop sleep timing (for later alignment
-        % with distance and location within the arena)
-        sleep(i).trial(trial).sleepON = sleepStartFrame;
-        sleep(i).trial(trial).sleepOFF = sleepStoppedFrame;
-        sleep(i).trial(trial).sleepLoc = startLoc;
-        
-        % save trial information into larger matrix
-        temp = sleepStartFrame(:);
-        temp(isnan(temp)) = [];
-        sleepON = autoCat(sleepON,temp,false);
-        temp = sleepStoppedFrame(:);
-        temp(isnan(temp)) = [];
-        sleepOFF = autoCat(sleepOFF,temp,false);
-        sleepLength = autoCat(sleepLength,total_duration,false);
-        
-    end
-    
-    % save into sleep structure
-    sleep(i).sleepON = sleepON;
-    sleep(i).sleepOFF = sleepOFF;
-    sleep(i).sleepLength = sleepLength;
-    sleep(i).durationMatrix = timing;
-
-end
-
-if ~exist([saveDir 'Sleep'],'dir')
-    mkdir([saveDir 'Sleep'])
-end
-
-clearvars('-except',initial_vars{:})
-disp('All finished')
+%     end
+% end
+% disp('Loaded all sleep data')
+% 
+% % Process and prep the data for further analysis
+% for i = 1:num.exp
+%     [sleep(i).num, sleep(i).fract_sleep] = deal(zeros(length(grouped(i).temp),num.trial(i)));
+%     sleep(i).distance = nan(length(grouped(i).temp),num.trial(i));
+%     for trial = 1:num.trial(i)
+%         %number of sleeping flies
+%         inputdata = sleep(i).trial(trial).sleepNum;
+%         sleep(i).num(1:length(inputdata),trial) = inputdata;
+%         sleep(i).fract_sleep(1:length(inputdata),trial) = inputdata/data(i).T.NumFlies(trial);
+%         %distance to food for sleeping flies
+%         inputdata = sleep(i).trial(trial).dist_avg;
+%         sleep(i).distance(1:length(inputdata),trial) = inputdata;
+%     end
+%     sleep(i).sleepfract_avg = mean(sleep(i).fract_sleep,2,'omitnan');
+%     sleep(i).sleepfract_err = std(sleep(i).fract_sleep,0,2,'omitnan');
+% end
+% 
+% % Cluster the sleeping flies by temperature
+% for i = 1:num.exp  
+%     temps = unique(data(i).G(1).TR.temps);
+%     rateIdx = data(i).G(1).TR.rateIdx;
+%     tempIdx = data(i).G(1).TR.tempIdx;
+%     % find rate index
+%     heatRate = find(data(i).G(1).TR.rates>0);
+%     coolRate = find(data(i).G(1).TR.rates<0);
+%     try 
+%         holdRate = find(data(i).G(1).TR.rates==0);
+%         ntypes = 3;
+%     catch
+%         ntypes = 2;
+%     end
+% 
+%     for temp = 1:length(temps)
+%         for type = 1:ntypes
+%             switch type
+%                 case 1 %heating
+%                     g_name = 'increasing';
+%                     idxSex = heatRate;
+%                 case 2 %cooling
+%                     g_name = 'decreasing';
+%                     idxSex = coolRate;
+%                 case 3 %holding
+%                     g_name = 'holding';
+%                     idxSex = holdRate;
+%             end
+%             %fraction of flies sleeping
+%             loc = rateIdx==idxSex & tempIdx==temp; %rate and temp align
+%             sleep(i).(g_name)(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+%             sleep(i).(g_name)(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan');%./num.trial(i); %err
+%             %distance of sleeping flies
+%             sleep(i).([g_name '_dist'])(temp,1) = mean(mean(sleep(i).distance(loc,:),2,'omitnan'),'omitnan');
+%             sleep(i).([g_name '_dist'])(temp,2) = std(mean(sleep(i).distance(loc,:),1,'omitnan'),'omitnan');
+%         end
+%         % Clustered by temp (regardless of heating/cooling)
+%         loc = tempIdx==temp; %temp align only
+%         sleep(i).temp_all(temp,1) = mean(mean(sleep(i).fract_sleep(loc,:),2,'omitnan'),'omitnan'); %avg 
+%         sleep(i).temp_all(temp,2) = std(mean(sleep(i).fract_sleep(loc,:),1,'omitnan'),'omitnan')./num.trial(i);% %err
+%         %distance
+%         sleep(i).tempBinDist(temp,1) = mean(mean(sleep(i).distance(loc,:),2,'omitnan'),'omitnan');
+%         sleep(i).tempBinDist(temp,2) = std(mean(sleep(i).distance(loc,:),1,'omitnan'),'omitnan')./num.trial(i);
+%     end
+%     sleep(i).temps = temps;
+% end
+% 
+% % Thermal threat quantification and avg sleep quantity
+% for i = 1:num.exp
+%     tempProto = data(i).temp_protocol;
+%     if data(i).hold_exp
+%         temp_protocol  = 'linear_ramp_F_25-17';
+%     else
+%         temp_protocol = data(i).temp_protocol;
+%     end
+%     tPoints = getTempTurnPoints(temp_protocol); 
+%     fps = tPoints.fps; 
+% 
+%     if strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35') ||...
+%        strcmp(data(i).temp_protocol,'Large_temp_sweep_15_35_FPS6') 
+%        sleep(i).avg_quant = nan;
+%        sleep(i).thermalThreat = nan;
+%        disp(['Skipping thermal threat for ' grouped(i).name])
+%        continue
+%     end
+% 
+%     demoRamp_idx = tPoints.down(1,1):tPoints.up(1,2); % points for a full ramp down and up
+% 
+%     % Thermal threat
+%     temp_ramp = grouped(i).temp(demoRamp_idx);
+%     thermalThreat = (sum(25-temp_ramp)/fps)/1000; % quant of time not at 25 *only punishes cold though...
+% 
+%     % Sleep duration
+% 
+%     nFlies = zeros(1,num.trial(i));
+%     nRamps = size(tPoints.up,1);
+%     for ramp = 1:nRamps
+%         rampROI = tPoints.down(ramp,1):tPoints.up(ramp,2);
+%         nFlies = nFlies + sum(sleep(i).num(rampROI,:),1);
+%     end
+%     avg_sleepDuration = ((nFlies/nRamps)./(data(i).T.NumFlies'))./fps; % avg fly sleep duration (in sec) during a single temp ramp
+%     % save data to sleep structure
+%     sleep(i).avg_quant = avg_sleepDuration;
+%     sleep(i).thermalThreat = thermalThreat;
+% end
+% 
+% initial_vars{end+1} = 'sleep';
+% initial_vars{end+1} = 'fps';
+% clearvars('-except',initial_vars{:})
+% 
+% %ANALYSIS: Sleep duration & start and stop of sleep
+% % Avg sleep duration
+% for i = 1:num.exp
+%     timing = struct;
+%     [sleepON,sleepOFF,sleepLength] = deal([]);
+%     for trial = 1:num.trial(i)
+%         dist_avg = sleep(i).trial(trial).all_distance;
+%         loc = diff(dist_avg)==0; % find frames where flies are stationary (where the distance to food does not change)
+%         duration_matrix = zeros(size(loc));
+%         duration_matrix = [zeros(1,size(loc,2)); duration_matrix]; %account for the first step where there is no sleep
+%         old_row = loc(1,:);
+%         for frame = 2:size(loc,1) % add frame count for each next moment of sleep
+%             curr_row = loc(frame,:);
+%             addLoc = ~(curr_row==0);
+%             duration_matrix(frame,addLoc) = old_row(addLoc) + curr_row(addLoc);
+%             old_row = duration_matrix(frame,:);
+%         end
+% 
+%         sleepDurationMatrix = duration_matrix./(fps*60); %sleep duration in minutes
+%         timing(trial).sleepduration = sleepDurationMatrix;
+%         % what is the max sleep length for these segments? 
+%         sleepDurationMatrix(sleepDurationMatrix==0)=nan;
+% %         fig = getfig('',1);
+% %         hold on
+% %         time = data(i).data(trial).occupancy.time;
+% %         for trial = 1:num.trial(i)
+% %             scatter(time, sleepDurationMatrix(:,trial),10)
+% %         end
+% %         xlabel('time (min)')
+% %         ylabel('sleep duration (min)')
+% %         formatFig(fig,true);
+% %         title(expNames{i},'color','w')
+% %         xlim([0,1000])
+% 
+%         % Find the 'end' of sleep duration and stop location (time)
+%         startLoc = (diff(diff(duration_matrix)))<0; % Find the start of sleep (time)
+%         stopLoc = (diff(duration_matrix))<0;
+%         total_duration = duration_matrix(stopLoc)/(fps*60); %duration in minutes
+% 
+%         [sleepStoppedFrame, sleepStartFrame] = deal([]); %when in time (frame) did the end of sleep occur?
+%         for fly = 1:size(stopLoc,2)
+%               sleepStoppedFrame = autoCat(sleepStoppedFrame,find(stopLoc(:,fly)),false);
+%               sleepStartFrame = autoCat(sleepStartFrame,find(startLoc(:,fly)),false);
+%         end
+%         % save individual start / stop sleep timing (for later alignment
+%         % with distance and location within the arena)
+%         sleep(i).trial(trial).sleepON = sleepStartFrame;
+%         sleep(i).trial(trial).sleepOFF = sleepStoppedFrame;
+%         sleep(i).trial(trial).sleepLoc = startLoc;
+% 
+%         % save trial information into larger matrix
+%         temp = sleepStartFrame(:);
+%         temp(isnan(temp)) = [];
+%         sleepON = autoCat(sleepON,temp,false);
+%         temp = sleepStoppedFrame(:);
+%         temp(isnan(temp)) = [];
+%         sleepOFF = autoCat(sleepOFF,temp,false);
+%         sleepLength = autoCat(sleepLength,total_duration,false);
+% 
+%     end
+% 
+%     % save into sleep structure
+%     sleep(i).sleepON = sleepON;
+%     sleep(i).sleepOFF = sleepOFF;
+%     sleep(i).sleepLength = sleepLength;
+%     sleep(i).durationMatrix = timing;
+% 
+% end
+% 
+% if ~exist([saveDir 'Sleep'],'dir')
+%     mkdir([saveDir 'Sleep'])
+% end
+% 
+% clearvars('-except',initial_vars{:})
+% disp('All finished')
