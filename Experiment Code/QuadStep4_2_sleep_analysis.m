@@ -2289,8 +2289,148 @@ for i = 1:length(stats)
 end
 
 
-%% How does 'post-prandial sleep' change compared to post-temperature sleep? 
+%% [Temp-Shift ONLY] How does 'post-prandial sleep' change compared to post-temperature sleep? 
 % Compare the 'quantity' of sleep between trials with food and without food
+clearvars('-except',initial_vars{:})
+clc
+% compare the sleep quantity during the period preceding the ramp & the
+% down ramp vs ramp up vs post ramp up
+[foreColor,backColor] = formattingColors(blkbgd);
+
+timeBuff = 10; %minutes of inclusion before the ramp
+plotData = [];
+
+for exp = 1:num.exp
+    % pull the time ROIs
+    tp = getTempTurnPoints(data(exp).temp_protocol);
+    buff = tp.fps*timeBuff*60; % how many sampling points within the buffer time region
+    % [pre_ROI, post_ROI] = deal(nan(tp.nDown,2));
+    [pre_ROI, post_ROI] = deal([]);
+    for i = 1:tp.nDown % for each ramp pull the values
+        pre_ROI = [pre_ROI, tp.down(i,1)-buff : tp.down(i,2)];
+        post_ROI = [post_ROI, tp.up(i,1) : tp.up(i,2) + buff];
+    end
+    plotData(exp).preROI = pre_ROI;
+    plotData(exp).postROI = post_ROI;
+    % find the fraction of flies that are sleeping for each trial during
+    % this period of time...
+    plotData(exp).preAll = mean(sleep(exp).fract_sleep(pre_ROI,:),'omitnan')*100;
+    plotData(exp).postAll = mean(sleep(exp).fract_sleep(post_ROI,:),'omitnan')*100;
+    plotData(exp).preAvg = mean(plotData(exp).preAll);
+    plotData(exp).postAvg = mean(plotData(exp).postAll);
+end
+
+% Plot Figure: 
+r = 1;
+c = 2;
+sz = 70;
+LW = 3;
+
+spacer = 3;
+x_loc = 1:num.exp*spacer;
+x_loc(spacer:spacer:end) = [];
+exp_sel = [2 6 3 4 5 1];
+b = 0.5;
+
+fig = getfig('',1);
+for i = 1:num.exp
+    exp = (exp_sel(i));
+    kolor = grouped(exp).color;
+    x = x_loc(i)*ones(1,num.trial(exp));
+
+    % pre-sleep measure
+    subplot(r,c,1); hold on
+    y = plotData(exp).preAll;
+    scatter(x,y,sz,kolor,'filled','xjitter', 'density')
+    plot([x_loc(i)-b,x_loc(i)+b],[plotData(exp).preAvg, plotData(exp).preAvg],'color', foreColor,'linewidth',LW)
+
+     % post-sleep measure
+    subplot(r,c,2); hold on
+    y = plotData(exp).postAll;
+    scatter(x,y,sz,kolor,'filled','xjitter', 'density')
+    plot([x_loc(i)-b,x_loc(i)+b],[plotData(exp).postAvg, plotData(exp).postAvg],'color', foreColor,'linewidth',LW)
+end
+% format figure
+formatFig(fig,blkbgd,[r,c]); 
+subplot(r,c,1)
+set(gca, 'xcolor', 'none')
+ylabel('Avg % flies sleeping pre cooling and during cooling')
+ylim([0,60])
+subplot(r,c,2)
+set(gca, 'xcolor', 'none')
+ylabel('Avg % flies sleeping during warming and post warming')
+ylim([0,60])
+
+% Run quick stats on the comparisons
+[h_pre,p_pre,h_post,p_post] = deal([]);
+idx = 1;
+for i = 1:3
+    food = exp_sel(idx);
+    nofood = exp_sel(idx+1);
+    idx = idx+2;
+
+    % pre
+    y = plotData(food).preAll;
+    z = plotData(nofood).preAll;
+    [h_pre(i),p_pre(i)] = ttest2(y,z);
+    disp([grouped(food).name ' vs' grouped(nofood).name ' pre:'])
+    disp([num2str(p_pre(i)) '  ' num2str(h_pre(i))])
+
+    % post
+    y = plotData(food).postAll;
+    z = plotData(nofood).postAll;
+    [h_post(i),p_post(i)] = ttest2(y,z);
+    disp([grouped(food).name ' vs' grouped(nofood).name ' post:'])
+    disp([num2str(p_post(i)) '  ' num2str(h_post(i))])
+end
+
+
+% Add stats to figure
+figure(fig)
+y = rangeLine(fig,4,true);
+y2 = rangeLine(fig,1.5,true);
+idx = 1;
+for i = 1:3
+   x1 = idx-b;
+   x2 = idx+1+b;
+   idx = idx+spacer;
+   subplot(r,c,1) % pre
+   if h_pre(i)
+       plot([x1,x2],[y,y],'color', foreColor,'linewidth', LW)
+       scatter(mean([x1,x2]),y2,80,foreColor,"filled","*","MarkerEdgeColor",foreColor)
+   end
+   subplot(r,c,2) % post
+   if h_post(i)
+       plot([x1,x2],[y,y],'color', foreColor,'linewidth', LW)
+       scatter(mean([x1,x2]),y2,80,foreColor,"filled","*","MarkerEdgeColor",foreColor)
+   end
+end
+ 
+% Save Figure: 
+save_figure(fig,[saveDir 'Sleep\Post prandial sleep comparision'],fig_type);
+
+
+% two way anova example
+% 
+% y = [52.7 57.5 45.9 44.5 53.0 57.0 45.9 44.0]';
+% g1 = [1 2 1 2 1 2 1 2]; 
+% g2 = {'hi';'hi';'lo';'lo';'hi';'hi';'lo';'lo'}; 
+% g3 = {'may';'may';'may';'may';'june';'june';'june';'june'};
+
+% 
+% p = anovan(y,{g1 g2 g3},'model','interaction','varnames',{'g1','g2','g3'})
+% 
+% [~,~,stats] = anovan(y,{g1 g2 g3},"Model","interaction", ...
+%     "Varnames",["g1","g2","g3"]);
+
+
+
+
+
+
+
+
+
 
 
 
