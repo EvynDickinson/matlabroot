@@ -18,6 +18,12 @@ parameters.ArenaB.genotype = 'UAS-Kir2.1_TM6B_C';
 parameters.ArenaC.genotype = 'UAS-Kir2.1_TM6B_C';
 parameters.ArenaD.genotype = 'UAS-Kir2.1_TM6B_C';
 
+%% change sex
+parameters.ArenaA.sex = 'Mixed';
+parameters.ArenaB.sex = 'Mixed';
+parameters.ArenaC.sex = 'Mixed';
+parameters.ArenaD.sex = 'Mixed';
+
 %% get base folder pathway
 % baseFolder = getCloudPath;
 let = {'A' 'B' 'C' 'D'};
