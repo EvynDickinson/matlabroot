@@ -21,7 +21,7 @@ switch getenv('COMPUTERNAME')
         path = 'G:\My Drive\Jeanne Lab\DATA\';
     case 'EVYNPC'
         path = 'G:\My Drive\Jeanne Lab\DATA\';
-    case 'CHILKAT'
+    case 'MWMJ0LY4WH'
         path = 'G:\My Drive\Jeanne Lab\DATA\';
 %     case '' %shows up as empty on the mac
 % %         disp('Evyn''s Macbook');

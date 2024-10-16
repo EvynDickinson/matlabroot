@@ -9,15 +9,15 @@ initial_vars{end + 1} = 'figdirectory';
 
 disp('data loaded')
 
-%"S:\Evyn\Data structures\Berlin F LRR caviar time shift\Berlin F LRR caviar time shift post 3.1 data.mat"
+% "S:\Evyn\Data structures\Berlin F LRR caviar time shift\Berlin F LRR caviar time shift post 3.1 data.mat"
 %% LOAD: start time data
 
 clearvars('-except',initial_vars{:})
 
-% load excel file:
+% Load QuadBowl Experiments excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 
-% initial variables
+% Set initial variables
 initial_vars{end + 1} = 'expstarttime';
 initial_vars{end + 1} = 'expstarttime_hr';
 initial_vars{end + 1} = 'groupix';
@@ -28,11 +28,14 @@ initial_vars{end + 1} = 'bkgrd_color';
 
 disp('start time data loaded')
 
-%% ANALYSIS: make unique trial ID
+%% ANALYSIS: make unique trial ID and pull experiment start time
+
+% Create empty variables for later and establish number of trials
 expstarttime = [];
 expstarttime_hr = [];
 ntrials = size(T,1);
 
+% Make a unique ID for each trial and find experiment start time
 for trial = 1:ntrials
     unqID = [T.Date{trial} '_' T.ExperimentID{trial} '_' T.Arena{trial}];
     explist = excelfile(:,Excel.trialID);
@@ -40,13 +43,13 @@ for trial = 1:ntrials
     t = excelfile{rownumber,Excel.starttime};
     dn = excelfile{rownumber,Excel.daynight};
 
-    % create contingency plan for non-duration values
+    % Create contingency plan for non-duration values
     if ischar(t)
        startdur = duration(t);
     else
         newTime = datetime(t,"ConvertFrom", "excel");
-        [h,m,s] = hms(newTime); % Get the hour, minute, and second values
-        startdur = duration(h,m,s); % Get the output as a duration() array
+        [h,m,s] = hms(newTime); % get the hour, minute, and second values
+        startdur = duration(h,m,s); % get the output as a duration() array
     end
 
     if strcmpi(dn,'N')
@@ -57,9 +60,23 @@ for trial = 1:ntrials
     expstarttime_hr(trial) = hours(expstarttime{trial});
 end
 
+% Establish edges for time bins
 binedges = [4:2:20];
+
+% Figure formatting variables
 clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','Purple'};
 bkgrd_color = true;
+
+disp('next section')
+
+%% ANALYSIS: split trials into time bins
+
+clearvars('-except',initial_vars{:})
+
+% Split trials into before and after noon
+groupix = discretize(expstarttime_hr,binedges);
+% ntrials = size(T,1); % extra, don't think needed here
+ngroups = length(binedges)-1;
 
 disp('next section')
 
@@ -79,7 +96,7 @@ xlabel('Time of day')
 ylabel('Count')
 formatFig(fig,bkgrd_color)
 
-%Save figure
+% Save figure
 save_figure(fig, [figdirectory 'Experiment start times histogram'], '-png');
 
 
@@ -90,7 +107,7 @@ clearvars('-except',initial_vars{:})
 % Convert the 24 hours into a circular radian value
 theta = (24-(expstarttime_hr/24)) * 2 * pi; 
 
-% show the experiment start times as a polar plot
+% Show the experiment start times as a polar plot
 fig = getfig('Polar Histogram', 1);
     h = polarhistogram(theta);
     set(h,'FaceColor',Color('Plum'), 'EdgeColor', 'k','FaceAlpha',0.8)
@@ -135,41 +152,30 @@ ax_cart.YColor = 'none';
 % this without blocking the new shading
 uistack(ax, 'top');
 
-%Save figure
+% Save figure
 save_figure(fig, [figdirectory 'Experiment start times polar plot'], '-png');
 
 % TODO: update the label sizes and add some titles etc, 
 % TODO: try making the binsizes for each hour
 
-%% ANALYSIS: split trials into time bins
-
-clearvars('-except',initial_vars{:})
-
-% Split trials into before and after noon
-groupix = discretize(expstarttime_hr,binedges);
-ntrials = size(T,1); %number of trials to include
-ngroups = length(binedges)-1;
-
-disp('next section')
-
 %% FIGURE: Distance to food across start times with temperature log
 
-clearvars('-except',initial_vars{:}) %clear all variables except initial ones
+clearvars('-except',initial_vars{:})
 plot_err = true; %plot error region
 [foreColor,backColor] = formattingColors(bkgrd_color); % get background colors
 
-% set up figure aligments
-r = 4; %rows
-c = 1; %columns
-sb(1).idx = [1]; %temp timecourse
-sb(2).idx = [2,3,4]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+% Set up figure aligments
+r = 4; % rows
+c = 1; % columns
+sb(1).idx = [1]; % temp timecourse
+sb(2).idx = [2,3,4]; % distance from food timecourse %TODO: normalize this to something more intuitive?
 
-LW = 1.5; %linewidth
-sSpan = 360; %smoothing function
+LW = 1.5; % linewidth
+sSpan = 360; % smoothing function
 
+% Make group names for figure legend and labels
 dataString = [];
 dummy = unique(groupix);
-
 for idx = 1:length(dummy)
     i = dummy(idx);
     % bincenter = mean(binedges(i:i+1));
@@ -177,60 +183,82 @@ for idx = 1:length(dummy)
     dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
 end
 
-g = []; %empty variable to add to later and not override things
+% Create empty variable to hold data
+g = []; 
 
+% Set up matrices for data
 for i = 1:ngroups
-    g(i).name = [num2str(binedges(i)) '-' num2str(binedges(i+1))]; 
-    [g(i).raw,g(i).temp,g(i).time] = deal([]); %empty variable
+    % Give each group a name based on time bins
+    g(i).name = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
+    % Set up empty matrices for each group
+    [g(i).raw,g(i).temp,g(i).time] = deal([]);
 end
 
+% Pull and organize data
 for trial = 1:ntrials
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    idx = groupix(trial); %group identity for each trial (before or after noon)
-    g(idx).raw = autoCat(g(idx).raw,y,false); %organize data into one big data matrix
+    loc = data(trial).data.foodwell; % column number that has the food
+    % Establish plot variables
+    y = data(trial).data.dist2well(:,loc);
     x = data(trial).occupancy.time;
-    g(idx).time = autoCat(g(idx).time,x,false);
     z = data(trial).occupancy.temp;
+    % Identify the group index for each trial (which time bin it falls into)
+    idx = groupix(trial);
+    % Load data into each matrix within variable g
+    g(idx).raw = autoCat(g(idx).raw,y,false);
+    g(idx).time = autoCat(g(idx).time,x,false);    
     g(idx).temp = autoCat(g(idx).temp,z,false);
 end
 
-for i = 1:ngroups %loop through each group
-    g(i).distavg = mean(g(i).raw,2,'omitnan'); %mean distance for each group across time
-    g(i).std = std(g(i).raw,0,2,'omitnan'); %error for each group 
+% Calculate average distance, time, and temp for each group, and standard deviation for distance
+for i = 1:ngroups
+    g(i).distavg = mean(g(i).raw,2,'omitnan'); 
     g(i).timeavg = mean(g(i).time,2,'omitnan');
     g(i).tempavg = mean(g(i).temp,2,'omitnan');
+    g(i).std = std(g(i).raw,0,2,'omitnan'); 
 end
 
- % FIGURE:
-fig = getfig('Distance to food',true); %create a figure with customizable size and position on screen
+% FIGURE
+% Create figure and establish name, screen position for viewing, and size
+fig = getfig('distance to food',true);
     for i = 1:ngroups
+        % Plot temperature timecourse
         subplot(r,c,sb(1).idx)
             hold on
             plot(g(i).timeavg,g(i).tempavg,'color',Color(clist{i}),'LineWidth',LW)
-        subplot(r,c,sb(2).idx) %dimensions and location of subplot
-            hold on %keep what is there to add multiple things
+        % Plot distance to food timecourse
+        subplot(r,c,sb(2).idx)
+            hold on 
                 x = g(i).timeavg;
                 y = g(i).distavg;
-                y_err =  g(i).std;
-               plot(x,y,'color',Color(clist{i}))
-               h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+                y_err = g(i).std;
+            plot(x,y,'color',Color(clist{i}))
+            % Display error area
+            h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
     end
-    
+
+% Format figure (call fig variable first, it's usually just called fig)
 formatFig(fig,bkgrd_color,[r,c],sb)
 
+% Formatting for temperature timecourse
 subplot(r,c,sb(1).idx)
+    % Make x axis same color as background (gca = get current axis)
     set(gca,'xcolor',backColor)
+    % Create y axis label
     ylabel('Temperature (\circC)')
 
+% Formatting for distance to food timecourse
  subplot(r,c,sb(2).idx) 
+    % Create legend
     legend(dataString,'Location','northwest','color',backColor,'box','off','textColor',foreColor)
+    % Create axes labels
     xlabel('Time (min)')
     ylabel('Distance to food (mm)')
 
 % Save figure
 save_figure(fig, [figdirectory 'Distance to food'], '-png')
-
+% NOTE: the first naming of a figure with getfig only names the pop up
+% figure before saving. The second naming with save_figure is the name that
+% gets saved in the folder
 
 %% FIGURE: Distance to food/temperature correlation
 

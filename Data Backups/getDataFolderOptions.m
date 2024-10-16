@@ -81,7 +81,7 @@ switch computerName
     case 'DENALI'
         serverPath = paths.denaliServerPath;
         permanentPath = [];
-    case 'CHILKAT'
+    case 'MWMJ0LY4WH'
         serverPath = paths.chilkatServerPath;
         permanentPath = [];
 end 
