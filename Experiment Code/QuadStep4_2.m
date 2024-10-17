@@ -975,7 +975,8 @@ for exp = 1:num.exp
         ring_per = autoCat(ring_per,(ringCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
     end
     % pool the data
-    grouped(exp).ring.all = counts;
+    grouped(exp).ring.counts = counts;
+    grouped(exp).ring.all = ring_per;
     grouped(exp).ring.percent = ring_per; 
     grouped(exp).ring.avg = mean(ring_per,2,'omitnan');
 end
@@ -1285,7 +1286,8 @@ for exp = 1:num.exp
         ring_per = autoCat(ring_per,(circleCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
     end
     % pool the data
-    grouped(exp).foodcircle.all = counts;
+    grouped(exp).foodcircle.counts = counts;
+    grouped(exp).foodcircle.all = ring_per;
     grouped(exp).foodcircle.percent = ring_per; 
     grouped(exp).foodcircle.avg = mean(ring_per,2,'omitnan');
 end
