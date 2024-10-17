@@ -478,6 +478,7 @@ end
 %allocate empty data structure & set params
 food = struct;
 food.N = [];
+
 for trial = 1:ntrials
     % Screen out data pre/post data 
     tempPoints = getTempTurnPoints(temp_protocol); %T.TempProtocol{trial}

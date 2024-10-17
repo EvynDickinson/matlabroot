@@ -326,7 +326,39 @@ end
 
 paths = getPathNames;
 
- 
+if UpdatedFlag
+    switch questdlg('Select data saving format:','','new structure','existing structure', 'cancel','existing structure')
+    case 'new structure'
+        expGroup = char(inputdlg('Structure name:'));
+        saveDir = [baseFolder paths.group_comparision expGroup '/'];
+        if ~exist(saveDir,'dir')
+            mkdir(saveDir);
+        end 
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'existing structure'
+        list_dirs = dir([baseFolder paths.group_comparision]);
+        list_dirs = {list_dirs(:).name};
+        list_dirs(1:2) = [];
+        if exist('expGroup','var')
+            guessLoc = find(strcmp(expGroup,list_dirs)); % TODO check if there is an existing folder and then offer that as the base selection
+            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450], 'InitialValue',guessLoc);
+        else
+            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+        end
+        expGroup = list_dirs{dirIdx}; %name of experiment groups selected
+        saveDir = [baseFolder paths.group_comparision expGroup '/'];
+        save([saveDir expGroup ' data.mat'],'-v7.3');
+        disp([expGroup ' saved'])
+    case 'cancel'
+        return
+    end
+else % append the dataList structure to the existing file if nothing else changed
+    saveDir = [baseFolder paths.group_comparision expGroup '/'];
+    % save([saveDir expGroup ' data.mat'], 'dataList','-append');
+end
+
+disp(expNames')
 
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
