@@ -260,41 +260,54 @@ save_figure(fig, [figdirectory 'Distance to food'], '-png')
 % figure before saving. The second naming with save_figure is the name that
 % gets saved in the folder
 
-%% FIGURE: Distance to food/temperature correlation
+%% FIGURE: Distance to food/temperature correlation during ramps
 
-clearvars('-except',initial_vars{:}) %clear all variables except initial ones
-plot_err = true; %plot error region
-[foreColor,backColor] = formattingColors(bkgrd_color); % get background colors
+clearvars('-except',initial_vars{:}) 
+plot_err = true; 
+[foreColor,backColor] = formattingColors(bkgrd_color);
 
-plotdata = nan([ntrials,2]); %create empty variable of a specific size
+% Create matrix to hold plot data
+plotdata = nan([ntrials,2]);
+
 
 for trial = 1:ntrials
+    % Establish variables for correlation calculation
     z = data(trial).occupancy.temp;
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tdmat = [z,y]; %matrix of temperature and distance to food well
+    loc = data(trial).data.foodwell; 
+    y = data(trial).data.dist2well(:,loc); 
+    % Create matrix to hold correlation variables
+    tdmat = [z,y];
+    % Identify region of interest (frames during ramps)
     tempPoints = getTempTurnPoints(temp_protocol);
     ROI = [tempPoints.DownROI,tempPoints.UpROI];
 
+    % Restrict data within matrix of correlation variables to only include data during ramps 
     tdmat = tdmat(ROI,:);
+    % Identify NANs and replace them with []
     nanloc = isnan(tdmat);
     a = any(nanloc,2);
     tdmat(a,:) = [];
-
+    
+    % Calculate correlation coefficient
     corr1 = corrcoef(tdmat(:,1),tdmat(:,2));
+    % Load correlation value and start time into pot data matrix
     plotdata(trial,2) = corr1(1,2);
     plotdata(trial,1) = expstarttime_hr(trial);
 end
 
+% FIGURE
+% Create figure
 fig = getfig('Temp distance correlation',true);
     scatter(plotdata(:,1),plotdata(:,2),50,'w',"filled")
+    % Create axes labels
     xlabel('Time of day (hr)')
     ylabel('Correlation between distance and temp')
 
+% Format figure
 formatFig(fig,bkgrd_color)
 
 % Save figure
-save_figure(fig, [figdirectory 'Distance to temp correlation across start times'], '-png')
+save_figure(fig, [figdirectory 'Distance to temp correlation during ramps across start times'], '-png')
 
 
 %% FIGURE: Change in distance during cooling | heating across start times
@@ -303,13 +316,15 @@ save_figure(fig, [figdirectory 'Distance to temp correlation across start times'
 % display means on right figure
 % separate by start time for left figure
 % average lines for each start time
+% show only mean difference line for each time bin to make left graph less messy
 
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
 [foreColor,backColor] = formattingColors(bkgrd_color);
 
+% Ask type of data you want to look at: cooling or heating ramps
 inputVar =  questdlg('Which data type to compare?','','Cooling','Heating','Cancel');
-
+% Change y axis labels depending on answer
 switch inputVar
     case 'Cooling'
         ylab = '\Delta Distance during cooling';
@@ -319,22 +334,29 @@ switch inputVar
         return
 end
 
-windowsize = 1; %in minutes
+% Period of time before/after ramp to look at distance from food
+windowsize = 1; % minutes
 
+% Set up figure coordinates
 r = 1;
 c = 2;
 
+% FIGURE
+% Create figure
 fig = getfig(['Distance difference across start times during ', inputVar],true);
 hold on
-
 for trial = 1:ntrials
+    % Plot change in distance during ramp 1 and ramp 3 (left)
     subplot(r,c,1)
         hold on
-        loc = data(trial).data.foodwell; %column number that has the food
-        y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
+        % Establish y variable
+        loc = data(trial).data.foodwell; 
+        y = data(trial).data.dist2well(:,loc); 
+        
+        % Calculate number of frames within the established windowsize
         tempPoints = getTempTurnPoints(temp_protocol);
-    
         nframes = tempPoints.fps*60*windowsize;
+        % Identify frames in ramp start and end windows
         switch inputVar
             case 'Cooling'
                 r1start = tempPoints.hold(1,2)-nframes:tempPoints.hold(1,2);
@@ -348,42 +370,56 @@ for trial = 1:ntrials
                 r3end = tempPoints.up(3,2):tempPoints.up(3,2)+nframes;
         end
        
-        r1startavg = mean(y(r1start)); %average distance within r1start area
+        % Calculate average distance from food within each window
+        r1startavg = mean(y(r1start));
         r1endavg = mean(y(r1end));
         r3startavg = mean(y(r3start));
         r3endavg = mean(y(r3end));
-    
-        r1diff = r1endavg-r1startavg; %TODO: show only mean difference line for each time bin
+        % Calculate change in average distance at start and end for each ramp
+        r1diff = r1endavg-r1startavg;
         r3diff = r3endavg-r3startavg;
     
+        % Plot change in distance where x = ramp number
         scatter(1,r1diff,35,Color(clist{groupix(trial)}),"filled")
         scatter(3,r3diff,35,Color(clist{groupix(trial)}),"filled")
+        % Plot line connecting ramps in the same trial
         plot([1,3],[r1diff,r3diff],'color',Color(clist{groupix(trial)}),'LineWidth',2)
-
+    
+    % Plot rate of change in distance between ramps (slope of connecting line) (right)
     subplot(r,c,2)
         hold on
+        % Calculate change in distance difference between ramps
         slope = r3diff-r1diff;
-        avgslope(trial) = mean(slope);
+        % Plot this change across start times
         scatter(expstarttime_hr(trial),slope,35,Color(clist{groupix(trial)}),"filled")
 
 end
 
+% Format figure
+formatFig(fig,bkgrd_color,[r,c])
+
+% Formatting for change in distance at ramps plot
 subplot(r,c,1)
+    % Set x axis limits
     xlim([0.5,3.5])
+    % Set x axis ticks to only 1 and 3, for each ramp
     set(gca,'XTick',[1,3])
+    % Create axes labels
     xlabel('Ramp')
     ylabel(ylab)
-    title(inputVar)
 
+% Formatting for rate of change in distance plot
 subplot(r,c,2)
+    % Set x axis limits
     xlim([5,20])
+    % Set x axis ticks to established time bin edges
     set(gca,'XTick',binedges)
+    % Display a line at y = 0
     h_line(0,'Gray','--')
+    % Create axes labels
     xlabel('Start time')
     ylabel('Difference between ramp 1 and ramp 3')
     
- formatFig(fig,bkgrd_color,[r,c])
-
 % Save figure
 save_figure(fig, [figdirectory 'Distance difference across start times during ', inputVar], '-png')
 
@@ -394,30 +430,40 @@ clearvars('-except',initial_vars{:})
 plot_err = true; 
 [foreColor,backColor] = formattingColors(bkgrd_color); 
 
+% Ask type of data you want to look at: cooling or heating ramps
 inputVar =  questdlg('Which data type to compare?','','Cooling','Heating','Cancel');
 
+% Create variable to set up x axis tick locations 
 xtickloc = [];
+
+% Create matrix to hold stats data 
 for i = 1:ngroups
     stats(i).data = [];
 end
 
-windowsize = 1; %in minutes
+% Period of time before/after ramp to look at distance from food
+windowsize = 1; % minutes
+
+% Set up figure coordinates
 r = 1;
 c = 2;
 
+% FIGURE
+% Create figure
 fig = getfig;
-
-% clist = {'LemonChiffon','Gold','Tomato','Blue'};
-
 for trial = 1:ntrials
+    % Plot distance from food before each ramp within each time bin (left)
     subplot(r,c,1)
-    hold on
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tempPoints = getTempTurnPoints(temp_protocol);
-
-    nframes = tempPoints.fps*60*windowsize;
-     switch inputVar
+        hold on
+        % Establish y variable
+        loc = data(trial).data.foodwell; 
+        y = data(trial).data.dist2well(:,loc); 
+        
+        % Calculate number of frames within the established windowsize
+        tempPoints = getTempTurnPoints(temp_protocol);
+        nframes = tempPoints.fps*60*windowsize;
+        % Identify frames in ramp start window
+        switch inputVar
             case 'Cooling'
                 r1start = tempPoints.hold(1,2)-nframes:tempPoints.hold(1,2);
                 r1end = tempPoints.down(1,2)-floor(nframes/2):tempPoints.down(1,2)+ceil(nframes/2);
@@ -428,51 +474,65 @@ for trial = 1:ntrials
                 r1end = tempPoints.up(1,2):tempPoints.up(1,2)+nframes;
                 r3start = tempPoints.down(3,2)-floor(nframes/2):tempPoints.down(3,2)+ceil(nframes/2);
                 r3end = tempPoints.up(3,2):tempPoints.up(3,2)+nframes;
-     end
-   
-    r1startavg = mean(y(r1start)); %average distance within r1start area
-    r3startavg = mean(y(r3start));
-
-    stats(groupix(trial)).data(end+1,:) = [r1startavg,r3startavg];
+        end
+        
+        % Calculate average distance from food within each window
+        r1startavg = mean(y(r1start));
+        r3startavg = mean(y(r3start));
     
-    xramp1 = (groupix(trial)*2)-1;
-    xramp3 = groupix(trial)*2;
-
-    scatter(xramp1,r1startavg,35,Color(clist{groupix(trial)}),"filled")
-    scatter(xramp3,r3startavg,35,Color(clist{groupix(trial)}),"filled")
-    plot([xramp1,xramp3],[r1startavg,r3startavg],'color',Color(clist{groupix(trial)}),'LineWidth',2)
-
+        % Load average distance values for each time bin into stats matrix
+        stats(groupix(trial)).data(end+1,:) = [r1startavg,r3startavg];
+        
+        % Establish dynamic x axis tick locations
+        xramp1 = (groupix(trial)*2)-1;
+        xramp3 = groupix(trial)*2;
+    
+        % Plot start distance where x = ramp number for each time bin
+        scatter(xramp1,r1startavg,35,Color(clist{groupix(trial)}),"filled")
+        scatter(xramp3,r3startavg,35,Color(clist{groupix(trial)}),"filled")
+        % Plot line connecting ramps in the same trial
+        plot([xramp1,xramp3],[r1startavg,r3startavg],'color',Color(clist{groupix(trial)}),'LineWidth',2)
+    
+    % Plot distance from food for each time bin within each ramp (right)
     subplot(r,c,2)
-    hold on
-
-    xramp1 = groupix(trial);
-    xramp3 = groupix(trial) + max(groupix) + 1;
-
-    buff = 0.3;
-    nincr = 50;
-    poss = linspace(-buff,buff,nincr);
-    idx = randi(nincr,1); %random number between 1 and nincrement
-    b = poss(idx);
-
-    scatter(xramp1+b,r1startavg,35,Color(clist{groupix(trial)}),"filled")
-    scatter(xramp3+b,r3startavg,35,Color(clist{groupix(trial)}),"filled")
-
-    xtickloc = [xtickloc;xramp1;xramp3];
+        hold on
+        % Establish dynamic x axis tick locations
+        xramp1 = groupix(trial);
+        xramp3 = groupix(trial) + max(groupix) + 1;
+        % Offset each data point slightly so they don't overlap
+        buff = 0.3;
+        nincr = 50;
+        poss = linspace(-buff,buff,nincr);
+        idx = randi(nincr,1); % random number between 1 and nincrement
+        b = poss(idx);
+    
+        % Plot start distance where x = time bin for each ramp
+        scatter(xramp1+b,r1startavg,35,Color(clist{groupix(trial)}),"filled")
+        scatter(xramp3+b,r3startavg,35,Color(clist{groupix(trial)}),"filled")
+    
+        % Identify x tick locations of the same time bin in each ramp section
+        xtickloc = [xtickloc;xramp1;xramp3];
 end
 
+% Dynamically establish x axis limits
 buff = 0.5;
 xmax = max(unique(groupix))*2 + buff;
 xmin = min(unique(groupix))*2 - 1 - buff;
 
+% Format figure
+formatFig(fig,bkgrd_color,[r,c]);
 
-
+% Formatting for distance for each ramp within time bins
 subplot(r,c,1)
+    % Set x axis tick labels
     set(gca,'XTick',1:8,'XTickLabel',{'1','3','1','3','1','3'}) %TODO: make tick range dynamic
+    % Set x limits
     xlim([xmin,xmax])
+    % Create axes labels
     xlabel('Ramp')
     ylabel('Distance from food (mm)')
-    title(inputVar)
 
+% Make time bin names for x axis labels
 dataString = [];
 dummy = unique(groupix);
 for idx = 1:length(dummy)
@@ -481,64 +541,80 @@ for idx = 1:length(dummy)
     % binwidth = binedges(i+1)-bincenter;
     dataString{idx} = [num2str(binedges(i)) '-' num2str(binedges(i+1))];
 end
-
 xticklabels = repmat(dataString,[1,2]);
 
+% Formatting for distance for each time bin within ramps
 subplot(r,c,2)
+    % Set x axis tick labels
     set(gca,'XTick',unique(xtickloc),'XTickLabel',xticklabels,'XTickLabelRotation',30) %TODO: make tick range dynamic
+    % Create axes labels
     xlabel('Start time (hr)')
     ylabel('Distance from food (mm)')
 
-formatFig(fig,bkgrd_color,[r,c]);
 
-% Stats
+
+% STATS
+% Create varibles for significance (true or false) and p value
 h = [];
 p = [];
 
-% Compare ramp 1 and ramp 3 for each start time
-for i = 1:ngroups %TODO make into variable 
+% Compare between ramps for each time bin
+for i = 1:ngroups %TODO: make into variable 
+    % Pull data from stats matrix for each group into a new variable
     z = stats(i).data;
+    % Run a t-test comparing ramps
     if isempty(z)
         h(i) = false;
         p(i) = nan;
     else
         [h(i),p(i)] = ttest(z(:,1),z(:,2));
+        % Display comparisons that are significant
         if h(i)
             disp(['Group ' num2str(i) ' p = ' num2str(p(i))])
         end
     end
 end
 
+% Create variables to hold data for each ramp
 [r1,r3] = deal([]);
 
-% Compare each start time for ramp 1 and ramp 3
+% Compare between time bins for each ramp
 for i = 1:ngroups
+    % Pull data from stats matrix for each group into a new variable
     z = stats(i).data;
+    % Load stats data into matrices (false = add data to beginning of matrix, not end)
     if ~isempty(z)
         r1 = autoCat(r1,z(:,1),false);
         r3 = autoCat(r3,z(:,2),false);
     end
 end
 
+% Run an ANOVA comparing time bins
 [p1,tbl] = anova1(r1,unique(groupix),'off');
 [p2,tbl2] = anova1(r3,unique(groupix),'off');
 
 % Add stats to figure
-
 figure(fig)
 subplot(r,c,1)
-y = rangeLine(fig,2,true);
+    y = rangeLine(fig,2,true);
+    
+    % Plot average lines
+    for i = 1:ngroups
+        % Get x axis locations
+        xramp1 = (i*2)-1;
+        xramp3 = i*2;
+        
+        % Calculate average change in distance for each ramp
+        avgchange = mean(stats(i).data);
 
-for i = 1:ngroups
-    xramp1 = (i*2)-1;
-    xramp3 = i*2;
-    % Plot average line
-    avgchange = mean(stats(i).data);
-    plot([xramp1,xramp3],avgchange,'color',foreColor,'LineWidth',4,'Marker','o')
-    if h(i) % h is a logical, h(i) = 1 = true
-        scatter((xramp1+xramp3)/2,y,150,foreColor,"filled","*","MarkerEdgeColor",foreColor)
+        % Plot average change in distance between each ramp
+        plot([xramp1,xramp3],avgchange,'color',foreColor,'LineWidth',4,'Marker','o')
+        
+        % If change is signficiant, plot asterisk
+        if h(i) % h is a logical, h(i) = 1 = true
+            scatter((xramp1+xramp3)/2,y,150,foreColor,"filled","*","MarkerEdgeColor",foreColor)
+        end
     end
-end
 
 
 % Save figure
@@ -717,54 +793,9 @@ formatFig(fig,bkgrd_color)
 % Save figure
 save_figure(fig, [figdirectory 'Average sleep per trial by start time'], '-png')
 
-%% ANALYSIS: pull binned speed
-clearvars('-except',initial_vars{:})
-
-% Pull the data together:
-for exp = 1:num.exp
-    temps = grouped(exp).position.temp_list; % pre-binned temperatures
-    nTemp = length(temps);
-    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
-    cIdx = find(rates<0); %cooling index
-    hIdx = find(rates>0); %heating index
-    locs = grouped(exp).position.loc;
-    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
-
-    % combine all the occupancy for a given temp bin across trials:
-    for t = 1:nTemp
-        % cooling frames for this temp
-        c_frames = locs(cIdx,t).frames;
-        h_frames = locs(hIdx,t).frames;
-        if all(isnan(c_frames)) || all(isnan(h_frames))
-            continue
-        end
-        % pull locations for temp and speed bins
-        raw_c(t,:) = mean(grouped(exp).speed.all(c_frames,:),1,'omitnan');
-        raw_h(t,:) = mean(grouped(exp).speed.all(h_frames,:),1,'omitnan');
-    end
-
-    % find the avg and err and save to group structure
-    grouped(exp).speed.increasing.raw = raw_h;
-    grouped(exp).speed.increasing.avg = mean(raw_h, 2, 'omitnan');
-    grouped(exp).speed.increasing.err = std(raw_h, 0, 2, 'omitnan');
-    grouped(exp).speed.decreasing.raw = raw_c;
-    grouped(exp).speed.decreasing.avg = mean(raw_c, 2, 'omitnan');
-    grouped(exp).speed.decreasing.err = std(raw_c, 0, 2, 'omitnan');
-    grouped(exp).speed.temps = temps;
-end
 
 
-% Add eccentricity data
-for i = 1:num.exp
-    ecent = [];
-    for trial = 1:num.trial(i)
-        y = data(i).data(trial).data.occupancy.eccentricity(:,1);
-        ecent = autoCat(ecent,y,false);
-    end
-    grouped(i).ecent.all = ecent;
-end
-
-%% ANALYSIS: Calculate flies within the outer ring of the region
+%% FOR LATER -- ANALYSIS: Calculate flies within the outer ring of the region
 clearvars('-except',initial_vars{:})
 
 R = data(1).data(1).data.r; % radius of the arena in pixels
@@ -927,9 +958,8 @@ subplot(r,c,sb(1).idx)
     set(gca,'xcolor',backColor)
     ylabel('Average speed (mm/s')
 
-% TODO: change x axis to be time and add temperature over time as a
-% separate graph. Problem is we're plotting multiple y values for each x
-% temperature value
+% TODO: change x axis to be time and add temperature over time as a separate graph. 
+% Problem is we're plotting multiple y values for each x temperature value
 
 
 
