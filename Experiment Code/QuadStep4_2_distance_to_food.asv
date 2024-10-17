@@ -3738,7 +3738,7 @@ save_figure(fig,[saveDir 'distance to food polar plot'],fig_type);
 
 
 
-%% FIGURE:  plot single trial many features for highlight examples
+%% FIGURE:  [video highlight trial] plot single trial many features for highlight examples
 clearvars('-except',initial_vars{:})
 % i = 3; % S LRR 25-17 caviar
 % trial = 4; % 10.2.22_arena_D
@@ -3755,7 +3755,7 @@ speed_lim = [0,10]; %speed
 dist_lim = [5, 30]; %distance
 dt_lim = [12, 34];      %distance-temp
 % dt_lim = [10, 30];        %distance-temp
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+[foreColor,~] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
 r = 5; %rowsœ
@@ -3780,22 +3780,27 @@ fig = getfig('',true);
 
     %quadrant occupancy
     subplot(r,c,sb(2).idx); hold on
+        
+        y = smooth(grouped(i).quadrant.all(:,trial),sSpan,'moving');
+        plot(x,y,'LineWidth',LW,'Color',Color('teal'))
+
+        y = smooth(grouped(i).foodcircle.all(:,trial),sSpan,'moving');
+        plot(x,y,'LineWidth',LW,'Color',Color('cyan'))
+
+        y = smooth(grouped(i).ring.all(:,trial),sSpan,'moving');
+        plot(x,y,'LineWidth',LW,'Color',Color('gold'))
+        
         y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',foreColor)
-        % y = smooth(grouped(i).quadrant.all(:,trial),sSpan,'moving');
-        % plot(x,y,'LineWidth',LW,'Color',Color('teal'))
-        % 
-        % y = smooth(grouped(i).foodcircle.all(:,trial),sSpan,'moving');
-        % plot(x,y,'LineWidth',LW,'Color',Color('cyan'))
-        % 
-        % y = smooth(grouped(i).ring.all(:,trial),sSpan,'moving');
-        % plot(x,y,'LineWidth',LW,'Color',Color('gold'))
-        % legend({'quad', 'circle', 'ring'},'location', 'northwest', 'box', 'off')
+
+        legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off')
 
     %speed
     subplot(r,c,sb(3).idx); hold on
-        y = smooth(grouped(i).speed.avg,sSpan,'moving');
+        y = smooth(grouped(i).speed.all(:,trial),sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',kolor)
+        % y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
+        % plot(x,y,'LineWidth',LW,'Color',foreColor)
 
     %temp dependent distance
     subplot(r,c,sb(4).idx); hold on
@@ -3806,7 +3811,7 @@ fig = getfig('',true);
         yDown = grouped(i).quadrant.decreasing.raw(:,trial);
         plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
         plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
-        % circle
+        % circle 
         k = Color('cyan');
         x = grouped(i).foodcircle.temps;
         yUp = grouped(i).foodcircle.increasing.raw(:,trial);
@@ -3818,6 +3823,13 @@ fig = getfig('',true);
         x = grouped(i).ring.temps;
         yUp = grouped(i).ring.increasing.raw(:,trial);
         yDown = grouped(i).ring.decreasing.raw(:,trial);
+        plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
+        plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+        % sleep
+        k = kolor;
+        x = grouped(i).sleep.temps;
+        yUp = grouped(i).sleep.increasing.raw(:,trial);
+        yDown = grouped(i).sleep.decreasing.raw(:,trial);
         plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
         plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
 
@@ -3843,7 +3855,7 @@ set(gca,"XColor",'none')
 ylim([0,100])
 % speed
 subplot(r,c,sb(3).idx)
-ylabel('speed (mm/s)')
+ylabel('sleep (mm/s)')
 xlabel('time (min)')
 % temp-distance relationship
 subplot(r,c,sb(4).idx)
@@ -3861,19 +3873,136 @@ end
 save_figure(fig,[baseFolder 'Manual Tracking\timecourse summary'],fig_type);
 
 
+%% FIGURE:  plot group specific average overlays of occupancies 
+clearvars('-except',initial_vars{:})
+plot_err = true;
+autoLim = true;
+% Y limit ranges
+speed_lim = [0,10]; %speed
+dist_lim = [5, 30]; %distance
+dt_lim = [12, 34];      %distance-temp
+% dt_lim = [10, 30];        %distance-temp
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+LW = 0.75;
+sSpan = 180; % 1 min smoothing
 
-% Plot sleep for this trial?
+% set up figure aligments
+r = 5; %rowsœ
+c = 3; %columns
+sb(1).idx = 1:2; %temp timecourse
+sb(2).idx = [4,5,7,8]; %distance from food timecourse %TODO: normalize this to something more intuitive?
+sb(3).idx = [10,11,13,14]; %speed timecourse
+sb(4).idx = 3:3:15; %binned distance alignment
 
+for i = 1:num.exp 
 
+    dataString = cell([1,num.exp]);
+    
+    % FIGURE:  
+    fig = getfig('',true);
+        x = grouped(i).time;   
+        kolor = foreColor;
+        %temp
+        subplot(r,c,sb(1).idx); hold on
+            y = grouped(i).temp;
+            plot(x,y,'LineWidth',1,'Color',kolor)
+    
+        %quadrant occupancy
+        subplot(r,c,sb(2).idx); hold on
+            
+            y = smooth(grouped(i).quadrant.avg,sSpan,'moving');
+            plot(x,y,'LineWidth',LW,'Color',Color('teal'))
+    
+            y = smooth(grouped(i).foodcircle.avg,sSpan,'moving');
+            plot(x,y,'LineWidth',LW,'Color',Color('cyan'))
+    
+            y = smooth(grouped(i).ring.avg,sSpan,'moving');
+            plot(x,y,'LineWidth',LW,'Color',Color('gold'))
+            
+            y = smooth(grouped(i).sleep.avg,sSpan,'moving');
+            plot(x,y,'LineWidth',LW,'Color',foreColor)
+    
+            legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off')
+    
+        %speed
+        subplot(r,c,sb(3).idx); hold on
+            y = smooth(grouped(i).speed.avg,sSpan,'moving');
+            plot(x,y,'LineWidth',LW,'Color',kolor)
+            % y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
+            % plot(x,y,'LineWidth',LW,'Color',foreColor)
+    
+        %temp dependent distance
+        subplot(r,c,sb(4).idx); hold on
+            % quadrant
+            k = Color('teal');
+            x = grouped(i).quadrant.temps;
+            yUp = grouped(i).quadrant.increasing.avg;
+            yDown = grouped(i).quadrant.decreasing.avg;
+            plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
+            plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+            % circle 
+            k = Color('cyan');
+            x = grouped(i).foodcircle.temps;
+            yUp = grouped(i).foodcircle.increasing.avg;
+            yDown = grouped(i).foodcircle.decreasing.avg;
+            plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
+            plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+            % ring
+            k = Color('gold');
+            x = grouped(i).ring.temps;
+            yUp = grouped(i).ring.increasing.avg;
+            yDown = grouped(i).ring.decreasing.avg;
+            plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
+            plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+            % sleep
+            k = kolor;
+            x = grouped(i).sleep.temps;
+            yUp = grouped(i).sleep.increasing.avg;
+            yDown = grouped(i).sleep.decreasing.avg;
+            plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
+            plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+    
+            % yyaxis right
+            % % speed
+            % x = grouped(i).speed.temps;
+            % yUp = grouped(i).speed.increasing.raw(:,trial);
+            % yDown = grouped(i).speed.decreasing.raw(:,trial);
+            % plot(x,yUp,'color',kolor,'linewidth',LW+1,'linestyle', '-')
+            % plot(x,yDown,'color',kolor,'linewidth',LW+1,'linestyle', '--')
+    
+    
+    % FORMATING AND LABELS
+    formatFig(fig,blkbgd,[r,c],sb);
+    % temp
+    subplot(r,c,sb(1).idx)
+    ylabel('\circC')
+    set(gca,"XColor",'none')
+    % distance
+    subplot(r,c,sb(2).idx)
+    ylabel('flies in region (%)')
+    set(gca,"XColor",'none')
+    ylim([0,100])
+    % speed
+    subplot(r,c,sb(3).idx)
+    ylabel('sleep (mm/s)')
+    xlabel('time (min)')
+    % temp-distance relationship
+    subplot(r,c,sb(4).idx)
+    ylabel('flies in region (%)')
+    xlabel('temp (\circC)')
+    ylim([0,100])
+    % h_line(18.1,'grey',':',1) %36.2
+    
+    for idx = 1:3
+        subplot(r,c,sb(idx).idx)
+        xlim([0,890])
+    end
+    
+    % % save figure
+    % save_figure(fig,[baseFolder 'Manual Tracking\group avg timecourse summary'],fig_type);
+    save_figure(fig,[saveDir grouped(i).name ' 10 occupation percent' fig_title ' timecourse summary'],fig_type);
 
-
-
-figure; plot(sleep(i).fract_sleep(:,trial)*100)
-
-
-
-
-
+end
 
 
 
