@@ -331,7 +331,7 @@ paths = getPathNames;
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
 fig_type = '-pdf'; 
-blkbgd = true;
+blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'pix2mm';'blkbgd'];
 initial_vars = unique(initial_vars);
 % f2m = 3*60; %fps*min = number of frames in a minute -- this is now held
@@ -1327,11 +1327,8 @@ end
 
 
 %% ANALYSIS: Generate and save the sleep quanitification
-clearvars('-except',initial_vars{:})
-if ~strcmp(questdlg('Do you want to load sleep data now?'),'Yes')
-    return
-end
 
+clearvars('-except',initial_vars{:})
 paths = getPathNames;
 nbins = 50;
 
@@ -1443,6 +1440,7 @@ for i = 1:num.exp
     disp(['Done exp ' expNames{i}])
 end
 clearvars('-except',initial_vars{:})
+
 
 %% ANALYSIS: Load previously created sleep data files and process data:
 paths = getPathNames;
@@ -1659,7 +1657,7 @@ for exp = 1:num.exp
     grouped(exp).sleep.avg = sleep(exp).sleepfract_avg*100;
 end
 
-% Extract trial lines for warming and cooling
+% Pull the data together: 
 for exp = 1:num.exp
     temps = grouped(exp).position.temp_list; % pre-binned temperatures
     nTemp = length(temps);
@@ -1691,7 +1689,8 @@ for exp = 1:num.exp
     grouped(exp).sleep.temps = temps;
 end
 
-disp('Data fully loaded and processed')
+
+
 
 
 

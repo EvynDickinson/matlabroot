@@ -3780,20 +3780,27 @@ fig = getfig('',true);
 
     %quadrant occupancy
     subplot(r,c,sb(2).idx); hold on
+        
         y = smooth(grouped(i).quadrant.all(:,trial),sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',Color('teal'))
 
         y = smooth(grouped(i).foodcircle.all(:,trial),sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',Color('cyan'))
-        
+
         y = smooth(grouped(i).ring.all(:,trial),sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',Color('gold'))
-        legend({'quad', 'circle', 'ring'},'location', 'northwest', 'box', 'off')
+        
+        y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
+        plot(x,y,'LineWidth',LW,'Color',foreColor)
 
-     %speed
+        legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off')
+
+    %speed
     subplot(r,c,sb(3).idx); hold on
         y = smooth(grouped(i).speed.avg,sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',kolor)
+        % y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
+        % plot(x,y,'LineWidth',LW,'Color',foreColor)
 
     %temp dependent distance
     subplot(r,c,sb(4).idx); hold on
@@ -3816,6 +3823,13 @@ fig = getfig('',true);
         x = grouped(i).ring.temps;
         yUp = grouped(i).ring.increasing.raw(:,trial);
         yDown = grouped(i).ring.decreasing.raw(:,trial);
+        plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
+        plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+        % sleep
+        k = kolor;
+        x = grouped(i).sleep.temps;
+        yUp = grouped(i).sleep.increasing.raw(:,trial);
+        yDown = grouped(i).sleep.decreasing.raw(:,trial);
         plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
         plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
 
@@ -3841,7 +3855,7 @@ set(gca,"XColor",'none')
 ylim([0,100])
 % speed
 subplot(r,c,sb(3).idx)
-ylabel('speed (mm/s)')
+ylabel('sleep (mm/s)')
 xlabel('time (min)')
 % temp-distance relationship
 subplot(r,c,sb(4).idx)
@@ -3857,12 +3871,6 @@ end
 
 % save figure
 save_figure(fig,[baseFolder 'Manual Tracking\timecourse summary'],fig_type);
-
-
-
-
-
-
 
 
 
