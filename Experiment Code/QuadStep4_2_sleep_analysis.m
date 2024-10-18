@@ -2349,7 +2349,6 @@ for i = 1:num.exp
     % plot([x_loc(i)-b,x_loc(i)+b],[y_avg, y_avg],'color', foreColor,'linewidth',LW)
     errorbar(x_loc(i),y_avg, y_err, 'color', foreColor,'linewidth', LW)
     scatter(x_loc(i),y_avg,sz,foreColor, 'filled')
-   
 
      % post-sleep measure
     subplot(r,c,2); hold on
@@ -2465,6 +2464,9 @@ temp_proto_list = [1,3,2,2,1,3];
 food_list = [0,1,1,0,1,0];
 [y,g1,g2] = deal([]);
 for i = 1:num.exp
+    if i == 3 || i == 4
+        continue
+    end
     y = [y, plotData(i).postAll];
     g1 = [g1, temp_proto_list(i)*ones([1,num.trial(i)])];
     g2 = [g2, food_list(i)*ones([1,num.trial(i)])];
@@ -2488,9 +2490,55 @@ p = anovan(y,{g1 g2},'model','interaction','varnames',{'temp','food'});
 
 
 
+cList = {'dodgerblue', 'grey'};
+cList = repmat(cList,[1,ceil(num.exp/2)]);
+fig = getfig('',1);
 
+for i = 1:num.exp
+    exp = (exp_sel(i));
+    kolor = grouped(exp).color;
+    x = x_loc(i)*ones(1,num.trial(exp));
 
+    % pre-sleep measure
+    subplot(r,c,1); hold on
+    y = plotData(exp).preAll;
+    y_err = std(y);
+    y_avg = plotData(exp).preAvg;
+      scatter(x,y,floor(sz/4),Color(cList{i}),'filled','xjitter', 'density')
+    boxchart(x, y,"BoxFaceColor",Color(cList{i}),"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor,'MarkerColor',Color(cList{i}),...
+        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
+  
+   
+     % post-sleep measure
+    subplot(r,c,2); hold on
+    y = plotData(exp).postAll;
+    y_err = std(y);
+    y_avg = plotData(exp).postAvg;
+    scatter(x,y,floor(sz/4),Color(cList{i}),'filled','xjitter', 'density')
+    boxchart(x, y,"BoxFaceColor",Color(cList{i}),"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor, 'MarkerColor',Color(cList{i}),...
+        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
+    
 
+end
+
+x_max = 30;
+% format figure
+formatFig(fig,blkbgd,[r,c]); 
+subplot(r,c,1)
+title('Cooling')
+set(gca, 'xcolor', 'none')
+ylabel({'Sleeping flies (%)'; '   '})
+ylim([0,x_max])
+set(gca,'ytick', 0:10:x_max,'FontSize', 20,'TickDir','in')
+subplot(r,c,2)
+title('Warming')
+set(gca, 'xcolor', 'none')
+ylabel({'Sleeping flies (%)'; '   '})
+ylim([0,x_max])
+set(gca,'ytick', 0:10:x_max,'FontSize', 20,'TickDir','in')
+
+% Save Figure: 
+save_figure(fig,[saveDir 'Sleep\Post prandial sleep comparision box plots'],'-png');
 
 
 

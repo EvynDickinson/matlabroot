@@ -1357,10 +1357,78 @@ for exp = 1:num.exp
     grouped(exp).foodcircle.temps = temps;
 end
 
+%% ANALYSIS: Flies on Food
+clearvars('-except',initial_vars{:})
+maxR = 3; % 2.5 mm radius of the physical well -- give 0.5mm buffer zone outside well since body mark is body center not head
+
+% Find the percent of the flies that are in the outer ring
+for exp = 1:num.exp
+    counts = []; ring_per = [];
+    for trial = 1:num.trial(exp)
+        x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
+        y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
+        % find food well center and distance of flies to that point
+        wellLoc  = data(exp).T.foodLoc(trial);
+        centre = data(exp).data(trial).data.wellcenters(:,wellLoc);
+        D = sqrt(((x-centre(1)).^2 + (y-centre(2)).^2)); % distance from center of arena
+        D = D./pix2mm;
+        loc = D<=maxR ; % flies within 10% circle around the food
+        circleCount = sum(loc,2);
+        counts = autoCat(counts, circleCount, false); % count #flies in the outer ring
+        ring_per = autoCat(ring_per,(circleCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
+    end
+    % pool the data
+    grouped(exp).fliesonfood.counts = counts;
+    grouped(exp).fliesonfood.all = ring_per;
+    grouped(exp).fliesonfood.percent = ring_per; 
+    grouped(exp).fliesonfood.avg = mean(ring_per,2,'omitnan');
+end
+
+% Pull the data together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h,count_c,count_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    
+    % Update the averages for the classic temperature bins 
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        raw_c(t,:) = mean(grouped(exp).fliesonfood.percent(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).fliesonfood.percent(h_frames,:),1,'omitnan');
+        count_c(t,:) = mean(grouped(exp).fliesonfood.counts(c_frames,:),1,'omitnan');
+        count_h(t,:) = mean(grouped(exp).fliesonfood.counts(h_frames,:),1,'omitnan');
+
+    end
+
+    % find the avg and err and save to group structure
+    grouped(exp).fliesonfood.increasing.raw = raw_h;
+    grouped(exp).fliesonfood.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).fliesonfood.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).fliesonfood.decreasing.raw = raw_c;
+    grouped(exp).fliesonfood.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).fliesonfood.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).fliesonfood.increasing.count_raw = count_h;
+    grouped(exp).fliesonfood.increasing.count_avg = mean(count_h, 2, 'omitnan');
+    grouped(exp).fliesonfood.increasing.count_err = std(count_h, 0, 2, 'omitnan');
+    grouped(exp).fliesonfood.decreasing.count_raw = count_c;
+    grouped(exp).fliesonfood.decreasing.count_avg = mean(count_c, 2, 'omitnan');
+    grouped(exp).fliesonfood.decreasing.count_err = std(count_c, 0, 2, 'omitnan');
+    grouped(exp).fliesonfood.temps = temps;
+end
 
 %% ANALYSIS: Generate and save the sleep quanitification
 clearvars('-except',initial_vars{:})
 if ~strcmp(questdlg('Do you want to load sleep data now?'),'Yes')
+     disp('Data fully loaded and processed')
     return
 end
 
@@ -1723,7 +1791,6 @@ for exp = 1:num.exp
     grouped(exp).sleep.temps = temps;
 end
 
-disp('Data fully loaded and processed')
 
 
 

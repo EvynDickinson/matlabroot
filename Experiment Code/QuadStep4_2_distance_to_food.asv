@@ -208,6 +208,7 @@ set(gca,'ydir','reverse')
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
 
 %% FIGURE: Time Course for single parameter -- select your metric
+% TODO add flies on food to this section
 clearvars('-except',initial_vars{:})
 
 plot_err = true;
@@ -2046,7 +2047,7 @@ set(gca,'XTick',1:num.exp,'xticklabel',strain_label)
 % % save figure
 save_figure(fig,[saveDir expGroup ' distance tuning curve surf map'],fig_type,autoSave);
 
-%% FIGURE: Flies on food analysis
+%% FIGURE: Flies on food analysis TODO: update this to the new 'grouping' based version of the data storage
 clearvars('-except',initial_vars{:})
 plot_err = true;
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -3757,6 +3758,8 @@ dt_lim = [12, 34];      %distance-temp
 % dt_lim = [10, 30];        %distance-temp
 [foreColor,~] = formattingColors(blkbgd); %get background colors
 
+x_max = 100;
+
 % set up figure aligments
 r = 5; %rowsœ
 c = 3; %columns
@@ -3765,8 +3768,8 @@ sb(2).idx = [4,5,7,8]; %distance from food timecourse %TODO: normalize this to s
 sb(3).idx = [10,11,13,14]; %speed timecourse
 sb(4).idx = 3:3:15; %binned distance alignment
 
-LW = 0.75;
-sSpan = 180; % 1 min smoothing
+LW = 1.5;
+sSpan = 360; % 1 min smoothing
 dataString = cell([1,num.exp]);
 
 % FIGURE:  
@@ -3793,14 +3796,15 @@ fig = getfig('',true);
         y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',foreColor)
 
-        legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off')
-
     %speed
     subplot(r,c,sb(3).idx); hold on
         y = smooth(grouped(i).speed.all(:,trial),sSpan,'moving');
         plot(x,y,'LineWidth',LW,'Color',kolor)
         % y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
-        % plot(x,y,'LineWidth',LW,'Color',foreColor)
+        % % plot(x,y,'LineWidth',LW,'Color',foreColor)
+        % yyaxis right
+        % y = smooth(grouped(i).fliesonfood.counts(:,trial),sSpan,'moving');
+        % plot(x,y,'LineWidth',LW,'Color','red')
 
     %temp dependent distance
     subplot(r,c,sb(4).idx); hold on
@@ -3831,15 +3835,15 @@ fig = getfig('',true);
         yUp = grouped(i).sleep.increasing.raw(:,trial);
         yDown = grouped(i).sleep.decreasing.raw(:,trial);
         plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
-        plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
+        plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--') 
 
         % yyaxis right
-        % % speed
-        % x = grouped(i).speed.temps;
-        % yUp = grouped(i).speed.increasing.raw(:,trial);
-        % yDown = grouped(i).speed.decreasing.raw(:,trial);
-        % plot(x,yUp,'color',kolor,'linewidth',LW+1,'linestyle', '-')
-        % plot(x,yDown,'color',kolor,'linewidth',LW+1,'linestyle', '--')
+        % % flies on food
+        % x = grouped(i).fliesonfood.temps;
+        % yUp = grouped(i).fliesonfood.increasing.count_raw(:,trial);
+        % yDown = grouped(i).fliesonfood.decreasing.count_raw(:,trial);
+        % plot(x,yUp,'color','r','linewidth',LW+1,'linestyle', '-')
+        % plot(x,yDown,'color','r','linewidth',LW+1,'linestyle', '--')
 
 
 % FORMATING AND LABELS
@@ -3847,22 +3851,32 @@ formatFig(fig,blkbgd,[r,c],sb);
 % temp
 subplot(r,c,sb(1).idx)
 ylabel('\circC')
-set(gca,"XColor",'none')
+set(gca,"XColor",'none','ytick',[15,23])
+
 % distance
 subplot(r,c,sb(2).idx)
 ylabel('flies in region (%)')
-set(gca,"XColor",'none')
-ylim([0,100])
+ylim([0,x_max])
+set(gca,"XColor",'none','ytick',0:20:x_max)
+legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off','fontsize', 8,'textcolor', foreColor)
 % speed
 subplot(r,c,sb(3).idx)
-ylabel('sleep (mm/s)')
+ylabel('speed (mm/s)')
 xlabel('time (min)')
 % temp-distance relationship
 subplot(r,c,sb(4).idx)
 ylabel('flies in region (%)')
 xlabel('temp (\circC)')
-ylim([0,100])
+ylim([0,x_max])
+set(gca,'ytick', 0:20:x_max)
 % h_line(18.1,'grey',':',1) %36.2
+
+for idx = 1:4
+    subplot(r,c,sb(idx).idx)
+    labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
+    set(labelHandles,'FontSize', 18)
+    set(gca,'fontsize',16)
+end
 
 for idx = 1:3
     subplot(r,c,sb(idx).idx)
@@ -3894,9 +3908,9 @@ sb(2).idx = [4,5,7,8]; %distance from food timecourse %TODO: normalize this to s
 sb(3).idx = [10,11,13,14]; %speed timecourse
 sb(4).idx = 3:3:15; %binned distance alignment
 
-for i = 1:num.exp 
+x_max = 80;
 
-    dataString = cell([1,num.exp]);
+for i = 1:num.exp 
     
     % FIGURE:  
     fig = getfig('',true);
@@ -3922,14 +3936,18 @@ for i = 1:num.exp
             y = smooth(grouped(i).sleep.avg,sSpan,'moving');
             plot(x,y,'LineWidth',LW,'Color',foreColor)
     
-            legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off')
+            % legend({'quad', 'circle', 'ring','sleep'},'location', 'northwest', 'box', 'off')
     
-        %speed
+        %speed & flies on food
         subplot(r,c,sb(3).idx); hold on
             y = smooth(grouped(i).speed.avg,sSpan,'moving');
             plot(x,y,'LineWidth',LW,'Color',kolor)
-            % y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
-            % plot(x,y,'LineWidth',LW,'Color',foreColor)
+            % % y = smooth(sleep(i).fract_sleep(:,trial)*100,sSpan,'moving');
+            % % plot(x,y,'LineWidth',LW,'Color',foreColor)
+            % yyaxis right
+            % y = mean(grouped(i).fliesonfood.counts,2,'omitnan');
+            % y = smooth(y,sSpan,'moving');
+            % plot(x,y,'LineWidth',LW,'Color','r')
     
         %temp dependent distance
         subplot(r,c,sb(4).idx); hold on
@@ -3960,16 +3978,16 @@ for i = 1:num.exp
             yUp = grouped(i).sleep.increasing.avg;
             yDown = grouped(i).sleep.decreasing.avg;
             plot(x,yUp,'color',k,'linewidth',LW+1,'linestyle', '-')
-            plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--')
-    
-            % yyaxis right
-            % % speed
-            % x = grouped(i).speed.temps;
-            % yUp = grouped(i).speed.increasing.raw(:,trial);
-            % yDown = grouped(i).speed.decreasing.raw(:,trial);
-            % plot(x,yUp,'color',kolor,'linewidth',LW+1,'linestyle', '-')
-            % plot(x,yDown,'color',kolor,'linewidth',LW+1,'linestyle', '--')
-    
+            plot(x,yDown,'color',k,'linewidth',LW+1,'linestyle', '--') 
+            
+            % flies on food for example...
+            yyaxis right
+            k = kolor;
+            x = grouped(i).fliesonfood.temps;
+            yUp = grouped(i).fliesonfood.increasing.count_avg;
+            yDown = grouped(i).fliesonfood.decreasing.count_avg;
+            plot(x,yUp,'color','m','linewidth',LW+1,'linestyle', '-')
+            plot(x,yDown,'color','m','linewidth',LW+1,'linestyle', '--') 
     
     % FORMATING AND LABELS
     formatFig(fig,blkbgd,[r,c],sb);
@@ -3981,18 +3999,25 @@ for i = 1:num.exp
     subplot(r,c,sb(2).idx)
     ylabel('flies in region (%)')
     set(gca,"XColor",'none')
-    ylim([0,100])
+    ylim([0,x_max])
     % speed
     subplot(r,c,sb(3).idx)
     ylabel('sleep (mm/s)')
     xlabel('time (min)')
+    set(gca, 'ycolor', foreColor)
+    % yyaxis right
+    % set(gca, 'ycolor',Color('grey'))
+    % ylabel('Flies on food (#)')
     % temp-distance relationship
     subplot(r,c,sb(4).idx)
+    yyaxis left
     ylabel('flies in region (%)')
     xlabel('temp (\circC)')
-    ylim([0,100])
-    % h_line(18.1,'grey',':',1) %36.2
-    
+    ylim([0,x_max])
+    set(gca, 'ycolor', foreColor)
+    yyaxis right
+    set(gca, 'ycolor','m')
+    ylabel('Flies on food (#)')
     for idx = 1:3
         subplot(r,c,sb(idx).idx)
         xlim([0,890])
@@ -4000,9 +4025,86 @@ for i = 1:num.exp
     
     % % save figure
     % save_figure(fig,[baseFolder 'Manual Tracking\group avg timecourse summary'],fig_type);
-    save_figure(fig,[saveDir grouped(i).name ' 10 occupation percent' fig_title ' timecourse summary'],fig_type);
+    save_figure(fig,[saveDir grouped(i).name ' timecourse overlays'],fig_type);
 
 end
+
+
+
+
+
+%% FIGURE: [LRR only] Max flies in outer ring during a temp ramp
+clearvars('-except',initial_vars{:})
+
+[foreColor,backColor] = formattingColors(blkbgd);
+
+plotData = [];
+for exp = 1:num.exp
+    y = grouped(exp).ring.decreasing.raw(1:4,:);
+    plotData = [plotData; max(y)',exp*ones(num.trial(exp),1)];
+end
+
+[p,tbl,stats] = anovan(plotData(:,1),{plotData(:,2)});
+[results,means,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni");
+
+
+% Plot Figure: 
+sz = 100;
+LW = 3;
+
+exp_sel = [2 6 3 4 5 1];
+b = 0.5;
+
+cList = {'dodgerblue', 'grey'};
+cList = repmat(cList,[1,ceil(num.exp/2)]);
+fig_width = 350+
+fig = getfig('',1,[328 680]);
+hold on
+for i = 1:num.exp
+    exp = (exp_sel(i));
+    y = max(grouped(exp).ring.decreasing.raw(1:4,:));
+    x = i*ones(1,num.trial(exp));
+    scatter(x,y,floor(sz/4),Color(cList{i}),'filled','xjitter', 'density')
+    boxchart(x, y,"BoxFaceColor",Color(cList{i}),"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor, 'MarkerColor',Color(cList{i}),...
+        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
+end
+
+y_lims = [0,100];
+% format figure
+formatFig(fig,blkbgd); 
+set(gca, 'xcolor', 'none')
+ylabel({'Max flies in outer ring (%)'; '   '})
+ylim(y_lims)
+set(gca,'ytick', y_lims(1):20:y_lims(2),'FontSize', 20,'TickDir','in')
+h_line(25, 'grey', '--',1.5)
+
+
+
+
+%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
