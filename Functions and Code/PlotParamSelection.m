@@ -17,7 +17,7 @@ function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PlotParamSe
 % ES Dickinson, 2024
 
 % Select the type of information to plot: 
-paramList = {'Proximity to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed'};
+paramList = {'Proximity to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed','Sleep'};
 idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200]);
 if isempty(idx)
     disp('No choice selected')
@@ -62,6 +62,12 @@ switch title_str
         pName = 'speed';
         y_dir = 'normal';
         y_lab = [title_str ' (mm/s)'];
+        nullD = nan;
+        scaler = 1;
+    case 'Sleep'
+        pName = 'sleep';
+        y_dir = 'normal';
+        y_lab = 'Sleeping flies (%)';
         nullD = nan;
         scaler = 1;
 end

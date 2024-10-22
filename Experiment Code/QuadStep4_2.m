@@ -1111,8 +1111,10 @@ end
 for i = 1:num.exp
     if fictive_proto && data(i).hold_exp
         grouped(i).aligned.temp_protocol = fictive_protocol;
+        grouped(i).fictivetemp = fictive_protocol;
     else
         grouped(i).aligned.temp_protocol = data(i).temp_protocol;
+        grouped(i).fictivetemp = data(i).temp_protocol;
     end
     tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
 
@@ -1304,12 +1306,14 @@ maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
 % Find the percent of the flies that are in the outer ring
 for exp = 1:num.exp
     counts = []; ring_per = [];
+    centers = [];
     for trial = 1:num.trial(exp)
         x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
         y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
         % find food well center and distance of flies to that point
         wellLoc  = data(exp).T.foodLoc(trial);
         centre = data(exp).data(trial).data.wellcenters(:,wellLoc);
+        centers(:,trial) = centre;
         D = sqrt(((x-centre(1)).^2 + (y-centre(2)).^2)); % distance from center of arena
         D = D./pix2mm;
         loc = D<=maxR ; % flies within 10% circle around the food
@@ -1322,6 +1326,8 @@ for exp = 1:num.exp
     grouped(exp).foodcircle.all = ring_per;
     grouped(exp).foodcircle.percent = ring_per; 
     grouped(exp).foodcircle.avg = mean(ring_per,2,'omitnan');
+    grouped(exp).maxR = maxR;
+    grouped(exp).centres = centers;
 end
 
 % Pull the data together: 
@@ -1544,6 +1550,8 @@ for i = 1:num.exp
 end
 clearvars('-except',initial_vars{:})
 
+
+
 %% ANALYSIS: Load previously created sleep data files and process data:
 paths = getPathNames;
 sleep = struct;
@@ -1750,7 +1758,7 @@ disp('All finished')
 
 clearvars('-except',initial_vars{:})
 
-% Pull sleep data into the grouped structure format
+%% Pull sleep data into the grouped structure format
 for exp = 1:num.exp
     % add simple sleep data to grouped struct
     grouped(exp).sleep.counts = sleep(exp).num;
@@ -1790,6 +1798,86 @@ for exp = 1:num.exp
     grouped(exp).sleep.decreasing.err = std(raw_c, 0, 2, 'omitnan');
     grouped(exp).sleep.temps = temps;
 end
+
+%% Sleep percent in quadrants, ring, and food circle...
+clearvars('-except',initial_vars{:})
+R = 30; %mm
+innerR = R*sqrt(3/4); % (old: radius of the inner 50% occupancy space R*sqrt(1/2))
+dist_from_edge = (R - innerR);
+
+for exp = 1:num.exp
+    quad_occ = [];
+    counts = [];
+    ring_per = [];
+    for trial = 1:num.trial(exp)
+        center = data(exp).data(trial).data.centre;
+        % find sleeping locations in the arena:
+        x_loc = sleep(exp).trial(trial).X;
+        y_loc = sleep(exp).trial(trial).Y;
+        
+        % QUADRANT:
+        r = data(exp).data(trial).data.r;
+        foodWell = data(exp).T.foodLoc(trial);
+        % Adjust the X and Y coordinates relative to the new center
+        adjustedX = x_loc - center(1);
+        adjustedY = y_loc - center(2);
+        % Initialize matrix to hold quadrant classification (same size as input matrices)
+        quadrantMatrix = zeros(size(x_loc));
+        % Define quadrant masks based on the new center
+        Q = [];
+        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
+        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
+        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
+        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+        % Determine the well locations (which determine quadrant assignment):
+        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
+        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);   
+        idx_loc = false(1,4);
+        % Find the food quadrant (find location with the food well coordinates included)
+        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
+        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
+        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
+        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
+        quad_loc = find(idx_loc);
+        fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
+        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+        nflies = sum(~isnan(x_loc),2);
+        y = (sum(foodQuad,2)./nflies).*100;
+        quad_occ = autoCat(quad_occ, y,false);
+
+        % OUTER RING
+        D = sqrt(((x_loc-center(1)).^2 + (y_loc-center(2)).^2)); %distance from center of arena
+        D = D./pix2mm;
+        loc = D<=R & D>=innerR; % find the locations that are between edge and inner R
+        ringCount = sum(loc,2);
+        counts = autoCat(counts, ringCount, false); %count #flies in the outer ring
+        ring_per = autoCat(ring_per,(ringCount./nflies).*100,false); % convert to percent & combine
+    end
+    
+    % save quad occ to structure
+    grouped(exp).sleep.quad.all = quad_occ;
+    grouped(exp).sleep.quad.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).sleep.quad.std = std(quad_occ,0,2,'omitnan');
+
+    % save ring occ to struct
+    grouped(exp).sleep.ring.counts = counts;
+    grouped(exp).sleep.ring.all = ring_per;
+    grouped(exp).sleep.ring.percent = ring_per; 
+    grouped(exp).sleep.ring.avg = mean(ring_per,2,'omitnan');
+end
+
+
+
+
+
+
+
+
+
+
+
+   
+
 
 
 

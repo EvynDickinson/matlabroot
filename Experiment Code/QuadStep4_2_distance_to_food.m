@@ -252,7 +252,7 @@ dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true);
-for i = 3%num.exp:-1:1
+for i = [9,12,10]%num.exp:-1:1
     x = grouped(i).time;
     kolor = grouped(i).color;
 
@@ -3887,7 +3887,7 @@ end
 save_figure(fig,[baseFolder 'Manual Tracking\timecourse summary'],fig_type);
 
 
-%% FIGURE:  plot group specific average overlays of occupancies 
+%% FIGURE:  plot group-specific average overlays of occupancies 
 clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = true;
@@ -3896,7 +3896,7 @@ speed_lim = [0,10]; %speed
 dist_lim = [5, 30]; %distance
 dt_lim = [12, 34];      %distance-temp
 % dt_lim = [10, 30];        %distance-temp
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+[foreColor,~] = formattingColors(blkbgd); %get background colors
 LW = 0.75;
 sSpan = 180; % 1 min smoothing
 
@@ -4020,7 +4020,7 @@ for i = 1:num.exp
     ylabel('Flies on food (#)')
     for idx = 1:3
         subplot(r,c,sb(idx).idx)
-        xlim([0,890])
+        % xlim([0,890])
     end
     
     % % save figure
@@ -4038,25 +4038,42 @@ clearvars('-except',initial_vars{:})
 
 [foreColor,backColor] = formattingColors(blkbgd);
 
-plotData = [];
+plotData = []; g1 = [];
 for exp = 1:num.exp
     y = grouped(exp).ring.decreasing.raw(1:4,:);
-    plotData = [plotData; max(y)',exp*ones(num.trial(exp),1)];
+    plotData = [plotData; max(y)'];
+    g1 = [g1; repmat({grouped(exp).name},[num.trial(exp),1])];
 end
 
-[p,tbl,stats] = anovan(plotData(:,1),{plotData(:,2)});
+[p,tbl,stats] = anovan(plotData(:,1),{g1});
 [results,means,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni");
-
+disp('Significant differences between the following groups: ')
+for i = 1:length(results(:,6))
+    if results(i,6)<=0.05
+        disp([gnames{results(i,1)} ' vs ' gnames{results(i,2)}])
+    end
+end
 
 % Plot Figure: 
 sz = 100;
 LW = 3;
 
-exp_sel = [2 6 3 4 5 1];
+% %  this with tempshift caviar vs empty
+% exp_sel = [2 6 3 4 5 1]; 
+% cList = {'dodgerblue', 'grey'};
+% cList = repmat(cList,[1,ceil(num.exp/2)]);
+% 
+% % for sensory component comparisons
+% exp_sel = [1 2 3 6 4 5 7 8 10 9];
+% cList = {'white', 'white', 'white','white', 'dodgerblue', 'pink','pink','pink','gold','blueviolet'};
+
+% for LRR temp rate comparisons
+exp_sel = expOrder;
+cList = {'dodgerblue'};
+cList = repmat(cList,[1,num.exp]);
+
 b = 0.5;
 
-cList = {'dodgerblue', 'grey'};
-cList = repmat(cList,[1,ceil(num.exp/2)]);
 fig_width = 250+(100*(num.exp-1));
 fig = getfig('',1,[fig_width 680]);
 hold on

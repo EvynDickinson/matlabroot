@@ -32,7 +32,7 @@ function path = getDataPath(dataType, dataLocation, promptString)
 % EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\';
 % EvynMacServerPath = '/Volumes/shared/Evyn/';
 % acadiaLocalPath = 'D:\';
-% EvynPCLocalPath = 'K:\';
+% EvynPCLocalPath = 'K:\DATA\';
 % path = []; % empty so that in the end, there is something assigned
 % %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
 

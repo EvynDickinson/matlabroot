@@ -1090,7 +1090,7 @@ LW = 2;
 temps_idx = [3, 9, 15, 19];  % 17,20,23,25 [temp locations that match the assigned hold temps]
 temp_actual = grouped(4).position.temp_list(temps_idx);
 
-dyn_exp = [4,5]; %start with just the caviar trial
+dyn_exp = [5]; %start with just the caviar trial
 stat_idx = [1,2,3,6]; % experiment index for the static trials
 
 arena_radius = (data(1).data(1).data.r/pix2mm); 
@@ -1124,22 +1124,22 @@ for tt = 1:length(temps_idx)
         plot(x_line,[y_line,y_line],'color', Color('dodgerblue'), 'linewidth', LW)
     end
 
-    % plot concordant static trial
-    static_color = Color('black');
-    i = stat_idx(tt);
-    y_all = grouped(i).ecent.all([frames_up; frames_down],:);
-    y_mean = mean(y_all, 1,'omitnan');
-    y_line = mean(y_mean);
-    x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
-    scatter(x,y_mean, sz, static_color,'filled')
-    plot(x_line,[y_line,y_line],'color', static_color, 'linewidth', LW,'LineStyle','-')
+    % % plot concordant static trial
+    % static_color = Color('black');
+    % i = stat_idx(tt);
+    % y_all = grouped(i).ecent.all([frames_up; frames_down],:);
+    % y_mean = arena_radius - mean(y_all, 1,'omitnan');
+    % y_line = mean(y_mean);
+    % x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+    % scatter(x,y_mean, sz, static_color,'filled')
+    % plot(x_line,[y_line,y_line],'color', static_color, 'linewidth', LW,'LineStyle','-')
 end
 % 
 % Figure formatting
 formatFig(fig, blkbgd);
 
 xlim([16,26])
-ylim([14,28])
+ylim([6,20])
 ylabel('distance to edge (mm)')
 xlabel('temperature (\circC)')
 ax = gca;
@@ -1147,7 +1147,7 @@ set(gca,'tickdir','out','XTick',temp_actual)
 ax.FontSize = 18;
 
 % save_figure(fig,[saveDir 'static vs dynamic occupancy caviar and waxed'],fig_type);
-save_figure(fig,[saveDir 'scatter speed static temps'],fig_type);
+save_figure(fig,[saveDir 'scatter eccentricity ' grouped(i).name],fig_type);
 
  %% ANALYSIS AND FIGURE: Sleep quantity per fly for ENTIRE experiment
 clearvars('-except',initial_vars{:})
@@ -1290,3 +1290,214 @@ subplot(r,c,sb(1).idx);
 set(gca,'xcolor',backColor) 
 
 save_figure(fig,[saveDir 'Sleep\' expGroup ' normalized sleep timecourse'],fig_type);
+
+
+%%
+
+%% FIGURE: animation style overview 
+%   close all
+fig_dir = [saveDir '/PPT FIgures/Quadrant Occupancy/'];
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+plot_caviar = 0;
+plot_static = 1;
+plot_water = 0;
+plot_waxed = 0;
+plot_empty = 0;
+plot_aristaless = 0;
+plot_AN_MPless = 0;
+
+plotList = [plot_static,plot_caviar,plot_water,plot_waxed,plot_empty,plot_aristaless,plot_AN_MPless];
+
+% INDEX LIST IN STRUCTURE FOR THE EXP GROUPS
+caviar_idx = 4;
+waxed_idx = 5;
+water_idx = 7;
+stat_idx = [1,2,3,6]; % for temps 17, 20, 23, 25 
+empty_idx = 8;
+AN_MP_idx = 9;
+arista_idx = 10;
+dynm_idx = 1:num.exp; dynm_idx(stat_idx) = [];
+dynm_idx = [9, 12, 10] %
+
+% plot multioptions
+plot_list = 1:num.exp;
+plot_list(stat_idx) = [];
+
+% COLOR LIST
+static_color = Color('gold');
+grouped(water_idx).color = Color('white');
+grouped(waxed_idx).color = Color('lime');
+grouped(caviar_idx).color = Color('dodgerblue');
+grouped(empty_idx).color = Color('navajowhite');
+grouped(arista_idx).color = Color('DarkOrchid');
+grouped(AN_MP_idx).color = Color('red');
+
+% ploting parameters
+buff_1 = 0.25;
+buff_2 = 0.5;
+sz = 40;
+LW = 3;
+font_size  = 25;
+tickDir = 'in';
+x_limits = [0,19];
+y_limits = [0 100];
+% [foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+% experiment indexes:
+static_temps = [3, 9, 15, 19]; % 17,20,23,25 [temp locations that match the assigned hold temps]
+% static_temps = [19,15,9, 3, 3, 9, 15, 19]; % 17,20,23,25 [temp locations that match the assigned hold temps]
+static_temp_actual = grouped(caviar_idx).position.temp_list(static_temps);
+
+dynamic_temps = [3,9,15,19];%3:2:19; % all whole number temps
+temp_actual = grouped(caviar_idx).position.temp_list(dynamic_temps);
+temp_names_label = [flip(temp_actual),temp_actual];
+xtick_loc = [1 3 6 9 10 13 16 18];
+for i = 1:length(temp_names_label)
+    x_tick_label{i}  = num2str(temp_names_label(i));
+end
+
+
+% ============= PLOT STATIC ===================
+fig = getfig('',1); hold on
+    %empty axis:
+    formatFig(fig, blkbgd);
+    xlim(x_limits)
+    ylim(y_limits)
+    set(gca, 'ytick', y_limits(1):20:y_limits(2))
+    % h_line(25, 'grey',':',0.5) 
+    
+    ylabel('flies in quadrant (%)')
+    xlabel('temperature (\circC)')
+    ax = gca;
+    % set(ax,'ydir','reverse')
+    set(ax,'XTick', xtick_loc, "XTickLabel", x_tick_label)
+    ax.FontSize = font_size;
+    ax.TickDir = tickDir;
+% save_figure(gcf,[fig_dir 'static vs dynamic distance to food empty frame'],fig_type, false, false);
+
+% STATIC HOLD TEMPERATURES
+
+idx_loc = [1,3,6,9,10,13,16,18]; % x positions of the selected temperatures
+idx = 0;
+% Cooling first
+temp_list = flip(static_temps);
+expList = flip(stat_idx);
+for tt = 1:length(static_temps)
+    idx = idx +1; 
+    %  frame locations
+    x_roi = [idx_loc(idx)-buff_1, idx_loc(idx)+buff_1];
+    x_line = [idx_loc(idx)-buff_2, idx_loc(idx)+buff_2];
+    % pull data
+    i = expList(tt);
+    y_mean = grouped(i).quadrant.decreasing.raw(temp_list(tt),:);
+    y_line = mean(y_mean);
+    x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+    scatter(x,y_mean, sz, static_color,'filled')
+    plot(x_line,[y_line,y_line],'color', static_color, 'linewidth', LW,'LineStyle','-')
+end
+
+% warming second
+temp_list = (static_temps);
+expList = (stat_idx);
+for tt = 1:length(static_temps)
+    idx = idx +1; 
+    x_roi = [idx_loc(idx)-buff_1, idx_loc(idx)+buff_1];
+    x_line = [idx_loc(idx)-buff_2, idx_loc(idx)+buff_2];
+    % pull data
+    i = expList(tt);
+    y_mean = grouped(i).quadrant.increasing.raw(temp_list(tt),:);
+    y_line = mean(y_mean);
+    x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+    scatter(x,y_mean, sz, static_color,'filled')
+    plot(x_line,[y_line,y_line],'color', static_color, 'linewidth', LW,'LineStyle','-')
+end
+
+save_figure(gcf,[fig_dir 'static vs dynamic distance to food static'],fig_type, false, true);
+
+
+% ============= PLOT DYNAMIC ===================
+
+for exp = dynm_idx
+    % MAKE FIGURE
+    fig = getfig('',1); hold on
+    %empty axis:
+    formatFig(fig, blkbgd);
+    xlim(x_limits)
+    ylim(y_limits)
+    set(gca, 'ytick', y_limits(1):20:y_limits(2))
+    % h_line(25, 'grey',':',0.5) 
+    
+    ylabel('flies in quadrant (%)')
+    xlabel('temperature (\circC)')
+    ax = gca;
+    % set(ax,'ydir','reverse')
+    set(ax,'XTick', xtick_loc, "XTickLabel", x_tick_label)
+    ax.FontSize = font_size;
+    ax.TickDir = tickDir;
+
+    % PLOT DATA
+    kolor = grouped(exp).color;
+    idx = 0;
+    % Cooling first
+    temp_list = flip(dynamic_temps);
+    for tt = 1:length(dynamic_temps)
+        idx = idx +1;
+        x_loc = xtick_loc(idx);
+        x_roi = [x_loc-buff_1, x_loc+buff_1];
+        x_line = [x_loc-buff_2, x_loc+buff_2];
+        % proximity to food for dynamic trials
+        y_mean = grouped(exp).quadrant.decreasing.raw(temp_list(tt),:);
+        y_line = mean(y_mean);
+        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        scatter(x,y_mean, sz, kolor,'filled')
+        plot(x_line,[y_line,y_line],'color', kolor, 'linewidth', LW,'LineStyle','-')
+    end    
+    % Warming second
+    temp_list = (dynamic_temps);
+    for tt = 1:length(dynamic_temps)
+        idx = idx +1;
+        x_loc = xtick_loc(idx);
+        x_roi = [x_loc-buff_1, x_loc+buff_1];
+        x_line = [x_loc-buff_2, x_loc+buff_2];
+        % proximity to food for dynamic trials
+        y_mean = grouped(exp).quadrant.increasing.raw(temp_list(tt),:);
+        y_line = mean(y_mean);
+        x = shuffle_data(linspace(x_roi(1), x_roi(2), length(y_mean)));
+        scatter(x,y_mean, sz, kolor,'filled')
+        plot(x_line,[y_line,y_line],'color', kolor, 'linewidth', LW,'LineStyle','-')
+    end
+        
+    save_figure(gcf,[fig_dir 'static vs dynamic distance to food ' grouped(exp).name],fig_type);
+end
+
+
+
+
+
+
+
+
+
+% [9, 12, 10] %
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
