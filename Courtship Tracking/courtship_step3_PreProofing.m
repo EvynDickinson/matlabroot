@@ -1,0 +1,55 @@
+
+
+%% Load tracking points for courtship
+clear; clc;
+baseFolder = getDataPath(6,0);
+dateDir = (selectFolder(baseFolder));
+trialDir = selectFolder([baseFolder, dateDir{:}]);
+baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
+
+fileList = dir([baseDir '*alignment table.mat']);
+load([baseDir, fileList(1).name]) % load the parameters and temp table
+nvids = parameters.nVids; % number of videos
+nBP = 5; % num of body parts
+
+
+% load the video tracks
+fileList = dir([baseDir '*.h5']);
+data = [];
+% TODO: quick check to make sure this matches the expected number of videos...
+for vid = 1:nvids
+    filePath = [baseDir, 'compiled_video_' num2str(vid) '.avi.predictions.slp.h5'];
+    data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+    data(vid).tracks = h5read(filePath,'/tracks');
+    data(vid).node_names = h5read(filePath, '/node_names');
+    data(vid).track_names = h5read(filePath, '/track_names');
+    dataIn = true; %log successful data load
+end
+
+node_names = {'head', 'center', 'abdomen', 'right_wing', 'left_wing'}; % currently assuming these are stable across all videos
+
+%% Quality control
+
+ntracks = [];
+for vid = 1:parameters.nVids
+    ntracks(vid) = size(data(vid).occupancy_matrix,1);
+end
+
+vidloc = find(~(ntracks == 2));
+fprintf('Proof the following videos: \n')
+disp(baseDir)
+for i = vidloc
+    fprintf(['video ' num2str(i) ' | current tracks ' num2str(ntracks(i)) '\n'])
+end
+
+
+
+
+
+
+
+
+
+
+
+

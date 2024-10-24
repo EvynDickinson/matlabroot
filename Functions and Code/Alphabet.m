@@ -16,9 +16,9 @@ alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 if ischar(input)
     output = find(alphabet==input);
 else
-    if input > 22
-        start = fix(input/22);
-        last = rem(input,22);
+    if input > 26
+        start = fix(input/26);
+        last = rem(input,26);
         output = [alphabet(start) alphabet(last)];
     else
         output = alphabet(input);
