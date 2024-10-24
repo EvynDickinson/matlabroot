@@ -57,8 +57,7 @@ node_names = {'head', 'center', 'abdomen', 'right_wing', 'left_wing'}; % current
 %% Post proofing cleaning
 
 i = proofedFlag(1);
-x = squeeze(data(i).tracks(:,2,1,:));
-isnan(x)
+x = data(i).tracks(:,2,1,:);
 
 
 %% Quality control

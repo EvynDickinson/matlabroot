@@ -42,7 +42,21 @@ for i = vidloc
     fprintf(['video ' num2str(i) ' | current tracks ' num2str(ntracks(i)) '\n'])
 end
 
-
+response = questdlg('Copy files to backup folder?');
+if strcmpi(response, 'Yes')
+    a = [baseDir 'Tracking backup'];
+    filelist = dir([a '*']);
+    foldercount = length(filelist)+1;
+    enddir = [a ' ' num2str(foldercount)];
+    if ~exist(enddir,"dir")
+        mkdir(enddir)
+    end
+    for i = vidloc
+        targetfile = [baseDir 'compiled_video_' num2str(i) '.avi.predictions.slp'];
+        copyfile(targetfile,enddir) % slp file
+        copyfile([targetfile '.h5'],enddir) % h5 file
+    end
+end 
 
 
 
