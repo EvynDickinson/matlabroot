@@ -57,7 +57,38 @@ node_names = {'head', 'center', 'abdomen', 'right_wing', 'left_wing'}; % current
 
 i = proofedFlag(1);
 x = squeeze(data(i).tracks(:,2,1,:));
-isnan(x)
+
+% Quality control 1: screening for locations with more than 2 track points
+nanloc = isnan(x);
+a = sum(nanloc,2)>2;
+if sum(a)>0
+    response = questdlg({[num2str(sum(a)) ' rows with 2+ points found.']; 'Replace with nans?'});
+    if strcmpi(response,'Yes')
+        x(a,:) = nan;
+    else 
+        return
+    end  
+end
+
+% Quality control 2: condense multiple tracks into 2
+% Find where columns 1 and 2 have nans, but row sum = 2
+nanloc = isnan(x);
+sum(nanloc)
+loc = isnan(x(:,1)) & sum(~isnan(x),2)==2;
+if sum(loc)>0
+    response = questdlg([num2str(sum(loc)) ' instances found. What would you like to do?'],...
+        '','Visually approve','Nan replace','Cancel','Visually approve');
+    if strcmpi(response,'Visually approve') % option 1: visually approve
+        %TODO
+        % test coordinates 11111[3]11111
+        % If they don't match up, give option to replace with nans
+    elseif strcmpi(response,'Nan replace') % option 2: replace with nans/skip
+        x(loc,:) = nan;
+    else
+        return % option 3: stop and go to sleap
+    end
+
+end
 
 
 %% Quality control

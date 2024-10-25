@@ -213,7 +213,7 @@ clearvars('-except',initial_vars{:})
 
 plot_err = true;
 autoLim = true;
-xlim_auto = false; % change the time range for the x axis
+xlim_auto = true; % change the time range for the x axis
 time_limits = [0,900]; % time limits if manual control over x-axis range
 nMax =  num.exp;%
 [~,backColor] = formattingColors(blkbgd); %get background colors
@@ -252,7 +252,7 @@ dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true);
-for i = [9,12,10]%num.exp:-1:1
+for i = num.exp:-1:1
     x = grouped(i).time;
     kolor = grouped(i).color;
 
