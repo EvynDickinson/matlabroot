@@ -34,6 +34,8 @@
 
 % X = linspace(-5,5,300); % these were the samples we used to generate the distributions
 
+clear
+clc
 
 T_labels = {'WBANNO','UTC_DATE', 'UTC_TIME', 'LST_DATE', 'LST_TIME', 'CRX_VN', 'LONGITUDE', ...
                     'LATITUDE', 'AIR_TEMPERATURE','PRECIPITATION','SOLAR_RADIATION', 'SR_FLAG',...
@@ -51,7 +53,8 @@ clear T_labels i
 
 % Folder structures: 
 % baseFolder = 'H:\NOAA Data\Fully sampled\'; % path to raw data base folder
-baseFolder = '/Users/evyndickinson/Documents/NOAA Data/Fully sampled/'; % path to raw data base folder
+% baseFolder = '/Users/evyndickinson/Documents/NOAA Data/Fully sampled/'; % path to raw data base folder
+baseFolder = getDataPath
 
 load([baseFolder 'Fully sampled NOAA sites.mat'])
 
@@ -120,7 +123,7 @@ for i = 1:n.Samples
     surface_TR = [diff(surf_temp)]./time_gap;
     city_data(:,27) = [nan; surface_TR];
 
-
+end
 
 sum(missingPoints<maxMissing)
 

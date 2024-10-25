@@ -90,7 +90,7 @@ switch dataType
     case 6 % courtship
         path_end = paths.courtship;
     case 7 % NOAA
-        path_end = paths.NOAA;
+        path_end
 end
 
 % BASE DRIVE LOCATION SELECTION
@@ -156,7 +156,7 @@ if dataLocation==0 % USER INPUT SELECTION
         switch questdlg(promptString, 'Drive Location', 'On The Go', 'Server', 'Cancel', 'Server')
             case 'On The Go' 
                     drive_loc_sel = 3;
-            case 'Server' 
+            case 'Server'
                     drive_loc_sel = 2;
              case {'Cancel',''}
                  disp('Path selection canceled')
