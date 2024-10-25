@@ -3,7 +3,11 @@ clear; clc; close all
 path = getDataPath(3, 0, 'Select location of data structure');
 folderSelected = selectFolder(path,'Single', 'Select data structure');
 figdirectory = [path,folderSelected{:} '/'];
+disp('data loading...')
+tic
 load([figdirectory, folderSelected{:} ' ' 'post 3.1 data.mat'])
+toc
+
 
 initial_vars{end + 1} = 'figdirectory';
 
@@ -742,7 +746,7 @@ for trial = 1:ntrials
     sleeppath = [path, T.Date{trial}, '_', T.ExperimentID{trial}, '_', T.Arena{trial}, '\', T.ExperimentID{trial}, ' sleeping data.mat'];
     dummy = load(sleeppath);
     data(trial).sleep = dummy.sleeping;
-    disp( T.ExperimentID{trial})
+    disp(T.ExperimentID{trial})
 end
 
 disp('sleep data loaded')

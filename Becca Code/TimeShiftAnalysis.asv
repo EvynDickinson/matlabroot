@@ -2,8 +2,12 @@
 clear; clc; close all
 path = getDataPath(3, 0, 'Select location of data structure');
 folderSelected = selectFolder(path,'Single', 'Select data structure');
-figdirectory = [path,folderSelected{:} '/'];
-load([figdirectory, folderSelected{:} ' ' 'post 3.1 data.mat'])
+
+for trial = 1:ntrials
+    figdirectory = [path,folderSelected{trial} '/'];
+    load([figdirectory, folderSelected{trial} ' ' 'post 3.1 data.mat'])
+    disp()
+end
 
 initial_vars{end + 1} = 'figdirectory';
 
