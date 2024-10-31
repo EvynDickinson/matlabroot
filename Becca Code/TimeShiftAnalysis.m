@@ -1,15 +1,28 @@
 %% LOAD: data
 clear; clc; close all
+
+% Find data structure folder
 path = getDataPath(3, 0, 'Select location of data structure');
+% Select specific data structure
 folderSelected = selectFolder(path,'Single', 'Select data structure');
+% Establish path to specific data structure
 figdirectory = [path,folderSelected{:} '/'];
+
+% Load data
 disp('data loading...')
 tic
 load([figdirectory, folderSelected{:} ' ' 'post 3.1 data.mat'])
 toc
 
-
+% Set initial variables
 initial_vars{end + 1} = 'figdirectory';
+% initial_vars{end + 1} = 'expstarttime'; don't think this is needed as an initial variable
+initial_vars{end + 1} = 'expstarttime_hr';
+initial_vars{end + 1} = 'groupix';
+initial_vars{end + 1} = 'binedges';
+initial_vars{end + 1} = 'ngroups';
+initial_vars{end + 1} = 'clist';
+initial_vars{end + 1} = 'bkgrd_color';
 
 disp('data loaded')
 
@@ -21,45 +34,45 @@ clearvars('-except',initial_vars{:})
 % Load QuadBowl Experiments excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
 
-% Set initial variables
-initial_vars{end + 1} = 'expstarttime';
-initial_vars{end + 1} = 'expstarttime_hr';
-initial_vars{end + 1} = 'groupix';
-initial_vars{end + 1} = 'binedges';
-initial_vars{end + 1} = 'ngroups';
-initial_vars{end + 1} = 'clist';
-initial_vars{end + 1} = 'bkgrd_color';
-
 disp('start time data loaded')
 
 %% ANALYSIS: make unique trial ID and pull experiment start time
 
-% Create empty variables for later and establish number of trials
+% Establish variables for experiment start times
 expstarttime = [];
 expstarttime_hr = [];
+% Calculate number of trials
 ntrials = size(T,1);
 
 % Make a unique ID for each trial and find experiment start time
 for trial = 1:ntrials
+    % Create unique trial ID
     unqID = [T.Date{trial} '_' T.ExperimentID{trial} '_' T.Arena{trial}];
+    % Load QuadBowl excel file
     explist = excelfile(:,Excel.trialID);
+    % Find row in excel file for each trial
     rownumber = find(strcmp(explist, unqID));
+    % Identify start time and whether it was a day or night experiment
     t = excelfile{rownumber,Excel.starttime};
     dn = excelfile{rownumber,Excel.daynight};
 
-    % Create contingency plan for non-duration values
+    % If start time is reported as a character, create start time variable (h:m:s)
     if ischar(t)
        startdur = duration(t);
+    % If not a character, get h,m,s values to create start time variable
     else
+        % Convert numeric values to datetime values
         newTime = datetime(t,"ConvertFrom", "excel");
-        [h,m,s] = hms(newTime); % get the hour, minute, and second values
-        startdur = duration(h,m,s); % get the output as a duration() array
+        [h,m,s] = hms(newTime); 
+        startdur = duration(h,m,s);
     end
 
+    % If night experiment, subtract 7 hours to align with day start times
     if strcmpi(dn,'N')
         startdur = startdur - duration(7,0,0);
     end
 
+    % Calculate experiment start time (hr) for each trial
     expstarttime{trial} = startdur;
     expstarttime_hr(trial) = hours(expstarttime{trial});
 end
@@ -77,10 +90,10 @@ clearvars('-except',initial_vars{:})
 % Establish edges for time bins
 binedges = [4:2:20];
 
-% Split trials into before and after noon
+% Create group index, used to split trials into time bins
 groupix = discretize(expstarttime_hr,binedges);
 
-% ntrials = size(T,1); % extra, don't think needed here
+% Caluclate number of time bin groups
 ngroups = length(binedges)-1;
 
 disp('next section')
@@ -89,17 +102,24 @@ disp('next section')
 
 clearvars('-except',initial_vars{:})
 
+% Establish x variable
 x = expstarttime_hr;
 
+% FIGURE
+% Create figure
 fig = figure('Name','Experiment start time');
+% Plot frequency of experiment start times across all trials
 h = histogram(expstarttime_hr,binedges);
+
+% Format figure
+formatFig(fig,bkgrd_color)
 h.FaceColor = Color('Plum');
 h.FaceAlpha = 1;
 h.EdgeColor = 'w';
 h.LineWidth = 1.5;
+% Create axes labels
 xlabel('Time of day')
 ylabel('Count')
-formatFig(fig,bkgrd_color)
 
 % Save figure
 save_figure(fig, [figdirectory 'Experiment start times histogram'], '-png');
@@ -635,31 +655,44 @@ save_figure(fig, [figdirectory 'Starting distance to food before ', inputVar], '
 clearvars('-except',initial_vars{:}) 
 plot_err = true; 
 [foreColor,backColor] = formattingColors(bkgrd_color); 
+
+% Time offset from start of experiment to start of each ramp
 toffset = [100/60, 212/60, 324/60];
+% Period of time before/after ramp to look at distance from food
 windowsize = 5; %in minutes
 
+% FIGURE
+% Create figure
 fig = getfig;
 hold on
-
 for trial = 1:ntrials
     hold on
-    loc = data(trial).data.foodwell; %column number that has the food
-    y = data(trial).data.dist2well(:,loc); %y variable = distance to food well
-    tempPoints = getTempTurnPoints(temp_protocol);
+    % Establish y variable
+    loc = data(trial).data.foodwell;
+    y = data(trial).data.dist2well(:,loc);
     
+    % Calculate number of frames within the established windowsize
+    tempPoints = getTempTurnPoints(temp_protocol);
     nframes = tempPoints.fps*60*windowsize;
+    
+    % Plot distance to food at start of each ramp across Zeitgeber time
     for r = 1:3
+        % Identify frames in the window at the start of each ramp
         rstart = tempPoints.hold(r,2)-nframes:tempPoints.hold(r,2);
+        % Calulate average distance to food at each ramp start
         rstartavg = mean(y(rstart));
-        zeit = expstarttime_hr(trial) - 8 + toffset(r); %Zeitgeber time (hrs) since start of experiment
+        % Calculate Zeitgeber time (in hrs) of each ramp start
+        zeit = expstarttime_hr(trial) - 8 + toffset(r); 
+        % Create scatter plot
         scatter(zeit,rstartavg,30,Color(clist{groupix(trial)}),'filled')
     end
-
 end
 
+% Format figure
+formatFig(fig,bkgrd_color);
+% Create axis labels
 xlabel('Zeitgeber time')
 ylabel('Distance to food (mm)')
-formatFig(fig,bkgrd_color);
 
 % Save figure
 save_figure(fig, [figdirectory 'Distance to food across Zeitgeber time'], '-png')
