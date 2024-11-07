@@ -101,7 +101,7 @@ time = (linspace(1, (frame(end)/parameters.FPS)/60, frame(end)))';
 % figure; plot(time,temperature,'color',Color('black'))
 
 % Data table with continuous variables:
-T = table(frame, time, temperature, tempWork, vidNums, vidFrame, fragNum);
+T = table(frame, time, temperature, vidNums, vidFrame, fragNum);
 
 save([baseDir, expName ' alignment table'],'T','parameters','expName')
 

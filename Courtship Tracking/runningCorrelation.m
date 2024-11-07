@@ -1,8 +1,13 @@
 
 function running_corr = runningCorrelation(data, windowSize)
+    % running_corr = runningCorrelation(data, windowSize)
+    %
     % Input:
     % - data: a matrix with two columns representing the time series
     % - windowSize: the size of the sliding window (number of points)
+    % 
+    %
+    % ES Dickinson
 
     % Number of data points
     n = size(data, 1);
