@@ -1,10 +1,9 @@
 
 
-function rotatedPoints = rotateToVertical(points, p1, p2,plot_fig)
+function [rotatedPoints, R] = rotateToVertical(points, p1, p2,plot_fig)
     % points: Nx2 matrix of points where each row is [x, y]
     % p1: index of the first point (or [x1, y1] coordinates)
     % p2: index of the second point (or [x2, y2] coordinates)
-    
 
     if ~exist('plot_fig', 'var')
         plot_fig = false;
