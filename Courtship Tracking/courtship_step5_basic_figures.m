@@ -1,0 +1,589 @@
+%% 
+% pos (frame, body points, XY)
+% body points (head, center, abdomen, right wing, left wing)
+
+%% (DONE) Determine the conversion between pixels to mm
+
+% vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
+% movieInfo = VideoReader(vidpath); %read in video
+% demoImg = (read(movieInfo,1));
+% well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
+% 
+% % distance between well 1 and 3
+% d = [];
+% well_1 = well_loc(:,1);
+% well_3 = well_loc(:,3);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% % distance between well 2 and 4
+% well_1 = well_loc(:,2);
+% well_3 = well_loc(:,4);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% 
+% pixelsbetweenwells = mean(d); %pixels
+% actualdistance =  31.2; %mm
+% pix2mm = actualdistance/pixelsbetweenwells; % multiplier
+
+%% TODOs 
+% create predictions of courtship periods
+% how long are they in courtship
+% distance to food
+% body angle between flies
+% outer ring occupancy
+% sleep
+
+%% Load data
+clear; clc;
+baseFolder = [getDataPath(6,0),'Trial Data/'];
+trialDir = selectFolder(baseFolder);
+baseDir = [baseFolder, trialDir{:} '\'];
+figDir = [baseDir,'Figures\'];
+if ~exist(figDir, 'dir')
+    mkdir(figDir)
+end
+
+load([baseDir, 'basic data.mat']) % load the parameters and temp table
+
+% Experiment parameters
+nvids = parameters.nVids; % number of videos
+fps = parameters.FPS;
+time = T.time;
+blkbnd = false;
+fig_type = '-pdf';
+[foreColor,backColor] = formattingColors(blkbnd); %get background colors
+pix2mm = 0.0289; % calculated on the new back setup 11/7/24
+
+% Initial variables
+initial_var = who;
+initial_var{end+1} = 'intial_var';
+
+%% Extract calculated variables
+clearvars('-except',initial_var{:})
+
+% inter-fly-distance from the fly's center point
+x1 = m.pos(:,2,1);
+y1 = m.pos(:,2,2);
+x2 = f.pos(:,2,1);
+y2 = f.pos(:,2,2);
+IFD = (sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm;
+T.IFD = IFD; % add interfly distance to the data table
+
+% fly speed
+speed = [];
+D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; % male speed
+m.speed = [0;(D./(1/fps))];
+D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % male speed
+f.speed = [0; (D./(1/fps))];
+
+%% Screen for frames with funky wing positions
+clearvars('-except',initial_var{:})
+
+% postions: 1-head, 2-center, 3-abdo, 4-left wing, 5-right wing
+data = [];
+initial_var{end+1} = 'data';
+for sex = 1:2
+    switch sex
+        case 1
+            sex_type = 'male';
+            x = m.pos(:,:,1);
+            y = m.pos(:,:,2);
+        case 2
+            sex_type = 'female';
+            x = f.pos(:,:,1);
+            y = f.pos(:,:,2);
+    end
+    % 1) Shift each frame to the origin
+    x_offset = x(:,2);
+    y_offset = y(:,2);
+    X = x-x_offset;
+    Y = y-y_offset;
+    
+    % 2) Rotate each set of points to head and center on the Y axis
+    newX = nan([length(X),5]);
+    newY = nan([length(Y),5]);
+    for frame = 1:length(X)
+        points = [X(frame,:)',Y(frame,:)'];
+        rotatedPoints = rotateToVertical(points, 2,1,false);
+        newX(frame,:) = rotatedPoints(:,1);
+        newY(frame,:) = rotatedPoints(:,2);
+    end
+    
+    % plot fly positions for all time: 
+    SZ = 5; r = 1; c = 2;
+    fig = getfig(sex_type,1,[1058 781]);
+    subplot(r,c,1)
+        hold on
+        CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+        for i = 1:5
+            scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
+        end
+        axis square equal
+        set(gca, 'xcolor', backColor, 'ycolor',backColor)
+        title('Before Correction')
+    
+    % 3) eliminate points that are absolutely incorrect
+    failstate = newY(:,1)<0; % head is below the center
+    failstate = [failstate, newY(:,3:5)>0]; %abdomen or wings are above the center point (on head side)
+    loc = any(failstate,2);
+    disp([sex_type ' fly elimination points: ' num2str(sum(loc))])
+    newX(loc,:) = nan;
+    newY(loc,:) = nan;
+    
+    % 4) flip R and L wing for mirror image ones
+    flipstate = newX(:,5)<newX(:,3) & newX(:,5)<newX(:,4); % right wing is to the left of the abdomen and L wing
+    flipstate = [flipstate, newX(:,4)>newX(:,3) & newX(:,4)>newX(:,5)]; % left wing is to the right of the abdomen and R wing
+    loc = any(flipstate,2);
+    disp([sex_type ' fly flip wing points: ' num2str(sum(loc))])
+    wing_L = newX(loc,5);
+    wing_R = newX(loc,4);
+    newX(loc,4:5) = [wing_L,wing_R];
+    
+    % 5) remove frames with both wings on one side of the abdoment
+    flipstate = newX(:,5)<newX(:,3) & newX(:,4)<newX(:,3); % wings the left of the abdomen
+    flipstate = [flipstate, newX(:,5)>newX(:,3) & newX(:,4)>newX(:,3)]; %wings to the right of the abdomen 
+    loc = any(flipstate,2);
+    disp([sex_type ' fly wing-abdo elimination points: ' num2str(sum(loc))])
+    newX(loc,:) = nan;
+    newY(loc,:) = nan;
+    
+    % plot fly positions after adjustments: 
+    subplot(r,c,2)
+        hold on
+        CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+        for i = 1:5
+            scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
+        end
+        axis square equal
+        set(gca, 'xcolor',backColor, 'ycolor',backColor)
+        title('After Correction')
+    % save the data
+    data(sex).x = newX;
+    data(sex).y = newY;
+
+    % save figures: 
+    save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type, true, false);
+end
+
+% plot male and female on the same scale
+ fig = getfig('Male vs Female',1,[1058 781]);
+ for sex = 1:2
+    subplot(r,c,sex)
+    hold on
+        CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+        for i = 1:5
+            scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
+        end
+        axis square equal
+        set(gca, 'xcolor',backColor, 'ycolor',backColor)
+ end
+fig = matchAxis(fig,true);
+% save figures: 
+save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
+
+clearvars('-except',initial_var{:})
+wing = [];
+for sex = 1:2
+    for w = 1:2
+        switch w 
+            case 1
+                P1 = [data(sex).x(:,4),data(sex).y(:,4)]; % left
+            case 2
+                P1 = [data(sex).x(:,5),data(sex).y(:,5)]; % right
+        end
+        
+        P2 = [data(sex).x(:,2),data(sex).y(:,2)]; % center
+        P3 = [data(sex).x(:,3),data(sex).y(:,3)]; % abdomen
+        
+        % 1: Calculate vectors from P2 to P1 and from P2 to P3
+        v1 = P1 - P2;  % Nx2 matrix, vector from P2 to P1 for each time step
+        v2 = P3 - P2;  % Nx2 matrix, vector from P2 to P3 for each time step
+        
+        % 2: Calculate the dot product of v1 and v2 for each time step
+        dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
+        
+        % 3: Calculate the magnitudes of v1 and v2 for each time step
+        mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2);
+        mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2);
+        
+        % 4: Calculate the cosine of the angle for each time step
+        cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
+        
+        % 5: Compute the angle in radians, and then convert to degrees
+        anglesRadians = acos(cosTheta);  % Nx1 vector of angles in radians
+        anglesDegrees = rad2deg(anglesRadians);  % Convert to degrees
+        
+        data(sex).wingangle(:,w) = anglesDegrees;
+
+    end
+     loc = any(isnan(data(sex).wingangle),2);
+     data(sex).wingspread = sum(data(sex).wingangle,2);
+     data(sex).wingspread(loc,:) = nan;
+end
+  
+% compare male L and R wing angles
+fig = getfig('',true, [1032 300]); 
+    hold on
+    plot(time, data(1).wingangle(:,1),'color', Color('blue'),'linewidth', 1) % left wing
+    plot(time, data(1).wingangle(:,2),'color', Color('gold'),'linewidth', 1) % right wing
+    xlabel('time (s)')
+    ylabel('wing angle (\circ)')
+formatFig(fig, blkbnd);
+set(gca, 'xcolor',foreColor)
+save_figure(fig,[figDir 'male wing angle'],fig_type);
+
+% compare male and female wing angles
+fig = getfig('',true, [1032 300]); 
+hold on
+    plot(time, data(1).wingspread,'color', Color('dodgerblue'),'linewidth', 1) % male wing spread
+    plot(time, data(2).wingspread,'color', Color('deeppink'),'linewidth', 1) % female wing spread
+xlabel('time (s)')
+ylabel('wing angle (\circ)')
+formatFig(fig, blkbnd);
+save_figure(fig,[figDir 'M and F wing angles'],fig_type);
+
+%% Calculate the angle between the fly wings
+clearvars('-except',initial_var{:})
+wing = [];
+
+x = 1;
+y = 2;
+head = 1;
+center = 2;
+P1 = [m.pos(:,center,x),m.pos(:,center,y)]; % male center
+P2 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
+P3 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
+P4 = [f.pos(:,head,x),f.pos(:,head,y)]; % female head
+
+% 1: Calculate body vectors
+v1 = P1 - P2;  % Nx2 matrix, vector for male body vector
+v2 = P3 - P4;  % Nx2 matrix, vector for female body vector
+
+% 2: Calculate the dot product of v1 and v2 for each time step
+dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
+
+% 3) Compute the magnitudes of the vectors
+mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2); 
+mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2); 
+
+% 4) Calculate the cosine of the angle
+cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
+
+% 5) Compute the angle in radians and convert to degrees
+angleRadians = acos(cosTheta);  % Angle in radians
+angleDegrees = rad2deg(angleRadians);  % Convert to degrees
+data(1).mfbodyangle = angleDegrees;
+data(2).mfbodyangle = angleDegrees;
+
+% compare male and female wing angles
+sSpan = 1;%0*fps;
+fig = getfig('',true, [1032 300]); 
+hold on
+  scatter(time, smooth(angleDegrees,sSpan,'moving'),1, Color('deeppink'))
+    % plot(time, smooth(angleDegrees,sSpan,'moving'), 'color', Color('deeppink'),'linewidth', 1)
+xlabel('time (s)')
+ylabel('body angle (\circ)')
+formatFig(fig, blkbnd);
+save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
+
+figure;
+polarhistogram(angleDegrees)
+
+
+%% Distance, speed, and speed correlation between flies over full video course
+% use the center body point to determine between-fly distance
+clearvars('-except',initial_var{:})
+
+% frame = 5100;
+sz = 50;
+% frame_skip = 5;
+% windowsize = 4; % seconds
+% roi = windowsize*80;
+% ROI = frame-roi:frame_skip:frame;
+
+r = 5; c = 1;
+% xlimit = [50,70];
+% xlimit = [time(ROI(1)),time(ROI(end))];
+
+fig = getfig('',1,[1032 1042]);
+% TEMPERATURE
+subplot(r,c,1)
+    plot(time,T.temperature,'color', foreColor,'LineWidth', 2)
+    % xlabel('time (s)')
+    ylabel('Temperature (\circC)')
+
+% INTERFLY DISTANCE
+subplot(r,c,2) 
+    plot(time,T.IFD,'color', foreColor,'LineWidth', 2)
+    % xlabel('time (s)')
+    ylabel('inter-fly distance (mm)')
+
+% FLY SPEED
+subplot(r,c,3); hold on 
+    sSpan = fps; %single second smoothing
+    y1 = smooth(m.speed,sSpan,'moving'); % male
+    y2 = smooth(f.speed,sSpan,'moving'); % female
+    plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', 2)
+    plot(time, y2, 'color', Color('deeppink'),'LineWidth', 2)
+    ylabel('fly speed (mm/s)')
+
+% FLY SPEED CORRELATION
+subplot(r,c,4); hold on 
+    tSpan = 3; % time window in seconds
+    pSpan = tSpan * fps; % frames in the sliding window
+    y = runningCorrelation([m.speed,f.speed], pSpan);
+    y = smooth(y,pSpan,'moving');
+    offset = ceil(pSpan/2);
+    x = time(offset:offset+length(y)-1)';
+    plot(x, y, 'color', foreColor,'LineWidth', 2)
+    ylabel('M & F speed correlation')
+    h_line(0,'r','--',1)
+
+% FLY WING ANGLE
+subplot(r,c,5); hold on 
+    plot(time, data(1).wingspread,'color', Color('dodgerblue'),'linewidth', 1) % male wingspread
+    plot(time, data(2).wingspread,'color', Color('deeppink'),'linewidth', 1) % female wingspread
+    ylabel('wing angle (\circ)')
+
+% % FLY WING ANGLE
+% subplot(r,c,6); hold on 
+%     plot(time, data.btwnflyangle,'color', foreColor,'linewidth', 1) % left wing
+%     xlabel('time (s)') 
+%     ylabel('angle between flies (\circ)')
+
+oglim = xlim;
+formatFig(fig, blkbnd,[r,c]);
+
+xlimit = [0 64];
+for i = 1:4
+    subplot(r,c,i)
+    set(gca, 'xcolor', 'none')
+    xlim(xlimit)
+end
+subplot(r,c,5)
+xlim(xlimit)
+
+
+save_figure(fig,[baseFolder 'Figures/full timecourse zoom in'], fig_type);
+
+
+
+%% FIGURE: Distance, speed, and speed correcation between flies over full video course
+% use the center body point to determine between-fly distance
+sSpan = 90; % 3 seconds
+% [foreColor,backColor] = formattingColors(false); %get background colors
+
+r = 3; c = 1;
+xlimit = [0,120];
+
+fig = getfig('',1,[1032 1042]);
+% INTERFLY DISTANCE
+subplot(r,c,1) 
+    plot(T.time,IFD,'color', foreColor,'LineWidth', 1.5)
+    % xlabel('time (s)')
+    ylabel('inter-fly distance (mm)')
+    % xlim(xlimit)
+% FLY SPEED
+subplot(r,c,2); hold on 
+    sSpan = fps; %single second smoothing
+    x = time(1:end-1);
+    y1 = smooth(speed(:,1),sSpan,'moving');
+    y2 = smooth(speed(:,2),sSpan,'moving');
+    plot(x, y1, 'color', Color('dodgerblue'),'LineWidth', 2)
+    plot(x, y2, 'color', Color('deeppink'),'LineWidth', 2)
+    ylabel('fly speed (mm/s)')
+    xlim(xlimit)
+
+% FLY SPEED CORRELATION
+subplot(r,c,3); hold on 
+    tSpan = 3; % time window in seconds
+    pSpan = tSpan * fps; % frames in the sliding window
+    y = runningCorrelation(speed, pSpan);
+    y = smooth(y,pSpan,'moving');
+    offset = ceil(pSpan/2);
+    x = time(offset:offset+length(y)-1)';
+    plot(x, y, 'color', foreColor,'LineWidth', 2)
+    xlabel('time (s)')
+    ylabel('M & F speed correlation')
+    h_line(0,'r','--',1)
+    xlim(xlimit)
+
+formatFig(fig, blkbnd,[r,c]);
+subplot(r,c,1)
+set(gca, 'xcolor', backColor)
+subplot(r,c,2)
+set(gca, 'xcolor', backColor)
+
+save_figure(fig,[figDir 'speed and distance timecourse'], fig_type);
+
+
+%% Plot fly positions for a given frame
+frame = 1;
+
+% plot fly positions: 
+fig = getfig('',1,[560 420]);
+    hold on
+    plotFlySkeleton(fig, m.pos(frame, :,1),m.pos(frame, :,2),Color('dodgerblue'),true);
+    plotFlySkeleton(fig, f.pos(frame, :,1),f.pos(frame, :,2),Color('deeppink'),true);
+    axis square equal
+set(gca, 'xcolor', backColor,'ycolor',backColor)
+
+
+%% Distance, speed, and speed correcation between flies over full video course
+% use the center body point to determine between-fly distance
+
+r = 3; c = 1;
+xlimit = [0,120];
+
+fig = getfig('',1,[1032 1042]);
+% INTERFLY DISTANCE
+subplot(r,c,1) 
+    plot(time,IFD,'color', foreColor,'LineWidth', 2)
+    % xlabel('time (s)')
+    ylabel('inter-fly distance (mm)')
+    xlim(xlimit)
+% FLY SPEED
+subplot(r,c,2); hold on 
+    sSpan = fps; %single second smoothing
+    x = time(1:end-1);
+    y1 = smooth(speed(:,1),sSpan,'moving');
+    y2 = smooth(speed(:,2),sSpan,'moving');
+    plot(x, y1, 'color', Color('dodgerblue'),'LineWidth', 2)
+    plot(x, y2, 'color', Color('deeppink'),'LineWidth', 2)
+    ylabel('fly speed (mm/s)')
+    xlim(xlimit)
+
+% FLY SPEED CORRELATION
+subplot(r,c,3); hold on 
+    tSpan = 3; % time window in seconds
+    pSpan = tSpan * fps; % frames in the sliding window
+    y = runningCorrelation(speed, pSpan);
+    y = smooth(y,pSpan,'moving');
+    offset = ceil(pSpan/2);
+    x = time(offset:offset+length(y)-1)';
+    plot(x, y, 'color', foreColor,'LineWidth', 2)
+    xlabel('time (s)')
+    ylabel('M & F speed correlation')
+    h_line(0,'r','--',1)
+    xlim(xlimit)
+
+formatFig(fig, blkbnd,[r,c]);
+subplot(r,c,1)
+set(gca, 'xcolor', backColor)
+subplot(r,c,2)
+set(gca, 'xcolor', backColor)
+
+save_figure(fig,[baseFolder 'Figures/speed and distance timecourse'], fig_type);
+
+
+
+
+
+%% Angle between the flies
+clearvars('-except',initial_var{:})
+
+% 1) Create a vector defined by the head and center of the male fly
+P1 =[m(:,1,1), m(:,1,2)]; % male head x-y vector
+P2 =[m(:,2,1), m(:,2,2)]; % male center x-y vector
+v1 = P2 - P1;  % Vector for male fly
+
+% 2) Create a vector defined by the head and center of the male fly
+P3 =[f(:,1,1), f(:,1,2)]; % female head x-y vector
+P4 =[f(:,2,1), f(:,2,2)]; % female center x-y vector
+v2 = P3 - P4;  % Vector for female fly
+
+% 3) Dot product of the two vectors
+dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);    
+
+% 4) Compute the magnitudes of the vectors
+mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2); 
+mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2); 
+
+% 5) Calculate the cosine of the angle
+cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
+
+% 6) Compute the angle in radians and convert to degrees
+angleRadians = acos(cosTheta);  % Angle in radians
+angleDegrees = rad2deg(angleRadians);  % Convert to degrees
+data.btwnflyangle = angleDegrees;
+
+% 7) Plot the angle between the two flies over time
+fig = getfig('',true, [1032 300]); 
+    hold on
+    plot(time, angleDegrees,'color', foreColor,'linewidth', 1) % left wing
+    xlabel('time (s)') 
+    ylabel('angle between flies (\circ)')
+formatFig(fig, blkbnd);
+set(gca, 'xcolor', foreColor)
+save_figure(fig,[baseFolder 'Figures/angle between flies'],'-png');
+
+
+
+
+
+
+
+
+%%  Plot a frame with tracked points overlaid AND maybe a zoom in of the the behavior at that point?
+clearvars('-except',initial_var{:})
+
+vidpath = "S:\Evyn\DATA\Courtship Videos\Jaime Grant Figure\9.12.2024\Courtship 0001.avi";
+movieInfo = VideoReader(vidpath); %read in video
+
+% plot image with selected number of previously tracked points -- have a
+% zoom in on the fly skeleton?
+
+frame = 5100;
+sz = 50;
+frame_skip = 5;
+demoImg = (read(movieInfo,frame));
+img = imadjust(demoImg,[72/255, 180/255]);
+
+[xlimits, ylimits] = deal([]);
+fig = getfig; 
+    % plot the image
+    imshow(img)
+    % plot the center points of the flies from the past 10 seconds
+    windowsize = 4; % seconds
+    roi = windowsize*80;
+    ROI = frame-roi:frame_skip:frame;
+    %MALE
+    x1 = m(ROI, 1,1);
+    y1 = m(ROI, 1,2);
+    hold on
+    scatter(x1,y1,sz,Color('dodgerblue'), "filled")
+    %FEMALE
+    x2 = f(ROI, 1,1);
+    y2 = f(ROI, 1,2);
+    scatter(x2,y2,sz,Color('deeppink'), "filled")
+
+    lineROI = drawline(gca);
+
+save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
+
+    % Zoom in on the flies
+    xlimits(1) = min([x1;x2]);
+    xlimits(2) = max([x1;x2]);
+    ylimits(1) = min([y1;y2]);
+    ylimits(2) = max([y1;y2]); 
+    buff = 50;
+    xlim([xlimits(1)-buff, xlimits(2)+buff])
+    ylim([ylimits(1)-buff, ylimits(2)+buff])
+
+    % overlay the current body position of the male fly
+    x = m(frame, :,1);
+    y = m(frame, :,2);
+    scatter(x,y,sz,Color('black'), "filled")
+    skeleton = [1,2; 2,3; 2,4; 2,5];
+    for i = 1:size(skeleton,1)
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+    end
+
+    % overlay the current body position of the female fly
+    x = f(frame, :,1);
+    y = f(frame, :,2);
+    scatter(x,y,sz,Color('black'), "filled")
+    skeleton = [1,2; 2,3; 2,4; 2,5];
+    for i = 1:size(skeleton,1)
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+    end
+
+save_figure(fig,[baseFolder 'Figures/zoom frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
