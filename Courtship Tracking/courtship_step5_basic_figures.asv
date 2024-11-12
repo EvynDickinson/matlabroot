@@ -298,19 +298,18 @@ polarhistogram(angleDegrees)
 
 %% Determine male position relative to female
 clearvars('-except',initial_var{:})
-
+M = 1; % male fly
+F = 2; % female fly
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-
-
 % 1) Shift each frame to the origin for female fly
-x_offset = data(2).rawX(:,body.center);
-y_offset = data(2).rawY(:,body.center);
-mx = data(1).rawX-x_offset;
-my = data(1).rawY-y_offset;
-fx = data(2).rawX-x_offset;
-fy = data(2).rawY-y_offset;
+x_offset = data(F).rawX(:,body.center);
+y_offset = data(F).rawY(:,body.center);
+mx = data(M).rawX-x_offset;
+my = data(M).rawY-y_offset;
+fx = data(F).rawX-x_offset;
+fy = data(F).rawY-y_offset;
 
 % 2) Rotate each set of points to head and center on the Y axis
 [mX,mY,fX,fY] = deal(nan(size(mx)));
@@ -320,40 +319,14 @@ for frame = 1:length(mX)
     fX(frame,:) = rotatedPoints(:,1);
     fY(frame,:) = rotatedPoints(:,2);
     mpoints = [mx(frame,:)',my(frame,:)']; % points for only male fly
-    mpoints = mpoints*R;
+    mpoints = (R * mpoints')';
     mX(frame,:) = mpoints(:,1);
     mY(frame,:) = mpoints(:,2);
 end
 
-% 
-slope = [];
-for sex = 1:2
-    % extract the x and y head and center positions to calculcate the slope of the body line
-    X = data(sex).rawX(:,body.head:body.center);
-    Y = data(sex).rawY(:,body.head:body.center);
 
-    % slope for each point in time
-    slope(:,sex) = (Y(:,2)-Y(:,1))./(X(:,2)-X(:,1));
-end
-
-
-m1 = slope(:,2); %'past' heading
-m2 = slope(:,1); % 'current' heading
-
-% calculate the angle between the two slopes 
-theta = atan((m1-m2)./(1+(m1.*m2)));
-theta = rad2deg(theta);
-
-theta = data(1).mfbodyangle;
-theta(theta>90) = theta(theta>90)-90;
-
-test = theta<45;
-
-
-figure;
-
-
-
+theta = data(M).mfbodyangle; % angle between the fly bodies (both neg and positive)
+test = theta<90;
 
 % 3) Plot male positions relative to female fly
 zoom = [-250,250];
@@ -364,12 +337,12 @@ x = mX(test,[body.head,body.center]);
 y = mY(test,[body.head,body.center]);
 x = x(1:skip:end,:);
 y = y(1:skip:end,:);
-plot(x',y','color',data(1).color)
-scatter(x(:,1),y(:,1),15,data(1).color,"filled","^")
+plot(x',y','color',data(M).color)
+scatter(x(:,1),y(:,1),15,data(M).color,"filled","^")
 
 x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
 y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
-plot(x',y','color',data(2).color, 'LineWidth', 2)
+plot(x',y','color',data(F).color, 'LineWidth', 2)
 axis  equal square
 h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
@@ -379,49 +352,177 @@ ylim(zoom)
 formatFig(fig,blkbnd)
 set(gca,'XColor','none','YColor','none')
 
-% Body position rules
+
+% Determine fly body length (~2.5mm)
+BL = 2.5/pix2mm; % body length (in pixels)
+
+% Body position locations
 r.a = mX(:,body.center) >= 0; % everything to right of y axis
 r.b = mX(:,body.center) <= 0; % everything to left of y axis
 r.c = mY(:,body.center) >= 0; % everything above x axis
 r.d = mY(:,body.center) <= 0; % everything below x axis
 
-% Heading rules
+% Heading locations
 r.e = mY(:,body.head) >= mY(:,body.center); % heading direction facing north
 r.f = mY(:,body.head) <= mY(:,body.center); % heading direction facing south
 r.g = mX(:,body.head) >= mX(:,body.center); % heading direction facing east
 r.h= mX(:,body.head) <= mX(:,body.center); % heading direction facing west
 
-% Gray rules
+% Likely 
+BLidx = abs(mX(:,body.center)) <= (5*BL) & abs(mY(:,body.center)) <= (5*BL);
+roi1 = r.b & r.c & r.f & r.g & BLidx;
+roi2 = r.a & r.c & r.f & r.h & BLidx;
+roi3 = r.d & r.b & r.e & r.g & BLidx;
+roi4 = r.a & r.d & r.e & r.h & BLidx;
+
+% Gray locations
+r.i = theta < 90;
+r.j = theta > 90;
+deg = [45, 20, 10];
+
+    % 5) quadrant 1, southwest
+    quad1 = r.b & r.c & r.f & r.h;
+    roi5 = [];
+    for i = 1:3
+        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & quad1;
+        roi5(:,i) = dummy;
+    end
+    roi5 = any(roi5,2);
+    
+    % 6) quadrant 2, southeast
+    quad2 = r.a & r.c & r.f & r.g;
+    roi6 = [];
+    for i = 1:3
+        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & quad2;
+        roi6(:,i) = dummy;
+    end
+    roi6 = any(roi6,2);
+    
+    % 7) quadrant 3, northwest
+    quad3 = r.b & r.d & r.e & r.h;
+    roi7 = [];
+    for i = 1:3
+        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & quad3;
+        roi7(:,i) = dummy;
+    end
+    roi7 = any(roi7,2);
+    
+    % 8) quadrant 4, northeast
+    quad4 = r.a & r.d & r.e & r.g;
+    roi8 = [];
+    for i = 1:3
+        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & quad4;
+        roi8(:,i) = dummy;
+    end
+    roi8 = any(roi8,2);
+    
+    % 9) quadrant 1, northeast
+    quad1 = r.b & r.c & r.e & r.g;
+    roi9 = [];
+    for i = 1:3
+        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & quad1;
+        roi9(:,i) = dummy;
+    end
+    roi9 = any(roi9,2);
+    
+    % 10) quadrant 2, northwest
+    quad2 = r.a & r.c & r.e & r.h;
+    roi10 = [];
+    for i = 1:3
+        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & quad2;
+        roi10(:,i) = dummy;
+    end
+    roi10 = any(roi10,2);
+    
+    % 11) quadrant 3, southeast
+    quad3 = r.d & r.b & r.f & r.g;
+    roi11 = [];
+    for i = 1:3
+        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & quad3;
+        roi11(:,i) = dummy;
+    end
+    roi11 = any(roi11,2);
+    
+    % 12) quadrant 4, southwest
+    quad4 = r.a & r.d & r.f & r.h;
+    roi12 = [];
+    for i = 1:3
+        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & quad4;
+        roi12(:,i) = dummy;
+    end
+    roi12 = any(roi12,2);
+
+gray = roi5 | roi6 | roi7 | roi8;
+gray2 = roi9 | roi10 | roi11 | roi12;
+
+likely = roi1 | roi2 | roi3 | roi4;
+
+loc = gray | gray2 | likely;
+T.courtposition = loc;  % yes = green, no = red
 
 
 
+% 5) Visualize likely and unlikely courtship positions
 
+zoom = [-500,500];
+skip = 20;
+fig = getfig('',1,[1075 871]);
+hold on
 
+% plot the likely courtship male fly body positions
+kolor = Color('firebrick');
+x = mX(~loc,[body.head,body.center]);
+y = mY(~loc,[body.head,body.center]);
+x = x(1:skip:end,:);
+y = y(1:skip:end,:);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
+% plot the likely courtship male fly body positions
+kolor = Color('limegreen');
+x = mX(loc,[body.head,body.center]);
+y = mY(loc,[body.head,body.center]);
+x = x(1:skip:end,:);
+y = y(1:skip:end,:);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+% xlim(zoom)
+% ylim(zoom)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% determine male position in relation to female (top 4 rules)
-% determine male direction/heading in relation to female (bottom 4 rules)
-% screen for angles within margin (20 degrees?)
+formatFig(fig,blkbnd)
+set(gca,'XColor','none','YColor','none')
  
- 
+%% Distance to food
+
+% pull up picture to find food well
+% save food well location
+% calculate distance to food
+% center of food and area of food
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %% Calculate fly turning 
 clearvars('-except',initial_var{:})
@@ -456,18 +557,20 @@ xlabel('time (min)')
 ylabel('turning ')
 
 %% Plot fly positions for given frames
-frames = 1;
+for frame = 1:20
 
 % plot fly positions: 
 fig = getfig('',1,[560 420]);
+
     hold on
-    for frame = frames
+    % for frame = frames
         plotFlySkeleton(fig, data(1).rawX(frame, :),data(1).rawY(frame, :),Color('dodgerblue'),true);
         plotFlySkeleton(fig, data(2).rawX(frame, :),data(2).rawY(frame, :),Color('deeppink'),true);
-    end
+    % end
     axis square equal
 set(gca, 'xcolor', backColor,'ycolor',backColor)
-title([])
+title([num2str(data(1).mfbodyangle(frame))])
+end
 
 %%
 
@@ -497,6 +600,7 @@ clearvars('-except',initial_var{:})
 
 % frame = 5100;
 sz = 50;
+lw = 1;
 % frame_skip = 5;
 % windowsize = 4; % seconds
 % roi = windowsize*80;
@@ -509,13 +613,19 @@ r = 5; c = 1;
 fig = getfig('',1,[1032 1042]);
 % TEMPERATURE
 subplot(r,c,1)
-    plot(time,T.temperature,'color', foreColor,'LineWidth', 2)
+    plot(time,T.temperature,'color', foreColor,'LineWidth', lw)
     % xlabel('time (s)')
-    ylabel('Temperature (\circC)')
+    ylabel('Temp (\circC)')
 
 % INTERFLY DISTANCE
-subplot(r,c,2) 
-    plot(time,T.IFD,'color', foreColor,'LineWidth', 2)
+subplot(r,c,2)
+hold on
+    plot(time,T.IFD,'color', foreColor,'LineWidth', lw)
+    y = rangeLine(fig, 20, false);
+    y1 = double(T.courtposition);
+    zeroloc = T.courtposition == 0;
+    y1(zeroloc) = nan;
+    plot(T.time, y*y1, 'color', Color('gray'), 'LineWidth', 3)
     % xlabel('time (s)')
     ylabel('inter-fly distance (mm)')
 
@@ -524,9 +634,9 @@ subplot(r,c,3); hold on
     sSpan = fps; %single second smoothing
     y1 = smooth(m.speed,sSpan,'moving'); % male
     y2 = smooth(f.speed,sSpan,'moving'); % female
-    plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', 2)
-    plot(time, y2, 'color', Color('deeppink'),'LineWidth', 2)
-    ylabel('fly speed (mm/s)')
+    plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
+    plot(time, y2, 'color', Color('deeppink'),'LineWidth', lw)
+    ylabel('speed (mm/s)')
 
 % FLY SPEED CORRELATION
 subplot(r,c,4); hold on 
@@ -536,14 +646,14 @@ subplot(r,c,4); hold on
     y = smooth(y,pSpan,'moving');
     offset = ceil(pSpan/2);
     x = time(offset:offset+length(y)-1)';
-    plot(x, y, 'color', foreColor,'LineWidth', 2)
-    ylabel('M & F speed correlation')
+    plot(x, y, 'color', foreColor,'LineWidth', lw)
+    ylabel('M & F speed corr')
     h_line(0,'r','--',1)
 
 % FLY WING ANGLE
 subplot(r,c,5); hold on 
-    plot(time, data(1).wingspread,'color', Color('dodgerblue'),'linewidth', 1) % male wingspread
-    plot(time, data(2).wingspread,'color', Color('deeppink'),'linewidth', 1) % female wingspread
+    plot(time, data(1).wingspread,'color', Color('dodgerblue'),'linewidth', lw) % male wingspread
+    plot(time, data(2).wingspread,'color', Color('deeppink'),'linewidth', lw) % female wingspread
     ylabel('wing angle (\circ)')
 
 % % FLY WING ANGLE
