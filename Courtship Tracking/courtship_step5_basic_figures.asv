@@ -427,17 +427,26 @@ r.a = mX(:,body.center) >= 0; % everything to right of y axis
 r.b = mX(:,body.center) <= 0; % everything to left of y axis
 r.c = mY(:,body.center) >= 0; % everything above x axis
 r.d = mY(:,body.center) <= 0; % everything below x axis
+q1 = r.b & r.c; % quadrant one occupancy
+q2 = r.a & r.c; % quadrant two occupancy
+q3 = r.d & r.b; % quadrant three occupancy
+q4 = r.a & r.d; % quadrant four occupancy
 
 % Heading direction rules
 r.e = mY(:,body.head) >= mY(:,body.center); % heading direction facing north
 r.f = mY(:,body.head) <= mY(:,body.center); % heading direction facing south
 r.g = mX(:,body.head) >= mX(:,body.center); % heading direction facing east
 r.h= mX(:,body.head) <= mX(:,body.center); % heading direction facing west
+ne = r.e & r.g; % north east direction
+nw = r.e & r.h; % north west direction
+se = r.f & r.g; % south east direction
+sw = r.f & r.h; % south west direction
+
 
 % Likely rules
 BLidx = abs(mX(:,body.center)) <= (5*BL) & abs(mY(:,body.center)) <= (5*BL); % limits likely roi's to 5 body lengths
 % 1-4)
-roi1 = r.b & r.c & r.f & r.g & BLidx; % quadrant 1, southeast
+roi1 =q1 & r.f & r.g & BLidx; % quadrant 1, southeast
 roi2 = r.a & r.c & r.f & r.h & BLidx; % quadrant 2, southwest
 roi3 = r.d & r.b & r.e & r.g & BLidx; % quadrant 3, northeast
 roi4 = r.a & r.d & r.e & r.h & BLidx; % quadrant 4, northwest
@@ -528,16 +537,16 @@ gray2 = roi9 | roi10 | roi11 | roi12;
 
 % Create variable for likely and maybe courtship positions
 loc = likely | gray | gray2;
-T.courtposition = loc;  % yes = green, no = red
+T.courtposition = loc;  % yes = green, no = red on graph vv
 
 % ------------------------- 5) Visualize likely and unlikely courtship positions ------------------------- 
 
-zoom = [-500,500];
+zoom = [-250,250];
 skip = 20;
+
 fig = getfig('',1,[1075 871]);
 hold on
-
-% plot the likely courtship male fly body positions
+% plot the unlikely courtship male fly body positions
 kolor = Color('firebrick');
 x = mX(~loc,[body.head,body.center]);
 y = mY(~loc,[body.head,body.center]);
@@ -555,15 +564,17 @@ y = y(1:skip:end,:);
 plot(x',y','color',kolor)
 scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
+% plot female head, center, and abdoment
 x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
 y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
 plot(x',y','color',foreColor, 'LineWidth', 2)
+
+% format figure
 axis  equal square
 h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
-% xlim(zoom)
-% ylim(zoom)
-
+xlim(zoom)
+ylim(zoom)
 formatFig(fig,blkbnd)
 set(gca,'XColor','none','YColor','none')
  

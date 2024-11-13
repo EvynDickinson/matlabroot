@@ -427,20 +427,29 @@ r.a = mX(:,body.center) >= 0; % everything to right of y axis
 r.b = mX(:,body.center) <= 0; % everything to left of y axis
 r.c = mY(:,body.center) >= 0; % everything above x axis
 r.d = mY(:,body.center) <= 0; % everything below x axis
+q1 = r.b & r.c; % quadrant one occupancy
+q2 = r.a & r.c; % quadrant two occupancy
+q3 = r.d & r.b; % quadrant three occupancy
+q4 = r.a & r.d; % quadrant four occupancy
 
 % Heading direction rules
 r.e = mY(:,body.head) >= mY(:,body.center); % heading direction facing north
 r.f = mY(:,body.head) <= mY(:,body.center); % heading direction facing south
 r.g = mX(:,body.head) >= mX(:,body.center); % heading direction facing east
 r.h= mX(:,body.head) <= mX(:,body.center); % heading direction facing west
+ne = r.e & r.g; % north east direction
+nw = r.e & r.h; % north west direction
+se = r.f & r.g; % south east direction
+sw = r.f & r.h; % south west direction
+
 
 % Likely rules
 BLidx = abs(mX(:,body.center)) <= (5*BL) & abs(mY(:,body.center)) <= (5*BL); % limits likely roi's to 5 body lengths
 % 1-4)
-roi1 = r.b & r.c & r.f & r.g & BLidx; % quadrant 1, southeast
-roi2 = r.a & r.c & r.f & r.h & BLidx; % quadrant 2, southwest
-roi3 = r.d & r.b & r.e & r.g & BLidx; % quadrant 3, northeast
-roi4 = r.a & r.d & r.e & r.h & BLidx; % quadrant 4, northwest
+roi1 = q1 & se & BLidx; % quadrant 1, southeast
+roi2 = q2 & sw & BLidx; % quadrant 2, southwest
+roi3 = q3 & ne & BLidx; % quadrant 3, northeast
+roi4 = q4 & nw & BLidx; % quadrant 4, northwest
 
 % Gray/maybe rules
 r.i = theta < 90;
@@ -458,64 +467,57 @@ deg = [45, 20, 10];
     roi5 = any(roi5,2);
     
     % 6) quadrant 2, southeast
-    quad2 = r.a & r.c & r.f & r.g;
     roi6 = [];
     for i = 1:3
-        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & quad2;
+        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & q2 & se;
         roi6(:,i) = dummy;
     end
     roi6 = any(roi6,2);
     
     % 7) quadrant 3, northwest
-    quad3 = r.b & r.d & r.e & r.h;
     roi7 = [];
     for i = 1:3
-        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & quad3;
+        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & q3 & nw;
         roi7(:,i) = dummy;
     end
     roi7 = any(roi7,2);
     
     % 8) quadrant 4, northeast
-    quad4 = r.a & r.d & r.e & r.g;
     roi8 = [];
     for i = 1:3
-        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & quad4;
+        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & q4 & ne;
         roi8(:,i) = dummy;
     end
     roi8 = any(roi8,2);
     
     % 9) quadrant 1, northeast
-    quad1 = r.b & r.c & r.e & r.g;
     roi9 = [];
     for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & quad1;
+        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & q1 & ne;
         roi9(:,i) = dummy;
     end
     roi9 = any(roi9,2);
     
     % 10) quadrant 2, northwest
-    quad2 = r.a & r.c & r.e & r.h;
     roi10 = [];
     for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & quad2;
+        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & q2 & nw;
         roi10(:,i) = dummy;
     end
     roi10 = any(roi10,2);
     
     % 11) quadrant 3, southeast
-    quad3 = r.d & r.b & r.f & r.g;
     roi11 = [];
     for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & quad3;
+        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & q3 & se;
         roi11(:,i) = dummy;
     end
     roi11 = any(roi11,2);
     
     % 12) quadrant 4, southwest
-    quad4 = r.a & r.d & r.f & r.h;
     roi12 = [];
     for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & quad4;
+        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & q4 & sw;
         roi12(:,i) = dummy;
     end
     roi12 = any(roi12,2);
