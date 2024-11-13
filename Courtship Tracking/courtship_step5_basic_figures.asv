@@ -34,9 +34,9 @@
 %% Load data
 clear; clc;
 baseFolder = [getDataPath(6,0),'Trial Data/'];
-trialDir = selectFolder(baseFolder);
-baseDir = [baseFolder, trialDir{:} '\'];
-figDir = [baseDir,'Figures\'];
+trialDir = selectFolder(baseFolder); 
+baseDir = [baseFolder, trialDir{:} '\']; % full folder directory for that trial
+figDir = [baseDir,'Figures\']; 
 if ~exist(figDir, 'dir')
     mkdir(figDir)
 end
@@ -49,47 +49,55 @@ fps = parameters.FPS;
 time = T.time;
 blkbnd = false;
 fig_type = '-pdf';
-[foreColor,backColor] = formattingColors(blkbnd); %get background colors
+[foreColor,backColor] = formattingColors(blkbnd); % get background colors
 pix2mm = 0.0289; % calculated on the new back setup 11/7/24
 
+% Create variable to store body points
 body = [];
 for i = 1:length(parameters.node_names)
     body.(parameters.node_names{i}) = i;
 end
 
 % Initial variables
-initial_var = who;
+initial_var = who; % who = all variables created so far
 initial_var{end+1} = 'initial_var';
 
 %% Extract calculated variables
 clearvars('-except',initial_var{:})
 
-% inter-fly-distance from the fly's center point
-x1 = m.pos(:,2,1);
+% Inter-fly-distance from the fly's center point
+x1 = m.pos(:,2,1); % x location for male center
 y1 = m.pos(:,2,2);
 x2 = f.pos(:,2,1);
 y2 = f.pos(:,2,2);
+% calculate interfly distance
 IFD = (sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm;
-T.IFD = IFD; % add interfly distance to the data table
+% add interfly distance to the data table
+T.IFD = IFD; 
 
-% fly speed
+% Fly speed
 speed = [];
 D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; % male speed
 m.speed = [0;(D./(1/fps))];
-D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % male speed
+D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % female speed
 f.speed = [0; (D./(1/fps))];
 
 %% Screen for frames with funky wing positions
 clearvars('-except',initial_var{:})
 
-% postions: 1-head, 2-center, 3-abdo, 4-left wing, 5-right wing
+% postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
+
+% Create variable to hold X and Y data for both male and female
 data = [];
 data(1).rawX = m.pos(:,:,1);
 data(1).rawY = m.pos(:,:,2);
 data(2).rawX = f.pos(:,:,1);
 data(2).rawY = f.pos(:,:,2);
 initial_var{end+1} = 'data';
+
+% For male and female, shift and rotate frame
 for sex = 1:2
+    % for each loop/sex, switch x and y to appropriate values
     switch sex
         case 1
             sex_type = 'male';
@@ -100,97 +108,132 @@ for sex = 1:2
             x = f.pos(:,:,1);
             y = f.pos(:,:,2);
     end
-    % 1) Shift each frame to the origin
-    x_offset = x(:,2);
+
+    % 1) Shift each frame so that the center is at the origin (0,0)
+    x_offset = x(:,2); % x values for center
     y_offset = y(:,2);
-    X = x-x_offset;
+    % subtract the offset from the x values for each body point
+    X = x-x_offset; % new shifted x data set
     Y = y-y_offset;
     
-    % 2) Rotate each set of points to head and center on the Y axis
-    newX = nan([length(X),5]);
+    % 2) Rotate each frame so that the head and center are aligned on the Y axis
+    newX = nan([length(X),5]); % establish variable to hold new rotated x data set
     newY = nan([length(Y),5]);
     for frame = 1:length(X)
+        % identify coordinates for each body point in that frame
         points = [X(frame,:)',Y(frame,:)'];
+        % rotate points so head and center align with y axis
         rotatedPoints = rotateToVertical(points, 2,1,false);
+        % load new rotated points into variable
         newX(frame,:) = rotatedPoints(:,1);
         newY(frame,:) = rotatedPoints(:,2);
     end
     
-    % plot fly positions for all time: 
+    % Plot body point positions for all frames 
     SZ = 5; r = 1; c = 2;
     fig = getfig(sex_type,1,[1058 781]);
+    % before corrections plot
     subplot(r,c,1)
         hold on
         CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+        % plot each body point using new shifted and rotated data
         for i = 1:5
             scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
         end
+        % format figure
         axis square equal
         set(gca, 'xcolor', backColor, 'ycolor',backColor)
         title('Before Correction')
     
-    % 3) eliminate points that are absolutely incorrect
-    failstate = newY(:,1)<0; % head is below the center
-    failstate = [failstate, newY(:,3:5)>0]; %abdomen or wings are above the center point (on head side)
-    loc = any(failstate,2);
+    % 3) Eliminate frames that are absolutely incorrect
+    failstate = newY(:,1)<0; % state where head is below the center
+    failstate = [failstate, newY(:,3:5)>0]; % add state where abdomen or wings are above the center point (on head side)
+    % identify which frames have a failstate (where there are nonzeros)
+    loc = any(failstate,2); 
+    % display number of frames to be eliminated for that fly
     disp([sex_type ' fly elimination points: ' num2str(sum(loc))])
+    % replace elimination frames with nans
     newX(loc,:) = nan;
     newY(loc,:) = nan;
     
-    % 4) flip R and L wing for mirror image ones
-    flipstate = newX(:,5)<newX(:,3) & newX(:,5)<newX(:,4); % right wing is to the left of the abdomen and L wing
-    flipstate = [flipstate, newX(:,4)>newX(:,3) & newX(:,4)>newX(:,5)]; % left wing is to the right of the abdomen and R wing
+    % 4) Flip R and L wing for mirror image ones
+    flipstate = newX(:,5)<newX(:,3) & newX(:,5)<newX(:,4); % state where right wing is to the left of the abdomen and L wing
+    flipstate = [flipstate, newX(:,4)>newX(:,3) & newX(:,4)>newX(:,5)]; % add state where left wing is to the right of the abdomen and R wing
+    % identify which frames have a failstate (where there are nonzeros)
     loc = any(flipstate,2);
+    % display number of wing points to be flipped for that fly
     disp([sex_type ' fly flip wing points: ' num2str(sum(loc))])
+    % flip x values for wing points needing flipped
     wing_L = newX(loc,5);
     wing_R = newX(loc,4);
     newX(loc,4:5) = [wing_L,wing_R];
     
-    % 5) remove frames with both wings on one side of the abdoment
-    flipstate = newX(:,5)<newX(:,3) & newX(:,4)<newX(:,3); % wings the left of the abdomen
-    flipstate = [flipstate, newX(:,5)>newX(:,3) & newX(:,4)>newX(:,3)]; %wings to the right of the abdomen 
+    % 5) Eliminate frames with both wings on one side of the abdomen
+    flipstate = newX(:,5)<newX(:,3) & newX(:,4)<newX(:,3); % state where wings are to the left of the abdomen
+    flipstate = [flipstate, newX(:,5)>newX(:,3) & newX(:,4)>newX(:,3)]; % add state where wings are to the right of the abdomen 
+    % identify which frames have a failstate (where there are nonzeros)
     loc = any(flipstate,2);
+    % display number of frames to be eliminated for that fly
     disp([sex_type ' fly wing-abdo elimination points: ' num2str(sum(loc))])
+    % replace elimination frames with nans
     newX(loc,:) = nan;
     newY(loc,:) = nan;
     
-    % plot fly positions after adjustments: 
+    % Plot fly positions after adjustments: 
+    % after corrections plot
     subplot(r,c,2)
         hold on
         CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+        % plot each body point using cleaned data
         for i = 1:5
             scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
         end
+        % format figure
         axis square equal
         set(gca, 'xcolor',backColor, 'ycolor',backColor)
         title('After Correction')
-    % save the data
+    
+    % Save the cleaned, adjusted data
     data(sex).x = newX;
     data(sex).y = newY;
 
-    % save figures: 
+    % Save figures
     save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type, true, false);
 end
 
-% plot male and female on the same scale
+% Plot male and female body points on the same figure
  fig = getfig('Male vs Female',1,[1058 781]);
  for sex = 1:2
+     switch sex
+        case 1
+            sex_type = 'Male';
+        case 2
+            sex_type = 'Female';
+    end
     subplot(r,c,sex)
     hold on
         CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+        % plot each body point
         for i = 1:5
             scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
         end
+        % format figure
         axis square equal
         set(gca, 'xcolor',backColor, 'ycolor',backColor)
+        title(sex_type)
  end
 fig = matchAxis(fig,true);
-% save figures: 
+
+% Save figure
 save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
 
+%% Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})
+
+% Calculate wing angles for male and female
 wing = [];
 for sex = 1:2
+    % for each loop/wing, switch x and y to appropriate values
     for w = 1:2
         switch w 
             case 1
@@ -218,32 +261,38 @@ for sex = 1:2
         
         % 5: Compute the angle in radians, and then convert to degrees
         anglesRadians = acos(cosTheta);  % Nx1 vector of angles in radians
-        anglesDegrees = rad2deg(anglesRadians);  % Convert to degrees
+        anglesDegrees = rad2deg(anglesRadians);  % convert to degrees
         
+        % Save wing angle values as variable
         data(sex).wingangle(:,w) = anglesDegrees;
-
     end
+
+     % identify where there are nans for wing angle for either wing
      loc = any(isnan(data(sex).wingangle),2);
+     % create wing spread variable by summing wingangles
      data(sex).wingspread = sum(data(sex).wingangle,2);
+     % replace wing spread values with nans where wing angles have nans
      data(sex).wingspread(loc,:) = nan;
 end
   
-% compare male L and R wing angles
+% Compare male L and R wing angles
 fig = getfig('',true, [1032 300]); 
     hold on
     plot(time, data(1).wingangle(:,1),'color', Color('blue'),'linewidth', 1) % left wing
     plot(time, data(1).wingangle(:,2),'color', Color('gold'),'linewidth', 1) % right wing
-    xlabel('time (s)')
-    ylabel('wing angle (\circ)')
+% format figure
+xlabel('time (s)')
+ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
 set(gca, 'xcolor',foreColor)
 save_figure(fig,[figDir 'male wing angle'],fig_type);
 
-% compare male and female wing angles
+% Compare male and female wing angles
 fig = getfig('',true, [1032 300]); 
 hold on
     plot(time, data(1).wingspread,'color', Color('dodgerblue'),'linewidth', 1) % male wing spread
     plot(time, data(2).wingspread,'color', Color('deeppink'),'linewidth', 1) % female wing spread
+% format figure
 xlabel('time (s)')
 ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
@@ -257,6 +306,7 @@ x = 1;
 y = 2;
 head = 1;
 center = 2;
+% positions of M and F head and center
 P1 = [m.pos(:,center,x),m.pos(:,center,y)]; % male center
 P2 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
 P3 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
@@ -277,8 +327,8 @@ mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2);
 cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
 
 % 5) Compute the angle in radians and convert to degrees
-angleRadians = acos(cosTheta);  % Angle in radians
-angleDegrees = rad2deg(angleRadians);  % Convert to degrees
+angleRadians = acos(cosTheta);  % angle in radians
+angleDegrees = rad2deg(angleRadians);  % convert to degrees
 data(1).mfbodyangle = angleDegrees;
 data(2).mfbodyangle = angleDegrees;
 
@@ -303,79 +353,96 @@ F = 2; % female fly
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-% 1) Shift each frame to the origin for female fly
-x_offset = data(F).rawX(:,body.center);
+data(1).color = Color('dodgerblue');
+data(2).color = Color('deeppink');
+
+% ------------------------- 1) Shift each frame to the origin for female fly ------------------------- 
+x_offset = data(F).rawX(:,body.center); % x values for female center
 y_offset = data(F).rawY(:,body.center);
-mx = data(M).rawX-x_offset;
+mx = data(M).rawX-x_offset; % subtract the offset from the x values for each body point
 my = data(M).rawY-y_offset;
 fx = data(F).rawX-x_offset;
 fy = data(F).rawY-y_offset;
 
-% 2) Rotate each set of points to head and center on the Y axis
+% ------------------------- 2) Rotate each set of points to head and center on the Y axis ------------------------- 
 [mX,mY,fX,fY] = deal(nan(size(mx)));
 for frame = 1:length(mX)
-    fpoints = [fx(frame,:)',fy(frame,:)']; % points for only female fly
+    % identify coordinates for each body point in that frame - female only
+    fpoints = [fx(frame,:)',fy(frame,:)']; 
+    % rotate points so head and center align with y axis
     [rotatedPoints, R] = rotateToVertical(fpoints, body.center,body.head,false);
+    % load new rotated points into variable
     fX(frame,:) = rotatedPoints(:,1);
     fY(frame,:) = rotatedPoints(:,2);
-    mpoints = [mx(frame,:)',my(frame,:)']; % points for only male fly
+    % identify coordinates for each body point in that frame - male only
+    mpoints = [mx(frame,:)',my(frame,:)'];
+    % rotate points in relation to female (using female R)
     mpoints = (R * mpoints')';
+    % load new rotated points into variable
     mX(frame,:) = mpoints(:,1);
     mY(frame,:) = mpoints(:,2);
 end
 
+% Calulate the angle between fly bodies (both - and +)
+theta = data(M).mfbodyangle; 
+test = theta<90; % when is male less than 90 deg from female
 
-theta = data(M).mfbodyangle; % angle between the fly bodies (both neg and positive)
-test = theta<90;
-
-% 3) Plot male positions relative to female fly
+% ------------------------- 3) Plot male positions relative to female fly ------------------------- 
 zoom = [-250,250];
 skip = 20;
+
 fig = getfig('',1,[1075 871]);
 hold on
+
+% plot male coordinates for head and body within test constraints
 x = mX(test,[body.head,body.center]);
 y = mY(test,[body.head,body.center]);
+% only plot every [skip value] points to reduce volume
 x = x(1:skip:end,:);
 y = y(1:skip:end,:);
 plot(x',y','color',data(M).color)
-scatter(x(:,1),y(:,1),15,data(M).color,"filled","^")
+scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
 
+% plot female coordiates for head, body, and abdomen
 x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
 y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
 plot(x',y','color',data(F).color, 'LineWidth', 2)
+
+% format figure
 axis  equal square
 h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
 xlim(zoom)
 ylim(zoom)
-
 formatFig(fig,blkbnd)
 set(gca,'XColor','none','YColor','none')
 
+% ------------------------- 4) Establish likely and unlikely courtship positions ------------------------- 
 
 % Determine fly body length (~2.5mm)
-BL = 2.5/pix2mm; % body length (in pixels)
+BL = 2.5/pix2mm; % in pixels
 
-% Body position locations
+% Body position location rules
 r.a = mX(:,body.center) >= 0; % everything to right of y axis
 r.b = mX(:,body.center) <= 0; % everything to left of y axis
 r.c = mY(:,body.center) >= 0; % everything above x axis
 r.d = mY(:,body.center) <= 0; % everything below x axis
 
-% Heading locations
+% Heading direction rules
 r.e = mY(:,body.head) >= mY(:,body.center); % heading direction facing north
 r.f = mY(:,body.head) <= mY(:,body.center); % heading direction facing south
 r.g = mX(:,body.head) >= mX(:,body.center); % heading direction facing east
 r.h= mX(:,body.head) <= mX(:,body.center); % heading direction facing west
 
-% Likely 
-BLidx = abs(mX(:,body.center)) <= (5*BL) & abs(mY(:,body.center)) <= (5*BL);
-roi1 = r.b & r.c & r.f & r.g & BLidx;
-roi2 = r.a & r.c & r.f & r.h & BLidx;
-roi3 = r.d & r.b & r.e & r.g & BLidx;
-roi4 = r.a & r.d & r.e & r.h & BLidx;
+% Likely rules
+BLidx = abs(mX(:,body.center)) <= (5*BL) & abs(mY(:,body.center)) <= (5*BL); % limits likely roi's to 5 body lengths
+% 1-4)
+roi1 = r.b & r.c & r.f & r.g & BLidx; % quadrant 1, southeast
+roi2 = r.a & r.c & r.f & r.h & BLidx; % quadrant 2, southwest
+roi3 = r.d & r.b & r.e & r.g & BLidx; % quadrant 3, northeast
+roi4 = r.a & r.d & r.e & r.h & BLidx; % quadrant 4, northwest
 
-% Gray locations
+% Gray/maybe rules
 r.i = theta < 90;
 r.j = theta > 90;
 deg = [45, 20, 10];
@@ -383,7 +450,8 @@ deg = [45, 20, 10];
     % 5) quadrant 1, southwest
     quad1 = r.b & r.c & r.f & r.h;
     roi5 = [];
-    for i = 1:3
+    for i = 1:3 % each angle
+        % body center is within appropriate BL, body angle is between [deg] and 180, and inside quadrant 1
         dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & quad1;
         roi5(:,i) = dummy;
     end
@@ -452,17 +520,17 @@ deg = [45, 20, 10];
     end
     roi12 = any(roi12,2);
 
+% ROI's that are likely courtship positions
+likely = roi1 | roi2 | roi3 | roi4;
+% ROI's that are maybe courtship positions
 gray = roi5 | roi6 | roi7 | roi8;
 gray2 = roi9 | roi10 | roi11 | roi12;
 
-likely = roi1 | roi2 | roi3 | roi4;
-
-loc = gray | gray2 | likely;
+% Create variable for likely and maybe courtship positions
+loc = likely | gray | gray2;
 T.courtposition = loc;  % yes = green, no = red
 
-
-
-% 5) Visualize likely and unlikely courtship positions
+% ------------------------- 5) Visualize likely and unlikely courtship positions ------------------------- 
 
 zoom = [-500,500];
 skip = 20;
