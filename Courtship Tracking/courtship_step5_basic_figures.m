@@ -458,11 +458,10 @@ r.j = theta > 90;
 deg = [45, 20, 10];
 
     % 5) quadrant 1, southwest
-    quad1 = r.b & r.c & r.f & r.h;
     roi5 = [];
     for i = 1:3 % each angle
         % body center is within appropriate BL, body angle is between [deg] and 180, and inside quadrant 1
-        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & quad1;
+        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & q1 & sw;
         roi5(:,i) = dummy;
     end
     roi5 = any(roi5,2);
@@ -526,8 +525,8 @@ deg = [45, 20, 10];
 % ROI's that are likely courtship positions
 likely = roi1 | roi2 | roi3 | roi4;
 % ROI's that are maybe courtship positions
-gray = roi5 | roi6 | roi7 | roi8;
-gray2 = roi9 | roi10 | roi11 | roi12;
+gray = roi5 | roi6 | roi7 | roi8; % exceptions moving towards X axis
+gray2 = roi9 | roi10 | roi11 | roi12; %exceptions moving towards Y axis
 
 % Create variable for likely and maybe courtship positions
 loc = likely | gray | gray2;
