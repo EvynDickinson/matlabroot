@@ -58,6 +58,9 @@ for i = 1:length(parameters.node_names)
     body.(parameters.node_names{i}) = i;
 end
 
+M = 1; % male fly index number
+F = 2; % female fly index number
+
 % Initial variables
 initial_var = who; % who = all variables created so far
 initial_var{end+1} = 'initial_var';
@@ -89,10 +92,10 @@ clearvars('-except',initial_var{:})
 
 % Create variable to hold X and Y data for both male and female
 data = [];
-data(1).rawX = m.pos(:,:,1);
-data(1).rawY = m.pos(:,:,2);
-data(2).rawX = f.pos(:,:,1);
-data(2).rawY = f.pos(:,:,2);
+data(M).rawX = m.pos(:,:,1);
+data(M).rawY = m.pos(:,:,2);
+data(F).rawX = f.pos(:,:,1);
+data(F).rawY = f.pos(:,:,2);
 initial_var{end+1} = 'data';
 
 % For male and female, shift and rotate frame
@@ -278,8 +281,8 @@ end
 % Compare male L and R wing angles
 fig = getfig('',true, [1032 300]); 
     hold on
-    plot(time, data(1).wingangle(:,1),'color', Color('blue'),'linewidth', 1) % left wing
-    plot(time, data(1).wingangle(:,2),'color', Color('gold'),'linewidth', 1) % right wing
+    plot(time, data(M).wingangle(:,1),'color', Color('blue'),'linewidth', 1) % left wing
+    plot(time, data(M).wingangle(:,2),'color', Color('gold'),'linewidth', 1) % right wing
 % format figure
 xlabel('time (s)')
 ylabel('wing angle (\circ)')
@@ -290,8 +293,8 @@ save_figure(fig,[figDir 'male wing angle'],fig_type);
 % Compare male and female wing angles
 fig = getfig('',true, [1032 300]); 
 hold on
-    plot(time, data(1).wingspread,'color', Color('dodgerblue'),'linewidth', 1) % male wing spread
-    plot(time, data(2).wingspread,'color', Color('deeppink'),'linewidth', 1) % female wing spread
+    plot(time, data(M).wingspread,'color', Color('dodgerblue'),'linewidth', 1) % male wing spread
+    plot(time, data(F).wingspread,'color', Color('deeppink'),'linewidth', 1) % female wing spread
 % format figure
 xlabel('time (s)')
 ylabel('wing angle (\circ)')
@@ -348,13 +351,11 @@ polarhistogram(angleDegrees)
 
 %% Determine male position relative to female
 clearvars('-except',initial_var{:})
-M = 1; % male fly
-F = 2; % female fly
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-data(1).color = Color('dodgerblue');
-data(2).color = Color('deeppink');
+data(M).color = Color('dodgerblue');
+data(F).color = Color('deeppink');
 
 % ------------------------- 1) Shift each frame to the origin for female fly ------------------------- 
 x_offset = data(F).rawX(:,body.center); % x values for female center
@@ -535,25 +536,39 @@ T.courtposition = loc;  % yes = green, no = red on graph vv
 % ------------------------- 5) Visualize likely and unlikely courtship positions ------------------------- 
 
 zoom = [-250,250];
+
+% pull point locations that will be plotted
 skip = 20;
+likelyidx = find(loc);
+unlikelyidx = find(~loc);
+likelyidx = likelyidx(1:skip:end);
+unlikelyidx = unlikelyidx(1:skip:end);
+allidx = [likelyidx; unlikelyidx];
 
 fig = getfig('',1,[1075 871]);
 hold on
+
+% % plot all fly positions unlikely courtship male fly body positions
+% kolor = Color('grey');
+% x = mX(allidx,[body.head,body.center]);
+% y = mY(allidx,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% % axis equal square
+% formatFig(fig,blkbnd)
+% set(gca,'XColor','none','YColor','none')
+
 % plot the unlikely courtship male fly body positions
-kolor = Color('firebrick');
-x = mX(~loc,[body.head,body.center]);
-y = mY(~loc,[body.head,body.center]);
-x = x(1:skip:end,:);
-y = y(1:skip:end,:);
+kolor = Color('red');
+x = mX(unlikelyidx,[body.head,body.center]);
+y = mY(unlikelyidx,[body.head,body.center]);
 plot(x',y','color',kolor)
 scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
 % plot the likely courtship male fly body positions
 kolor = Color('limegreen');
-x = mX(loc,[body.head,body.center]);
-y = mY(loc,[body.head,body.center]);
-x = x(1:skip:end,:);
-y = y(1:skip:end,:);
+x = mX(likelyidx,[body.head,body.center]);
+y = mY(likelyidx,[body.head,body.center]);
 plot(x',y','color',kolor)
 scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
@@ -561,6 +576,7 @@ scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
 y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
 plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
 
 % format figure
 axis  equal square
@@ -570,6 +586,11 @@ xlim(zoom)
 ylim(zoom)
 formatFig(fig,blkbnd)
 set(gca,'XColor','none','YColor','none')
+
+formatFig(fig,blkbnd)
+rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+
+save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
  
 %% Distance to food
 
@@ -598,8 +619,6 @@ set(gca,'XColor','none','YColor','none')
 
 %% Calculate fly turning 
 clearvars('-except',initial_var{:})
-data(1).color = Color('dodgerblue');
-data(2).color = Color('deeppink');
 for sex = 1:2
     % extract the x and y head and center positions to calculcate the slope of the body line
     x = data(sex).rawX(:,body.head:body.center);
@@ -610,23 +629,23 @@ for sex = 1:2
     Y = y - y(:,2);
     % slope for each point in time
     slope = (Y(:,2)-Y(:,1))./(X(:,2)-X(:,1));
-    m1 = slope(1:end-1); %'past' heading
-    m2 = slope(2:end); % 'current' heading
+    m1 = slope(1:end-1);   % 'past' heading
+    m2 = slope(2:end);      % 'current' heading
     
     % calculate the angle between the two slopes 
     theta = atan((m1-m2)./(1+(m1.*m2)));
     theta = rad2deg(theta);
     data(sex).turning = [nan; theta].*(fps);
-
 end
 
-fig = getfig; hold on
+fig = getfig('',1); hold on
 for sex = 1:2
     plot(time,smooth(data(sex).turning,fps,'moving'),'color', data(sex).color)
 end
 h_line(0,'grey','--')
 xlabel('time (min)')
-ylabel('turning ')
+ylabel('turning (\circ/s)')
+
 
 %% Plot fly positions for given frames
 for frame = 1:20

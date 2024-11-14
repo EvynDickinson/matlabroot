@@ -603,6 +603,10 @@ switch expGroup
     case 'Berlin F LRR 25-17 sensory components'
         expOrder = [2 3 4 5 1]; %full, water, waxed, 25, 17
         colors = {'black','blue','orange', 'magenta', 'pink'};
+        % ============= SILENCING EXPERIMENTS ===============
+    case 'R77C10-gal4 F LRR caviar comparisons'
+         expOrder = 1:2; %
+        colors = {'dodgerblue','Gold'};
 end
 
 if ~exist('colors','var')
