@@ -388,7 +388,7 @@ end
 theta = data(M).mfbodyangle; 
 test = theta<90; % when is male less than 90 deg from female
 
-% ------------------------- 3) Plot male positions relative to female fly ------------------------- 
+% ------------------------- 3) Demo selected angles in male positions relative to female fly ------------------------- 
 zoom = [-250,250];
 skip = 20;
 
