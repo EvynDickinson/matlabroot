@@ -642,12 +642,12 @@ end
 Lwing = any(Lwing,2);
 Rwing = any(Rwing,2);
 
-wa_cutoff = 50;
-wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff));
-a = diff(wing_ext);
-b = [wing_ext(1); a];
-ext_start = find(b == 1);
-ext_stop = find(b == -1);
+wa_cutoff = 50; % minimum wing extension angle for courtship
+wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff)); % wing must be facing the female fly
+a = diff(wing_ext); 
+b = [wing_ext(1); a]; % add the first extension value to the list to account for the starting condition
+ext_start = find(b == 1); % when does an extension period start?
+ext_stop = find(b == -1); % when does an extension period end?
 if wing_ext(end)
     ext_stop(end + 1) = length(time);
 end
@@ -656,10 +656,9 @@ dur_loc = find(ext_dur > fps);
 
 mt = false(size(time));
 for i = dur_loc
-mt(ext_start(i):ext_stop(i)) = true;
+    mt(ext_start(i):ext_stop(i)) = true;
 end
-
-
+T.court_ext = mt;
 
 
 
