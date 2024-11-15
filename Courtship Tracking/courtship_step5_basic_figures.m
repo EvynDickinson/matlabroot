@@ -528,9 +528,33 @@ likely = roi1 | roi2 | roi3 | roi4;
 gray = roi5 | roi6 | roi7 | roi8; % exceptions moving towards X axis
 gray2 = roi9 | roi10 | roi11 | roi12; %exceptions moving towards Y axis
 
+% Saving ROIs
+position = [];
+position.L1 = roi1;
+position.L2 = roi2;
+position.L3 = roi3;
+position.L4 = roi4;
+position.GX1 = roi5;
+position.GX2 = roi6;
+position.GX3 = roi7;
+position.GX4 = roi8;
+position.GY1 = roi9;
+position.GY2 = roi10;
+position.GY3 = roi11;
+position.GY4 = roi12;
+
+
 % Create variable for likely and maybe courtship positions
 loc = likely | gray | gray2;
 T.courtposition = loc;  % yes = green, no = red on graph vv
+likelyidx = find(loc);
+unlikelyidx = find(~loc);
+position.likely = likely;
+position.GX = gray;
+position.GY = gray2;
+position.all_likely = loc;
+position.unlikely = ~loc;
+initial_var{end+1} = 'position';
 
 % ------------------------- 5) Visualize likely and unlikely courtship positions ------------------------- 
 
@@ -538,8 +562,7 @@ zoom = [-250,250];
 
 % pull point locations that will be plotted
 skip = 20;
-likelyidx = find(loc);
-unlikelyidx = find(~loc);
+
 likelyidx = likelyidx(1:skip:end);
 unlikelyidx = unlikelyidx(1:skip:end);
 allidx = [likelyidx; unlikelyidx];
@@ -598,7 +621,87 @@ save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
 % calculate distance to food
 % center of food and area of food
 
+%% Wing extension:
+% wing angle > 60 deg
+% L wing angle in appropriate quadrants
+% R wing angle in appropriate quandrants
+% matrix for yes courtship wing extension, no not courtship
+% diff to see if extension lasts > 1sec
 
+clearvars('-except',initial_var{:})
+
+Lwing = [];
+Rwing = [];
+L_items = {'L1', 'L4', 'GX1', 'GX4', 'GY2', 'GY3'};
+R_items = {'L2', 'L3', 'GX2', 'GX3', 'GY1', 'GY4'};
+for i = 1:length(L_items)
+    Lwing = [Lwing, position.(L_items{i})];
+    Rwing = [Rwing, position.(R_items{i})];
+end
+
+Lwing = any(Lwing,2);
+Rwing = any(Rwing,2);
+
+wa_cutoff = 50;
+wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff));
+a = diff(wing_ext);
+b = [wing_ext(1); a];
+ext_start = find(b == 1);
+ext_stop = find(b == -1);
+if wing_ext(end)
+    ext_stop(end + 1) = length(time);
+end
+ext_dur = ext_stop - ext_start;
+dur_loc = find(ext_dur > fps);
+
+mt = false(size(time));
+for i = dur_loc
+mt(ext_start(i):ext_stop(i)) = true;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Chasing:
+% < 120 deg area behind female
+% facing female
+% 7mm between M center and F center
+% female speed > 0
+% if all are 1 then courtship
+% diff to see if chasing lasts > 2sec
+
+% Circling
+% M head within 3mm?
+% facing female
+% M velocity constant within 1sec
+% if all are 1 then courtship
+% diff to see if circling lasts > 1sec
 
 
 
