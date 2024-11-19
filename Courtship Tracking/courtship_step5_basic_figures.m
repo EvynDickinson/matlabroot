@@ -303,7 +303,6 @@ save_figure(fig,[figDir 'M and F wing angles'],fig_type);
 
 %% Calculate the angle between the fly wings
 clearvars('-except',initial_var{:})
-wing = [];
 
 x = 1;
 y = 2;
@@ -383,6 +382,10 @@ for frame = 1:length(mX)
     mX(frame,:) = mpoints(:,1);
     mY(frame,:) = mpoints(:,2);
 end
+initial_var{end+1} = 'mX';
+initial_var{end+1} = 'mY';
+initial_var{end+1} = 'fX';
+initial_var{end+1} = 'fY';
 
 % Calulate the angle between fly bodies (both - and +)
 theta = data(M).mfbodyangle; 
@@ -632,77 +635,227 @@ clearvars('-except',initial_var{:})
 
 Lwing = [];
 Rwing = [];
+% Determine which positions require which wing to be extended
 L_items = {'L1', 'L4', 'GX1', 'GX4', 'GY2', 'GY3'};
 R_items = {'L2', 'L3', 'GX2', 'GX3', 'GY1', 'GY4'};
+% Identify if male is in an appropriate position for each wing direction across each item
 for i = 1:length(L_items)
     Lwing = [Lwing, position.(L_items{i})];
     Rwing = [Rwing, position.(R_items{i})];
 end
-
+% Condense to identify if male is in any of the appropriate positions
 Lwing = any(Lwing,2);
 Rwing = any(Rwing,2);
 
+% Pull wing angles equal or greater than extension minimum for L and R
 wa_cutoff = 50; % minimum wing extension angle for courtship
 wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff)); % wing must be facing the female fly
+% Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
 a = diff(wing_ext); 
-b = [wing_ext(1); a]; % add the first extension value to the list to account for the starting condition
-ext_start = find(b == 1); % when does an extension period start?
-ext_stop = find(b == -1); % when does an extension period end?
+% Add the first extension value to the list to account for the starting condition
+b = [wing_ext(1); a]; 
+% Locations in wing_ext where extension period starts/end
+ext_start = find(b == 1); 
+ext_stop = find(b == -1);
+% If wing ext doesn't stop by end, add stop location at end of ext_stop (loc = length of experiment value)
 if wing_ext(end)
     ext_stop(end + 1) = length(time);
 end
+% Calculate the length of each wing ext bout
 ext_dur = ext_stop - ext_start;
+% Find where wing ext lasts longer than 1sec
 dur_loc = find(ext_dur > fps);
 
+% Create new courtship matrix with only true wing ext for bouts longer than 1sec
 mt = false(size(time));
-for i = dur_loc
-    mt(ext_start(i):ext_stop(i)) = true;
+for i = 1:length(dur_loc)
+    ii = dur_loc;
+    mt(ext_start(ii):ext_stop(ii)) = true;
 end
 T.court_ext = mt;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% Chasing:
-% < 120 deg area behind female
-% facing female
-% 7mm between M center and F center
-% female speed > 0
+% < 120 deg area behind female x
+% facing female x
+% 7mm between M center and F center x
+% female speed > 0 x
 % if all are 1 then courtship
-% diff to see if chasing lasts > 2sec
+% diff to see if chasing lasts > 2sec x
 
-% Circling
-% M head within 3mm?
-% facing female
+clearvars('-except',initial_var{:})
+
+x = 1;
+y = 2;
+head = 1;
+center = 2;
+% positions of M head and F head and center
+P1 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
+P2 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
+P3 = [f.pos(:,head,x),f.pos(:,head,y)]; % female head
+
+% 1: Calculate body vectors
+v1 = P3 - P1;  % Nx2 matrix, vector for female head to male head
+v2 = P3 - P2;  % Nx2 matrix, vector for female head to female center
+
+% 2: Calculate the dot product of v1 and v2 for each time step
+dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
+
+% 3) Compute the magnitudes of the vectors
+mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2); 
+mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2); 
+
+% 4) Calculate the cosine of the angle
+cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
+
+% 5) Compute the angle in radians and convert to degrees
+angleRadians = acos(cosTheta);  % angle in radians
+angleDegrees = rad2deg(angleRadians);  % convert to degrees
+mfpos_angle = angleDegrees;
+
+% Identify when male position angle is less than 60 degrees from female
+pos_angle = abs(mfpos_angle) <= 60;
+
+% Identify when male is facing female
+facing = [];
+m_items = {'L3', 'L4', 'GX3', 'GX4', 'GY3', 'GY4'};
+% Identify if male is in an appropriate position for each wing direction across each item
+for i = 1:length(m_items)
+    facing = [facing, position.(m_items{i})];
+end
+facing = any(facing,2);
+
+% Identify when male is behind female AND facing her
+mbehindf = (facing & pos_angle);
+
+% Identify when male is within 7mm of female
+close_dist = T.IFD <= 7; % mm
+
+% Identify when female is moving
+fmoving = f.speed >= 0.1; % min speed up for debate
+
+chase = (mbehindf & close_dist & fmoving);
+a = diff(chase); 
+% Add the first chase value to the list to account for the starting condition
+b = [chase(1); a]; 
+% Locations in chase where chasing period starts/end
+ch_start = find(b == 1); 
+ch_stop = find(b == -1);
+% If chasing doesn't stop by end, add stop location at end of ch_stop (loc = length of experiment value)
+if chase(end)
+    ch_stop(end + 1) = length(time);
+end
+% Calculate the length of each chasing bout
+ch_dur = ch_stop - ch_start;
+% Find where chasing lasts longer than 2sec
+dur_loc = find(ch_dur > (2*fps));
+
+
+% Create new courtship matrix with only true chasing bouts longer than 2sec
+mt = false(size(time));
+for i = 1:length(dur_loc)
+    ii = dur_loc(i);
+    mt(ch_start(ii):ch_stop(ii)) = true;
+end
+T.court_chase = mt;
+
+
+
+
+
+
+zoom = [-250,250];
+% pull point locations that will be plotted
+skip = 20;
+
+
+fig = getfig('',1,[1075 871]);
+hold on
+
+% % plot all fly positions unlikely courtship male fly body positions
+% kolor = Color('grey');
+% x = mX(position.all_likely,[body.head,body.center]);
+% y = mY(position.all_likely,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% % axis equal square
+% formatFig(fig,blkbnd)
+% set(gca,'XColor','none','YColor','none')
+
+% plot the unlikely courtship male fly body positions
+kolor = Color('green');
+x = mX(T.court_chase,[body.head,body.center]);
+y = mY(T.court_chase,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+
+% plot female head, center, and abdoment
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
+
+% format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd)
+set(gca,'XColor','none','YColor','none')
+
+formatFig(fig,blkbnd)
+rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+
+% save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
+
+
+
+
+
+%% Circling
+% M head within 3mm? x 
+% facing female x
 % M velocity constant within 1sec
 % if all are 1 then courtship
 % diff to see if circling lasts > 1sec
 
+clearvars('-except',initial_var{:})
 
+% Distance between male head and female
+x1 = m.pos(:,1,1); % x location for male head
+y1 = m.pos(:,1,2);
+x2 = f.pos(:,2,1); % x location for female center
+y2 = f.pos(:,2,2);
+% Calculate male head - female center distance
+d = ((sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm);
+head_dist = d <= 3; % mm
+
+% position.all_likely
+
+% Male velocity
+% speed = distance / time
+% velocity = displacment / time
+
+% SD
+sp_var = std(m.speed, 'omitnan');
+
+a = diff(m.speed); 
+% Add the first chase value to the list to account for the starting condition
+b = [m.speed(1); a]; 
+% Locations in chase where chasing period starts/end
+v_start = find(b == 1); 
+v_stop = find(b == -1);
+% If chasing doesn't stop by end, add stop location at end of ch_stop (loc = length of experiment value)
+if m.speed(end)
+    v_stop(end + 1) = length(time);
+end
+% Calculate the length of each chasing bout
+v_dur = v_stop - v_start;
+% Find where chasing lasts longer than 1sec
+dur_loc = find(v_dur > fps);
 
 
 
