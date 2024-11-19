@@ -769,19 +769,26 @@ zoom = [-250,250];
 % pull point locations that will be plotted
 skip = 20;
 
+% screening = close_dist;
 
 fig = getfig('',1,[1075 871]);
 hold on
-
 % % plot all fly positions unlikely courtship male fly body positions
 % kolor = Color('grey');
-% x = mX(position.all_likely,[body.head,body.center]);
-% y = mY(position.all_likely,[body.head,body.center]);
+% x = mX(1:skip:end,[body.head,body.center]);
+% y = mY(1:skip:end,[body.head,body.center]);
 % plot(x',y','color',kolor)
 % scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 % % axis equal square
 % formatFig(fig,blkbnd)
 % set(gca,'XColor','none','YColor','none')
+% 
+% % plot the likely chase male fly body positions
+% kolor = Color('green');
+% x = mX(screening,[body.head,body.center]);
+% y = mY(screening,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
 % plot the unlikely courtship male fly body positions
 kolor = Color('green');
@@ -807,9 +814,83 @@ formatFig(fig,blkbnd)
 set(gca,'XColor','none','YColor','none')
 
 formatFig(fig,blkbnd)
-rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
 
-% save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
+save_figure(fig,[figDir 'chase positions M fly'],'-png',1,0);
+
+
+
+
+
+
+
+vidpath = "S:\Evyn\DATA\Courtship Videos\Jaime Grant Figure\9.12.2024\Courtship 0001.avi";
+movieInfo = VideoReader(vidpath); %read in video
+
+% plot image with selected number of previously tracked points -- have a
+% zoom in on the fly skeleton?
+
+frame = 5100;
+sz = 50;
+frame_skip = 5;
+demoImg = (read(movieInfo,frame));
+img = imadjust(demoImg,[72/255, 180/255]);
+
+[xlimits, ylimits] = deal([]);
+fig = getfig; 
+    % plot the image
+    imshow(img)
+    % plot the center points of the flies from the past 10 seconds
+    windowsize = 4; % seconds
+    roi = windowsize*80;
+    ROI = frame-roi:frame_skip:frame;
+    %MALE
+    x1 = m(ROI, 1,1);
+    y1 = m(ROI, 1,2);
+    hold on
+    scatter(x1,y1,sz,Color('dodgerblue'), "filled")
+    %FEMALE
+    x2 = f(ROI, 1,1);
+    y2 = f(ROI, 1,2);
+    scatter(x2,y2,sz,Color('deeppink'), "filled")
+
+    lineROI = drawline(gca);
+
+save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
+
+    % Zoom in on the flies
+    xlimits(1) = min([x1;x2]);
+    xlimits(2) = max([x1;x2]);
+    ylimits(1) = min([y1;y2]);
+    ylimits(2) = max([y1;y2]); 
+    buff = 50;
+    xlim([xlimits(1)-buff, xlimits(2)+buff])
+    ylim([ylimits(1)-buff, ylimits(2)+buff])
+
+    % overlay the current body position of the male fly
+    x = m(frame, :,1);
+    y = m(frame, :,2);
+    scatter(x,y,sz,Color('black'), "filled")
+    skeleton = [1,2; 2,3; 2,4; 2,5];
+    for i = 1:size(skeleton,1)
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+    end
+
+    % overlay the current body position of the female fly
+    x = f(frame, :,1);
+    y = f(frame, :,2);
+    scatter(x,y,sz,Color('black'), "filled")
+    skeleton = [1,2; 2,3; 2,4; 2,5];
+    for i = 1:size(skeleton,1)
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+    end
+
+save_figure(fig,[baseFolder 'Figures/zoom frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
+
+
+
+
+
 
 
 
