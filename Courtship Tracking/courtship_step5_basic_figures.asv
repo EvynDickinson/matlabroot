@@ -301,7 +301,7 @@ ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
 save_figure(fig,[figDir 'M and F wing angles'],fig_type);
 
-%% Calculate the angle between the fly wings
+%% Calculate the body angle between the flies
 clearvars('-except',initial_var{:})
 
 x = 1;
@@ -624,7 +624,7 @@ save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
 % calculate distance to food
 % center of food and area of food
 
-%% Wing extension:
+%% Wing extension
 % wing angle > 60 deg
 % L wing angle in appropriate quadrants
 % R wing angle in appropriate quandrants
@@ -676,13 +676,7 @@ T.court_ext = mt;
 
 
 
-%% Chasing:
-% < 120 deg area behind female x
-% facing female x
-% 7mm between M center and F center x
-% female speed > 0 x
-% if all are 1 then courtship
-% diff to see if chasing lasts > 2sec x
+%% Analysis: Chasing
 
 clearvars('-except',initial_var{:})
 
@@ -695,11 +689,11 @@ P1 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
 P2 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
 P3 = [f.pos(:,head,x),f.pos(:,head,y)]; % female head
 
-% 1: Calculate body vectors
+% 1) Calculate body vectors
 v1 = P3 - P1;  % Nx2 matrix, vector for female head to male head
 v2 = P3 - P2;  % Nx2 matrix, vector for female head to female center
 
-% 2: Calculate the dot product of v1 and v2 for each time step
+% 2) Calculate the dot product of v1 and v2 for each time step
 dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
 
 % 3) Compute the magnitudes of the vectors
@@ -751,8 +745,6 @@ ch_dur = ch_stop - ch_start;
 % Find where chasing lasts longer than 2sec
 dur_loc = find(ch_dur > (2*fps));
 
-
-
 % Create new courtship matrix with only true chasing bouts longer than 2sec
 mt = false(size(time));
 for i = 1:length(dur_loc)
@@ -762,47 +754,47 @@ for i = 1:length(dur_loc)
 end
 T.court_chase = mt;
 
+%% Figure: M body positions during chase
 
-zoom = [-250,250];
-% pull point locations that will be plotted
+% Pull point locations that will be plotted
 skip = 20;
+zoom = [-250,250];
 
 % screening = close_dist;
 
 fig = getfig('',1,[1075 871]);
 hold on
-% % plot all fly positions unlikely courtship male fly body positions
-% kolor = Color('grey');
-% x = mX(1:skip:end,[body.head,body.center]);
-% y = mY(1:skip:end,[body.head,body.center]);
-% plot(x',y','color',kolor)
-% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-% % axis equal square
-% formatFig(fig,blkbnd)
-% set(gca,'XColor','none','YColor','none')
-% 
-% % plot the likely chase male fly body positions
-% kolor = Color('green');
-% x = mX(screening,[body.head,body.center]);
-% y = mY(screening,[body.head,body.center]);
-% plot(x',y','color',kolor)
-% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% Plot all male body positions
+kolor = Color('grey');
+x = mX(1:skip:end,[body.head,body.center]);
+y = mY(1:skip:end,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% axis equal square
+formatFig(fig,blkbnd)
+set(gca,'XColor','none','YColor','none')
 
-% plot the unlikely courtship male fly body positions
+% Plot the all male body positions under chase instances
 kolor = Color('green');
 x = mX(T.court_chase,[body.head,body.center]);
 y = mY(T.court_chase,[body.head,body.center]);
 plot(x',y','color',kolor)
 scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
+% % Screening
+% kolor = Color('green');
+% x = mX(screening,[body.head,body.center]);
+% y = mY(screening,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
-% plot female head, center, and abdoment
+% Plot female body
 x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
 y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
 plot(x',y','color',foreColor, 'LineWidth', 2)
 % xlim([-2000,1500]); ylim([-2000,2000])
 
-% format figure
+% Format figure
 axis  equal square
 h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
@@ -814,65 +806,80 @@ set(gca,'XColor','none','YColor','none')
 formatFig(fig,blkbnd)
 % rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
 
-save_figure(fig,[figDir 'chase positions M fly'],'-png',1,0);
+% Save figure
+save_figure(fig,[figDir 'chase positions M fly'],fig_type,1,0);
 
+%% Figure: Chase overlaid on arena with temp timecourse
 
+% Subplots
 r = 5;
 c = 1;
 sb(1).idx = 1;
 sb(2).idx = 2:5;
 
+% For each bout of chase, plot M and F movement on arena image
 for i = 1:size(m.chaseroi,1)
-    frame = m.chaseroi(i,2);
+    % Frame numbers at start and end of each chase bout
     plotroi = m.chaseroi(i,1):m.chaseroi(i,2);
+    % Identify which frame (last in each bout) and video to pull 
+    frame = m.chaseroi(i,2);
     vidnum = T.vidNums(frame);
     
+    % Pull and read in video
     vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
-    movieInfo = VideoReader(vidpath); %read in video
-    
-    % plot image with selected number of previously tracked points -- have a
-    % zoom in on the fly skeleton?
-    
-    
-    sz = 10;
-    lw = 1;
-    frame_skip = 1;
+    movieInfo = VideoReader(vidpath);
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 180/255]);
-    
+
+    % Scatter point size and linewidth
+    sz = 10;
+    lw = 1;
+    % Plot body position at every __ frame
+    frame_skip = 1;
+
+    % Create x and y limit variable for zoomed figures
     [xlimits, ylimits] = deal([]);
+
+    % Plot body positions over chase bout
     fig = getfig(' ', true, [759 900]); 
+    % 1) Temperature
     subplot(r, c, sb(1).idx)
         hold on
+        % Plot temp timecourse
         x = time;
         y = T.temperature;
         plot(x,y,'color', foreColor,'LineWidth', lw)
+        % Plot vertical lines at each chase bout (orange = current bout shown)
         v_line(time(m.chaseroi(:)),'teal',':',2)
         v_line(time(m.chaseroi(i,:)),'orange',':',2)
+        % Axes labels and limits
         xlabel('time (s)')
         ylabel('Temp (\circC)')
         xlim([0,time(end)])
+    % 2) Body positions overlaid on arena image 
     subplot(r, c, sb(2).idx)
-        % plot the image
+        % Plot arena image
         imshow(img)
-        % plot the center points of the flies from the past 10 seconds
+        % Plot fly centers over the course of the chase bout
         ROI = plotroi(1:frame_skip:end);
-        %MALE
+        % Male positions
         x1 = m.pos(ROI, 1,1);
         y1 = m.pos(ROI, 1,2);
         hold on
         scatter(x1,y1,sz,Color('dodgerblue'), "filled")
-        %FEMALE
+        % Female positions
         x2 = f.pos(ROI, 1,1);
         y2 = f.pos(ROI, 1,2);
         scatter(x2,y2,sz,Color('deeppink'), "filled")
     
-        % lineROI = drawline(gca);
-
+    % Format figure
     formatFig(fig, blkbnd, [r,c], sb);
+    % lineROI = drawline(gca);
     
+    % Save figure
     save_figure(fig,[figDir 'Chase_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
     
+    % ---------------------------------------- Zoom in on arena and display skeletons -----------------------------------
         % Zoom in on the flies
         xlimits(1) = min([x1;x2]);
         xlimits(2) = max([x1;x2]);
@@ -882,7 +889,7 @@ for i = 1:size(m.chaseroi,1)
         xlim([xlimits(1)-buff, xlimits(2)+buff])
         ylim([ylimits(1)-buff, ylimits(2)+buff])
 
-        % overlay the current body position of the male fly
+        % Overlay the current body position of the male fly
         x = m.pos(frame, :,1);
         y = m.pos(frame, :,2);
         scatter(x,y,sz,Color('black'), "filled")
@@ -891,7 +898,7 @@ for i = 1:size(m.chaseroi,1)
             plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
         end
 
-        % overlay the current body position of the female fly
+        % Overlay the current body position of the female fly
         x = f.pos(frame, :,1);
         y = f.pos(frame, :,2);
         scatter(x,y,sz,Color('black'), "filled")
@@ -900,11 +907,151 @@ for i = 1:size(m.chaseroi,1)
             plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
         end
     
-    %save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
+    % Save figure
+    save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
 
 
 
+%% ------------------------------ Visualize chasing overlaid on arena image, with other timecourses --------------------------------
+
+% Subplots
+r = 9;
+c = 1;
+sb(1).idx = 1;
+sb(2).idx = 5:9;
+sb(3).idx = 2;
+sb(4).idx = 3;
+sb(5).idx = 4;
+
+% Establish x limits for non-temp timecourses
+xlimit = [time(m.chaseroi(i,1)),time(m.chaseroi(i,2))];
+
+% Plot body movements and timecourses for each chase bout
+for i = 1:size(m.chaseroi,1)
+    % Frame numbers at start and end of each chase bout
+    plotroi = m.chaseroi(i,1):m.chaseroi(i,2);
+    % Identify which frame (last in each bout) and video to pull
+    frame = m.chaseroi(i,2);
+    vidnum = T.vidNums(frame);
+    
+    vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    movieInfo = VideoReader(vidpath); %read in video
+    demoImg = (read(movieInfo,T.vidFrame(frame)));
+    img = imadjust(demoImg,[72/255, 180/255]);
+
+    % Scatter point size and linewidth
+    sz = 10;
+    lw = 1;
+    % Plot body position at every __ frame
+    frame_skip = 1;
+    
+    % Create x and y limit variable for zoomed figures
+    [xlimits, ylimits] = deal([]);
+
+    % Plot body positions and timecourses
+    fig = getfig(' ', true, [759 900]); 
+    % 1) Temperature 
+    subplot(r, c, sb(1).idx)
+        hold on
+        % Plot temp timecourse
+        x = time;
+        y = T.temperature;
+        plot(x,y,'color', foreColor,'LineWidth', lw)
+        % Plot vertical lines at each chase bout (orange = current bout shown)
+        v_line(time(m.chaseroi(:)),'teal',':',2)
+        v_line(time(m.chaseroi(i,:)),'orange',':',2)
+        % Axes labels and limits
+        xlabel('time (s)')
+        ylabel('Temp (\circC)')
+        xlim([0,time(end)])
+    % 2) Interfly distance 
+    subplot(r,c,sb(3).idx)
+        % Plot IFD timecourse
+        plot(time,T.IFD,'color', foreColor,'LineWidth', lw)
+        % Axes labels and limits
+        ylabel('inter-fly distance (mm)')
+        set(gca, 'xcolor', 'none')
+        xlim(xlimit)
+    % 3) Fly speed correlation
+    subplot(r,c,sb(4).idx); 
+        hold on 
+        tSpan = 3; % time window (sec)
+        pSpan = tSpan * fps; % frames in the sliding window
+        % Plot speed corr timecourse
+        y = runningCorrelation([m.speed,f.speed], pSpan);
+        y = smooth(y,pSpan,'moving');
+        offset = ceil(pSpan/2);
+        x = time(offset:offset+length(y)-1)';
+        plot(x, y, 'color', foreColor,'LineWidth', lw)
+        % Axis labels and limits
+        xlabel('time (s)')
+        ylabel('M & F speed corr')
+        % h_line(0,'r','--',1)
+        xlim(xlimit)
+    % 4) Male wingspread 
+    subplot(r,c,sb(5).idx)
+        % Plot IFD timecourse
+        plot(time,data(M).wingspread,'color', foreColor,'LineWidth', lw)
+        % Axes labels and limits
+        ylabel('male wings angle (\circ)')
+        set(gca, 'xcolor', 'none')
+        xlim(xlimit)
+    % 5) Body positions overlaid on arena image 
+    subplot(r, c, sb(2).idx)
+        % Plot arena image
+        imshow(img)
+        % Plot fly centers over the course of the chase bout
+        ROI = plotroi(1:frame_skip:end);
+        % Male positions
+        x1 = m.pos(ROI, 1,1);
+        y1 = m.pos(ROI, 1,2);
+        hold on
+        scatter(x1,y1,sz,Color('dodgerblue'), "filled")
+        % Female positions
+        x2 = f.pos(ROI, 1,1);
+        y2 = f.pos(ROI, 1,2);
+        scatter(x2,y2,sz,Color('deeppink'), "filled")
+    
+    % % Format figure    
+    % lineROI = drawline(gca);
+    % formatFig(fig, blkbnd, [r,c], sb);
+    
+    % Save figure
+    save_figure(fig,[figDir 'Chase_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
+
+    % ---------------------------------------- Zoom in on arena and display skeletons -----------------------------------
+
+        % Zoom in on the flies
+        xlimits(1) = min([x1;x2]);
+        xlimits(2) = max([x1;x2]);
+        ylimits(1) = min([y1;y2]);
+        ylimits(2) = max([y1;y2]); 
+        buff = 50;
+        xlim([xlimits(1)-buff, xlimits(2)+buff])
+        ylim([ylimits(1)-buff, ylimits(2)+buff])
+
+        % Overlay the current body position of the male fly
+        x = m.pos(frame, :,1);
+        y = m.pos(frame, :,2);
+        scatter(x,y,sz,Color('black'), "filled")
+        skeleton = [1,2; 2,3; 2,4; 2,5];
+        for ii = 1:size(skeleton,1)
+            plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
+        end
+
+        % Overlay the current body position of the female fly
+        x = f.pos(frame, :,1);
+        y = f.pos(frame, :,2);
+        scatter(x,y,sz,Color('black'), "filled")
+        skeleton = [1,2; 2,3; 2,4; 2,5];
+        for ii = 1:size(skeleton,1)
+            plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
+        end
+    
+    % Save figure
+    save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
+end
 
 
 
@@ -936,13 +1083,9 @@ binwidth = fps;
 n = length(m.speed) - binwidth; % number of iterations
 offset = ceil(binwidth * 0.5);
 
-fig = getfig;
-hold on
-
 for i = offset:n
     binedges = [T.frame(i):T.frame(binwidth + i)];
     sp_var(i) = std(m.speed(binedges));
-    scatter(time, sp_var(i), 30)
 end
 
 
@@ -953,30 +1096,6 @@ end
 % save that std
 % move to next one
 % plot over time
-
-offset = ceil(binwidth * 0.5);
-mx = data(M).rawX-x_offset; % subtract the offset from the x values for each body point
-my = data(M).rawY-y_offset;
-fx = data(F).rawX-x_offset;
-fy = data(F).rawY-y_offset;
-
-[mX,mY,fX,fY] = deal(nan(size(mx)));
-for frame = 1:length(mX)
-    % identify coordinates for each body point in that frame - female only
-    fpoints = [fx(frame,:)',fy(frame,:)']; 
-    % rotate points so head and center align with y axis
-    [rotatedPoints, R] = rotateToVertical(fpoints, body.center,body.head,false);
-    % load new rotated points into variable
-    fX(frame,:) = rotatedPoints(:,1);
-    fY(frame,:) = rotatedPoints(:,2);
-    % identify coordinates for each body point in that frame - male only
-    mpoints = [mx(frame,:)',my(frame,:)'];
-    % rotate points in relation to female (using female R)
-    mpoints = (R * mpoints')';
-    % load new rotated points into variable
-    mX(frame,:) = mpoints(:,1);
-    mY(frame,:) = mpoints(:,2);
-end
 
 
 
