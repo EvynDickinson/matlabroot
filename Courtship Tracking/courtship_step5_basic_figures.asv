@@ -862,7 +862,7 @@ for i = 1:size(m.chaseroi,1)
         v_line(time(m.chaseroi(i,:)),'orange',':',2)
         % Axes labels and limits
         xlabel('time (s)')
-        ylabel('\circC')
+        ylabel('Temp (\circC)')
         xlim([0,time(end)])
     % 2) Body positions overlaid on arena image 
     subplot(r, c, sb(2).idx)
@@ -889,10 +889,12 @@ for i = 1:size(m.chaseroi,1)
     
     % ---------------------------------------- Zoom in on arena and display skeletons -----------------------------------
         % Zoom in on the flies
-        xlimits(1) = min([x1; x2; m.pos(frame, :,1)'; f.pos(frame, :,1)']);
-        xlimits(2) = max([x1; x2; m.pos(frame, :,1)'; f.pos(frame, :,1)']);
-        ylimits(1) = min([y1;y2; m.pos(frame, :,2)'; f.pos(frame, :,2)']);
-        ylimits(2) = max([y1;y2; m.pos(frame, :,2)'; f.pos(frame, :,2)']);
+        x = m.pos(frame, :,1); % current male
+        y = m.pos(frame, :,2);
+        xlimits(1) = min([x1;x2m.pos(frame, :,1)]);
+        xlimits(2) = max([x1;x2,m.pos(frame, :,1)]);
+        ylimits(1) = min([y1;y2]);
+        ylimits(2) = max([y1;y2]); 
         buff = 50;
         xlim([xlimits(1)-buff, xlimits(2)+buff])
         ylim([ylimits(1)-buff, ylimits(2)+buff])
@@ -919,7 +921,69 @@ for i = 1:size(m.chaseroi,1)
     save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
 
-
+% 
+% vidpath = "S:\Evyn\DATA\Courtship Videos\Jaime Grant Figure\9.12.2024\Courtship 0001.avi";
+% movieInfo = VideoReader(vidpath); %read in video
+% 
+% % plot image with selected number of previously tracked points -- have a
+% % zoom in on the fly skeleton?
+% 
+% frame = 5100;
+% sz = 50;
+% frame_skip = 5;
+% demoImg = (read(movieInfo,frame));
+% img = imadjust(demoImg,[72/255, 180/255]);
+% 
+% [xlimits, ylimits] = deal([]);
+% fig = getfig; 
+%     % plot the image
+%     imshow(img)
+%     % plot the center points of the flies from the past 10 seconds
+%     windowsize = 4; % seconds
+%     roi = windowsize*80;
+%     ROI = frame-roi:frame_skip:frame;
+%     %MALE
+%     x1 = m(ROI, 1,1);
+%     y1 = m(ROI, 1,2);
+%     hold on
+%     scatter(x1,y1,sz,Color('dodgerblue'), "filled")
+%     %FEMALE
+%     x2 = f(ROI, 1,1);
+%     y2 = f(ROI, 1,2);
+%     scatter(x2,y2,sz,Color('deeppink'), "filled")
+% 
+%     lineROI = drawline(gca);
+% 
+% save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
+% 
+%     % Zoom in on the flies
+%     xlimits(1) = min([x1;x2]);
+%     xlimits(2) = max([x1;x2]);
+%     ylimits(1) = min([y1;y2]);
+%     ylimits(2) = max([y1;y2]); 
+%     buff = 50;
+%     xlim([xlimits(1)-buff, xlimits(2)+buff])
+%     ylim([ylimits(1)-buff, ylimits(2)+buff])
+% 
+%     % overlay the current body position of the male fly
+%     x = m(frame, :,1);
+%     y = m(frame, :,2);
+%     scatter(x,y,sz,Color('black'), "filled")
+%     skeleton = [1,2; 2,3; 2,4; 2,5];
+%     for i = 1:size(skeleton,1)
+%         plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+%     end
+% 
+%     % overlay the current body position of the female fly
+%     x = f(frame, :,1);
+%     y = f(frame, :,2);
+%     scatter(x,y,sz,Color('black'), "filled")
+%     skeleton = [1,2; 2,3; 2,4; 2,5];
+%     for i = 1:size(skeleton,1)
+%         plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+%     end
+% 
+% save_figure(fig,[baseFolder 'Figures/zoom frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 
 
 %% ------------------------------ Visualize chasing overlaid on arena image, with other timecourses --------------------------------
