@@ -2,7 +2,7 @@
 % pos (frame, body points, XY)
 % body points (head, center, abdomen, right wing, left wing)
 
-%% (DONE) Determine the conversion between pixels to mm
+%% (DONE) Determine the conversion between pixels to mm for any new video configuration
 
 % vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
 % movieInfo = VideoReader(vidpath); %read in video
@@ -47,8 +47,8 @@ load([baseDir, 'basic data.mat']) % load the parameters and temp table
 nvids = parameters.nVids; % number of videos
 fps = parameters.FPS;
 time = T.time;
-blkbnd = false;
-fig_type = '-pdf';
+blkbnd = true;
+fig_type = '-png';
 [foreColor,backColor] = formattingColors(blkbnd); % get background colors
 pix2mm = 0.0289; % calculated on the new back setup 11/7/24
 
@@ -201,7 +201,7 @@ for sex = 1:2
     data(sex).y = newY;
 
     % Save figures
-    save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type, true, false);
+    save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type);
 end
 
 % Plot male and female body points on the same figure
@@ -624,7 +624,8 @@ save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
 % calculate distance to food
 % center of food and area of food
 
-%% Wing extension
+
+%% ANALYSIS: Find periods of male wing extension:
 % wing angle > 60 deg
 % L wing angle in appropriate quadrants
 % R wing angle in appropriate quandrants
@@ -676,7 +677,13 @@ T.court_ext = mt;
 
 
 
-%% Analysis: Chasing
+%% ANALYSIS & FIGURES: Find periods of chase:
+% < 120 deg area behind female x
+% facing female x
+% 7mm between M center and F center x
+% female speed > 0 x
+% if all are 1 then courtship
+% diff to see if chasing lasts > 2sec x
 
 clearvars('-except',initial_var{:})
 
@@ -745,18 +752,22 @@ ch_dur = ch_stop - ch_start;
 % Find where chasing lasts longer than 2sec
 dur_loc = find(ch_dur > (2*fps));
 
+
 % Create new courtship matrix with only true chasing bouts longer than 2sec
 mt = false(size(time));
 for i = 1:length(dur_loc)
     ii = dur_loc(i);
     mt(ch_start(ii):ch_stop(ii)) = true;
-    m.chaseroi(i,:) = [ch_start(ii), ch_stop(ii)];
 end
 T.court_chase = mt;
 
 %% Figure: M body positions during chase
 
 % Pull point locations that will be plotted
+
+zoom = [-250,250];
+% pull point locations that will be plotted
+
 skip = 20;
 zoom = [-250,250];
 
@@ -911,6 +922,69 @@ for i = 1:size(m.chaseroi,1)
     save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
 
+
+vidpath = "S:\Evyn\DATA\Courtship Videos\Jaime Grant Figure\9.12.2024\Courtship 0001.avi";
+movieInfo = VideoReader(vidpath); %read in video
+
+% plot image with selected number of previously tracked points -- have a
+% zoom in on the fly skeleton?
+
+frame = 5100;
+sz = 50;
+frame_skip = 5;
+demoImg = (read(movieInfo,frame));
+img = imadjust(demoImg,[72/255, 180/255]);
+
+[xlimits, ylimits] = deal([]);
+fig = getfig; 
+    % plot the image
+    imshow(img)
+    % plot the center points of the flies from the past 10 seconds
+    windowsize = 4; % seconds
+    roi = windowsize*80;
+    ROI = frame-roi:frame_skip:frame;
+    %MALE
+    x1 = m(ROI, 1,1);
+    y1 = m(ROI, 1,2);
+    hold on
+    scatter(x1,y1,sz,Color('dodgerblue'), "filled")
+    %FEMALE
+    x2 = f(ROI, 1,1);
+    y2 = f(ROI, 1,2);
+    scatter(x2,y2,sz,Color('deeppink'), "filled")
+
+    lineROI = drawline(gca);
+
+save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
+
+    % Zoom in on the flies
+    xlimits(1) = min([x1;x2]);
+    xlimits(2) = max([x1;x2]);
+    ylimits(1) = min([y1;y2]);
+    ylimits(2) = max([y1;y2]); 
+    buff = 50;
+    xlim([xlimits(1)-buff, xlimits(2)+buff])
+    ylim([ylimits(1)-buff, ylimits(2)+buff])
+
+    % overlay the current body position of the male fly
+    x = m(frame, :,1);
+    y = m(frame, :,2);
+    scatter(x,y,sz,Color('black'), "filled")
+    skeleton = [1,2; 2,3; 2,4; 2,5];
+    for i = 1:size(skeleton,1)
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+    end
+
+    % overlay the current body position of the female fly
+    x = f(frame, :,1);
+    y = f(frame, :,2);
+    scatter(x,y,sz,Color('black'), "filled")
+    skeleton = [1,2; 2,3; 2,4; 2,5];
+    for i = 1:size(skeleton,1)
+        plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', Color('black'),'LineWidth', 1.5)
+    end
+
+save_figure(fig,[baseFolder 'Figures/zoom frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 
 
 %% ------------------------------ Visualize chasing overlaid on arena image, with other timecourses --------------------------------
@@ -1078,6 +1152,8 @@ head_dist = d <= 3; % mm
 % position.all_likely
 
 % Male velocity
+% speed = distance / time
+% velocity = displacment / time
 
 binwidth = fps;
 n = length(m.speed) - binwidth; % number of iterations
@@ -1109,18 +1185,8 @@ xlim([9,13])
 % move to next one
 % plot over time
 
-
-
-
-
-
-
-
-
-
-
-
-
+% SD
+sp_var = std(m.speed, 'omitnan');
 
 a = diff(m.speed); 
 % Add the first chase value to the list to account for the starting condition
