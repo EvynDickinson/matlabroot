@@ -30,6 +30,11 @@
 % body angle between flies
 % outer ring occupancy
 % sleep
+% make a plot of all behaviors that meet everything but the time minimum &
+% plot them with the 'official' behavior periods (raster plot style)
+% circling behavior
+% courtship index 
+% courtship index vs temperature
 
 %% Load data
 clear; clc;
@@ -628,12 +633,19 @@ demoImg = (read(movieInfo,T.vidFrame(1)));
 img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
 
 % save food well location
+txt = {'12', '3', '6', '9'};
+well = struct; % initialize the new well structure
 fig = getfig('');
 imshow(img)
-roi = drawcircle; % manually add in the circle over the food well
-well = struct; % initialize the new well structure
-well.radius = roi.Radius;
-well.center = roi.Center;
+for i = 1:4 
+    h = warndlg(['Outline the ' txt{i} ' oclock well']);
+    uiwait(h)
+    roi = drawcircle; % manually add in the circle over the food well
+    well.radius(i) = roi.Radius;
+    well.center(i,:) = roi.Center;
+end
+well.R = mean(well.radius)*pix2mm;
+ 
 
 % calculate distance to food (from fly head)
 x1 = m.pos(:,1,1); % x location for male center
@@ -653,8 +665,8 @@ T.FlyOnFood = T.dist2food<=(well.radius.*pix2mm); % fly head must be within the 
 %% FIGURE: fly distance to food and flies on food
 r = 4;
 c = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:4;
+sb(1).idx = 1; % temperature
+sb(2).idx = 2:4; % distance to food
 lw = 2;
 sSpan = 5*fps;
 spike_H = 2;    %height of each raster

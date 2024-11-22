@@ -30,6 +30,11 @@
 % body angle between flies
 % outer ring occupancy
 % sleep
+% make a plot of all behaviors that meet everything but the time minimum &
+% plot them with the 'official' behavior periods (raster plot style)
+% circling behavior
+% courtship index 
+% courtship index vs temperature
 
 %% Load data
 clear; clc;
@@ -628,12 +633,19 @@ demoImg = (read(movieInfo,T.vidFrame(1)));
 img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
 
 % save food well location
+txt = {'12', '3', '6', '9'};
+well = struct; % initialize the new well structure
 fig = getfig('');
 imshow(img)
-roi = drawcircle; % manually add in the circle over the food well
-well = struct; % initialize the new well structure
-well.radius = roi.Radius;
-well.center = roi.Center;
+for i = 1:4 
+    h = warndlg(['Outline the ' txt{i} ' oclock well']);
+    uiwait(h)
+    roi = drawcircle; % manually add in the circle over the food well
+    well.radius(i) = roi.Radius;
+    well.center(i,:) = roi.Center;
+end
+well.R = mean(well.radius)*pix2mm;
+
 
 % calculate distance to food (from fly head)
 x1 = m.pos(:,1,1); % x location for male center
@@ -653,8 +665,8 @@ T.FlyOnFood = T.dist2food<=(well.radius.*pix2mm); % fly head must be within the 
 %% FIGURE: fly distance to food and flies on food
 r = 4;
 c = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:4;
+sb(1).idx = 1; % temperature
+sb(2).idx = 2:4; % distance to food
 lw = 2;
 sSpan = 5*fps;
 spike_H = 2;    %height of each raster
@@ -670,16 +682,11 @@ fig =  getfig('',1);
             % plot the smoothed average distance
             plot(time, smooth(T.dist2food(:,sex),sSpan, 'moving'), 'color', data(sex).color,'linewidth', lw)
         end
-
-        for sex = 1:2
-            % plot the smoothed average distance
-            plot(time, smooth(T.dist2food(:,sex),sSpan, 'moving'), 'color', data(sex).color,'linewidth', lw)
-            
+        y_base = rangeLine(fig, 5, false);
+        for sex = 1:2 
             % plot raster of when the fly is on the food
-            x = time(T.FlyOnFood(:,1));
+            x = time(T.FlyOnFood(:,sex));
             X = [x';x'];
-            % get y bin slot locations
-            y_base = rangeLine(fig, 5, false);
             Y = repmat([y_base;y_base+spike_H],[1,size(X,2)]);           
             plot(X,Y,'color',data(sex).color,'linewidth',spike_W)
             
@@ -698,40 +705,6 @@ formatFig(fig, blkbnd, [r,c],sb);
 
 
 
-
-
-        % get time for each sleep start
-        plotdata(plotdata>length(time)) = []; %remove those outside the universal time
-        x = time(plotdata);
-        X = [x';x'];
-        % get y bin slot locations
-        Y = repmat([y_base;y_base+spike_H],[1,size(X,2)]);
-
-        % PLOT SPIKES
-        plot(X,Y,'color',kolor,'linewidth',spike_W)
-        
-        % Update y-offset
-        y_base = y_base+spike_H+trial_space;
-
-    % plot ramp times...
-    y_base = y_base+trial_space;
-    tp = getTempTurnPoints(data(i).temp_protocol);
-    y = [y_base+(spike_H/2);y_base+(spike_H/2)];
-    
-    % if i == num.exp
-        plot(time(tp.down)',repmat(y,[1,tp.nDown]),'color',Color('dodgerblue'),'linewidth',spike_H*2) %decreasing
-        plot(time(tp.up)',repmat(y,[1,tp.nUp]),'color',Color('red'),'linewidth',spike_H*2) %increasing
-        plot(time(tp.hold)',repmat(y,[1,tp.nHold]),'color',Color('grey'),'linewidth',spike_H*2) %decreasing
-    % end
-    y_base = y(2)+(2+trial_space);
-end
-
-% Plot 
-ylim([-10,y_base+3])
-formatFig(fig,blkbgd);
-set(gca,'TickDir','out')
-xlabel('time (min)')
-set(gca,'ycolor',backColor)
 
 
 
