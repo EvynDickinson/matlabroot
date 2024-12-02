@@ -24,6 +24,7 @@
 % pix2mm = actualdistance/pixelsbetweenwells; % multiplier
 
 %% TODOs 
+% identify periods of temperature cooling, warming, binned temp.
 % create predictions of courtship periods
 % how long are they in courtship
 % distance to food
@@ -626,27 +627,48 @@ save_figure(fig,[figDir 'male fly body positions relative to female'],'-png');
 %% ANALYSIS: Distance to food
 clearvars('-except',initial_var{:})
 
-% pull up picture to find food well
-% vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_1.avi'];
-vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
-movieInfo = VideoReader(vidpath); %read in video
-demoImg = (read(movieInfo,T.vidFrame(1)));
-img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
-
-% save food well location
-txt = {'12', '3', '6', '9'};
-well = struct; % initialize the new well structure
-fig = getfig('');
-imshow(img)
-for i = 1:4 
-    h = warndlg(['Outline the ' txt{i} ' oclock well']);
-    uiwait(h)
-    roi = drawcircle; % manually add in the circle over the food well
-    well.radius(i) = roi.Radius;
-    well.center(i,:) = roi.Center;
+% determine if the well outlines already exist
+well_file = [baseDir 'well locations.mat'];
+if ~exist(well_file, 'file')    
+    % pull up picture to find food well
+    vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_1.avi'];
+    % vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
+    movieInfo = VideoReader(vidpath); %read in video
+    demoImg = (read(movieInfo,T.vidFrame(1)));
+    img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
+    
+    % save food well location
+    txt = {'12', '3', '6', '9'};
+    well = struct; % initialize the new well structure
+    fig = getfig('');
+    imshow(img)
+    for i = 1:4 
+        h = warndlg(['Outline the ' txt{i} ' oclock well']);
+        uiwait(h)
+        roi = drawcircle; % manually add in the circle over the food well
+        well.radius(i) = roi.Radius;
+        well.center(i,:) = roi.Center;
+    end
+    well.R = mean(well.radius)*pix2mm;
+    if strcmp(questdlg('save well locations?'),'Yes')
+        save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
+        save(well_file,'well')
+    end
+else
+    load(well_file,'well')
+    disp('Loaded prior well locations')
 end
-well.R = mean(well.radius)*pix2mm;
- 
+     
+% Center of the arena
+WC = well.center';
+N = [];
+x1 = WC(1,1:2:4);
+y1 = WC(2,1:2:4);
+x2 = WC(1,2:2:4);
+y2 = WC(2,2:2:4);
+[xi,yi] = polyxpoly(x1,y1,x2,y2);
+well.center(5,:) = [xi,yi];
+
 % calculate distance to food (from fly head)
 x1 = m.pos(:,1,1); % x location for male center
 y1 = m.pos(:,1,2);
@@ -659,12 +681,109 @@ m.dist2food = (sqrt((x1-c2).^2 + (y1-c2).^2)).*pix2mm;
 f.dist2food = (sqrt((c1-x2).^2 + (c1-y2).^2)).*pix2mm;
 T.dist2food = [m.dist2food, f.dist2food];
 
-figure; histogram(T.dist2food)
+fig = figure; 
+    histogram(T.dist2food(:,M),'FaceColor',data(M).color,'FaceAlpha',0.8)
+    hold on
+    histogram(T.dist2food(:,F),'FaceColor',data(F).color,'FaceAlpha',0.8)
+    xlabel('distance to food (mm)')
+    formatFig(fig, blkbnd)
+    set(gca,'ycolor', 'none')
 
 % flies ON food
 T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
+disp('Flies on food: M & F')
 sum(T.FlyOnFood)
-% TODO: add quadrant, food circle ROI, and outter ring occupancy here 
+
+%% ANALYSIS: Determine fly occupancy in the outter ring  
+clearvars('-except',initial_var{:})
+
+% Max Distance from Center of Arena : 29.612mm = 30mm radius
+% ArenaArea = 2827.43;
+R = 30; %mm
+innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
+dist_from_edge = (R - innerR);
+
+% find distance from center for each fly center point: 
+xi = well.center(5,1);
+yi = well.center(5,2);
+
+% eccentricity, outter ring occupancy of the flies
+for sex = 1:2
+    %distance from center of arena
+    D = sqrt(((data(sex).rawX(:,body.center)-xi).^2 + (data(sex).rawY(:,body.center)-yi).^2)).*pix2mm; 
+    data(sex).eccentricity = D;
+
+    % outter ring occupancy
+    data(sex).OutterRing = D<=R & D>=innerR; % find the locations that are between edge and inner R
+
+    % quadrant occu
+
+end
+
+% 
+
+        center = data(exp).data(trial).data.centre;
+        x_loc = data(exp).data(trial).data.x_loc;
+        y_loc = data(exp).data(trial).data.y_loc;
+        r = data(exp).data(trial).data.r;
+        foodWell = data(exp).T.foodLoc(trial);
+
+        % Adjust the X and Y coordinates relative to the new center
+        adjustedX = x_loc - center(1);
+        adjustedY = y_loc - center(2);
+        
+        % Initialize matrix to hold quadrant classification (same size as input matrices)
+        quadrantMatrix = zeros(size(x_loc));
+        
+        % Define quadrant masks based on the new center
+        Q = [];
+        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
+        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
+        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
+        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+        
+        % Determine the well locations (which determine quadrant assignment):
+        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
+        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
+        
+        idx_loc = false(1,4);
+        % Find the food quadrant (find location with the food well coordinates included)
+        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
+        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
+        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
+        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
+        quad_loc = find(idx_loc);
+
+        fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
+        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+        nflies = data(exp).T.NumFlies(trial);
+        y = (sum(foodQuad,2)./nflies).*100;
+        quad_occ = autoCat(quad_occ, y,false);
+
+        %  A = quad_occ;
+        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
+        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
+        % 
+        % figure; hold on
+        % plot(A,'color', Color('red'));
+        % plot(C,'color', 'k')
+        % yyaxis right 
+        % plot(B, 'color', 'y')
+        % R = corrcoef(A,B);
+        % disp(['Distance: ' num2str(R(2))])
+        %  R = corrcoef(A,C);
+        % disp(['ROI: ' num2str(R(2))])
+    
+    end
+
+    % save the data to a larger structure
+    grouped(exp).quadrant.all = quad_occ;
+    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
+
+
+
+
 
 %% FIGURE: fly distance to food and flies on food
 r = 4;
