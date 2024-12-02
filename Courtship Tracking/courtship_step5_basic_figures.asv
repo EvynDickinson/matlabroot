@@ -40,8 +40,8 @@
 clear; clc;
 baseFolder = [getDataPath(6,0),'Trial Data/'];
 trialDir = selectFolder(baseFolder); 
-baseDir = [baseFolder, trialDir{:} '\']; % full folder directory for that trial
-figDir = [baseDir,'Figures\']; 
+baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+figDir = [baseDir,'Figures/']; 
 if ~exist(figDir, 'dir')
     mkdir(figDir)
 end
@@ -151,7 +151,7 @@ for sex = 1:2
         end
         % format figure
         axis square equal
-        set(gca, 'xcolor', backColor, 'ycolor',backColor)
+        set(gca, 'xcolor', 'none', 'ycolor','none')
         title('Before Correction')
     
     % 3) Eliminate frames that are absolutely incorrect
@@ -199,7 +199,7 @@ for sex = 1:2
         end
         % format figure
         axis square equal
-        set(gca, 'xcolor',backColor, 'ycolor',backColor)
+        set(gca, 'xcolor','none', 'ycolor','none')
         title('After Correction')
     
     % Save the cleaned, adjusted data
@@ -228,7 +228,7 @@ end
         end
         % format figure
         axis square equal
-        set(gca, 'xcolor',backColor, 'ycolor',backColor)
+        set(gca, 'xcolor','none', 'ycolor','none')
         title(sex_type)
  end
 fig = matchAxis(fig,true);
@@ -351,8 +351,8 @@ ylabel('body angle (\circ)')
 formatFig(fig, blkbnd);
 save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
 
-figure;
-polarhistogram(angleDegrees)
+% figure;
+% polarhistogram(angleDegrees)
 
 %% Determine male position relative to female
 clearvars('-except',initial_var{:})
@@ -621,13 +621,14 @@ set(gca,'XColor','none','YColor','none')
 formatFig(fig,blkbnd)
 rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
 
-save_figure(fig,[figDir 'fly body positions 7'],'-png',1,0);
+save_figure(fig,[figDir 'male fly body positions relative to female'],'-png');
  
 %% ANALYSIS: Distance to food
 clearvars('-except',initial_var{:})
 
 % pull up picture to find food well
-vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_1.avi'];
+% vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_1.avi'];
+vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
 movieInfo = VideoReader(vidpath); %read in video
 demoImg = (read(movieInfo,T.vidFrame(1)));
 img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
@@ -645,8 +646,7 @@ for i = 1:4
     well.center(i,:) = roi.Center;
 end
 well.R = mean(well.radius)*pix2mm;
-
-
+ 
 % calculate distance to food (from fly head)
 x1 = m.pos(:,1,1); % x location for male center
 y1 = m.pos(:,1,2);
@@ -659,8 +659,12 @@ m.dist2food = (sqrt((x1-c2).^2 + (y1-c2).^2)).*pix2mm;
 f.dist2food = (sqrt((c1-x2).^2 + (c1-y2).^2)).*pix2mm;
 T.dist2food = [m.dist2food, f.dist2food];
 
+figure; histogram(T.dist2food)
+
 % flies ON food
-T.FlyOnFood = T.dist2food<=(well.radius.*pix2mm); % fly head must be within the food circle
+T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
+sum(T.FlyOnFood)
+% TODO: add quadrant, food circle ROI, and outter ring occupancy here 
 
 %% FIGURE: fly distance to food and flies on food
 r = 4;
@@ -695,7 +699,18 @@ fig =  getfig('',1);
 
         end
         ylabel('distance to food (mm)')
+        xlabel('time (min)')
+
+        
+       
+
+
 formatFig(fig, blkbnd, [r,c],sb);
+
+
+%% FIGURE: find when flies are on the food
+
+
 
 
 
@@ -757,11 +772,11 @@ dur_loc = find(ext_dur > fps);
 % Create new courtship matrix with only true wing ext for bouts longer than 1sec
 mt = false(size(time));
 for i = 1:length(dur_loc)
-    ii = dur_loc;
+    ii = dur_loc(i);
     mt(ext_start(ii):ext_stop(ii)) = true;
 end
-T.court_ext = mt;
-
+T.wing_ext = mt;
+T.wing_ext_all = wing_ext;
 
 
 %% ANALYSIS & FIGURES: Find periods of chase:
@@ -839,7 +854,6 @@ ch_dur = ch_stop - ch_start;
 % Find where chasing lasts longer than 2sec
 dur_loc = find(ch_dur > (2*fps));
 
-
 % Create new courtship matrix with only true chasing bouts longer than 2sec
 mt = false(size(time));
 for i = 1:length(dur_loc)
@@ -848,6 +862,7 @@ for i = 1:length(dur_loc)
     m.chaseroi(i,:) = [ch_start(ii), ch_stop(ii)];
 end
 T.court_chase = mt;
+T.chase_all = chase;
 
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
@@ -1005,8 +1020,6 @@ for i = 1:size(m.chaseroi,1)
     % Save figure
     save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
-
-
 
 %% FIGURES: Visualize chasing overlaid on arena image, with side zoom on other parameters 
 clearvars('-except',initial_var{:})
@@ -1166,13 +1179,12 @@ for i = 1:size(m.chaseroi,1)
     save_figure(fig,[figDir 'Chase Bout Zoom_', num2str(i), ' from ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
 
-
-
-
-%% [TODO] Circling
-% M head within 3mm? x 
-% facing female x
-% M velocity constant within 1sec
+%% Circling
+% TODO: add some visualization image for the periods of circling
+% M head within 3mm? [head_dist]
+% M facing female [position.likely]
+% M velocity constant within 1sec [const_var]
+% F not moving
 % if all are 1 then courtship
 % diff to see if circling lasts > 1sec
 
@@ -1186,71 +1198,197 @@ y2 = f.pos(:,2,2);
 % Calculate male head - female center distance
 d = ((sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm);
 head_dist = d <= 3; % mm
+% visual check of the close proximity times
+y = nan(size(head_dist));
+y(head_dist) = 1;
+
+% (for fun) how much time did the male fly spend really close to the female fly?
+percent_time_within_3mm = (sum(head_dist)/length(time))*100;
+disp(['Male spend ' num2str(percent_time_within_3mm) '% of experiment close to female'])
 
 % position.all_likely
 
-% Male velocity
-% speed = distance / time
-% velocity = displacment / time
+% female fly is not moving
+f_speed_cut = (f.speed<=0.2);
 
-binwidth = fps;
+% Determine if semiconstant male velocity
+% 0.5sec smooth, then 2 sec std
+binwidth = fps; %  1 second bins to look for avg speed
 n = length(m.speed) - binwidth; % number of iterations
 offset = ceil(binwidth * 0.5);
-
-for i = offset:n
-    binedges = [T.frame(i):T.frame(binwidth + i)];
-    sp_var(i) = std(m.speed(binedges));
+smoothspeed = smooth(m.speed,floor(0.5*fps),'moving');
+smoothspeed = smooth(smoothspeed,floor(0.5*fps),'moving');
+smoothspeed = smooth(smoothspeed,floor(0.3*fps),'moving');
+smoothspeed = smooth(smoothspeed,floor(0.2*fps),'moving');
+sp_var = nan(size(time)); % initialize the speed variability variable
+for i = 1:n % loop through each bin
+    roi = i:i+binwidth; % frames from i to one second later
+    sp_var(i+offset) = std(smoothspeed(roi));
 end
 
-v1 = nan(1, offset);
-sp_var = [v1, sp_var, v1];
+testlim = 0.7;
+const_var = sp_var>testlim;
+ok_var = m.speed;
+ok_var(const_var) = nan;% all data points with acceptable variance
 
-r = 2;
-c = 1;
+% -- View the threshold for consistent speed --
+% r = 2;
+% c = 1;
+% 
+% fig = figure('Position',[1 10 1478 845]);
+% subplot(r,c,1); hold on
+%     plot(time,m.speed,'color', Color('red'))
+%     plot(time, ok_var, 'color', foreColor)
+% subplot(r,c,2)
+%     plot(time,sp_var,'color', foreColor)
+% % formatting
+% xlimits = [1,2];
+% subplot(r,c,1)
+%     xlim(xlimits)
+%     ylabel('male fly speed (mm/s)')
+% subplot(r,c,2)
+%     xlim(xlimits)
+%     h_line(testlim, 'r','-',1)
+%     ylabel('speed variance')
+% formatFig(fig,blkbnd,[r,c])
 
-fig = figure;
-subplot(r,c,1)
-plot(time,m.speed)
-xlim([9,13])
-subplot(r,c,2)
-plot(time,sp_var)
-xlim([9,13])
+% Full selection criteria: 
+V = position.likely & head_dist & const_var & f_speed_cut;
 
-% calc start 
-% calc stop
-% run std for speed in that region
-% save that std
-% move to next one
-% plot over time
 
-% SD
-sp_var = std(m.speed, 'omitnan');
-
-a = diff(m.speed); 
+%  --- Find periods longer than 1 second ---
+a = diff(V); % when does the speed switch between stability and instability 
 % Add the first chase value to the list to account for the starting condition
-b = [m.speed(1); a]; 
-% Locations in chase where chasing period starts/end
+b = [V(1); a]; 
+% Find when stability periods starts/end
 v_start = find(b == 1); 
 v_stop = find(b == -1);
-% If chasing doesn't stop by end, add stop location at end of ch_stop (loc = length of experiment value)
-if m.speed(end)
+% If speed stability doesn't stop by end, add stop location at end of v_stop (loc = length of experiment value)
+if V(end)
     v_stop(end + 1) = length(time);
 end
-% Calculate the length of each chasing bout
+% Calculate the length of each speed bout
 v_dur = v_stop - v_start;
-% Find where chasing lasts longer than 1sec
+% Find where speed stability lasts longer than 1sec
 dur_loc = find(v_dur > fps);
+% save the constant speed regions into a new metric
+constant_velocity = false(size(time));
+for i = 1:length(dur_loc)
+    idx = dur_loc(i);
+    constant_velocity(v_start(idx): v_stop(idx)) = true;
+end
+
+T.circling_all = V; % when the male fly is circling the female (no time restriction)
+T.circling_1sec = constant_velocity; % when circling is longer than 1 second
 
 
+%% FIGURE: M body positions relative to female during circling
+% Pull point locations that will be plotted
+skip = 20;
+zoom = [-250,250];
 
+% screening = close_dist;
 
+fig = getfig('',1,[1075 871]);
+hold on
+% Plot all male body positions
+kolor = Color('grey');
+x = mX(1:skip:end,[body.head,body.center]);
+y = mY(1:skip:end,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% axis equal square
+formatFig(fig,blkbnd)
+set(gca,'XColor','none','YColor','none')
 
+% Plot the all male body positions under chase instances
+kolor = Color('green');
+x = mX(T.circling_1sec,[body.head,body.center]);
+y = mY(T.circling_1sec,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
+% % Screening
+% kolor = Color('green');
+% x = mX(screening,[body.head,body.center]);
+% y = mY(screening,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 
+% Plot female body
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
 
+% Format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd)
+set(gca,'XColor','none','YColor','none')
 
+formatFig(fig,blkbnd)
+% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
 
+% Save figure
+save_figure(fig,[figDir 'Circling positions M fly'],fig_type);
 
+%% FIGURE: show all points in time with different courtship metrics & CI
+clearvars('-except',initial_var{:})
+
+tickH = 1; % tick height
+LS = 0.5; % vertical space between ticks
+LW = 1; % tick line width
+CI = any([T.court_chase,T.wing_ext,T.circling_1sec],2); % courtship index
+T.CI = CI;
+
+idx = [T.circling_all, T.circling_1sec,T.wing_ext_all,...
+       T.wing_ext,T.chase_all,T.court_chase,CI];
+kolor = {'grey','purple','grey','teal','grey','gold'}; % chase, wing ext, circling
+y1 = 1;
+
+r = 4;
+c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:4;
+
+fig = getfig('',1);
+% Temperature plot
+subplot(r,c,sb(1).idx)
+    plot(time, T.temperature, 'color', foreColor, 'linewidth', LW)
+% Raster plot of the different features that contribute to 
+subplot(r,c,sb(2).idx)
+hold on
+for i = 1:7
+    if i<7
+        C = Color(kolor{i});
+    else
+        C = foreColor;
+    end
+    x = time(idx(:,i));
+    y = ones(size(x));
+    X = [x,x];
+    Y = [y1.*y,(y1+tickH).*y];
+    plot(X',Y','color',C,'linewidth',LW) % all instances--not time restricted
+    % increase the line height for the 
+    if rem((i+2),2)==0 
+       y1 = y1+tickH+LS;
+    end
+end
+
+formatFig(fig, blkbnd,[r,c],sb);
+subplot(r,c,sb(1).idx)
+set(gca, 'xcolor', 'none','ycolor','none')
+ylabel('\circC','color', foreColor)
+subplot(r,c,sb(2).idx)
+xlabel('time (min)','color', foreColor)
+set(gca, 'ycolor', 'none')
+ylabel('Courtship Metrics','color', foreColor)
+ylim([0,y1+1+tickH])
 
 
 
