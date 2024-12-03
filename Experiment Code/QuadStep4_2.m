@@ -605,8 +605,8 @@ switch expGroup
         colors = {'black','blue','orange', 'magenta', 'pink'};
         % ============= SILENCING EXPERIMENTS ===============
     case 'R77C10-gal4 F LRR caviar comparisons'
-         expOrder = 1:2; %
-        colors = {'dodgerblue','Gold'};
+         expOrder = 1:3; %
+        colors = {'dodgerblue','Gold','magenta'};
 end
 
 if ~exist('colors','var')
