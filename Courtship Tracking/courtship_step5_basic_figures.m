@@ -641,18 +641,48 @@ if ~exist(well_file, 'file')
     txt = {'12', '3', '6', '9'};
     well = struct; % initialize the new well structure
     fig = getfig('');
-    imshow(img)
-    for i = 1:4 
-        h = warndlg(['Outline the ' txt{i} ' oclock well']);
-        uiwait(h)
-        roi = drawcircle; % manually add in the circle over the food well
-        well.radius(i) = roi.Radius;
-        well.center(i,:) = roi.Center;
-    end
+        imshow(img)
+        for i = 1:4 
+            h = warndlg(['Outline the ' txt{i} ' oclock well']);
+            uiwait(h)
+            roi = drawcircle; % manually add in the circle over the food well
+            well.radius(i) = roi.Radius;
+            well.center(i,:) = roi.Center;
+        end
+    save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
+
     well.R = mean(well.radius)*pix2mm;
+
+    % select the well with the food
+    fig = getfig('');
+        imshow(img); hold on
+        for i = 1:4
+            viscircles(well.center(i,:), well.radius(i),'color',Color('white'));
+            % drawcircle('Center',[well.center(i,:)],'Radius',well.radius(i),'StripeColor','red','Color',Color('grey'));
+        end
+        title('Click the food well','FontSize',18)
+        [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});      % get a point
+        % find the well with the selected data point
+        % distance between each well center and the selected point
+        [~, index] = min((sqrt((xi-well.center(:,1)).^2 + (yi-well.center(:,2)).^2)).*pix2mm);
+        
+        % plot the selected point
+        scatter(xi,yi,60,"white",'filled')
+        scatter(xi,yi,30,"red",'filled')
+        % change the color of the well outline to highlight selection
+        viscircles(well.center(index,:), well.radius(index),'color',Color('red'));
+    if strcmp(questdlg('okay food well selection?'),'Yes')
+        well.food_idx = index;
+        well.food = well.center(index,:);
+        close(fig)
+    else
+        warndlg('Rerun the food well identification')
+        return
+    end
+    % SAVE DATA?
     if strcmp(questdlg('save well locations?'),'Yes')
-        save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
         save(well_file,'well')
+    else 
     end
 else
     load(well_file,'well')
@@ -709,78 +739,60 @@ yi = well.center(5,2);
 
 % eccentricity, outter ring occupancy of the flies
 for sex = 1:2
+    x_loc = data(sex).rawX(:,body.center); % x position of the fly
+    y_loc = data(sex).rawY(:,body.center); % y position of the fly
+    
     %distance from center of arena
-    D = sqrt(((data(sex).rawX(:,body.center)-xi).^2 + (data(sex).rawY(:,body.center)-yi).^2)).*pix2mm; 
+    D = sqrt(((x_loc-xi).^2 + (y_loc-yi).^2)).*pix2mm; 
     data(sex).eccentricity = D;
 
     % outter ring occupancy
     data(sex).OutterRing = D<=R & D>=innerR; % find the locations that are between edge and inner R
 
-    % quadrant occu
+    % quadrant occupancy 
+    center = well.center(5,:);
+    % r = data(exp).data(trial).data.r;
+    foodWell = well.food; %data(exp).T.foodLoc(trial);
+
+    % Adjust the X and Y coordinates relative to the new center
+    adjustedX = x_loc - center(1);
+    adjustedY = y_loc - center(2);
+    
+    % Initialize matrix to hold quadrant classification (same size as input matrices)
+    quadrantMatrix = zeros(size(x_loc));
+    
+    % Define quadrant masks based on the new center
+    Q = [];
+    Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
+    Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
+    Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
+    Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+    
+    % Determine the well locations (which determine quadrant assignment):
+    adjusted_wx = foodWell(1) - center(1);
+    adjusted_wy = foodWell(2) - center(2);
+    
+    idx_loc = false(1,4);
+    % Find the food quadrant (find location with the food well coordinates included)
+    idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
+    idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
+    idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
+    idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
+    quad_loc = find(idx_loc);
+
+    fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
+    foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+   
+    data(sex).foodQuad = foodQuad;
+
+    % 
 
 end
 
-% 
 
-        center = data(exp).data(trial).data.centre;
-        x_loc = data(exp).data(trial).data.x_loc;
-        y_loc = data(exp).data(trial).data.y_loc;
-        r = data(exp).data(trial).data.r;
-        foodWell = data(exp).T.foodLoc(trial);
-
-        % Adjust the X and Y coordinates relative to the new center
-        adjustedX = x_loc - center(1);
-        adjustedY = y_loc - center(2);
         
-        % Initialize matrix to hold quadrant classification (same size as input matrices)
-        quadrantMatrix = zeros(size(x_loc));
-        
-        % Define quadrant masks based on the new center
-        Q = [];
-        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
-        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
-        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
-        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
-        
-        % Determine the well locations (which determine quadrant assignment):
-        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
-        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
-        
-        idx_loc = false(1,4);
-        % Find the food quadrant (find location with the food well coordinates included)
-        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
-        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
-        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
-        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
-        quad_loc = find(idx_loc);
-
-        fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
-        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
-        nflies = data(exp).T.NumFlies(trial);
-        y = (sum(foodQuad,2)./nflies).*100;
-        quad_occ = autoCat(quad_occ, y,false);
-
-        %  A = quad_occ;
-        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
-        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
-        % 
-        % figure; hold on
-        % plot(A,'color', Color('red'));
-        % plot(C,'color', 'k')
-        % yyaxis right 
-        % plot(B, 'color', 'y')
-        % R = corrcoef(A,B);
-        % disp(['Distance: ' num2str(R(2))])
-        %  R = corrcoef(A,C);
-        % disp(['ROI: ' num2str(R(2))])
-    
-    end
-
-    % save the data to a larger structure
-    grouped(exp).quadrant.all = quad_occ;
-    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
-    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
-
+       
+     
 
 
 
