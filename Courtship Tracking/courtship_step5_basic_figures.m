@@ -731,7 +731,8 @@ clearvars('-except',initial_var{:})
 % ArenaArea = 2827.43;
 R = 30; %mm
 innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
-dist_from_edge = (R - innerR);
+dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
+maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
 
 % find distance from center for each fly center point: 
 xi = well.center(5,1);
@@ -782,20 +783,101 @@ for sex = 1:2
 
     fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
     foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
-   
+    
     data(sex).foodQuad = foodQuad;
-
-    % 
+    
+    % 10% Food Circle
+    D = sqrt(((x_loc-foodWell(1)).^2 + (y_loc-foodWell(2)).^2)); % distance from center of food well
+    D = D.*pix2mm;
+    data(sex).foodcircle = D<=maxR ; % flies within 10% circle around the food
 
 end
 
+%% ANALYSIS: Determine temperature bins and directions
+clearvars('-except',initial_var{:})
 
-        
-       
-     
+initial_var{end+1} = 'tRate';
+temp_file = [baseDir 'temp regions.mat'];
+if ~exist(temp_file, 'file') 
+    
+    % manually select the different time points for now TODO automate them
+    x = []; 
+    fig = getfig; 
+    plot(time, T.temperature,'color', 'k')
+    title('click the start or the ramp, bottom, and top')
+    for i = 1:3
+        [xi, ~] = crosshairs(1,{'black','black','red','red'});      % get a point
+        [~,xidx] = min(abs(time-xi));
+        x(i) = xidx(1);
+        v_line(time(x(i)),'r','--',1)
+    end
+    % find the x-time value for each time period
+    tRate = struct;
+    tRate(1).idx = [1, x(1)-1];
+    tRate(1).name = 'start hold';
+    tRate(1).color = Color('grey');
+    tRate(2).idx = [x(1), x(2)-1];
+    tRate(2).name = 'cooling';
+    tRate(2).color = Color('dodgerblue');
+    tRate(3).idx = [x(2), x(3)-1];
+    tRate(3).name = 'warming';
+    tRate(3).color = Color('red');
+    tRate(4).idx = [ x(3),T.frame(end)];
+    tRate(4).name = 'end hold';
+    tRate(4).color = Color('grey');
+    
+    % plot the regions onto the graph
+    hold on
+    ylims = ylim;
+    for i = 1:4
+        roi = time(tRate(i).idx);
+        % h = rectangle('Position', [roi(1), ylims(1), roi(2), ylims(2)], 'FaceColor', tRate(i).color);
+        h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+    end
+    plot(time, smooth(T.temperature,fps*10,'moving'),'color', 'k','linewidth', 5)
+    xlabel('time (min)')
+    ylabel('temperature (\circC)')
+    formatFig(fig,false)
+    title('temperature conditions')
+    
+     if strcmp(questdlg('save temperature regions?'),'Yes')
+         save_figure(fig, [figDir, 'temperature regions'],'-pdf',1);
+         save(temp_file,'tRate')
+         disp('saved temperature regions')
+    else 
+     end
+else
+    load(temp_file,'tRate')
+    disp('loaded temperature regions')
+end
 
+% Set up logicals for each of the temperature regions
+MT = false(size(time));
+%cooling
+idx = find(strcmp('cooling',{tRate(:).name}));
+T.cooling = MT;
+T.cooling(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+%warming
+idx = find(strcmp('warming',{tRate(:).name}));
+T.warming = MT;
+T.warming(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+%hold
+idx = find(strcmp('start hold',{tRate(:).name}));
+T.hold = MT;
+T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+idx = find(strcmp('end hold',{tRate(:).name}));
+T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
 
-
+% % Find temperature bins: 
+% if strcmp(parameters.protocol, 'courtship_F_LRR_25-17')
+% 
+% tempPoints.hold = [1000 159935];
+% tempPoints.up =   [];
+% tempPoints.down =   [];
+% tempPoints.nRates = 1; 
+% tempPoints.rates = 0; 
+% tempPoints.threshLow = 26;
+% tempPoints.threshHigh = 28;  
 
 %% FIGURE: fly distance to food and flies on food
 r = 4;

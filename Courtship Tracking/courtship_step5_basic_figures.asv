@@ -731,7 +731,8 @@ clearvars('-except',initial_var{:})
 % ArenaArea = 2827.43;
 R = 30; %mm
 innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
-dist_from_edge = (R - innerR);
+dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
+maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
 
 % find distance from center for each fly center point: 
 xi = well.center(5,1);
@@ -751,70 +752,125 @@ for sex = 1:2
 
     % quadrant occupancy 
     center = well.center(5,:);
+    % r = data(exp).data(trial).data.r;
+    foodWell = well.food; %data(exp).T.foodLoc(trial);
+
+    % Adjust the X and Y coordinates relative to the new center
+    adjustedX = x_loc - center(1);
+    adjustedY = y_loc - center(2);
     
-   
+    % Initialize matrix to hold quadrant classification (same size as input matrices)
+    quadrantMatrix = zeros(size(x_loc));
+    
+    % Define quadrant masks based on the new center
+    Q = [];
+    Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
+    Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
+    Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
+    Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+    
+    % Determine the well locations (which determine quadrant assignment):
+    adjusted_wx = foodWell(1) - center(1);
+    adjusted_wy = foodWell(2) - center(2);
+    
+    idx_loc = false(1,4);
+    % Find the food quadrant (find location with the food well coordinates included)
+    idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
+    idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
+    idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
+    idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
+    quad_loc = find(idx_loc);
+
+    fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
+    foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+    
+    data(sex).foodQuad = foodQuad;
+    
+    % 10% Food Circle
+    D = sqrt(((x_loc-foodWell(1)).^2 + (y_loc-foodWell(2)).^2)); % distance from center of food well
+    D = D.*pix2mm;
+    data(sex).foodcircle = D<=maxR ; % flies within 10% circle around the food
 
 end
 
+%% ANALYSIS: Determine temperature bins and directions
+clearvars('-except',initial_var{:})
 
-        % r = data(exp).data(trial).data.r;
-        foodWell = well.food; %data(exp).T.foodLoc(trial);
-
-        % Adjust the X and Y coordinates relative to the new center
-        adjustedX = x_loc - center(1);
-        adjustedY = y_loc - center(2);
-        
-        % Initialize matrix to hold quadrant classification (same size as input matrices)
-        quadrantMatrix = zeros(size(x_loc));
-        
-        % Define quadrant masks based on the new center
-        Q = [];
-        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
-        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
-        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
-        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
-        
-        % Determine the well locations (which determine quadrant assignment):
-        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
-        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
-        
-        idx_loc = false(1,4);
-        % Find the food quadrant (find location with the food well coordinates included)
-        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
-        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
-        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
-        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
-        quad_loc = find(idx_loc);
-
-        fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
-        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
-        nflies = data(exp).T.NumFlies(trial);
-        y = (sum(foodQuad,2)./nflies).*100;
-        quad_occ = autoCat(quad_occ, y,false);
-
-        %  A = quad_occ;
-        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
-        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
-        % 
-        % figure; hold on
-        % plot(A,'color', Color('red'));
-        % plot(C,'color', 'k')
-        % yyaxis right 
-        % plot(B, 'color', 'y')
-        % R = corrcoef(A,B);
-        % disp(['Distance: ' num2str(R(2))])
-        %  R = corrcoef(A,C);
-        % disp(['ROI: ' num2str(R(2))])
+initial_var{end+1} = 'tRate';
+temp_file = [baseDir 'temp regions.mat'];
+if ~exist(temp_file, 'file') 
     
-    % end
+    % manually select the different time points for now TODO automate them
+    x = []; 
+    fig = getfig; 
+    plot(time, T.temperature,'color', 'k')
+    title('click the start or the ramp, bottom, and top')
+    for i = 1:3
+        [xi, ~] = crosshairs(1,{'black','black','red','red'});      % get a point
+        [~,xidx] = min(abs(time-xi));
+        x(i) = xidx(1);
+        v_line(time(x(i)),'r','--',1)
+    end
+    % find the x-time value for each time period
+    tRate = struct;
+    tRate(1).idx = [1, x(1)-1];
+    tRate(1).name = 'start hold';
+    tRate(1).color = Color('grey');
+    tRate(2).idx = [x(1), x(2)-1];
+    tRate(2).name = 'cooling';
+    tRate(2).color = Color('dodgerblue');
+    tRate(3).idx = [x(2), x(3)-1];
+    tRate(3).name = 'warming';
+    tRate(3).color = Color('red');
+    tRate(4).idx = [ x(3),T.frame(end)];
+    tRate(4).name = 'end hold';
+    tRate(4).color = Color('grey');
+    
+    % plot the regions onto the graph
+    hold on
+    ylims = ylim;
+    for i = 1:4
+        roi = time(tRate(i).idx);
+        % h = rectangle('Position', [roi(1), ylims(1), roi(2), ylims(2)], 'FaceColor', tRate(i).color);
+        h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+    end
+    plot(time, smooth(T.temperature,fps*10,'moving'),'color', 'k','linewidth', 5)
+    xlabel('time (min)')
+    ylabel('temperature (\circC)')
+    formatFig(fig,false)
+    title('temperature conditions')
+    
+     if strcmp(questdlg('save temperature regions?'),'Yes')
+         save_figure(fig, [figDir, 'temperature regions'],'-pdf',1);
+         save(temp_file,'tRate')
+         disp('saved temperature regions')
+    else 
+     end
+else
+    load(temp_file,'tRate')
+    disp('loaded temperature regions')
+end
 
-    % save the data to a larger structure
-    grouped(exp).quadrant.all = quad_occ;
-    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
-    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
+% Set up logicals for each of the temperature regions
+MT = false(size(time));
+%cooling
+idx = find(strcmp('cooling',{tRate(:).name}));
+T.cooling = MT;
+T.cooling(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+%warming
+idx = find(strcmp('warming',{tRate(:).name}));
+T.warming = MT;
+T.warming(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+%hold
+idx = find(strcmp('start hold',{tRate(:).name}));
+T.hold = MT;
+T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+idx = find(strcmp('end hold',{tRate(:).name}));
+T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
 
-
-
+% Find temperature bins: 
+if strcmp(parameters.protocol, 'courtship_F_LRR_25-17')
+    
 
 
 %% FIGURE: fly distance to food and flies on food
