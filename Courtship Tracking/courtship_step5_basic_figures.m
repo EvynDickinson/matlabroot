@@ -936,7 +936,7 @@ formatFig(fig, blkbnd, [r,c],sb);
 % center of food and area of food
 
 
-%% ANALYSIS: Find periods of male wing extension:
+%% ANALYSIS: male wing extension:
 % wing angle > 60 deg
 % L wing angle in appropriate quadrants
 % R wing angle in appropriate quandrants
@@ -987,6 +987,38 @@ end
 T.wing_ext = mt;
 T.wing_ext_all = wing_ext;
 
+% demo images of wing extension:
+frames = find(T.wing_ext==1);
+endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
+roi = frames(1):frames(endidx(1));
+
+fig = getfig('',1); hold on
+% plot the female fly
+for ff = 1:length(roi)
+    frame = roi(ff);
+    for sex = 1:2
+        x = data(sex).rawX(frame,:);
+        y = data(sex).rawY(frame,:);
+        kolor = data(sex).color;
+        plotFlySkeleton(fig, x,y,kolor,false);
+        scatter(x,y, 15, Color('grey'),'filled')
+        scatter(x(body.head),y(body.head), 35, Color('yellow'),'filled', 'Marker','^')
+        % scatter(x(body.center),y(body.center), 15, Color('grey'),'filled')
+        
+        if sex==1
+            scatter(x(body.left_wing),y(body.left_wing),35,foreColor,'filled')
+        end
+    end
+end
+formatFig(fig,blkbnd);
+set(gca, 'xcolor', 'none', 'ycolor', 'none')
+save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
+
+xlim(xlims)
+ylim(ylims)
+% 
+% xlims = xlim;
+% ylims = ylim;
 
 %% ANALYSIS & FIGURES: Find periods of chase:
 % < 120 deg area behind female x
