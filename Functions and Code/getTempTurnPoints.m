@@ -801,6 +801,16 @@ switch TempProtocolString
                                64819,93739];
             tempPoints.down = [34629,64818;...
                                93740,141259];
+
+        % =======================================
+    case 'courtship_F_LRR_25-17'
+            tempPoints.hold = []; % these are manually selected each time
+            tempPoints.up =   []; 
+            tempPoints.down =   [];
+            tempPoints.nRates = 2; 
+            tempPoints.rates = [-0.5, 0.5]; 
+            tempPoints.threshLow = 16.5;
+            tempPoints.threshHigh = 25.5;  
         
 end
 

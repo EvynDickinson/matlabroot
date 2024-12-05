@@ -724,7 +724,7 @@ T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
 disp('Flies on food: M & F')
 sum(T.FlyOnFood)
 
-%% ANALYSIS: Determine fly occupancy in the outter ring  
+%% ANALYSIS: Determine fly occupancy in ring, quadrant, food circle  
 clearvars('-except',initial_var{:})
 
 % Max Distance from Center of Arena : 29.612mm = 30mm radius
@@ -869,15 +869,11 @@ idx = find(strcmp('end hold',{tRate(:).name}));
 T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
 
 % % Find temperature bins: 
-% if strcmp(parameters.protocol, 'courtship_F_LRR_25-17')
-% 
-% tempPoints.hold = [1000 159935];
-% tempPoints.up =   [];
-% tempPoints.down =   [];
-% tempPoints.nRates = 1; 
-% tempPoints.rates = 0; 
-% tempPoints.threshLow = 26;
-% tempPoints.threshHigh = 28;  
+tP = getTempTurnPoints(parameters.protocol);
+
+   
+
+
 
 %% FIGURE: fly distance to food and flies on food
 r = 4;
