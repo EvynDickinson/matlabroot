@@ -112,7 +112,7 @@ fig = figure('Name','Experiment start time');
 h = histogram(expstarttime_hr,binedges);
 
 % Format figure
-formatFig(fig,bkgrd_color)
+formatFig(fig,bkgrd_color);
 h.FaceColor = Color('Plum');
 h.FaceAlpha = 1;
 h.EdgeColor = 'w';
@@ -183,6 +183,7 @@ save_figure(fig, [figdirectory 'Experiment start times polar plot'], '-png');
 % TODO: update the label sizes and add some titles etc, 
 % TODO: try making the binsizes for each hour
 
+
 %% FIGURE: Distance to food across start times with temperature log
 
 clearvars('-except',initial_vars{:})
@@ -196,7 +197,7 @@ sb(1).idx = [1]; % temp timecourse
 sb(2).idx = [2,3,4]; % distance from food timecourse %TODO: normalize this to something more intuitive?
 
 LW = 1.5; % linewidth
-sSpan = 360; % smoothing function
+sSpan = 180; % smoothing function
 
 % Make group names for figure legend and labels
 dataString = [];
@@ -254,15 +255,15 @@ fig = getfig('distance to food',true);
         subplot(r,c,sb(2).idx)
             hold on 
                 x = g(i).timeavg;
-                y = g(i).distavg;
-                y_err = g(i).std;
-            plot(x,y,'color',Color(clist{i}))
+                y = smooth(g(i).distavg,sSpan, 'moving');
+                % y_err = g(i).std;
+            plot(x,y,'color',Color(clist{i}),'LineWidth',0.75)
             % Display error area
-            h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+            % h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
     end
 
 % Format figure (call fig variable first, it's usually just called fig)
-formatFig(fig,bkgrd_color,[r,c],sb)
+formatFig(fig,bkgrd_color,[r,c],sb);
 
 % Formatting for temperature timecourse
 subplot(r,c,sb(1).idx)
@@ -280,7 +281,7 @@ subplot(r,c,sb(1).idx)
     ylabel('Distance to food (mm)')
 
 % Save figure
-save_figure(fig, [figdirectory 'Distance to food'], '-png')
+save_figure(fig, [figdirectory 'Distance to food'], '-png');
 % NOTE: the first naming of a figure with getfig only names the pop up
 % figure before saving. The second naming with save_figure is the name that
 % gets saved in the folder
@@ -330,10 +331,10 @@ for trial = 1:ntrials
 end
 
 % Format figure
-formatFig(fig,bkgrd_color)
+formatFig(fig,bkgrd_color);
 
 % Save figure
-save_figure(fig, [figdirectory 'Distance to temp correlation during ramps across start times'], '-png')
+save_figure(fig, [figdirectory 'Distance to temp correlation during ramps across start times'], '-png');
 
 
 %% FIGURE: Change in distance during cooling | heating across start times
@@ -422,7 +423,7 @@ for trial = 1:ntrials
 end
 
 % Format figure
-formatFig(fig,bkgrd_color,[r,c])
+formatFig(fig,bkgrd_color,[r,c]);
 
 % Formatting for change in distance at ramps plot
 subplot(r,c,1)
@@ -447,7 +448,7 @@ subplot(r,c,2)
     ylabel('Difference between ramp 1 and ramp 3')
     
 % Save figure
-save_figure(fig, [figdirectory 'Distance difference across start times during ', inputVar], '-png')
+save_figure(fig, [figdirectory 'Distance difference across start times during ', inputVar], '-png');
 
 
 %% FIGURE: Starting distance to food before cooling | heating across start times
@@ -647,7 +648,7 @@ subplot(r,c,1)
     end
 
 % Save figure
-save_figure(fig, [figdirectory 'Starting distance to food before ', inputVar], '-png')
+save_figure(fig, [figdirectory 'Starting distance to food before ', inputVar], '-png');
 
 
 %% FIGURE: Distance to food at start of each ramp across Zeitgeber time
@@ -695,7 +696,7 @@ xlabel('Zeitgeber time')
 ylabel('Distance to food (mm)')
 
 % Save figure
-save_figure(fig, [figdirectory 'Distance to food across Zeitgeber time'], '-png')
+save_figure(fig, [figdirectory 'Distance to food across Zeitgeber time'], '-png');
 
 %% FOR LATER -- ANALYSIS: Calculate flies within the outer ring of the region
 clearvars('-except',initial_vars{:})
@@ -850,7 +851,7 @@ subplot(r,c,sb(2).idx) %dimensions and location of subplot
        h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
 end
     
-formatFig(fig,bkgrd_color,[r,c],sb)
+formatFig(fig,bkgrd_color,[r,c],sb);
 
 subplot(r,c,sb(1).idx)
     set(gca,'xcolor',backColor)
@@ -863,7 +864,7 @@ subplot(r,c,sb(1).idx)
     ylim([0,25])
 
 % Save figure
-save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png')
+save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png');
 
 % TODO
 % compare sleep across hold periods
@@ -896,12 +897,12 @@ for trial = 1:ntrials
 
 end
 
-formatFig(fig,bkgrd_color)
+formatFig(fig,bkgrd_color);
 
 % Save figure
-save_figure(fig, [figdirectory 'Average sleep per trial by start time'], '-png')
+save_figure(fig, [figdirectory 'Average sleep per trial by start time'], '-png');
 
-%% FIGURE AND STATS: average experiment speed
+%% FIX -- FIGURE AND STATS: average experiment speed
 clearvars('-except',initial_vars{:})
 autoSave = false;
 plot_err = true;
@@ -991,7 +992,7 @@ fig = getfig('Average speed',true);
         %     scatter(x,y,35,Color(clist{groupix(trial)}),"filled")      
     end
     
-formatFig(fig,bkgrd_color,[r,c],sb)
+formatFig(fig,bkgrd_color,[r,c],sb);
 
 subplot(r,c,sb(1).idx)
     legend(dataString,'Location','northwest','color',backColor,'box','off','textColor',foreColor)
@@ -1015,13 +1016,14 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(bkgrd_color); 
 
 % Set up figure aligments
-r = 4; 
-c = 1; 
-sb(1).idx = [1]; % temp timecourse
-sb(2).idx = [2,3,4]; % speed timecourse
+r = 5; 
+c = 3; 
+sb(1).idx = [1,2]; % temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; % speed timecourse
+sb(3).idx = [3,6,9,12,15];
 
 LW = 1.5; % linewidth
-sSpan = 360; % smoothing function
+sSpan = 180; % smoothing function
 
 % Make group names for figure legend and labels
 dataString = [];
@@ -1078,15 +1080,17 @@ fig = getfig('average speed over time',true);
         subplot(r,c,sb(2).idx)
             hold on 
                 x = g(i).timeavg;
-                y = g(i).speedavg;
-                y_err = g(i).std;
-            plot(x,y,'color',Color(clist{i}))
+                % y = g(i).speedavg;
+                y = smooth(g(i).speedavg,sSpan, 'moving');
+                % y_err = g(i).std;
+            plot(x,y,'color',Color(clist{i}),'LineWidth',0.75)
             % Display error area
-            h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+            % h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.2);
+        % subplot(r,c,sb(3).idx)
     end
 
 % Format figure (call fig variable first, it's usually just called fig)
-formatFig(fig,bkgrd_color,[r,c],sb)
+formatFig(fig,bkgrd_color,[r,c],sb);
 
 % Formatting for temperature timecourse
 subplot(r,c,sb(1).idx)
@@ -1104,7 +1108,7 @@ subplot(r,c,sb(1).idx)
     ylabel('Speed (mm/s)')
 
 % Save figure
-save_figure(fig, [figdirectory 'Speed over time'], '-png')
+save_figure(fig, [figdirectory 'Speed over time'], '-png');
 
         
         
