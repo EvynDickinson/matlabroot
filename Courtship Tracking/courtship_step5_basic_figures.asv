@@ -72,6 +72,9 @@ initial_var = who; % who = all variables created so far
 initial_var{end+1} = 'initial_var';
 initial_var{end+1} = 'well';
 
+disp_fig = false; % display baseline figures?
+initial_var{end+1} = 'disp_fig';
+
 %% Extract calculated variables
 clearvars('-except',initial_var{:})
 
@@ -141,20 +144,21 @@ for sex = 1:2
     
     % Plot body point positions for all frames 
     SZ = 5; r = 1; c = 2;
-    fig = getfig(sex_type,1,[1058 781]);
-    % before corrections plot
-    subplot(r,c,1)
-        hold on
-        CList = {'teal', 'red', 'grey', 'blue', 'gold'};
-        % plot each body point using new shifted and rotated data
-        for i = 1:5
-            scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
-        end
-        % format figure
-        axis square equal
-        set(gca, 'xcolor', 'none', 'ycolor','none')
-        title('Before Correction')
-    
+    if disp_fig
+        fig = getfig(sex_type,1,[1058 781]);
+        % before corrections plot
+        subplot(r,c,1)
+            hold on
+            CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+            % plot each body point using new shifted and rotated data
+            for i = 1:5
+                scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
+            end
+            % format figure
+            axis square equal
+            set(gca, 'xcolor', 'none', 'ycolor','none')
+            title('Before Correction')
+    end
     % 3) Eliminate frames that are absolutely incorrect
     failstate = newY(:,1)<0; % state where head is below the center
     failstate = [failstate, newY(:,3:5)>0]; % add state where abdomen or wings are above the center point (on head side)
@@ -188,56 +192,60 @@ for sex = 1:2
     % replace elimination frames with nans
     newX(loc,:) = nan;
     newY(loc,:) = nan;
-    
-    % Plot fly positions after adjustments: 
-    % after corrections plot
-    subplot(r,c,2)
-        hold on
-        CList = {'teal', 'red', 'grey', 'blue', 'gold'};
-        % plot each body point using cleaned data
-        for i = 1:5
-            scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
-        end
-        % format figure
-        axis square equal
-        set(gca, 'xcolor','none', 'ycolor','none')
-        title('After Correction')
-    
     % Save the cleaned, adjusted data
     data(sex).x = newX;
     data(sex).y = newY;
+    
+    if disp_fig
+        % Plot fly positions after adjustments: 
+        % after corrections plot
+        subplot(r,c,2)
+            hold on
+            CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+            % plot each body point using cleaned data
+            for i = 1:5
+                scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
+            end
+            % format figure
+            axis square equal
+            set(gca, 'xcolor','none', 'ycolor','none')
+            title('After Correction')
 
-    % Save figures
-    save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type);
+        % Save figures
+        save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type);
+    end
 end
 
-% Plot male and female body points on the same figure
- fig = getfig('Male vs Female',1,[1058 781]);
- for sex = 1:2
-     switch sex
-        case 1
-            sex_type = 'Male';
-        case 2
-            sex_type = 'Female';
-    end
-    subplot(r,c,sex)
-    hold on
-        CList = {'teal', 'red', 'grey', 'blue', 'gold'};
-        % plot each body point
-        for i = 1:5
-            scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
+
+if disp_fig
+    % Plot male and female body points on the same figure
+     fig = getfig('Male vs Female',1,[1058 781]);
+     for sex = 1:2
+         switch sex
+            case 1
+                sex_type = 'Male';
+            case 2
+                sex_type = 'Female';
         end
-        % format figure
-        axis square equal
-        set(gca, 'xcolor','none', 'ycolor','none')
-        title(sex_type)
- end
-fig = matchAxis(fig,true);
+        subplot(r,c,sex)
+        hold on
+            CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+            % plot each body point
+            for i = 1:5
+                scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
+            end
+            % format figure
+            axis square equal
+            set(gca, 'xcolor','none', 'ycolor','none')
+            title(sex_type)
+     end
+    fig = matchAxis(fig,true);
+    
+    % Save figure
+    save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
+end
 
-% Save figure
-save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
-
-%% Compare wing angles within M and between M and F
+%% ANALYSIS & FIGURE: Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})
 
 % Calculate wing angles for male and female
@@ -284,7 +292,7 @@ for sex = 1:2
      % replace wing spread values with nans where wing angles have nans
      data(sex).wingspread(loc,:) = nan;
 end
-  
+
 % Compare male L and R wing angles
 fig = getfig('',true, [1032 300]); 
     hold on
@@ -308,7 +316,7 @@ ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
 save_figure(fig,[figDir 'M and F wing angles'],fig_type);
 
-%% Calculate the body angle between the flies
+%% ANALYSIS & FIGURE: Calculate the body angle between the flies
 clearvars('-except',initial_var{:})
 
 x = 1;
@@ -355,7 +363,7 @@ save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
 % figure;
 % polarhistogram(angleDegrees)
 
-%% Determine male position relative to female
+%% ANALYSIS & FIGURES: Determine male position relative to female
 clearvars('-except',initial_var{:})
 % center all points to female fly
 % align all points to female fly heading (center = 0)
@@ -624,14 +632,14 @@ rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor'
 
 save_figure(fig,[figDir 'male fly body positions relative to female'],'-png');
  
-%% ANALYSIS: Distance to food
+%% ANALYSIS & FIGURE: Distance to food
 clearvars('-except',initial_var{:})
 
 % determine if the well outlines already exist
 well_file = [baseDir 'well locations.mat'];
 if ~exist(well_file, 'file')    
     % pull up picture to find food well
-    vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_1.avi'];
+    vidpath = [getDataPath(6, 2), parameters.date, '/', parameters.videoName, '/compiled_video_1.avi'];
     % vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
     movieInfo = VideoReader(vidpath); %read in video
     demoImg = (read(movieInfo,T.vidFrame(1)));
@@ -793,6 +801,9 @@ for sex = 1:2
 
 end
 
+% quick plot of when the two flies are in the various regions over time: 
+
+
 %% ANALYSIS: Determine temperature bins and directions
 clearvars('-except',initial_var{:})
 
@@ -875,7 +886,7 @@ tP = getTempTurnPoints(parameters.protocol);
 
 
 
-%% FIGURE: fly distance to food and flies on food
+%% FIGURE: fly distance to food and flies on food timecourse
 r = 4;
 c = 1;
 sb(1).idx = 1; % temperature
@@ -910,33 +921,9 @@ fig =  getfig('',1);
         ylabel('distance to food (mm)')
         xlabel('time (min)')
 
-        
-       
-
-
 formatFig(fig, blkbnd, [r,c],sb);
 
-
-%% FIGURE: find when flies are on the food
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% center of food and area of food
-
-
-%% ANALYSIS: male wing extension:
+%% ANALYSIS & FIGURE: male wing extension:
 % wing angle > 60 deg
 % L wing angle in appropriate quadrants
 % R wing angle in appropriate quandrants
@@ -988,6 +975,7 @@ T.wing_ext = mt;
 T.wing_ext_all = wing_ext;
 
 % demo images of wing extension:
+
 frames = find(T.wing_ext==1);
 endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
 roi = frames(1):frames(endidx(1));
@@ -1013,14 +1001,14 @@ end
 formatFig(fig,blkbnd);
 set(gca, 'xcolor', 'none', 'ycolor', 'none')
 save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
-
-xlim(xlims)
-ylim(ylims)
 % 
+% xlim(xlims)
+% ylim(ylims)
+% % 
 % xlims = xlim;
 % ylims = ylim;
 
-%% ANALYSIS & FIGURES: Find periods of chase:
+%% ANALYSIS & FIGURES: Chase identification
 % < 120 deg area behind female x
 % facing female x
 % 7mm between M center and F center x
@@ -1097,13 +1085,19 @@ dur_loc = find(ch_dur > (2*fps));
 
 % Create new courtship matrix with only true chasing bouts longer than 2sec
 mt = false(size(time));
-for i = 1:length(dur_loc)
-    ii = dur_loc(i);
-    mt(ch_start(ii):ch_stop(ii)) = true;
-    m.chaseroi(i,:) = [ch_start(ii), ch_stop(ii)];
+if isempty(dur_loc)
+    m.chaseroi = [];
+else
+    for i = 1:length(dur_loc)
+        ii = dur_loc(i);
+        mt(ch_start(ii):ch_stop(ii)) = true;
+        m.chaseroi(i,:) = [ch_start(ii), ch_stop(ii)];
+    end
 end
-T.court_chase = mt;
-T.chase_all = chase;
+T.court_chase = mt; % time restriction 2 seconds
+T.chase_all = chase; % NO time limit
+
+
 
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
@@ -1162,6 +1156,9 @@ save_figure(fig,[figDir 'chase positions M fly'],fig_type,1,0);
 
 %% Figure: Chase overlaid on arena with temp timecourse
 
+switch questdlg(['Show all ' num2str(size(m.chaseroi,1)) 'instances of chase?'])
+    case 'Yes'
+        c
 % Subplots
 r = 5;
 c = 1;
@@ -1420,7 +1417,7 @@ for i = 1:size(m.chaseroi,1)
     save_figure(fig,[figDir 'Chase Bout Zoom_', num2str(i), ' from ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
 
-%% Circling
+%% ANALYSIS: Circling behavior
 % TODO: add some visualization image for the periods of circling
 % M head within 3mm? [head_dist]
 % M facing female [position.likely]
@@ -1439,7 +1436,6 @@ y2 = f.pos(:,2,2);
 % Calculate male head - female center distance
 d = ((sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm);
 head_dist = d <= 3; % mm
-% visual check of the close proximity times
 y = nan(size(head_dist));
 y(head_dist) = 1;
 
@@ -1523,10 +1519,49 @@ T.circling_all = V; % when the male fly is circling the female (no time restrict
 T.circling_1sec = constant_velocity; % when circling is longer than 1 second
 
 
-%% FIGURE: M body positions relative to female during circling
+%% FIGURE: (TODO) M body positions relative to female during circling
 % Pull point locations that will be plotted
 skip = 20;
 zoom = [-250,250];
+
+% find the longest circling behavior example: 
+[~,idx] = max(smooth(T.circling_all,30,'moving'));
+roi = idx-fps:idx+fps;
+figure; plot(roi,T.circling_all(roi))
+roi = 94845:94845+fps;
+% 
+% frames = find(T.wing_ext==1);
+% endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
+% roi = frames(1):frames(endidx(1));
+
+fig = getfig('',1); hold on
+% plot the female fly
+for ff = 1:length(roi)
+    frame = roi(ff);
+    for sex = 1:2
+        x = data(sex).rawX(frame,:);
+        y = data(sex).rawY(frame,:);
+        kolor = data(sex).color;
+        if T.circling_all(frame) && sex==M
+            plotFlySkeleton(fig, x,y,foreColor,false);
+        else
+           plotFlySkeleton(fig, x,y,kolor,false);
+        end
+        scatter(x,y, 15, Color('grey'),'filled')
+        scatter(x(body.head),y(body.head), 35, Color('yellow'),'filled', 'Marker','^')
+
+    end
+end
+formatFig(fig,blkbnd);
+set(gca, 'xcolor', 'none', 'ycolor', 'none')
+
+save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
+
+xlim(xlims)
+ylim(ylims)
+% 
+
+
 
 % screening = close_dist;
 
@@ -1578,7 +1613,7 @@ formatFig(fig,blkbnd)
 % Save figure
 save_figure(fig,[figDir 'Circling positions M fly'],fig_type);
 
-%% FIGURE: show all points in time with different courtship metrics & CI
+%% FIGURE: CI & behavior components
 clearvars('-except',initial_var{:})
 
 tickH = 1; % tick height
@@ -1589,7 +1624,9 @@ T.CI = CI;
 
 idx = [T.circling_all, T.circling_1sec,T.wing_ext_all,...
        T.wing_ext,T.chase_all,T.court_chase,CI];
-kolor = {'grey','purple','grey','teal','grey','gold'}; % chase, wing ext, circling
+kolor = {'grey', 'red'};
+kolor = repmat(kolor, 1,3);
+% kolor = {'grey','gold','grey','gold','grey','gold'}; % chase, wing ext, circling
 y1 = 1;
 
 r = 4;
