@@ -1017,11 +1017,16 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(bkgrd_color); 
 
 % Set up figure aligments
-r = 5; 
-c = 3; 
-sb(1).idx = [1,2]; % temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14]; % speed timecourse
-sb(3).idx = [3,6,9,12,15];
+% r = 5; 
+% c = 3; 
+% sb(1).idx = [1,2]; % temp timecourse
+% sb(2).idx = [4,5,7,8,10,11,13,14]; % speed timecourse
+% sb(3).idx = [3,6,9,12,15];
+
+r = 4; 
+c = 1; 
+sb(1).idx = 1; % temp timecourse
+sb(2).idx = [2,3,4]; % speed timecourse
 
 LW = 1.5; % linewidth
 sSpan = 180; % smoothing function
@@ -1107,6 +1112,7 @@ subplot(r,c,sb(1).idx)
     % Create axes labels
     xlabel('Time (min)')
     ylabel('Speed (mm/s)')
+    ylim([0,10])
 
 % Save figure
 save_figure(fig, [figdirectory 'Speed over time'], '-png');
