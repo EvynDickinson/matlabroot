@@ -184,59 +184,6 @@ save_figure(fig, [figdirectory 'Experiment start times polar plot'], '-png');
 % TODO: try making the binsizes for each hour
 
 
-%%clearvars('-except',initial_vars{:})
-
-% Convert the 24 hours into a circular radian value
-theta = (24-(expstarttime_hr/24)) * 2 * pi; 
-
-% Show the experiment start times as a polar plot
-fig = getfig('Polar Histogram', 1);
-    h = polarhistogram(theta);
-    set(h,'FaceColor',Color('Plum'), 'EdgeColor', 'k','FaceAlpha',0.8)
-    % set labels and formats
-    ax = gca;
-    set(ax, 'ThetaZeroLocation', 'top')
-    set(ax, 'ThetaTick',0:45:359,'ThetaTickLabel', {'0','21','18','15','12','9','6','3'})
-
-% OVERLAY NIGHT SHADING
-ax_cart = axes('Position', ax.Position, 'Color', 'none');  % Create an overlay Cartesian axes
-
-% Step 5: Shade the left half (90° to 270°)
-hold(ax_cart, 'on');
-
-% Define the angles and radius for shading the left half
-shading_theta = linspace(pi/2, 3*pi/2, 100);  % Angles from 90° to 270°
-shading_r = max(ax.RLim) * ones(size(shading_theta));  % Use maximum radius of polar plot
-
-% Convert polar coordinates to Cartesian for the shading
-[x_shade, y_shade] = pol2cart(shading_theta, shading_r);
-
-% Add the center point to complete the patch
-x_shade = [0 x_shade 0];  % Include the origin (0,0)
-y_shade = [0 y_shade 0];
-
-% Create the filled patch in grey
-fill(ax_cart, x_shade, y_shade, [0.8 0.8 0.8], 'FaceAlpha', 0.5, 'EdgeColor', 'none');  % Grey with transparency
-
-% Adjust Cartesian axis limits to match polar plot
-axis(ax_cart, 'equal');  % Ensure equal scaling on both axes
-r_max = max(ax.RLim);  % Get the maximum radius from the polar plot
-ax_cart.XLim = [-r_max r_max];
-ax_cart.YLim = [-r_max r_max];
-
-% Remove the Cartesian axis ticks
-ax_cart.XTick = [];
-ax_cart.YTick = [];
-ax_cart.XColor = 'none';
-ax_cart.YColor = 'none';
-
-% Bring the polar plot to the front  %TODO: see if there is a way to do
-% this without blocking the new shading
-uistack(ax, 'top');
-
-% Save figure
-save_figure(fig, [figdirectory 'Experiment start times polar plot'], '-png');
-
 %% FIGURE: Distance to food across start times with temperature log
 
 clearvars('-except',initial_vars{:})
@@ -851,7 +798,7 @@ sb(1).idx = [1]; %temp timecourse
 sb(2).idx = [2,3,4]; %distance from food timecourse %TODO: normalize this to something more intuitive?
 
 LW = 1.5; %linewidth
-sSpan = 360; %smoothing function
+sSpan = 180; %smoothing function
 
 dataString = [];
 dummy = unique(groupix);
@@ -899,9 +846,9 @@ subplot(r,c,sb(2).idx) %dimensions and location of subplot
     hold on %keep what is there to add multiple things
         x = g(i).timeavg;
         y = g(i).sleepavg;
-        y_err =  g(i).std;
-       plot(x,y,'color',Color(clist{i}))
-       h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
+        % y_err =  g(i).std;
+       plot(x,y,'color',Color(clist{i}),'LineWidth',0.75)
+       % h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
 end
     
 formatFig(fig,bkgrd_color,[r,c],sb);
@@ -914,7 +861,8 @@ subplot(r,c,sb(1).idx)
     legend(dataString,'Location','northwest','color',backColor,'box','off','textColor',foreColor)
     xlabel('Time (min)')
     ylabel('Percentage of flies sleeping')
-    ylim([0,25])
+    ylim([0,20])
+    ytick(0:5:20)
 
 % Save figure
 save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png');
