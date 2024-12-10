@@ -79,6 +79,7 @@ end
 
 % Figure formatting variables
 clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','Purple'};
+%clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','MediumPurple'};
 bkgrd_color = true;
 
 disp('next section')
