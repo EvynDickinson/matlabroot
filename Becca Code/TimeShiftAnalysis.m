@@ -79,7 +79,7 @@ end
 
 % Figure formatting variables
 clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','Purple'};
-%clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','MediumPurple'};
+% clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','MediumPurple'};
 bkgrd_color = true;
 
 disp('next section')
@@ -404,8 +404,8 @@ for trial = 1:ntrials
         r3startavg = mean(y(r3start));
         r3endavg = mean(y(r3end));
         % Calculate change in average distance at start and end for each ramp
-        r1diff = r1endavg-r1startavg;
-        r3diff = r3endavg-r3startavg;
+        r1diff = abs(r1endavg-r1startavg);
+        r3diff = abs(r3endavg-r3startavg);
     
         % Plot change in distance where x = ramp number
         scatter(1,r1diff,35,Color(clist{groupix(trial)}),"filled")
