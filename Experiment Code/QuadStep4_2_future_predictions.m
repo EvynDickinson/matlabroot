@@ -604,44 +604,56 @@ save_figure(fig,[figDir grouped(exp).name ' model temperature predictions'],'-pn
 %% ANALYSIS & FIGURE: compare the linearity of the data: 
 clearvars('-except',initial_vars{:})
 % 
-exp = 1;
-
 buff = 16;
 buff = buff*fps;
-tP = getTempTurnPoints(data(exp).temp_protocol);
-dur = round(mean([diff(tP.down,1,2); diff(tP.up,1,2)])); % duration of ramp up or down ONLY WORKS FOR SINGLE DIRECTION RAMPS
-coolingROI = [tP.down(:,2)-dur-buff, tP.down(:,2)];
-warmingROI = [tP.down(:,2), tP.down(:,2)+dur+buff];
-allRPOI
+% R = struct;
 
-R = corr(x, y);
-
-% region that will be considered for the fit correlation
-roi1 = []; roi2 = [];
-for ramp = 1:tP.nDown
-    roi1 = [roi1, coolingROI(ramp,1)-dur:coolingROI(ramp,2)];
-    roi2 = [roi2, warmingROI(ramp,1):warmingROI(ramp,2)+dur];
-end
-roi = [roi1,roi2];
-roi(roi>length(grouped(exp).time)) = []; % remove any points beyond the length of the experiment
-
-R = struct;
-R(exp).corr = nan([M(exp).nRates,M(exp).nTemps,num.trial(exp)]);
-for trial = 1:num.trial(exp)
-    for rr = 1 : M(exp).nRates
-        for tt = 1 : M(exp).nTemps
-            % M(exp).delta_R(rr)
-            % M(exp).delta_T(tt)
-            x = M(exp).models(tt,rr).predicted_temp(roi);
-            y = grouped(exp).dist.all(roi,trial);
-            loc = isnan(x) | isnan(y);
-            R(exp).corr(rr,tt,trial) = corr(x(~loc),y(~loc));
-        end
+for exp = 1:num.exp
+    tP = getTempTurnPoints(data(exp).temp_protocol);
+    dur = round(mean([diff(tP.down,1,2); diff(tP.up,1,2)])); % duration of ramp up or down ONLY WORKS FOR SINGLE DIRECTION RAMPS
+    coolingROI = [tP.down(:,2)-dur-buff, tP.down(:,2)];
+    warmingROI = [tP.down(:,2), tP.down(:,2)+dur+buff];
+    
+    % region that will be considered for the fit correlation
+    roi1 = []; roi2 = [];
+    for ramp = 1:tP.nDown
+        roi1 = [roi1, coolingROI(ramp,1)-dur:coolingROI(ramp,2)];
+        roi2 = [roi2, warmingROI(ramp,1):warmingROI(ramp,2)+dur];
     end
-    x = grouped(exp).temp(roi);
-    y = grouped(exp).dist.all(roi,trial);
-    R(exp).g_corr(trial) = corr(x(~loc),y(~loc));
-    disp(trial)
+    roi = [roi1,roi2];
+    roi(roi>length(grouped(exp).time)) = []; % remove any points beyond the length of the experiment
+    roi(roi<=0) = [];
+
+    R(exp).corr = nan([M(exp).nRates,M(exp).nTemps,num.trial(exp)]);
+    for trial = 1:num.trial(exp)
+        for rr = 1 : M(exp).nRates
+            for tt = 1 : M(exp).nTemps
+                % M(exp).delta_R(rr)
+                % M(exp).delta_T(tt)
+                x = M(exp).models(tt,rr).predicted_temp(roi);
+                y = grouped(exp).dist.all(roi,trial);
+                loc = isnan(x) | isnan(y);
+                
+                % Find the R2 value of the fit
+                p = polyfit(x, y, 1); % Fit a linear model
+                y_fit = polyval(p, x);
+                SStot = sum((y - mean(y)).^2);  % Total sum of squares
+                SSres = sum((y - y_fit).^2);    % Residual sum of squares
+                R2 = 1 - SSres / SStot;        % Coefficient of determination
+                R(exp).R2(rr,tt,trial) = R2;
+                R(exp).MAE(rr,tt,trial) = mean(abs(y - y_fit)); % mean absolute error
+                R(exp).RMSE(rr,tt,trial) = sqrt(mean((y - y_fit).^2)); % root mean square error
+
+                % correlation between temp and distance:
+                % R(exp).corr(rr,tt,trial) = corr(x(~loc),y(~loc));                
+            end
+        end
+        x = grouped(exp).temp(roi);
+        y = grouped(exp).dist.all(roi,trial);
+        R(exp).g_corr(trial) = corr(x(~loc),y(~loc));
+        fprintf(['\n ' num2str(trial)])
+    end
+    disp(['Done ' grouped(exp).name])
 end
 
 
@@ -693,7 +705,7 @@ for rr = 1:r*c
     if ~any(rr==leftedge)
         set(gca, 'ycolor', 'none')
     end
-    ylim([-0.9, -0.3])
+    % ylim([-0.9, -0.3])
     xlim([-2,30])
 end
 formatFig(fig, false, [r,c]);
@@ -703,14 +715,17 @@ save_figure(fig,[figDir grouped(exp).name ' model correlations for all times'],'
 
 
 
-
 % plot the best model fit for the data: 
-
-y = mean(R(exp).corr,3,'omitnan');
-for rr = 1:M(exp).nRates
-    [~, idx] = min(y(rr,:));
-    R(exp).best_dt(rr) = idx; 
+for exp = 1:num.exp
+    y = mean(R(exp).corr,3,'omitnan');
+    minC = [];
+    for rr = 1:M(exp).nRates
+        [minC(rr), idx] = min(y(rr,:));
+        R(exp).best_dt(rr) = idx; 
+    end
+    R(exp).optimal_dt = min(minC);
 end
+
 % for now, just plot for an instantaneous rate: 
 fig = getfig('',1); hold on
 % TODO: plot this by temp & color for original heating vs cooling...
