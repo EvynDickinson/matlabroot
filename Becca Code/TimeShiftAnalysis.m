@@ -798,7 +798,7 @@ sb(1).idx = [1]; %temp timecourse
 sb(2).idx = [2,3,4]; %distance from food timecourse %TODO: normalize this to something more intuitive?
 
 LW = 1.5; %linewidth
-sSpan = 360; %smoothing function
+sSpan = 180; %smoothing function
 
 dataString = [];
 dummy = unique(groupix);
@@ -846,9 +846,9 @@ subplot(r,c,sb(2).idx) %dimensions and location of subplot
     hold on %keep what is there to add multiple things
         x = g(i).timeavg;
         y = g(i).sleepavg;
-        y_err =  g(i).std;
-       plot(x,y,'color',Color(clist{i}))
-       h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
+        % y_err =  g(i).std;
+       plot(x,y,'color',Color(clist{i}),'LineWidth',0.75)
+       % h = plot_error_fills(plot_err, x, y, y_err, Color(clist{i}),'-png', 0.1);
 end
     
 formatFig(fig,bkgrd_color,[r,c],sb);
@@ -861,7 +861,8 @@ subplot(r,c,sb(1).idx)
     legend(dataString,'Location','northwest','color',backColor,'box','off','textColor',foreColor)
     xlabel('Time (min)')
     ylabel('Percentage of flies sleeping')
-    ylim([0,25])
+    ylim([0,20])
+    set(gca, 'ytick', 0:5:20);
 
 % Save figure
 save_figure(fig, [figdirectory 'Percentage of flies sleeping'], '-png');
@@ -1016,11 +1017,16 @@ plot_err = true;
 [foreColor,backColor] = formattingColors(bkgrd_color); 
 
 % Set up figure aligments
-r = 5; 
-c = 3; 
-sb(1).idx = [1,2]; % temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14]; % speed timecourse
-sb(3).idx = [3,6,9,12,15];
+% r = 5; 
+% c = 3; 
+% sb(1).idx = [1,2]; % temp timecourse
+% sb(2).idx = [4,5,7,8,10,11,13,14]; % speed timecourse
+% sb(3).idx = [3,6,9,12,15];
+
+r = 4; 
+c = 1; 
+sb(1).idx = 1; % temp timecourse
+sb(2).idx = [2,3,4]; % speed timecourse
 
 LW = 1.5; % linewidth
 sSpan = 180; % smoothing function
@@ -1106,6 +1112,7 @@ subplot(r,c,sb(1).idx)
     % Create axes labels
     xlabel('Time (min)')
     ylabel('Speed (mm/s)')
+    ylim([0,10])
 
 % Save figure
 save_figure(fig, [figdirectory 'Speed over time'], '-png');
