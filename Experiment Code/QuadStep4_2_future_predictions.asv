@@ -707,25 +707,8 @@ save_figure(fig,[figDir grouped(exp).name ' model correlations for all times'],'
 % plot the best model fit for the data: 
 
 y = mean(R(exp).corr,3,'omitnan');
-for rr = 1:M(exp).nRates
-    [~, idx] = min(y(rr,:));
-    R(exp).best_dt(rr) = idx; 
-end
-% for now, just plot for an instantaneous rate: 
-fig = getfig('',1); hold on
-% TODO: plot this by temp & color for original heating vs cooling...
-for ramp = 1:tP.nDown
-    % cooling
-    roi = coolingROI(ramp,1):coolingROI(ramp,2);
-    plot(x(roi),y(roi),'color',Color('dodgerBlue'))
-    % warming
-    roi = warmingROI(ramp,1):warmingROI(ramp,2);
-    plot(x(roi),y(roi),'color',Color('red'))
-end
-
-
 [~,idx] = min(min(y,1));
-
+% idx is the integration win
     x = M(exp).delta_T;
     
     plot(x,y,'color', C, 'linewidth',0.5)
