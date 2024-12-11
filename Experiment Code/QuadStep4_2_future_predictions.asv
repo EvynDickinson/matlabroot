@@ -483,7 +483,7 @@ if ~exist(figDir,'dir')
 end
 
 % set up the range of testing points in the 'future' to measure the 'predicted temp'
-delta_t = [0, 30]; % range of times into the future to test (min)
+delta_t = [0, 45]; % range of times into the future to test (min)
 skip_size = 1; % how many per minute?
 delta_T = (delta_t(1)):skip_size:delta_t(2);
 if delta_T(1)==0 % get rid of a zero delay?
@@ -536,70 +536,73 @@ end
 % ********************************************************************
 % ********************************************************************
 
-% % test a small integration window: 
-% rr = nRates;
-% kolor = Color('white', 'blue', nTemps);
-% time = grouped(exp).time;
-% 
-% fig = getfig('',1);
-% hold on
-% for tt = 1:nTemps
-%     plot(time, models(tt,rr).predicted_temp,'Color', kolor(tt,:))
-% end
-% plot(time, grouped(exp).temp,'color', 'k','LineWidth',1)
-% xlabel('time (min)')
-% ylabel('temp (\circC)')
-% title(['model predicted temperatures | rate integration: ' num2str(delta_R(rr)) ' minutes'],'color', 'k')
-% formatFig(fig);
-% save_figure(fig, [figDir grouped(exp).name ' predicted temp lines ' num2str(delta_R(rr)) ' int window'], '-png');
-
+% test a small integration window: 
+for exp = 1:num.exp
+    rr = 1;
+    kolor = Color('white', 'blue', nTemps);
+    time = grouped(exp).time;
+    
+    fig = getfig('',1);
+    hold on
+    for tt = 1:nTemps
+        plot(time,  M(exp).models(tt,rr).predicted_temp,'Color', kolor(tt,:))
+    end
+    plot(time, grouped(exp).temp,'color', 'k','LineWidth',1)
+    xlabel('time (min)')
+    ylabel('temp (\circC)')
+    title({grouped(exp).name; ['model predicted temperatures | rate integration: ' num2str(delta_R(rr)) ' minutes']},'color', 'k')
+    formatFig(fig);
+    save_figure(fig, [figDir grouped(exp).name ' predicted temp lines ' num2str(delta_R(rr)) ' int window'], '-png');
+end
 
 %%  FIGURES: visualize the fictive temperature predictions
 % save([saveDir 'models'],'models','-v7.3')
 
-
-% test a small integration window: 
-kolor = Color('white', 'blue', nTemps);
-time = grouped(exp).time;
-% [nrows, ncols] = subplot_numbers(nRates*nTemps);
-ylims = [];
-r = 3; 
-c = 4;
-fig = getfig('',1);
-for rr = 1:nRates
-    subplot(r,c,rr)
-    hold on
-    for tt = 1:5:nTemps
-        plot(time, models(tt,rr).predicted_temp,'Color', kolor(tt,:))
+for exp = 1:num.exp
+    
+    % test a small integration window: 
+    kolor = Color('white', 'blue', nTemps);
+    time = grouped(exp).time;
+    % [nrows, ncols] = subplot_numbers(nRates*nTemps);
+    ylims = [];
+    r = 3; 
+    c = 4;
+    fig = getfig('',1);
+    for rr = 1:nRates
+        subplot(r,c,rr)
+        hold on
+        for tt = 1:5:nTemps
+            plot(time, M(exp).models(tt,rr).predicted_temp,'Color', kolor(tt,:))
+        end
+        plot(time, grouped(exp).temp,'color', 'k','LineWidth',1)
+        title([num2str(delta_R(rr)) ' min'],'color', 'k')
+        ylims = [ylims, ylim];
     end
-    plot(time, grouped(exp).temp,'color', 'k','LineWidth',1)
-    title([num2str(delta_R(rr)) ' min'],'color', 'k')
-    ylims = [ylims, ylim];
-end
-% add labels
-leftedge = 1:c:r*c;
-bottomrow = (r*c)-c+1:r*c;
-for rr = leftedge
-    subplot(r,c,rr)
-    ylabel('temp (\circC)')
-end
-for rr = bottomrow
-    subplot(r,c,rr)
-    xlabel('time (min)')
-end
-for rr = 1:r*c
-    subplot(r,c,rr)
-    if ~any(rr==bottomrow)
-        set(gca,'xcolor','none')
+    % add labels
+    leftedge = 1:c:r*c;
+    bottomrow = (r*c)-c+1:r*c;
+    for rr = leftedge
+        subplot(r,c,rr)
+        ylabel('temp (\circC)')
     end
-    if ~any(rr==leftedge)
-        set(gca, 'ycolor', 'none')
+    for rr = bottomrow
+        subplot(r,c,rr)
+        xlabel('time (min)')
     end
-    ylim([min(ylims) max(ylims)])
+    for rr = 1:r*c
+        subplot(r,c,rr)
+        if ~any(rr==bottomrow)
+            set(gca,'xcolor','none')
+        end
+        if ~any(rr==leftedge)
+            set(gca, 'ycolor', 'none')
+        end
+        ylim([min(ylims) max(ylims)])
+    end
+    
+    save_figure(fig,[figDir grouped(exp).name ' model temperature predictions'],'-pdf',1,0);
+    save_figure(fig,[figDir grouped(exp).name ' model temperature predictions'],'-png');
 end
-
-save_figure(fig,[figDir grouped(exp).name ' model temperature predictions'],'-pdf',1,0);
-save_figure(fig,[figDir grouped(exp).name ' model temperature predictions'],'-png');
 
 %% ANALYSIS & FIGURE: compare the linearity of the data: 
 clearvars('-except',initial_vars{:})
@@ -624,15 +627,16 @@ for exp = 1:num.exp
     roi(roi>length(grouped(exp).time)) = []; % remove any points beyond the length of the experiment
     roi(roi<=0) = [];
 
-    R(exp).corr = nan([M(exp).nRates,M(exp).nTemps,num.trial(exp)]);
+    % R(exp).corr = nan([M(exp).nRates,M(exp).nTemps,num.trial(exp)]);
     for trial = 1:num.trial(exp)
-        for rr = 1 : M(exp).nRates
+        for rr = 1 : 1 % M(exp).nRates
             for tt = 1 : M(exp).nTemps
                 % M(exp).delta_R(rr)
                 % M(exp).delta_T(tt)
                 x = M(exp).models(tt,rr).predicted_temp(roi);
                 y = grouped(exp).dist.all(roi,trial);
                 loc = isnan(x) | isnan(y);
+                x(loc) = []; y(loc) = [];
                 
                 % Find the R2 value of the fit
                 p = polyfit(x, y, 1); % Fit a linear model
@@ -656,7 +660,241 @@ for exp = 1:num.exp
     disp(['Done ' grouped(exp).name])
 end
 
- 
+% Find the RMSE and MAE for the ground truth: 
+for exp = 1:num.exp
+    for trial = 1:num.trial(exp)
+        x = grouped(exp).temp(roi);
+        y = grouped(exp).dist.all(roi,trial);
+        loc = isnan(x) | isnan(y);
+        x(loc) = []; y(loc) = [];
+        
+        % Find the R2 value of the fit
+        p = polyfit(x, y, 1); % Fit a linear model
+        y_fit = polyval(p, x);
+        SStot = sum((y - mean(y)).^2);  % Total sum of squares
+        SSres = sum((y - y_fit).^2);    % Residual sum of squares
+        R2 = 1 - SSres / SStot;        % Coefficient of determination
+        R(exp).g_R2(trial) = R2;
+        R(exp).g_MAE(trial) = mean(abs(y - y_fit)); % mean absolute error
+        R(exp).g_RMSE(trial) = sqrt(mean((y - y_fit).^2)); % root mean square error
+    end
+end
+
+
+%% 
+
+% for rr = 1:1
+% for rr = 1:M(exp).nRates
+% 
+% for ii = 1:num.exp
+%     exp = expOrder(ii);
+%     disp(grouped(exp).name)
+% end
+
+rr = 1;
+% plot the correlations for each of the delays
+sz = 10;
+avg_sz = sz + 10;
+kolor = Color('grey', 'blue', M(exp).nTemps);
+r = 2; 
+c = 3;
+fig = getfig('',1);
+for ii = 1:num.exp
+    exp = expOrder(ii);
+    disp(grouped(exp).name)
+    subplot(r,c,ii)
+    hold on
+    for trial = 1:num.trial(exp)
+        C = Color('grey');
+        x = M(exp).delta_T;
+        % y = squeeze(R(exp).RMSE(rr,:,trial));
+        y = squeeze(R(exp).R2(rr,:,trial));
+        plot(x,y,'color', C, 'linewidth',0.5)
+    end
+    % avg across trials
+    % y_avg = mean(R(exp).RMSE(rr,:,:),3);
+    y_avg = mean(R(exp).R2(rr,:,:),3);
+
+    plot(x,y_avg,'color', 'k', 'linewidth',1)
+    % % plot the original data
+    x = zeros([1,num.trial(exp)]);
+    % y = R(exp).g_RMSE;
+    y = R(exp).g_R2;
+    scatter(x,y,sz,'r')
+    scatter(x(1), mean(y),avg_sz, 'k','filled')
+    % h_line(mean(R(exp).g_RMSE),'r','-')
+    h_line(mean(R(exp).g_R2),'r','-')
+
+    % [~,idx] = min(y_avg);
+    [~,idx] = max(y_avg);
+    v_line(M(exp).delta_T(idx),'green','-')
+    title([grouped(exp).name],'color', 'k')
+end
+% add labels
+leftedge = 1:c:r*c;
+bottomrow = (r*c)-c+1:r*c;
+for rr = leftedge
+    subplot(r,c,rr)
+    % ylabel('RMSE')
+    ylabel('R^2')
+end
+for rr = bottomrow
+    subplot(r,c,rr)
+    xlabel('future prediction (min)')
+end
+for rr = 1:r*c
+    subplot(r,c,rr)
+    if ~any(rr==bottomrow)
+        set(gca,'xcolor','none')
+    end
+    if ~any(rr==leftedge)
+        set(gca, 'ycolor', 'none')
+    end
+    % ylim([-0.9, -0.3])
+    xlim([-2,45])
+end
+formatFig(fig, false, [r,c]);
+
+save_figure(fig,[figDir 'Model R2 rate window ' num2str(M(exp).delta_R(rr))],'-png');
+
+
+%% Plot the 'best' fit of the model vs the actual data
+
+
+[low, high] = deal([]);
+for exp = 1:num.exp
+    for tt = 1:M(exp).nTemps
+        for rr = 1:M(exp).nRates
+            a = M(exp).models(tt,rr).predicted_temp;
+            low = [low, min(a)];
+            high = [high, max(a)];
+        end
+    end
+end
+bins = floor(min(low)):0.5:ceil(max(high));
+
+rr = 1;
+plotData = [];
+for exp = 1:num.exp
+
+    % TODO: plot this by temp & color for original heating vs cooling...
+    cROI = []; hROI = [];
+    for ramp = 1:tP.nDown
+        % cooling
+        roi = coolingROI(ramp,1):coolingROI(ramp,2);
+        cROI = [cROI; roi'];
+        % warming
+        roi = warmingROI(ramp,1):warmingROI(ramp,2);
+        hROI = [hROI; roi'];
+    end
+
+    % cooling
+    x = grouped(exp).temp(cROI);
+    y = grouped(exp).dist.all(cROI,:);
+    a = discretize(x,bins);
+    MT = nan(length(bins),2);
+    for bin = 1:length(bins)
+        loc = find(a==bin);
+        if ~isempty(loc)
+            b = mean(y(loc,:),2,'omitnan');
+            MT(bin,1) = mean(b,'omitnan');
+            MT(bin,2) = std(b,'omitnan');
+        end
+    end
+    plotData(exp).control.cooling = MT;
+
+    % warming
+    x = grouped(exp).temp(hROI);
+    y = grouped(exp).dist.all(hROI,:);
+    a = discretize(x,bins);
+    MT = nan(length(bins),2);
+    for bin = 1:length(bins)
+        loc = find(a==bin);
+        if ~isempty(loc)
+            b = mean(y(loc,:),2,'omitnan');
+            MT(bin,1) = mean(b,'omitnan');
+            MT(bin,2) = std(b,'omitnan');
+        end
+    end
+    plotData(exp).control.warming = MT;
+
+    % model data
+    
+    %find the best deltaT to use for the model
+    [R2,idx] = max(mean(R(exp).R2(rr,:,:),3));
+    plotData(exp).model.R2 = R2;
+    x = M(exp).models(rr,idx).predicted_temp;
+    y = grouped(exp).dist.all;
+    cY = y(cROI,:);
+    hY = y(hROI,:);
+    cX = x(cROI);
+    hX = x(hROI);
+    %cooling
+    a = discretize(cX,bins); % find fictive temp bins
+    MT = nan(length(bins),2);
+    for bin = 1:length(bins)
+        loc = find(a==bin);
+        if ~isempty(loc)
+            b = mean(cY(loc,:),2,'omitnan');
+            MT(bin,1) = mean(b,'omitnan');
+            MT(bin,2) = std(b,'omitnan');
+        end
+    end
+    plotData(exp).model.cooling = MT;
+    %warming
+    a = discretize(hX,bins); % find fictive temp bins
+    MT = nan(length(bins),2);
+    for bin = 1:length(bins)
+        loc = find(a==bin);
+        if ~isempty(loc)
+            b = mean(hY(loc,:),2,'omitnan');
+            MT(bin,1) = mean(b,'omitnan');
+            MT(bin,2) = std(b,'omitnan');
+        end
+    end
+    plotData(exp).model.warming = MT;
+
+
+    sz = 35;
+    fig = getfig('',1);
+    subplot(1,2,1)
+    hold on
+    x = bins';
+    y = plotData(exp).control.cooling(:,1);
+    scatter(x,y,sz,Color('dodgerblue'),'filled')
+    y = plotData(exp).control.warming(:,1);
+    scatter(x,y,sz,Color('red'),'filled')
+    xlabel('temp (\circC)')
+    ylabel('distance to food (mm)')
+    
+    subplot(1,2,2)
+    hold on
+    x = bins';
+    y = plotData(exp).model.cooling(:,1);
+    scatter(x,y,sz,Color('dodgerblue'),'filled')
+    y = plotData(exp).model.warming(:,1);
+    scatter(x,y,sz,Color('red'),'filled')
+    xlabel('predicted temp (\circC)')
+    ylabel('distance to food (mm)')
+
+    formatFig(fig,false,[1,2]);
+
+    save_figure(fig,[figDir grouped(exp).name 'Model R2 vs real ' num2str(M(exp).delta_R(rr))],'-png');
+end
+
+
+% 
+save(['E:\'])
+
+
+
+%% WORKING BELOW HERE
+
+
+%%
+
+exp = 1;
+
 % plot the correlations for each of the delays
 sz = 10;
 avg_sz = sz + 10;
@@ -670,18 +908,18 @@ for rr = 1:M(exp).nRates
     for trial = 1:num.trial(exp)
         C = Color('grey');
         x = M(exp).delta_T;
-        y = squeeze(R(exp).corr(rr,:,trial));
+        y = squeeze(R(exp).RMSE(rr,:,trial));
         plot(x,y,'color', C, 'linewidth',0.5)
     end
     % avg across trials
-    y_avg = mean(R(exp).corr(rr,:,:),3);
+    y_avg = mean(R(exp).RMSE(rr,:,:),3);
     plot(x,y_avg,'color', 'k', 'linewidth',1)
-    % plot the original data
-    x = zeros([1,num.trial(exp)]);
-    y = R(exp).g_corr;
-    scatter(x,y,sz,'r')
-    scatter(x(1), mean(y),avg_sz, 'k','filled')
-    h_line(mean(R(exp).g_corr),'r','-')
+    % % plot the original data
+    % x = zeros([1,num.trial(exp)]);
+    % y = R(exp).g_corr;
+    % scatter(x,y,sz,'r')
+    % scatter(x(1), mean(y),avg_sz, 'k','filled')
+    % h_line(mean(R(exp).g_corr),'r','-')
     [~,idx] = min(y_avg);
     v_line(M(exp).delta_T(idx),'green','-')
     title([num2str(M(exp).delta_R(rr)) 'min | min ' num2str(M(exp).delta_T(idx))],'color', 'k')
@@ -739,25 +977,27 @@ for ramp = 1:tP.nDown
 end
 
 
-[~,idx] = min(min(y,1));
+% [~,idx] = min(min(y,1));
+% 
+%     x = M(exp).delta_T;
+% 
+%     plot(x,y,'color', C, 'linewidth',0.5)
+% end
+% % avg across trials
+% y_avg = mean(R(exp).corr(rr,:,:),3);
+% 
+% 
+% fig = getfig('',1); hold on
+%     for ramp = 1:tP.nDown
+%         % cooling
+%         roi = coolingROI(ramp,1):coolingROI(ramp,2);
+%         plot(x(roi),y(roi),'color',Color('dodgerBlue'))
+%         % warming
+%         roi = warmingROI(ramp,1):warmingROI(ramp,2);
+%         plot(x(roi),y(roi),'color',Color('red'))
+%     end
 
-    x = M(exp).delta_T;
-    
-    plot(x,y,'color', C, 'linewidth',0.5)
-end
-% avg across trials
-y_avg = mean(R(exp).corr(rr,:,:),3);
-
-
-fig = getfig('',1); hold on
-    for ramp = 1:tP.nDown
-        % cooling
-        roi = coolingROI(ramp,1):coolingROI(ramp,2);
-        plot(x(roi),y(roi),'color',Color('dodgerBlue'))
-        % warming
-        roi = warmingROI(ramp,1):warmingROI(ramp,2);
-        plot(x(roi),y(roi),'color',Color('red'))
-    end
+%% NEW: find and plot the MSE of each delta-T to determine the model with the best fit:
 
 
 
