@@ -854,7 +854,6 @@ for exp = 1:num.exp
     end
     plotData(exp).model.warming = MT;
 
-
     sz = 35;
     fig = getfig('',1);
     subplot(1,2,1)
