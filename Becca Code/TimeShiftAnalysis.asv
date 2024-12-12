@@ -78,7 +78,8 @@ for trial = 1:ntrials
 end
 
 % Figure formatting variables
-clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','MediumPurple'};
+clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','Purple'};
+% clist = {'Red','Lime','LemonChiffon','Gold','Tomato','DodgerBlue','Teal','MediumPurple'};
 bkgrd_color = true;
 
 disp('next section')
@@ -403,6 +404,7 @@ for trial = 1:ntrials
         r3startavg = mean(y(r3start));
         r3endavg = mean(y(r3end));
         % Calculate change in average distance at start and end for each ramp
+        % switch for heating
         r1diff = r1endavg-r1startavg;
         r3diff = r3endavg-r3startavg;
     
@@ -451,7 +453,7 @@ subplot(r,c,2)
 save_figure(fig, [figdirectory 'Distance difference across start times during ', inputVar], '-png');
 
 
-%% FIGURE: Starting distance to food before cooling | heating across start times
+%% FIGURE & STATS: Starting distance to food before cooling | heating across start times
 
 % TODO: fix ramp x axis labels
 % TODO: Add figure titles to distinguish between left and right graphs
@@ -683,6 +685,52 @@ for trial = 1:ntrials
         % Calulate average distance to food at each ramp start
         rstartavg = mean(y(rstart));
         % Calculate Zeitgeber time (in hrs) of each ramp start
+       abtime = expstarttime_hr(trial) - 8 + toffset(r); 
+        % Create scatter plot
+        scatter(zeit,rstartavg,30,Color(clist{groupix(trial)}),'filled')
+    end
+end
+
+% Format figure
+formatFig(fig,bkgrd_color);
+% Create axis labels
+xlabel('Zeitgeber time')
+ylabel('Distance to food (mm)')
+
+% Save figure
+save_figure(fig, [figdirectory 'Distance to food across Zeitgeber time'], '-png');
+
+%% FIGURE: actual time
+clearvars('-except',initial_vars{:}) 
+plot_err = true; 
+[foreColor,backColor] = formattingColors(bkgrd_color); 
+
+% Time offset from start of experiment to start of each ramp
+toffset = [100/60, 212/60, 324/60];
+% Period of time before/after ramp to look at distance from food
+windowsize = 5; %in minutes
+
+% FIGURE
+% Create figure
+fig = getfig;
+hold on
+for trial = 1:ntrials
+    hold on
+    % Establish y variable
+    loc = data(trial).data.foodwell;
+    y = data(trial).data.dist2well(:,loc);
+    
+    % Calculate number of frames within the established windowsize
+    tempPoints = getTempTurnPoints(temp_protocol);
+    nframes = tempPoints.fps*60*windowsize;
+    
+    % Plot distance to food at start of each ramp across Zeitgeber time
+    for r = 1:3
+        % Identify frames in the window at the start of each ramp
+        rstart = tempPoints.hold(r,2)-nframes:tempPoints.hold(r,2);
+        % Calulate average distance to food at each ramp start
+        rstartavg = mean(y(rstart));
+        % Calculate Zeitgeber time (in hrs) of each ramp start
         zeit = expstarttime_hr(trial) - 8 + toffset(r); 
         % Create scatter plot
         scatter(zeit,rstartavg,30,Color(clist{groupix(trial)}),'filled')
@@ -697,6 +745,92 @@ ylabel('Distance to food (mm)')
 
 % Save figure
 save_figure(fig, [figdirectory 'Distance to food across Zeitgeber time'], '-png');
+
+%% STATS: ANOVA of distance from food, ramp, and Zeitgeber time
+
+clearvars('-except',initial_vars{:})
+
+% Time offset from start of experiment to start of each ramp
+toffset = [100/60, 212/60, 324/60];
+% Period of time before/after ramp to look at distance from food
+windowsize = 5; %in minutes
+
+stats = [];
+R1 = [];
+R2 = [];
+R3 = [];
+
+for trial = 1:ntrials
+    % Establish y variable
+    loc = data(trial).data.foodwell;
+    y = data(trial).data.dist2well(:,loc);
+    
+    % Calculate number of frames within the established windowsize
+    tempPoints = getTempTurnPoints(temp_protocol);
+    nframes = tempPoints.fps*60*windowsize;
+    
+    % Plot distance to food at start of each ramp across Zeitgeber time
+    for r = 1:3
+        % Identify frames in the window at the start of each ramp
+        rstart = tempPoints.hold(r,2)-nframes:tempPoints.hold(r,2);
+        % rframe = tempPoints.down(r,1);
+        % Calulate average distance to food at each ramp start
+        rstartavg = mean(y(rstart));
+        % Calculate Zeitgeber time (in hrs) of each ramp start
+        zeit = expstarttime_hr(trial) - 8 + toffset(r); 
+        stats = [stats; rstartavg, r, zeit];
+        % stats = [stats; rstartavg, rframe, zeit];
+        % R1 = [R1, r == 1];
+        % R2 = [R2, r == 2];
+        % R3 = [R3, r == 3];
+    end
+end
+
+R1 = transpose(R1);
+R2 = transpose(R2);
+R3 = transpose(R3);
+
+any(isnan(y))   % Check for NaNs in the dependent variable
+any(isnan(g1))  % Check for NaNs in g1
+any(isnan(g2))  % Check for NaNs in g2
+
+g1 = stats(:, 2);  % The second column (group variable 1)
+g2 = stats(:, 3);  % The third column (group variable 2)
+
+% Check the unique values of g1 and g2
+disp(unique(g1));  % Should have more than one unique value
+disp(unique(g2));  % Should have more than one unique value
+
+g1 = categorical(stats(:, 2));  % Convert group 1 to categorical
+g2 = categorical(stats(:, 3));  % Convert group 2 to categorical
+
+
+
+% ANOVA
+% factors = {stats(:,2),stats(:,3)};
+% aov = anova(factors,stats(:,1),FactorNames = ["Ramp" "Zeitgeber time"]);
+% % aov = anova(stats(:,2),stats(:,1)); %,FactorNames = ["Ramp" "Zeitgeber time"]);
+% disp(aov)
+% 
+% % two way with random effects
+% tbl = table(stats(:,2),stats(:,3), VariableNames = ["Ramp" "Zeitgeber time"]);
+% aov = anova(tbl,stats(:,1),CategoricalFactors=2,RandomFactors=2);
+% disp(aov)
+
+y = stats(:,1);
+g1 = stats(:,2);
+g2 = stats(:,3);
+% g1 = R1;
+% g2 = R2;
+% g3 = R3;
+p = anovan(y,{g1 g2},'model','interaction','varnames',{'g1','g2'});
+% p = anovan(y,{g1 g2 g3},'model','interaction','varnames',{'g1','g2','g3'});
+
+y = stats(:,1);
+g1 = categorical(stats(:,2));  % Make sure these are categorical
+g2 = categorical(stats(:,3));  % Make sure these are categorical
+p = anovan(y, {g1, g2}, 'model', 'interaction', 'varnames', {'g1', 'g2'});
+
 
 %% FOR LATER -- ANALYSIS: Calculate flies within the outer ring of the region
 clearvars('-except',initial_vars{:})
