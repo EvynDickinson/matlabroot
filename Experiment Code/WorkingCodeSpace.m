@@ -13,10 +13,10 @@ imshowpair(Img1, Img2,'montage'); title('Paint weathering')
 save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', '-png');
 
 %% change genotype
-parameters.ArenaA.genotype = 'UAS-Kir2.1_TM6B_C';
-parameters.ArenaB.genotype = 'UAS-Kir2.1_TM6B_C';
-parameters.ArenaC.genotype = 'UAS-Kir2.1_TM6B_C';
-parameters.ArenaD.genotype = 'UAS-Kir2.1_TM6B_C';
+parameters.ArenaA.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
+parameters.ArenaB.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
+parameters.ArenaC.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
+parameters.ArenaD.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
 
 %% change sex
 parameters.ArenaA.sex = 'Mixed';
