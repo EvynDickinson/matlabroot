@@ -557,7 +557,6 @@ end
 %%  FIGURES: visualize the fictive temperature predictions
 % save([saveDir 'models'],'models','-v7.3')
 
-
 % test a small integration window: 
 kolor = Color('white', 'blue', nTemps);
 time = grouped(exp).time;
