@@ -978,7 +978,12 @@ T.wing_ext_all = wing_ext;
 
 frames = find(T.wing_ext==1);
 endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
-roi = frames(1):frames(endidx(1));
+try 
+    roi = frames(1):frames(endidx(1));
+catch
+    endidx = frames(end);
+    roi = frames(1):frames(endidx(1));
+end
 
 fig = getfig('',1); hold on
 % plot the female fly
@@ -1158,7 +1163,11 @@ save_figure(fig,[figDir 'chase positions M fly'],fig_type,1,0);
 
 switch questdlg(['Show all ' num2str(size(m.chaseroi,1)) 'instances of chase?'])
     case 'Yes'
-        c
+    case 'No'
+        return
+    case 'Cancel'
+        return
+end
 % Subplots
 r = 5;
 c = 1;
@@ -1671,7 +1680,7 @@ ylim([0,y1+1+tickH])
 
 
 
-%% Calculate fly turning 
+%% ANALYSIS & FIGURE: fly turning 
 clearvars('-except',initial_var{:})
 for sex = 1:2
     % extract the x and y head and center positions to calculcate the slope of the body line

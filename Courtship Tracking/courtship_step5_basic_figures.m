@@ -978,7 +978,11 @@ T.wing_ext_all = wing_ext;
 
 frames = find(T.wing_ext==1);
 endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
-roi = frames(1):frames(endidx(1));
+try 
+    roi = frames(1):frames(endidx(1));
+catch
+    roi = frames(1):frames(end);
+end
 
 fig = getfig('',1); hold on
 % plot the female fly
@@ -1008,7 +1012,7 @@ save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
 % xlims = xlim;
 % ylims = ylim;
 
-%% ANALYSIS & FIGURES: Chase identification
+%% ANALYSIS: Chase identification
 % < 120 deg area behind female x
 % facing female x
 % 7mm between M center and F center x
@@ -1115,7 +1119,7 @@ y = mY(1:skip:end,[body.head,body.center]);
 plot(x',y','color',kolor)
 scatter(x(:,1),y(:,1),15,kolor,"filled","^")
 % axis equal square
-formatFig(fig,blkbnd)
+formatFig(fig,blkbnd);
 set(gca,'XColor','none','YColor','none')
 
 % Plot the all male body positions under chase instances
@@ -1144,10 +1148,10 @@ h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
 xlim(zoom)
 ylim(zoom)
-formatFig(fig,blkbnd)
+formatFig(fig,blkbnd);
 set(gca,'XColor','none','YColor','none')
 
-formatFig(fig,blkbnd)
+formatFig(fig,blkbnd);
 % rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
 % save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
 
@@ -1674,7 +1678,6 @@ ylim([0,y1+1+tickH])
 
 
 
-
 %% ANALYSIS & FIGURE: fly turning 
 clearvars('-except',initial_var{:})
 for sex = 1:2
@@ -1824,7 +1827,7 @@ subplot(r,c,5)
 xlim(xlimit)
 
 
-save_figure(fig,[baseFolder 'Figures/full timecourse zoom in'], fig_type);
+save_figure(fig,[figDir, 'Full timecourse zoom in'], fig_type);
 
 
 
@@ -1839,7 +1842,7 @@ xlimit = [0,120];
 fig = getfig('',1,[1032 1042]);
 % INTERFLY DISTANCE
 subplot(r,c,1) 
-    plot(T.time,IFD,'color', foreColor,'LineWidth', 1.5)
+    plot(T.time,T.IFD,'color', foreColor,'LineWidth', 1.5)
     % xlabel('time (s)')
     ylabel('inter-fly distance (mm)')
     % xlim(xlimit)
