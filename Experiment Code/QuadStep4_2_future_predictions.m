@@ -1,6 +1,7 @@
 
 % load existing model data: 
 
+load([saveDir 'temp occupation correlation ramps only.mat'])
 
 
 %% Predictions of CURRENT behavior based on PAST conditions
@@ -533,6 +534,22 @@ for exp = 1:num.exp
     disp([num2str(exp) '/' num2str(num.exp) ' temp rate integration time'])
 end
 
+% find the minimum and maximum predicted temps: 
+for exp = 1:num.exp
+    minT = []; maxT = [];
+    for tt = 1:nTemps
+        for rr = 1:nRates
+            y = M(exp).models(tt,rr).predicted_temp;
+            minT = [minT, min(y)];
+            maxT = [maxT, max(y)];
+        end
+    end
+    minT = min(minT);
+    maxT = max(maxT);
+    M(exp).minT = minT;
+    M(exp).maxT = maxT;
+end
+
 % ********************************************************************
 % ********************************************************************
 
@@ -558,40 +575,25 @@ end
 %%  FIGURES: visualize the fictive temperature predictions
 % save([saveDir 'models'],'models','-v7.3')
 
+for exp = 1:num.exp
 
-% test a small integration window: 
-kolor = Color('white', 'blue', nTemps);
-time = grouped(exp).time;
-% [nrows, ncols] = subplot_numbers(nRates*nTemps);
-ylims = [];
-r = 3; 
-c = 4;
-fig = getfig('',1);
-for rr = 1:nRates
-    subplot(r,c,rr)
-    hold on
-    for tt = 1:5:nTemps
-        plot(time, models(tt,rr).predicted_temp,'Color', kolor(tt,:))
-% ======= from the merge...
-% for exp = 1:num.exp
-% 
-%     % test a small integration window: 
-%     kolor = Color('white', 'blue', nTemps);
-%     time = grouped(exp).time;
-%     % [nrows, ncols] = subplot_numbers(nRates*nTemps);
-%     ylims = [];
-%     r = 3; 
-%     c = 4;
-%     fig = getfig('',1);
-%     for rr = 1:nRates
-%         subplot(r,c,rr)
-%         hold on
-%         for tt = 1:5:nTemps
-%             plot(time, M(exp).models(tt,rr).predicted_temp,'Color', kolor(tt,:))
-%         end
-%         plot(time, grouped(exp).temp,'color', 'k','LineWidth',1)
-%         title([num2str(delta_R(rr)) ' min'],'color', 'k')
-%         ylims = [ylims, ylim];
+    % test a small integration window: 
+    kolor = Color('white', 'blue', nTemps);
+    time = grouped(exp).time;
+    % [nrows, ncols] = subplot_numbers(nRates*nTemps);
+    ylims = [];
+    r = 3; 
+    c = 4;
+    fig = getfig('',1);
+    for rr = 1:nRates
+        subplot(r,c,rr)
+        hold on
+        for tt = 1:5:nTemps
+            plot(time, M(exp).models(tt,rr).predicted_temp,'Color', kolor(tt,:))
+        end
+        plot(time, grouped(exp).temp,'color', 'k','LineWidth',1)
+        title([num2str(delta_R(rr)) ' min'],'color', 'k')
+        ylims = [ylims, ylim];
 
     end
     % add labels
@@ -620,10 +622,110 @@ for rr = 1:nRates
     save_figure(fig,[figDir grouped(exp).name ' model temperature predictions'],'-png');
 end
 
+%% FIGURE: plot side by side the distance vs predicted temp compared to distance vs actual temp
+rr = 1; % zero lag for starters
+
+r = 1; 
+c = 2;
+c_color = Color('dodgerblue');
+h_color = Color('red');
+sz = 2;
+skip_size = 0.25; % how many degrees to bin...
+LW = 1;
+
+for exp = 1:num.exp
+    plotData = [];
+    tt = 1;
+    % general parameters for this experiment: 
+    tBins = floor(M(exp).minT):skip_size:ceil(M(exp).maxT);
+    nBins = length(tBins)-1;
+
+    tP = getTempTurnPoints(data(exp).temp_protocol);
+    % cooling
+    downROI = tP.DownROI;
+    % warming
+    upROI = tP.UpROI;
+
+
+    fig = getfig('',1);
+
+    % TODO 12.16 -- update this to show the different tt time delay points
+    % across diff subplots
+
+    % Find the avg + error for each temp bin curve...
+    for type = 1:2 % heating & cooling
+       switch type
+           case 1
+               roi = tP.DownROI;
+               kolor = c_color;
+           case 2
+               roi = tP.UpROI;
+               kolor = h_color;
+       end
+    
+        x_control = grouped(exp).temp(roi);
+        x_model =  M(exp).models(tt,rr).predicted_temp(roi);
+        y = grouped(exp).dist.all(roi,:);
+        control_idx = discretize(x_control,tBins);
+        model_idx = discretize(x_model,tBins);
+        [y_control_avg, y_control_err,y_model_avg, y_model_err] = deal(nan(num.trial(exp),1));
+        for bin = 1:nBins
+            % control
+            loc = control_idx==bin; % location of temperature points that fit the temp range
+            y_control_avg(bin) = mean(mean(y(loc,:),'omitnan'),'omitnan');
+            y_control_err(bin) = std(mean(y(loc,:),'omitnan'),'omitnan');
+            % model
+            loc = model_idx==bin; % location of temperature points that fit the temp range
+            y_model_avg(bin) = mean(mean(y(loc,:),'omitnan'),'omitnan');
+            y_model_err(bin) = std(mean(y(loc,:),'omitnan'),'omitnan');
+        end
+        
+        % plot data: 
+        x = tBins(2:end);
+        subplot(r,c,1); hold on
+        plot_error_fills(true, x, y_control_avg, y_control_err, kolor,  fig_type, 0.4);
+        plot(x,y_control_avg,'color',kolor,'linewidth',LW+1)
+
+        subplot(r,c,2); hold on
+        plot_error_fills(true, x, y_model_avg, y_model_err, kolor,  fig_type, 0.4);
+        plot(x,y_control_avg,'color',kolor,'linewidth',LW+1)
+    end
+
+
+    
+    % subplot(r,c,1); hold on
+    %     % cooling
+    %     x = grouped(exp).temp(downROI);
+    %     x = repmat(x,[1,num.trial(exp)]);
+    %     y = grouped(exp).dist.all(downROI,:);
+    %     scatter(x(:),y(:),sz,c_color,'filled')
+    %     % warming
+    %     x = grouped(exp).temp(upROI);
+    %     x = repmat(x,[1,num.trial(exp)]);
+    %     y = grouped(exp).dist.all(upROI,:);
+    %     scatter(x(:),y(:),sz,h_color,'filled')
+    % 
+    % subplot(r,c,2); hold on
+    %     % cooling
+    %     x = M(exp).models(tt,rr).predicted_temp(downROI);
+    %     x = repmat(x,[1,num.trial(exp)]);
+    %     y = grouped(exp).dist.all(downROI,:);
+    %     scatter(x(:),y(:),sz,c_color,'filled')
+    %     % warming
+    %     x = M(exp).models(tt,rr).predicted_temp(upROI);
+    %     x = repmat(x,[1,num.trial(exp)]);
+    %     y = grouped(exp).dist.all(upROI,:);
+    %     scatter(x(:),y(:),sz,h_color,'filled')
+
+        
+
+end
+
+
 %% ANALYSIS & FIGURE: compare the linearity of the data: 
 clearvars('-except',initial_vars{:})
 % 
-buff = 16;
+buff = 0;
 buff = buff*fps;
 % R = struct;
 
