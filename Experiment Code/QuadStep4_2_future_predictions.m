@@ -625,8 +625,11 @@ end
 %% FIGURE: plot side by side the distance vs predicted temp compared to distance vs actual temp
 rr = 1; % zero lag for starters
 
-r = 1; 
-c = 2;
+n = ceil(sqrt(nTemps+1));
+[r,c] = subplot_numbers(nTemps+1,n);
+% 
+% r = 1; 
+% c = 2;
 c_color = Color('dodgerblue');
 h_color = Color('red');
 sz = 2;
@@ -635,7 +638,7 @@ LW = 1;
 
 for exp = 1:num.exp
     plotData = [];
-    tt = 1;
+    % for tt = 1: TODO
     % general parameters for this experiment: 
     tBins = floor(M(exp).minT):skip_size:ceil(M(exp).maxT);
     nBins = length(tBins)-1;
