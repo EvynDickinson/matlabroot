@@ -623,106 +623,134 @@ for exp = 1:num.exp
 end
 
 %% FIGURE: plot side by side the distance vs predicted temp compared to distance vs actual temp
-rr = 1; % zero lag for starters
+clearvars('-except',initial_vars{:})
+figDir = [saveDir, 'models/'];
+if ~exist(figDir,'dir')
+    mkdir(figDir)
+end
 
-n = ceil(sqrt(nTemps+1));
-[r,c] = subplot_numbers(nTemps+1,n);
-% 
-% r = 1; 
-% c = 2;
-c_color = Color('dodgerblue');
-h_color = Color('red');
-sz = 2;
+rr = 1; % zero lag for starters
 skip_size = 0.25; % how many degrees to bin...
 LW = 1;
 
 for exp = 1:num.exp
     plotData = [];
-    % for tt = 1: TODO
     % general parameters for this experiment: 
     tBins = floor(M(exp).minT):skip_size:ceil(M(exp).maxT);
     nBins = length(tBins)-1;
-
+    M(exp).binned.diff = nan([M(exp).nTemps+1,1]);
     tP = getTempTurnPoints(data(exp).temp_protocol);
-    % cooling
-    downROI = tP.DownROI;
-    % warming
-    upROI = tP.UpROI;
-
-
-    fig = getfig('',1);
-
-    % TODO 12.16 -- update this to show the different tt time delay points
-    % across diff subplots
-
-    % Find the avg + error for each temp bin curve...
-    for type = 1:2 % heating & cooling
-       switch type
-           case 1
-               roi = tP.DownROI;
-               kolor = c_color;
-           case 2
-               roi = tP.UpROI;
-               kolor = h_color;
-       end
-    
-        x_control = grouped(exp).temp(roi);
-        x_model =  M(exp).models(tt,rr).predicted_temp(roi);
-        y = grouped(exp).dist.all(roi,:);
-        control_idx = discretize(x_control,tBins);
-        model_idx = discretize(x_model,tBins);
-        [y_control_avg, y_control_err,y_model_avg, y_model_err] = deal(nan(num.trial(exp),1));
-        for bin = 1:nBins
-            % control
-            loc = control_idx==bin; % location of temperature points that fit the temp range
-            y_control_avg(bin) = mean(mean(y(loc,:),'omitnan'),'omitnan');
-            y_control_err(bin) = std(mean(y(loc,:),'omitnan'),'omitnan');
-            % model
-            loc = model_idx==bin; % location of temperature points that fit the temp range
-            y_model_avg(bin) = mean(mean(y(loc,:),'omitnan'),'omitnan');
-            y_model_err(bin) = std(mean(y(loc,:),'omitnan'),'omitnan');
+    % heating and cooling separated average distance to food by predicted temp
+    for tt = 0:M(exp).nTemps
+        y_cooling = grouped(exp).dist.all(tP.DownROI,:);
+        y_heating = grouped(exp).dist.all(tP.UpROI,:);
+        if tt > 0
+            x_cooling = M(exp).models(tt,rr).predicted_temp(tP.DownROI);
+            x_heating = M(exp).models(tt,rr).predicted_temp(tP.UpROI);
+        else
+            x_cooling = grouped(exp).temp(tP.DownROI);
+            x_heating = grouped(exp).temp(tP.UpROI);
         end
-        
-        % plot data: 
-        x = tBins(2:end);
-        subplot(r,c,1); hold on
-        plot_error_fills(true, x, y_control_avg, y_control_err, kolor,  fig_type, 0.4);
-        plot(x,y_control_avg,'color',kolor,'linewidth',LW+1)
+        c_idx = discretize(x_cooling,tBins);
+        h_idx = discretize(x_heating,tBins);
+        [y_cooling_avg, y_cooling_err,y_heating_avg, y_heating_err] = deal(nan(num.trial(exp),1));
+        for bin = 1:nBins
+            % cooling
+            loc = c_idx==bin; % location of temperature points that fit the temp range
+            y_cooling_avg(bin) = mean(mean(y_cooling(loc,:),'omitnan'),'omitnan');
+            y_cooling_err(bin) = std(mean(y_cooling(loc,:),'omitnan'),'omitnan');
+            % heating
+            loc = h_idx==bin; % location of temperature points that fit the temp range
+            y_heating_avg(bin) = mean(mean(y_heating(loc,:),'omitnan'),'omitnan');
+            y_heating_err(bin) = std(mean(y_heating(loc,:),'omitnan'),'omitnan');
+        end
+        t_idx = tt+1;
+        plotData(t_idx).y_cooling = [y_cooling_avg,y_cooling_err];
+        plotData(t_idx).y_heating = [y_heating_avg,y_heating_err];
+        % measure of 'fit'
+        a = median(abs(y_cooling_avg-y_heating_avg),'omitnan'); % total difference between heating & cooling
+        a = a*(1/skip_size); % position difference per degree
+        plotData(t_idx).diff = a;
+        M(exp).binned.diff(t_idx) = a;
+    end
+    M(exp).binned.data = plotData;
+    M(exp).binned.temp = tBins(2:end)+diff(tBins);
+end
 
-        subplot(r,c,2); hold on
-        plot_error_fills(true, x, y_model_avg, y_model_err, kolor,  fig_type, 0.4);
-        plot(x,y_control_avg,'color',kolor,'linewidth',LW+1)
+% PLOT FIGURE: 
+for exp = 1:num.exp  
+    n = ceil(sqrt(M(exp).nTemps+1));
+    [r,c] = subplot_numbers(M(exp).nTemps+1,n);
+    c_color = Color('dodgerblue');
+    h_color = Color('red');
+
+    x = M(exp).binned.temp;
+    fig = getfig(grouped(exp).name,1);
+    ylims = [];
+    for tt = 0:M(exp).nTemps
+        t_idx = tt+1;
+        subplot(r,c,t_idx); hold on
+        % plot cooling
+        y = M(exp).binned.data(t_idx).y_cooling;
+        plot_error_fills(true, x, y(:,1), y(:,2), c_color,  fig_type, 0.4);
+        plot(x,y(:,1),'color',c_color,'linewidth',LW+1)
+        % plot warming
+        y = M(exp).binned.data(t_idx).y_heating;
+        plot_error_fills(true, x, y(:,1), y(:,2), h_color,  fig_type, 0.4);
+        plot(x,y(:,1),'color',h_color,'linewidth',LW+1)
+        % labels
+        title([num2str(tt) ' | ' num2str(M(exp).binned.data(t_idx).diff)])
+        ylims = [ylims,ylim];
     end
 
-
-    
-    % subplot(r,c,1); hold on
-    %     % cooling
-    %     x = grouped(exp).temp(downROI);
-    %     x = repmat(x,[1,num.trial(exp)]);
-    %     y = grouped(exp).dist.all(downROI,:);
-    %     scatter(x(:),y(:),sz,c_color,'filled')
-    %     % warming
-    %     x = grouped(exp).temp(upROI);
-    %     x = repmat(x,[1,num.trial(exp)]);
-    %     y = grouped(exp).dist.all(upROI,:);
-    %     scatter(x(:),y(:),sz,h_color,'filled')
-    % 
-    % subplot(r,c,2); hold on
-    %     % cooling
-    %     x = M(exp).models(tt,rr).predicted_temp(downROI);
-    %     x = repmat(x,[1,num.trial(exp)]);
-    %     y = grouped(exp).dist.all(downROI,:);
-    %     scatter(x(:),y(:),sz,c_color,'filled')
-    %     % warming
-    %     x = M(exp).models(tt,rr).predicted_temp(upROI);
-    %     x = repmat(x,[1,num.trial(exp)]);
-    %     y = grouped(exp).dist.all(upROI,:);
-    %     scatter(x(:),y(:),sz,h_color,'filled')
-
-        
-
+    % add labels
+    leftedge = 1:c:r*c;
+    bottomrow = (r*c)-c+1:r*c;
+    for rr = leftedge
+        subplot(r,c,rr)
+        ylabel('dist (mm)')
+    end
+    for rr = bottomrow
+        subplot(r,c,rr)
+        xlabel('temp (\circC)')
+    end
+    for rr = 1:r*c
+        subplot(r,c,rr)
+        if ~any(rr==leftedge)
+            set(gca,'yticklabel',[])
+        end
+        ylim([min(ylims),max(ylims)])
+    end
+    % save the figure
+    save_figure(fig,[figDir grouped(exp).name ' model tuning curves'],'-png');
 end
+
+
+% manual guesses at the best fits: 
+
+delay = [0.5,2, 6, 22, 31];
+delay = flip(delay);
+fig = getfig('',1);
+for i = 1:num.exp
+    subplot(2,3,i)
+    exp = expOrder(i);
+    x = [0,M(exp).delta_T];
+    y = M(exp).binned.diff;
+    scatter(x,y,50,Color('black'),'filled')
+    ylim([0, 50])
+    v_line(delay(i))
+    xlabel('future prediction (min)')
+    ylabel('\Delta mm/\circC')
+    
+    curr_rate = abs(data(exp).G(1).TR.rates(1));
+    future_temp(i) = delay(i)*curr_rate;
+    disp([grouped(exp).name '  ' num2str(future_temp(i))])
+
+    title({grouped(exp).name; [' ' num2str(future_temp(i)) '\circC ''predicted''']})
+    
+end
+formatFig(fig,false,[2,3])
+save_figure(fig,[figDir 'Simple Model Predictions'],'-png');
 
 
 %% ANALYSIS & FIGURE: compare the linearity of the data: 
