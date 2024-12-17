@@ -2326,6 +2326,20 @@ subplot(r,c,3); hold on
     y2 = smooth(f.speed,sSpan,'moving'); % female
     plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
     plot(time, y2, 'color', Color('deeppink'),'LineWidth', lw)
+
+    % Plot instances of male sleep
+    y = rangeLine(fig, 20, false);
+    y1 = double(m.sleep);
+    mslp = m.sleep == 0;
+    y1(mslp) = nan;
+    plot(T.time, y*y1, 'color', Color('dodgerblue'), 'LineWidth', 2)
+
+    % Plot instances of female sleep
+    y1 = double(f.sleep);
+    fslp = f.sleep == 0;
+    y1(fslp) = nan;
+    plot(T.time, y*y1, 'color', Color('deeppink'), 'LineWidth', 2)
+
     ylabel('speed (mm/s)')
 
 % FLY SPEED CORRELATION
