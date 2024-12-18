@@ -246,55 +246,6 @@ if disp_fig
     save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
 end
 
-%% ANALYSIS: Calculate M and F wing angles
-
-clearvars('-except',initial_var{:})
-
-% Calculate wing angles for male and female
-wing = [];
-for sex = 1:2
-    % for each loop/wing, switch x and y to appropriate values
-    for w = 1:2
-        switch w 
-            case 1
-                P1 = [data(sex).x(:,4),data(sex).y(:,4)]; % left
-            case 2
-                P1 = [data(sex).x(:,5),data(sex).y(:,5)]; % right
-        end
-        
-        P2 = [data(sex).x(:,2),data(sex).y(:,2)]; % center
-        P3 = [data(sex).x(:,3),data(sex).y(:,3)]; % abdomen
-        
-        % 1: Calculate vectors from P2 to P1 and from P2 to P3
-        v1 = P1 - P2;  % Nx2 matrix, vector from P2 to P1 for each time step
-        v2 = P3 - P2;  % Nx2 matrix, vector from P2 to P3 for each time step
-        
-        % 2: Calculate the dot product of v1 and v2 for each time step
-        dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
-        
-        % 3: Calculate the magnitudes of v1 and v2 for each time step
-        mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2);
-        mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2);
-        
-        % 4: Calculate the cosine of the angle for each time step
-        cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
-        
-        % 5: Compute the angle in radians, and then convert to degrees
-        anglesRadians = acos(cosTheta);  % Nx1 vector of angles in radians
-        anglesDegrees = rad2deg(anglesRadians);  % convert to degrees
-        
-        % Save wing angle values as variable
-        data(sex).wingangle(:,w) = anglesDegrees;
-    end
-
-     % identify where there are nans for wing angle for either wing
-     loc = any(isnan(data(sex).wingangle),2);
-     % create wing spread variable by summing wingangles
-     data(sex).wingspread = sum(data(sex).wingangle,2);
-     % replace wing spread values with nans where wing angles have nans
-     data(sex).wingspread(loc,:) = nan;
-end
-
 
 %% FIGURE: Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})
@@ -367,39 +318,7 @@ ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
 save_figure(fig,[figDir 'M and F wing angles'],fig_type);
 
-%% ANALYSIS: Calculate the body angle between the flies
 
-clearvars('-except',initial_var{:})
-
-x = 1;
-y = 2;
-head = 1;
-center = 2;
-% positions of M and F head and center
-P1 = [m.pos(:,center,x),m.pos(:,center,y)]; % male center
-P2 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
-P3 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
-P4 = [f.pos(:,head,x),f.pos(:,head,y)]; % female head
-
-% 1: Calculate body vectors
-v1 = P1 - P2;  % Nx2 matrix, vector for male body vector
-v2 = P3 - P4;  % Nx2 matrix, vector for female body vector
-
-% 2: Calculate the dot product of v1 and v2 for each time step
-dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
-
-% 3) Compute the magnitudes of the vectors
-mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2); 
-mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2); 
-
-% 4) Calculate the cosine of the angle
-cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
-
-% 5) Compute the angle in radians and convert to degrees
-angleRadians = acos(cosTheta);  % angle in radians
-angleDegrees = rad2deg(angleRadians);  % convert to degrees
-data(1).mfbodyangle = angleDegrees;
-data(2).mfbodyangle = angleDegrees;
 
 %% FIGURE: Visualize body angles over time
 clearvars('-except',initial_var{:})
@@ -448,188 +367,7 @@ save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
 % figure;
 % polarhistogram(angleDegrees)
 
-%% ANALYSIS ONLY: Determine male position relative to female
 
-clearvars('-except',initial_var{:})
-% center all points to female fly
-% align all points to female fly heading (center = 0)
-
-data(M).color = Color('dodgerblue');
-data(F).color = Color('deeppink');
-
-% ------------------------- 1) Shift each frame to the origin for female fly ------------------------- 
-x_offset = data(F).rawX(:,body.center); % x values for female center
-y_offset = data(F).rawY(:,body.center);
-mx = data(M).rawX-x_offset; % subtract the offset from the x values for each body point
-my = data(M).rawY-y_offset;
-fx = data(F).rawX-x_offset;
-fy = data(F).rawY-y_offset;
-
-% ------------------------- 2) Rotate each set of points to head and center on the Y axis ------------------------- 
-[mX,mY,fX,fY] = deal(nan(size(mx)));
-for frame = 1:length(mX)
-    % identify coordinates for each body point in that frame - female only
-    fpoints = [fx(frame,:)',fy(frame,:)']; 
-    % rotate points so head and center align with y axis
-    [rotatedPoints, R] = rotateToVertical(fpoints, body.center,body.head,false);
-    % load new rotated points into variable
-    fX(frame,:) = rotatedPoints(:,1);
-    fY(frame,:) = rotatedPoints(:,2);
-    % identify coordinates for each body point in that frame - male only
-    mpoints = [mx(frame,:)',my(frame,:)'];
-    % rotate points in relation to female (using female R)
-    mpoints = (R * mpoints')';
-    % load new rotated points into variable
-    mX(frame,:) = mpoints(:,1);
-    mY(frame,:) = mpoints(:,2);
-end
-initial_var{end+1} = 'mX';
-initial_var{end+1} = 'mY';
-initial_var{end+1} = 'fX';
-initial_var{end+1} = 'fY';
-
-% Calulate the angle between fly bodies (both - and +)
-theta = data(M).mfbodyangle; 
-test = theta<90; % when is male less than 90 deg from female
-
-
-% ------------------------- 4) Establish likely and unlikely courtship positions ------------------------- 
-
-% Determine fly body length (~2.5mm)
-BL = 2.5/pix2mm; % in pixels
-
-% Body position location rules
-r.a = mX(:,body.center) >= 0; % everything to right of y axis
-r.b = mX(:,body.center) <= 0; % everything to left of y axis
-r.c = mY(:,body.center) >= 0; % everything above x axis
-r.d = mY(:,body.center) <= 0; % everything below x axis
-q1 = r.b & r.c; % quadrant one occupancy
-q2 = r.a & r.c; % quadrant two occupancy
-q3 = r.d & r.b; % quadrant three occupancy
-q4 = r.a & r.d; % quadrant four occupancy
-
-% Heading direction rules
-r.e = mY(:,body.head) >= mY(:,body.center); % heading direction facing north
-r.f = mY(:,body.head) <= mY(:,body.center); % heading direction facing south
-r.g = mX(:,body.head) >= mX(:,body.center); % heading direction facing east
-r.h= mX(:,body.head) <= mX(:,body.center); % heading direction facing west
-ne = r.e & r.g; % north east direction
-nw = r.e & r.h; % north west direction
-se = r.f & r.g; % south east direction
-sw = r.f & r.h; % south west direction
-
-
-% Likely rules
-BLidx = abs(mX(:,body.center)) <= (5*BL) & abs(mY(:,body.center)) <= (5*BL); % limits likely roi's to 5 body lengths
-% 1-4)
-roi1 = q1 & se & BLidx; % quadrant 1, southeast
-roi2 = q2 & sw & BLidx; % quadrant 2, southwest
-roi3 = q3 & ne & BLidx; % quadrant 3, northeast
-roi4 = q4 & nw & BLidx; % quadrant 4, northwest
-
-% Gray/maybe rules
-r.i = theta < 90;
-r.j = theta > 90;
-deg = [45, 20, 10];
-
-    % 5) quadrant 1, southwest
-    roi5 = [];
-    for i = 1:3 % each angle
-        % body center is within appropriate BL, body angle is between [deg] and 180, and inside quadrant 1
-        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & q1 & sw;
-        roi5(:,i) = dummy;
-    end
-    roi5 = any(roi5,2);
-    
-    % 6) quadrant 2, southeast
-    roi6 = [];
-    for i = 1:3
-        dummy = abs(mX(:,body.center)) <= i*BL & theta > (180 - deg(i)) & q2 & se;
-        roi6(:,i) = dummy;
-    end
-    roi6 = any(roi6,2);
-    
-    % 7) quadrant 3, northwest
-    roi7 = [];
-    for i = 1:3
-        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & q3 & nw;
-        roi7(:,i) = dummy;
-    end
-    roi7 = any(roi7,2);
-    
-    % 8) quadrant 4, northeast
-    roi8 = [];
-    for i = 1:3
-        dummy = abs(mX(:,body.center)) <= i*BL & theta < deg(i) & q4 & ne;
-        roi8(:,i) = dummy;
-    end
-    roi8 = any(roi8,2);
-    
-    % 9) quadrant 1, northeast
-    roi9 = [];
-    for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & q1 & ne;
-        roi9(:,i) = dummy;
-    end
-    roi9 = any(roi9,2);
-    
-    % 10) quadrant 2, northwest
-    roi10 = [];
-    for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta < 90 & theta > (90 - deg(i)) & q2 & nw;
-        roi10(:,i) = dummy;
-    end
-    roi10 = any(roi10,2);
-    
-    % 11) quadrant 3, southeast
-    roi11 = [];
-    for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & q3 & se;
-        roi11(:,i) = dummy;
-    end
-    roi11 = any(roi11,2);
-    
-    % 12) quadrant 4, southwest
-    roi12 = [];
-    for i = 1:3
-        dummy = abs(mY(:,body.center)) <= i*BL & theta > 90 & theta < (90 + deg(i)) & q4 & sw;
-        roi12(:,i) = dummy;
-    end
-    roi12 = any(roi12,2);
-
-% ROI's that are likely courtship positions
-likely = roi1 | roi2 | roi3 | roi4;
-% ROI's that are maybe courtship positions
-gray = roi5 | roi6 | roi7 | roi8; % exceptions moving towards X axis
-gray2 = roi9 | roi10 | roi11 | roi12; %exceptions moving towards Y axis
-
-% Saving ROIs
-position = [];
-position.L1 = roi1;
-position.L2 = roi2;
-position.L3 = roi3;
-position.L4 = roi4;
-position.GX1 = roi5;
-position.GX2 = roi6;
-position.GX3 = roi7;
-position.GX4 = roi8;
-position.GY1 = roi9;
-position.GY2 = roi10;
-position.GY3 = roi11;
-position.GY4 = roi12;
-
-
-% Create variable for likely and maybe courtship positions
-loc = likely | gray | gray2;
-T.courtposition = loc;  % yes = green, no = red on graph vv
-likelyidx = find(loc);
-unlikelyidx = find(~loc);
-position.likely = likely;
-position.GX = gray;
-position.GY = gray2;
-position.all_likely = loc;
-position.unlikely = ~loc;
-initial_var{end+1} = 'position';
 
 
 %% FIGURES: Male position relative to female
@@ -903,91 +641,7 @@ rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor'
 
 save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png');
  
-%% ANALYSIS: Identify food well and calulate distance to food
 
-% determine if the well outlines already exist
-well_file = [baseDir 'well locations.mat'];
-if ~exist(well_file, 'file')    
-    % pull up picture to find food well
-    vidpath = [getDataPath(6, 2), parameters.date, '/', parameters.videoName, '/compiled_video_1.avi'];
-    % vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
-    movieInfo = VideoReader(vidpath); %read in video
-    demoImg = (read(movieInfo,T.vidFrame(1)));
-    img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
-    
-    % save food well location
-    txt = {'12', '3', '6', '9'};
-    well = struct; % initialize the new well structure
-    fig = getfig('');
-        imshow(img)
-        for i = 1:4 
-            h = warndlg(['Outline the ' txt{i} ' oclock well']);
-            uiwait(h)
-            roi = drawcircle; % manually add in the circle over the food well
-            well.radius(i) = roi.Radius;
-            well.center(i,:) = roi.Center;
-        end
-    save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
-
-    well.R = mean(well.radius)*pix2mm;
-
-    % select the well with the food
-    fig = getfig('');
-        imshow(img); hold on
-        for i = 1:4
-            viscircles(well.center(i,:), well.radius(i),'color',Color('white'));
-            % drawcircle('Center',[well.center(i,:)],'Radius',well.radius(i),'StripeColor','red','Color',Color('grey'));
-        end
-        title('Click the food well','FontSize',18)
-        [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});      % get a point
-        % find the well with the selected data point
-        % distance between each well center and the selected point
-        [~, index] = min((sqrt((xi-well.center(:,1)).^2 + (yi-well.center(:,2)).^2)).*pix2mm);
-        
-        % plot the selected point
-        scatter(xi,yi,60,"white",'filled')
-        scatter(xi,yi,30,"red",'filled')
-        % change the color of the well outline to highlight selection
-        viscircles(well.center(index,:), well.radius(index),'color',Color('red'));
-    if strcmp(questdlg('okay food well selection?'),'Yes')
-        well.food_idx = index;
-        well.food = well.center(index,:);
-        close(fig)
-    else
-        warndlg('Rerun the food well identification')
-        return
-    end
-    % SAVE DATA?
-    if strcmp(questdlg('save well locations?'),'Yes')
-        save(well_file,'well')
-    else 
-    end
-else
-    load(well_file,'well')
-    disp('Loaded prior well locations')
-end
-     
-% Center of the arena
-WC = well.center';
-N = [];
-x1 = WC(1,1:2:4);
-y1 = WC(2,1:2:4);
-x2 = WC(1,2:2:4);
-y2 = WC(2,2:2:4);
-[xi,yi] = polyxpoly(x1,y1,x2,y2);
-well.center(5,:) = [xi,yi];
-
-% calculate distance to food (from fly head)
-x1 = m.pos(:,1,1); % x location for male center
-y1 = m.pos(:,1,2);
-x2 = f.pos(:,1,1);
-y2 = f.pos(:,1,2);
-c1 = well.center(1);
-c2 = well.center(2);
-
-m.dist2food = (sqrt((x1-c2).^2 + (y1-c2).^2)).*pix2mm;
-f.dist2food = (sqrt((c1-x2).^2 + (c1-y2).^2)).*pix2mm;
-T.dist2food = [m.dist2food, f.dist2food];
 
 %% FIGURE: Distance to food histogram
 clearvars('-except',initial_var{:})
@@ -1280,51 +934,7 @@ fig =  getfig('',1);
 
 formatFig(fig, blkbnd, [r,c],sb);
 
-%% ANALYSIS: Calculate male wing extension
 
-clearvars('-except',initial_var{:})
-
-Lwing = [];
-Rwing = [];
-% Determine which positions require which wing to be extended
-L_items = {'L1', 'L4', 'GX1', 'GX4', 'GY2', 'GY3'};
-R_items = {'L2', 'L3', 'GX2', 'GX3', 'GY1', 'GY4'};
-% Identify if male is in an appropriate position for each wing direction across each item
-for i = 1:length(L_items)
-    Lwing = [Lwing, position.(L_items{i})];
-    Rwing = [Rwing, position.(R_items{i})];
-end
-% Condense to identify if male is in any of the appropriate positions
-Lwing = any(Lwing,2);
-Rwing = any(Rwing,2);
-
-% Pull wing angles equal or greater than extension minimum for L and R
-wa_cutoff = 50; % minimum wing extension angle for courtship
-wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff)); % wing must be facing the female fly
-% Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-a = diff(wing_ext); 
-% Add the first extension value to the list to account for the starting condition
-b = [wing_ext(1); a]; 
-% Locations in wing_ext where extension period starts/end
-ext_start = find(b == 1); 
-ext_stop = find(b == -1);
-% If wing ext doesn't stop by end, add stop location at end of ext_stop (loc = length of experiment value)
-if wing_ext(end)
-    ext_stop(end + 1) = length(time);
-end
-% Calculate the length of each wing ext bout
-ext_dur = ext_stop - ext_start;
-% Find where wing ext lasts longer than 1sec
-dur_loc = find(ext_dur > fps);
-
-% Create new courtship matrix with only true wing ext for bouts longer than 1sec
-mt = false(size(time));
-for i = 1:length(dur_loc)
-    ii = dur_loc(i);
-    mt(ext_start(ii):ext_stop(ii)) = true;
-end
-T.wing_ext = mt;
-T.wing_ext_all = wing_ext;
 
 %% FIGURE: Plot body position during wing extension
 % wing angle > 60 deg
@@ -2080,29 +1690,6 @@ ylabel('Courtship Metrics','color', foreColor)
 ylim([0,y1+1+tickH])
 
 
-
-%% ANALYSIS: Fly turning 
-
-clearvars('-except',initial_var{:})
-for sex = 1:2
-    % extract the x and y head and center positions to calculcate the slope of the body line
-    x = data(sex).rawX(:,body.head:body.center);
-    y = data(sex).rawY(:,body.head:body.center);
-    
-    % zero the flys center (actually unneccessary) 
-    X = x - x(:,2);
-    Y = y - y(:,2);
-    % slope for each point in time
-    slope = (Y(:,2)-Y(:,1))./(X(:,2)-X(:,1));
-    m1 = slope(1:end-1);   % 'past' heading
-    m2 = slope(2:end);      % 'current' heading
-    
-    % calculate the angle between the two slopes 
-    theta = atan((m1-m2)./(1+(m1.*m2)));
-    theta = rad2deg(theta);
-    data(sex).turning = [nan; theta].*(fps);
-end
-
 %% FIGURE: Fly turning over time 
 clearvars('-except',initial_var{:})
 % for sex = 1:2
@@ -2147,54 +1734,6 @@ fig = getfig('',1,[560 420]);
 set(gca, 'xcolor', backColor,'ycolor',backColor)
 title([num2str(data(1).mfbodyangle(frame))])
 end
-
-%% ANALYSIS: Extract sleep data
-
-clearvars('-except',initial_var{:})
-
-bout = 5*60*parameters.FPS;
-dummy = [];
-
-% Extract sleep bouts from position data
-for sex = 1:2
-    switch sex
-        case 1
-            x = m.pos(:,2,1); % male center
-        case 2
-            x = f.pos(:,2,1); % female center
-    end
-    % Calculate difference between all x values
-    x_diff = diff(x); 
-    % Identify when position is not changing
-    u = abs(x_diff)<= 1;
-    % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-    a = diff(u);
-    % Add the first position value to the list to account for the starting condition
-    b = [u(1); a]; 
-    % Frames where 'position-no-change' period starts/end
-    slp_start = find(b == 1); 
-    slp_stop = find(b == -1);
-    % If sleep doesn't stop by end, add stop location at end of slp_stop
-    if u(end)
-        slp_stop(end + 1) = length(time);
-    end
-    % Calculate the length of each 'position-no-change' bout
-    slp_dur = slp_stop - slp_start;
-    % Find where bout lasts longer than 5min (when is sleep)
-    slp_loc = find(slp_dur > bout);
-    
-    % Create dummy matrix with only true sleep bouts
-    mt = false(size(time));
-    for i = 1:length(slp_loc)
-        ii = slp_loc(i);
-        mt(slp_start(ii):slp_stop(ii)) = true;
-    end
-    dummy(sex).sleep = mt;
-end
-
-% Save sleep data
-m.sleep = dummy(1).sleep;
-f.sleep = dummy(2).sleep;
 
 %% FIGURE: Sleep
 clearvars('-except',initial_var{:})
