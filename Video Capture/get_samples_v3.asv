@@ -37,9 +37,6 @@ set(vi1,'FramesAcquiredFcn',{@FrameSave,dirname,tempLogName},'FramesAcquiredFcnC
 set(vi1,'FramesPerTrigger',nframes,'LoggingMode','memory');
 set(vi1,'Timeout',fpf);
 
-% A = readmatrix(tempLogName);
-% tempLog = [size(A,1), A(end,:)];
-
 % Trigger Device
 start(vi1);
 wait(vi1);

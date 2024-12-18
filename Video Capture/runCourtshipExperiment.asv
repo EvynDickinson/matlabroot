@@ -30,7 +30,7 @@ parameters.recordingduration = totalLength;
 parameters.fragmentduration = trial;
 parameters.protocol = 'courtship_F_LRR_25-17'; %TODO dynamic
 parameters.numFrag = nsamples; % number of video fragments
-parameters.experimenter = 'Becca'; %TODO dynamic
+parameters.experimenter = 'Evyn'; %TODO dynamic
 parameters.day_night = 'D'; %'N' 
 parameters.date = dateStr;
 
