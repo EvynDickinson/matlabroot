@@ -725,9 +725,7 @@ for exp = 1:num.exp
     save_figure(fig,[figDir grouped(exp).name ' model tuning curves'],'-png');
 end
 
-
 % manual guesses at the best fits: 
-
 delay = [0.5,2, 6, 22, 31];
 delay = flip(delay);
 fig = getfig('',1);
@@ -747,7 +745,6 @@ for i = 1:num.exp
     disp([grouped(exp).name '  ' num2str(future_temp(i))])
 
     title({grouped(exp).name; [' ' num2str(future_temp(i)) '\circC ''predicted''']})
-    
 end
 formatFig(fig,false,[2,3])
 save_figure(fig,[figDir 'Simple Model Predictions'],'-png');

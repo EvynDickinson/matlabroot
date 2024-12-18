@@ -96,7 +96,7 @@ m.speed = [0;(D./(1/fps))];
 D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % female speed
 f.speed = [0; (D./(1/fps))];
 
-%% ANALYSIS:Screen for frames with funky wing positions
+%% ANALYSIS: Screen for frames with funky wing positions
 clearvars('-except',initial_var{:})
 
 % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing

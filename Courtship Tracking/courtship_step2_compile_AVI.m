@@ -23,7 +23,7 @@ vROI = parameters.vROI;
 
 % Start parallel pool if it's not already running
 if isempty(gcp('nocreate'))
-    parpool;
+    parpool(11);
 end
 
 %  loop for parallel processing
