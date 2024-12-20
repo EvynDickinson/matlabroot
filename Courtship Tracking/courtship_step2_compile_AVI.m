@@ -32,7 +32,6 @@ iEnd = vROI(:,2);
 N = (iEnd-iStart)+1;
 hz = parameters.FPS;
 
-
 tic
 parfor vid = 1:nVids
     % Each compiled video is processed independently in parallel

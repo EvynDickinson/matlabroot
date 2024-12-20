@@ -1,7 +1,7 @@
 
 
 function folderSelected = selectFolder(path,mulitselect,promptString)
-% folderSelected = selectFolder(path)
+% folderSelected = selectFolder(path,mulitselect,promptString)
 % select a folder from an input directory with the autoadded 
 
 % path_A = 'C:\Users\evynd\OneDrive\Desktop\Testing End Folder\'
