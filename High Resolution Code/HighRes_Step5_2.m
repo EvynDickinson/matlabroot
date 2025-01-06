@@ -641,91 +641,7 @@ rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor'
 
 save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png');
  
-%% ANALYSIS: Identify food well and calulate distance to food
 
-% determine if the well outlines already exist
-well_file = [baseDir 'well locations.mat'];
-if ~exist(well_file, 'file')    
-    % pull up picture to find food well
-    vidpath = [getDataPath(6, 2), parameters.date, '/', parameters.videoName, '/compiled_video_1.avi'];
-    % vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
-    movieInfo = VideoReader(vidpath); %read in video
-    demoImg = (read(movieInfo,T.vidFrame(1)));
-    img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
-    
-    % save food well location
-    txt = {'12', '3', '6', '9'};
-    well = struct; % initialize the new well structure
-    fig = getfig('');
-        imshow(img)
-        for i = 1:4 
-            h = warndlg(['Outline the ' txt{i} ' oclock well']);
-            uiwait(h)
-            roi = drawcircle; % manually add in the circle over the food well
-            well.radius(i) = roi.Radius;
-            well.center(i,:) = roi.Center;
-        end
-    save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
-
-    well.R = mean(well.radius)*pix2mm;
-
-    % select the well with the food
-    fig = getfig('');
-        imshow(img); hold on
-        for i = 1:4
-            viscircles(well.center(i,:), well.radius(i),'color',Color('white'));
-            % drawcircle('Center',[well.center(i,:)],'Radius',well.radius(i),'StripeColor','red','Color',Color('grey'));
-        end
-        title('Click the food well','FontSize',18)
-        [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});      % get a point
-        % find the well with the selected data point
-        % distance between each well center and the selected point
-        [~, index] = min((sqrt((xi-well.center(:,1)).^2 + (yi-well.center(:,2)).^2)).*pix2mm);
-        
-        % plot the selected point
-        scatter(xi,yi,60,"white",'filled')
-        scatter(xi,yi,30,"red",'filled')
-        % change the color of the well outline to highlight selection
-        viscircles(well.center(index,:), well.radius(index),'color',Color('red'));
-    if strcmp(questdlg('okay food well selection?'),'Yes')
-        well.food_idx = index;
-        well.food = well.center(index,:);
-        close(fig)
-    else
-        warndlg('Rerun the food well identification')
-        return
-    end
-    % SAVE DATA?
-    if strcmp(questdlg('save well locations?'),'Yes')
-        save(well_file,'well')
-    else 
-    end
-else
-    load(well_file,'well')
-    disp('Loaded prior well locations')
-end
-     
-% Center of the arena
-WC = well.center';
-N = [];
-x1 = WC(1,1:2:4);
-y1 = WC(2,1:2:4);
-x2 = WC(1,2:2:4);
-y2 = WC(2,2:2:4);
-[xi,yi] = polyxpoly(x1,y1,x2,y2);
-well.center(5,:) = [xi,yi];
-
-% calculate distance to food (from fly head)
-x1 = m.pos(:,1,1); % x location for male center
-y1 = m.pos(:,1,2);
-x2 = f.pos(:,1,1);
-y2 = f.pos(:,1,2);
-c1 = well.center(1);
-c2 = well.center(2);
-
-m.dist2food = (sqrt((x1-c2).^2 + (y1-c2).^2)).*pix2mm;
-f.dist2food = (sqrt((c1-x2).^2 + (c1-y2).^2)).*pix2mm;
-T.dist2food = [m.dist2food, f.dist2food];
 
 %% FIGURE: Distance to food histogram
 clearvars('-except',initial_var{:})
@@ -1018,51 +934,7 @@ fig =  getfig('',1);
 
 formatFig(fig, blkbnd, [r,c],sb);
 
-%% ANALYSIS: Calculate male wing extension
 
-clearvars('-except',initial_var{:})
-
-Lwing = [];
-Rwing = [];
-% Determine which positions require which wing to be extended
-L_items = {'L1', 'L4', 'GX1', 'GX4', 'GY2', 'GY3'};
-R_items = {'L2', 'L3', 'GX2', 'GX3', 'GY1', 'GY4'};
-% Identify if male is in an appropriate position for each wing direction across each item
-for i = 1:length(L_items)
-    Lwing = [Lwing, position.(L_items{i})];
-    Rwing = [Rwing, position.(R_items{i})];
-end
-% Condense to identify if male is in any of the appropriate positions
-Lwing = any(Lwing,2);
-Rwing = any(Rwing,2);
-
-% Pull wing angles equal or greater than extension minimum for L and R
-wa_cutoff = 50; % minimum wing extension angle for courtship
-wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff)); % wing must be facing the female fly
-% Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-a = diff(wing_ext); 
-% Add the first extension value to the list to account for the starting condition
-b = [wing_ext(1); a]; 
-% Locations in wing_ext where extension period starts/end
-ext_start = find(b == 1); 
-ext_stop = find(b == -1);
-% If wing ext doesn't stop by end, add stop location at end of ext_stop (loc = length of experiment value)
-if wing_ext(end)
-    ext_stop(end + 1) = length(time);
-end
-% Calculate the length of each wing ext bout
-ext_dur = ext_stop - ext_start;
-% Find where wing ext lasts longer than 1sec
-dur_loc = find(ext_dur > fps);
-
-% Create new courtship matrix with only true wing ext for bouts longer than 1sec
-mt = false(size(time));
-for i = 1:length(dur_loc)
-    ii = dur_loc(i);
-    mt(ext_start(ii):ext_stop(ii)) = true;
-end
-T.wing_ext = mt;
-T.wing_ext_all = wing_ext;
 
 %% FIGURE: Plot body position during wing extension
 % wing angle > 60 deg
@@ -1818,29 +1690,6 @@ ylabel('Courtship Metrics','color', foreColor)
 ylim([0,y1+1+tickH])
 
 
-
-%% ANALYSIS: Fly turning 
-
-clearvars('-except',initial_var{:})
-for sex = 1:2
-    % extract the x and y head and center positions to calculcate the slope of the body line
-    x = data(sex).rawX(:,body.head:body.center);
-    y = data(sex).rawY(:,body.head:body.center);
-    
-    % zero the flys center (actually unneccessary) 
-    X = x - x(:,2);
-    Y = y - y(:,2);
-    % slope for each point in time
-    slope = (Y(:,2)-Y(:,1))./(X(:,2)-X(:,1));
-    m1 = slope(1:end-1);   % 'past' heading
-    m2 = slope(2:end);      % 'current' heading
-    
-    % calculate the angle between the two slopes 
-    theta = atan((m1-m2)./(1+(m1.*m2)));
-    theta = rad2deg(theta);
-    data(sex).turning = [nan; theta].*(fps);
-end
-
 %% FIGURE: Fly turning over time 
 clearvars('-except',initial_var{:})
 % for sex = 1:2
@@ -1885,54 +1734,6 @@ fig = getfig('',1,[560 420]);
 set(gca, 'xcolor', backColor,'ycolor',backColor)
 title([num2str(data(1).mfbodyangle(frame))])
 end
-
-%% ANALYSIS: Extract sleep data
-
-clearvars('-except',initial_var{:})
-
-bout = 5*60*parameters.FPS;
-dummy = [];
-
-% Extract sleep bouts from position data
-for sex = 1:2
-    switch sex
-        case 1
-            x = m.pos(:,2,1); % male center
-        case 2
-            x = f.pos(:,2,1); % female center
-    end
-    % Calculate difference between all x values
-    x_diff = diff(x); 
-    % Identify when position is not changing
-    u = abs(x_diff)<= 1;
-    % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-    a = diff(u);
-    % Add the first position value to the list to account for the starting condition
-    b = [u(1); a]; 
-    % Frames where 'position-no-change' period starts/end
-    slp_start = find(b == 1); 
-    slp_stop = find(b == -1);
-    % If sleep doesn't stop by end, add stop location at end of slp_stop
-    if u(end)
-        slp_stop(end + 1) = length(time);
-    end
-    % Calculate the length of each 'position-no-change' bout
-    slp_dur = slp_stop - slp_start;
-    % Find where bout lasts longer than 5min (when is sleep)
-    slp_loc = find(slp_dur > bout);
-    
-    % Create dummy matrix with only true sleep bouts
-    mt = false(size(time));
-    for i = 1:length(slp_loc)
-        ii = slp_loc(i);
-        mt(slp_start(ii):slp_stop(ii)) = true;
-    end
-    dummy(sex).sleep = mt;
-end
-
-% Save sleep data
-m.sleep = dummy(1).sleep;
-f.sleep = dummy(2).sleep;
 
 %% FIGURE: Sleep
 clearvars('-except',initial_var{:})

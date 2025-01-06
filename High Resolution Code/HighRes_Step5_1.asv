@@ -58,155 +58,155 @@ m.speed = [0;(D./(1/fps))];
 D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % female speed
 f.speed = [0; (D./(1/fps))];
 
-%% ANALYSIS: Screen for frames with funky wing positions
-clearvars('-except',initial_var{:})
-
-% postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
-
-% Create variable to hold X and Y data for both male and female
-data = [];
-data(M).rawX = m.pos(:,:,1);
-data(M).rawY = m.pos(:,:,2);
-data(F).rawX = f.pos(:,:,1);
-data(F).rawY = f.pos(:,:,2);
-initial_var{end+1} = 'data';
-
-% For male and female, shift and rotate frame
-for sex = 1:2
-    % for each loop/sex, switch x and y to appropriate values
-    switch sex
-        case 1
-            sex_type = 'male';
-            x = m.pos(:,:,1);
-            y = m.pos(:,:,2);
-        case 2
-            sex_type = 'female';
-            x = f.pos(:,:,1);
-            y = f.pos(:,:,2);
-    end
-
-    % 1) Shift each frame so that the center is at the origin (0,0)
-    x_offset = x(:,2); % x values for center
-    y_offset = y(:,2);
-    % subtract the offset from the x values for each body point
-    X = x-x_offset; % new shifted x data set
-    Y = y-y_offset;
-    
-    % 2) Rotate each frame so that the head and center are aligned on the Y axis
-    newX = nan([length(X),5]); % establish variable to hold new rotated x data set
-    newY = nan([length(Y),5]);
-    for frame = 1:length(X)
-        % identify coordinates for each body point in that frame
-        points = [X(frame,:)',Y(frame,:)'];
-        % rotate points so head and center align with y axis
-        rotatedPoints = rotateToVertical(points, 2,1,false);
-        % load new rotated points into variable
-        newX(frame,:) = rotatedPoints(:,1);
-        newY(frame,:) = rotatedPoints(:,2);
-    end
-    
-    % Plot body point positions for all frames 
-    SZ = 5; r = 1; c = 2;
-    if disp_fig
-        fig = getfig(sex_type,1,[1058 781]);
-        % before corrections plot
-        subplot(r,c,1)
-            hold on
-            CList = {'teal', 'red', 'grey', 'blue', 'gold'};
-            % plot each body point using new shifted and rotated data
-            for i = 1:5
-                scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
-            end
-            % format figure
-            axis square equal
-            set(gca, 'xcolor', 'none', 'ycolor','none')
-            title('Before Correction')
-    end
-    % 3) Eliminate frames that are absolutely incorrect
-    failstate = newY(:,1)<0; % state where head is below the center
-    failstate = [failstate, newY(:,3:5)>0]; % add state where abdomen or wings are above the center point (on head side)
-    % identify which frames have a failstate (where there are nonzeros)
-    loc = any(failstate,2); 
-    % display number of frames to be eliminated for that fly
-    disp([sex_type ' fly elimination points: ' num2str(sum(loc))])
-    % replace elimination frames with nans
-    newX(loc,:) = nan;
-    newY(loc,:) = nan;
-    
-    % 4) Flip R and L wing for mirror image ones
-    flipstate = newX(:,5)<newX(:,3) & newX(:,5)<newX(:,4); % state where right wing is to the left of the abdomen and L wing
-    flipstate = [flipstate, newX(:,4)>newX(:,3) & newX(:,4)>newX(:,5)]; % add state where left wing is to the right of the abdomen and R wing
-    % identify which frames have a failstate (where there are nonzeros)
-    loc = any(flipstate,2);
-    % display number of wing points to be flipped for that fly
-    disp([sex_type ' fly flip wing points: ' num2str(sum(loc))])
-    % flip x values for wing points needing flipped
-    wing_L = newX(loc,5);
-    wing_R = newX(loc,4);
-    newX(loc,4:5) = [wing_L,wing_R];
-    
-    % 5) Eliminate frames with both wings on one side of the abdomen
-    flipstate = newX(:,5)<newX(:,3) & newX(:,4)<newX(:,3); % state where wings are to the left of the abdomen
-    flipstate = [flipstate, newX(:,5)>newX(:,3) & newX(:,4)>newX(:,3)]; % add state where wings are to the right of the abdomen 
-    % identify which frames have a failstate (where there are nonzeros)
-    loc = any(flipstate,2);
-    % display number of frames to be eliminated for that fly
-    disp([sex_type ' fly wing-abdo elimination points: ' num2str(sum(loc))])
-    % replace elimination frames with nans
-    newX(loc,:) = nan;
-    newY(loc,:) = nan;
-    % Save the cleaned, adjusted data
-    data(sex).x = newX;
-    data(sex).y = newY;
-    
-    if disp_fig
-        % Plot fly positions after adjustments: 
-        % after corrections plot
-        subplot(r,c,2)
-            hold on
-            CList = {'teal', 'red', 'grey', 'blue', 'gold'};
-            % plot each body point using cleaned data
-            for i = 1:5
-                scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
-            end
-            % format figure
-            axis square equal
-            set(gca, 'xcolor','none', 'ycolor','none')
-            title('After Correction')
-
-        % Save figures
-        save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type);
-    end
-end
-
-
-if disp_fig
-    % Plot male and female body points on the same figure
-     fig = getfig('Male vs Female',1,[1058 781]);
-     for sex = 1:2
-         switch sex
-            case 1
-                sex_type = 'Male';
-            case 2
-                sex_type = 'Female';
-        end
-        subplot(r,c,sex)
-        hold on
-            CList = {'teal', 'red', 'grey', 'blue', 'gold'};
-            % plot each body point
-            for i = 1:5
-                scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
-            end
-            % format figure
-            axis square equal
-            set(gca, 'xcolor','none', 'ycolor','none')
-            title(sex_type)
-     end
-    fig = matchAxis(fig,true);
-    
-    % Save figure
-    save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
-end
+% %% ANALYSIS: Screen for frames with funky wing positions
+% clearvars('-except',initial_var{:})
+% 
+% % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
+% 
+% % Create variable to hold X and Y data for both male and female
+% data = [];
+% data(M).rawX = m.pos(:,:,1);
+% data(M).rawY = m.pos(:,:,2);
+% data(F).rawX = f.pos(:,:,1);
+% data(F).rawY = f.pos(:,:,2);
+% initial_var{end+1} = 'data';
+% 
+% % For male and female, shift and rotate frame
+% for sex = 1:2
+%     % for each loop/sex, switch x and y to appropriate values
+%     switch sex
+%         case 1
+%             sex_type = 'male';
+%             x = m.pos(:,:,1);
+%             y = m.pos(:,:,2);
+%         case 2
+%             sex_type = 'female';
+%             x = f.pos(:,:,1);
+%             y = f.pos(:,:,2);
+%     end
+% 
+%     % 1) Shift each frame so that the center is at the origin (0,0)
+%     x_offset = x(:,2); % x values for center
+%     y_offset = y(:,2);
+%     % subtract the offset from the x values for each body point
+%     X = x-x_offset; % new shifted x data set
+%     Y = y-y_offset;
+% 
+%     % 2) Rotate each frame so that the head and center are aligned on the Y axis
+%     newX = nan([length(X),5]); % establish variable to hold new rotated x data set
+%     newY = nan([length(Y),5]);
+%     for frame = 1:length(X)
+%         % identify coordinates for each body point in that frame
+%         points = [X(frame,:)',Y(frame,:)'];
+%         % rotate points so head and center align with y axis
+%         rotatedPoints = rotateToVertical(points, 2,1,false);
+%         % load new rotated points into variable
+%         newX(frame,:) = rotatedPoints(:,1);
+%         newY(frame,:) = rotatedPoints(:,2);
+%     end
+% 
+%     % Plot body point positions for all frames 
+%     SZ = 5; r = 1; c = 2;
+%     if disp_fig
+%         fig = getfig(sex_type,1,[1058 781]);
+%         % before corrections plot
+%         subplot(r,c,1)
+%             hold on
+%             CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+%             % plot each body point using new shifted and rotated data
+%             for i = 1:5
+%                 scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
+%             end
+%             % format figure
+%             axis square equal
+%             set(gca, 'xcolor', 'none', 'ycolor','none')
+%             title('Before Correction')
+%     end
+%     % 3) Eliminate frames that are absolutely incorrect
+%     failstate = newY(:,1)<0; % state where head is below the center
+%     failstate = [failstate, newY(:,3:5)>0]; % add state where abdomen or wings are above the center point (on head side)
+%     % identify which frames have a failstate (where there are nonzeros)
+%     loc = any(failstate,2); 
+%     % display number of frames to be eliminated for that fly
+%     disp([sex_type ' fly elimination points: ' num2str(sum(loc))])
+%     % replace elimination frames with nans
+%     newX(loc,:) = nan;
+%     newY(loc,:) = nan;
+% 
+%     % 4) Flip R and L wing for mirror image ones
+%     flipstate = newX(:,5)<newX(:,3) & newX(:,5)<newX(:,4); % state where right wing is to the left of the abdomen and L wing
+%     flipstate = [flipstate, newX(:,4)>newX(:,3) & newX(:,4)>newX(:,5)]; % add state where left wing is to the right of the abdomen and R wing
+%     % identify which frames have a failstate (where there are nonzeros)
+%     loc = any(flipstate,2);
+%     % display number of wing points to be flipped for that fly
+%     disp([sex_type ' fly flip wing points: ' num2str(sum(loc))])
+%     % flip x values for wing points needing flipped
+%     wing_L = newX(loc,5);
+%     wing_R = newX(loc,4);
+%     newX(loc,4:5) = [wing_L,wing_R];
+% 
+%     % 5) Eliminate frames with both wings on one side of the abdomen
+%     flipstate = newX(:,5)<newX(:,3) & newX(:,4)<newX(:,3); % state where wings are to the left of the abdomen
+%     flipstate = [flipstate, newX(:,5)>newX(:,3) & newX(:,4)>newX(:,3)]; % add state where wings are to the right of the abdomen 
+%     % identify which frames have a failstate (where there are nonzeros)
+%     loc = any(flipstate,2);
+%     % display number of frames to be eliminated for that fly
+%     disp([sex_type ' fly wing-abdo elimination points: ' num2str(sum(loc))])
+%     % replace elimination frames with nans
+%     newX(loc,:) = nan;
+%     newY(loc,:) = nan;
+%     % Save the cleaned, adjusted data
+%     data(sex).x = newX;
+%     data(sex).y = newY;
+% 
+%     if disp_fig
+%         % Plot fly positions after adjustments: 
+%         % after corrections plot
+%         subplot(r,c,2)
+%             hold on
+%             CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+%             % plot each body point using cleaned data
+%             for i = 1:5
+%                 scatter(newX(:,i),newY(:,i),SZ, Color(CList{i}),'filled')
+%             end
+%             % format figure
+%             axis square equal
+%             set(gca, 'xcolor','none', 'ycolor','none')
+%             title('After Correction')
+% 
+%         % Save figures
+%         save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type);
+%     end
+% end
+% 
+% 
+% if disp_fig
+%     % Plot male and female body points on the same figure
+%      fig = getfig('Male vs Female',1,[1058 781]);
+%      for sex = 1:2
+%          switch sex
+%             case 1
+%                 sex_type = 'Male';
+%             case 2
+%                 sex_type = 'Female';
+%         end
+%         subplot(r,c,sex)
+%         hold on
+%             CList = {'teal', 'red', 'grey', 'blue', 'gold'};
+%             % plot each body point
+%             for i = 1:5
+%                 scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
+%             end
+%             % format figure
+%             axis square equal
+%             set(gca, 'xcolor','none', 'ycolor','none')
+%             title(sex_type)
+%      end
+%     fig = matchAxis(fig,true);
+% 
+%     % Save figure
+%     save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
+% end
 
 %% ANALYSIS: Calculate M and F wing angles
 
@@ -1002,7 +1002,7 @@ for sex = 1:2
     slp_dur = slp_stop - slp_start;
     % Find where bout lasts longer than 5min (when is sleep)
     slp_loc = find(slp_dur > bout);
-    
+
     % Create dummy matrix with only true sleep bouts
     mt = false(size(time));
     for i = 1:length(slp_loc)
@@ -1015,3 +1015,5 @@ end
 % Save sleep data
 m.sleep = dummy(1).sleep;
 f.sleep = dummy(2).sleep;
+
+%% 
