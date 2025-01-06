@@ -4,7 +4,8 @@ clear; clc;
 
 %% Load the data
 
-% TODO -- update this to read from the Courtship Experiments.xlsx file
+% TODO -- update this to read from the HighResolution Experiments.xlsx file
+% [excelfile, Excel, xlFile] = load_HighResExperiments
 rootDir = getDataPath(5, 2, 'Select location for data');
 % rootDir = uigetdir;
 paths = getPathNames;
