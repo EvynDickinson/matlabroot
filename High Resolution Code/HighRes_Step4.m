@@ -10,7 +10,7 @@
 % 3) body angle between flies
 % 4) male fly wing angle
 
-%% Load tracking points for courtship
+%% Load tracking points
 clear; clc;
 baseFolder = getDataPath(6,0);
 dateDir = (selectFolder(baseFolder));
@@ -243,7 +243,7 @@ for sex = 1:2
             x = D1.pos(:,:,1);
             y = D1.pos(:,:,2);
         case 2
-             x = D2.pos(:,:,1);
+            x = D2.pos(:,:,1);
             y = D2.pos(:,:,2);
     end
     for w = 1:2
@@ -279,7 +279,7 @@ for sex = 1:2
     end
 end
 
-% compare male and female wing angles
+% Compare male and female wing angles
 time = T.time;
 fig = getfig('',true, [1032 300]); 
 hold on
@@ -297,10 +297,34 @@ hold on
 histogram(wing(1).angle(:))
 histogram(wing(2).angle(:),'FaceColor',Color('deeppink'))
 
+% Compare fly speed
+speed = [];
+for sex = 1:2
+    switch sex 
+        case 1
+            x = D1.pos(:,2,1);
+            y = D1.pos(:,2,2);
+        case 2
+            x = D2.pos(:,2,1);
+            y = D2.pos(:,2,2);
+    end
+S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2)).*pix2mm; % male speed
+speed(sex).speed = [0;(S./(1/fps))];
+end
+
+time = T.time;
+fig = getfig('',true, [1032 300]); 
+hold on
+    plot(time, speed(1).speed(:,1),'color', Color('dodgerblue'),'linewidth', 1)
+    plot(time, speed(2).speed(:,1),'color', Color('deeppink'),'linewidth', 1)
+xlabel('time (s)')
+ylabel('speed (mm/s)')
+formatFig(fig, true);
+
 % View fly image
 vidname = [baseDir, 'compiled_video_1.avi'];
 vidh = VideoReader(vidname);
-frame = 15;
+frame = 3500;
 
 img = read(vidh,frame);
 
@@ -310,19 +334,7 @@ hold on
 plotFlySkeleton(fig, D1.pos(frame,:,1),D1.pos(frame,:,2),Color('dodgerblue'),1); 
 plotFlySkeleton(fig, D2.pos(frame,:,1),D2.pos(frame,:,2),Color('pink'),1); 
 
-% Fly speed
-x1 = D1.pos(:,2,1); % x location for fly 1 center
-y1 = D1.pos(:,2,2);
-x2 = D2.pos(:,2,1);
-y2 = D2.pos(:,2,2);
-pix2mm = 0.0289; % calculated on the new back setup 11/7/24
-fps = parameters.FPS;
 
-speed = [];
-S = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; % male speed
-D1.speed = [0;(S./(1/fps))];
-S = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % female speed
-f.speed = [0; (S./(1/fps))];
 
 %% Save male and female identities + set base parameters
 
