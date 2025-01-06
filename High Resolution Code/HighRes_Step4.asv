@@ -50,8 +50,6 @@ disp('data loaded')
 
 %% Post proofing cleaning
 
-% TODO: display which video has tracks remaining
-
 for vid = 1:length(proofedFlag)
     i = proofedFlag(vid);
     x = squeeze(data(i).tracks(:,2,1,:));
@@ -233,11 +231,8 @@ for vid = 1:nvids
     D2.pos = [D2.pos; d2(vid).tracks];
 end
 
-%% Confirm and save fly identities
 
-pix2mm = 0.0289; % calculated on the new back setup 11/7/24
-fps = parameters.FPS;
-
+%% Confirming fly identities
 
 % Make male and female matrices
 
@@ -340,40 +335,13 @@ plotFlySkeleton(fig, D1.pos(frame,:,1),D1.pos(frame,:,2),Color('dodgerblue'),1);
 plotFlySkeleton(fig, D2.pos(frame,:,1),D2.pos(frame,:,2),Color('pink'),1); 
 
 
-% Save fly identities
-response = questdlg('What is pink?','Fly Sex','Female','Male','Cancel','Female');
-switch response
-    case 'Female'
-        f = D2;
-        f.wing = wing(2);
-        m = D1;
-        m.wing = wing(1);
-        parameters.OGFlyOrder = 'MF';
-    case 'Male'
-        f = D1;
-        f.wing = wing(1);
-        m = D2;
-        m.wing = wing(2);
-        parameters.OGFlyOrder = 'FM';
-    case 'Cancel'
-        return
-end
-parameters.node_names = node_names;
-
-close all
-
-
 %% Screen for frames with funky wing positions
+clearvars('-except',initial_var{:})
 
 % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
 
-disp_fig = false; % display baseline figures?
-initial_var{end+1} = 'disp_fig';
-
 % Create variable to hold X and Y data for both male and female
 data = [];
-M = 1; % male fly index number
-F = 2; % female fly index number
 data(M).rawX = m.pos(:,:,1);
 data(M).rawY = m.pos(:,:,2);
 data(F).rawX = f.pos(:,:,1);
@@ -517,12 +485,29 @@ if disp_fig
     save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
 end
 
+%% Save male and female identities + set base parameters
 
-%% Write to excel and set base parameters
-
+response = questdlg('What is pink?','Fly Sex','Female','Male','Cancel','Female');
+switch response
+    case 'Female'
+        f = D2;
+        f.wing = wing(2);
+        m = D1;
+        m.wing = wing(1);
+        parameters.OGFlyOrder = 'MF';
+    case 'Male'
+        f = D1;
+        f.wing = wing(1);
+        m  = D2;
+        m.wing = wing(2);
+        parameters.OGFlyOrder = 'FM';
+    case 'Cancel'
+        return
+end
+parameters.node_names = node_names;
 
 % --------- write parameters to excel sheet --------- 
-[excelfile, Excel, xlFile] = load_HighResExperiments;
+[excelfile, Excel, xlFile] = load_CourtshipExperiments;
 trialID = [dateDir{1},'_',trialDir{1}];
 parameters.trialID = trialID;
 % DATE LOCATION:
@@ -552,12 +537,6 @@ if ~exist(c,'dir')
     mkdir(c)
 end
 save([c,'basic data.mat'],'T','m','f','parameters')
-
-% Initial variables
-initial_var = who; % who = all variables created so far
-initial_var{end+1} = 'initial_var';
-initial_var{end+1} = 'well';
-
 
 
 
