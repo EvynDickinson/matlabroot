@@ -1,5 +1,5 @@
 
-% courtship step 1
+% high resolution experiments step 1
 clear; clc;
 
 %% Load the data

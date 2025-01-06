@@ -20,7 +20,7 @@ initial_var{end+1} = 'initial_var';
 for ramp = 1:size(rampName,2)
     clearvars('-except',initial_var{:})
     
-    expName = rampName{:};
+    expName = rampName{ramp};
     baseDir = [rootDir paths.courtship  dateDir{1} '\' expName '\'];
     
     % load parameters:
