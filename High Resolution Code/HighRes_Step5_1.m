@@ -1,6 +1,29 @@
+
 %% LOAD data
 clear; clc;
 baseFolder = [getDataPath(6,0),'Trial Data/'];
+
+% find files that can be run
+[excelfile, Excel, xlFile] = load_HighResExperiments;
+
+% Find trials that have a name 
+loc = cellfun(@isnan,excelfile(2:end,Excel.basicfigs));
+loc = ~loc;
+rownums = find(loc)+1; 
+eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.groupready]);
+FileNames = format_eligible_files(eligible_files);
+
+fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
+if isempty(fileIdx)
+    disp('No trials selected')
+    return
+end
+% pull the list of dates and arenas to be 
+dateDir = eligible_files(fileIdx,1);
+trialDir = eligible_files(fileIdx,2); 
+baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
+
+
 trialDir = selectFolder(baseFolder); 
 baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
 figDir = [baseDir,'Figures/']; 

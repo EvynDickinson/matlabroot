@@ -103,9 +103,12 @@ for trial = 1:ntrials
     end 
 
     % write 'R' for ready into the excel sheet: 
-    isExcelFileOpen(xlFile);
-    writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.proofed) num2str(fileIdx(trial)+1)]);
-
+    if ~isExcelFileOpen(xlFile)
+        writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.proofed) num2str(fileIdx(trial)+1)]);
+    else 
+        
+    end
+disp('  ')
 end
 
 disp('All finished')

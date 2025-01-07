@@ -42,6 +42,7 @@ Excel.sex = find(strcmpi('Sex', Excel.headers)==1);
 Excel.starved_hours = find(strcmpi('Starved Hours', Excel.headers)==1);
 Excel.daynight = find(strcmpi('Incubator', Excel.headers)==1); 
 Excel.numflies = find(strcmpi('Num Flies',Excel.headers) == 1);
+Excel.groupready = find(strcmpi('Group Ready',Excel.headers) == 1);
 
 Excel.well_1 = find(strcmpi('Well 1', Excel.headers)==1);
 Excel.well_2 = find(strcmpi('Well 2', Excel.headers)==1);

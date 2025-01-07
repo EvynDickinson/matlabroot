@@ -2,8 +2,6 @@
 % tracks (frame, body points, XY, fly)
 % body points (head, center, abdomen, right wing, left wing)
 
-
-
 %% PARAMETERS TO SHOW: 
 
 % 2) each fly speed
@@ -13,44 +11,58 @@
 %% Load tracking points
 clear; clc;
 baseFolder = getDataPath(6,0);
-dateDir = (selectFolder(baseFolder));
-trialDir = selectFolder([baseFolder, dateDir{:}]);
+
+% Find files that can be run
+[excelfile, Excel, xlFile] = load_HighResExperiments;
+
+% Find trials that have nothing in their Proofed Column & have been tracked: 
+loc = cellfun(@isnan,excelfile(2:end,Excel.tracked));
+loc = ~loc;
+rownums = find(loc)+1; 
+eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp, Excel.proofed]);
+FileNames = format_eligible_files(eligible_files);
+
+fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
+if isempty(fileIdx)
+    disp('No trials selected')
+    return
+end
+% pull the list of dates and arenas to be 
+dateDir = eligible_files(fileIdx,1);
+trialDir = eligible_files(fileIdx,2); 
 baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
+
+% initial_var = who;
+% initial_var{end+1} = 'initial_var';
 
 fileList = dir([baseDir '*alignment table.mat']);
 load([baseDir, fileList(1).name]) % load the parameters and temp table
 nvids = parameters.nVids; % number of videos
 nBP = 5; % num of body parts
 
-
 % load the video tracks
 fileList = dir([baseDir '*.h5']);
 data = [];
 proofedFlag = [];
-% TODO: quick check to make sure this matches the expected number of videos...
 for vid = 1:nvids
-    filePath = [baseDir, 'compiled_video_' num2str(vid) '.avi.predictions.slp.h5'];
-    proofedFilePath = dir([baseDir, 'compiled_video_', num2str(vid), '.*analysis.h5']);
-    try data(vid).occupancy_matrix = h5read(proofedFilePath,'/track_occupancy');
-        data(vid).tracks = h5read(proofedFilePath,'/tracks');
-        data(vid).node_names = h5read(proofedFilePath, '/node_names');
-        data(vid).track_names = h5read(proofedFilePath, '/track_names');
+    proofedFileCheck = dir([baseDir, 'compiled_video_', num2str(vid), '.*analysis.h5']);
+    if ~isempty(proofedFileCheck) % file was edited 
+        filePath = [baseDir proofedFileCheck(1).name];
         proofedFlag(end+1) = vid;
-    catch data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
-        data(vid).tracks = h5read(filePath,'/tracks');
-        data(vid).node_names = h5read(filePath, '/node_names');
-        data(vid).track_names = h5read(filePath, '/track_names');
+    else % no proofed file found
+        filePath = [baseDir, 'compiled_video_' num2str(vid) '.avi.predictions.slp.h5'];
     end
-
-    dataIn = true; %log successful data load
+    % load data from each video file: 
+    data(vid).occupancy_matrix = h5read(filePath,'/track_occupancy');
+    data(vid).tracks = h5read(filePath,'/tracks');
+    data(vid).node_names = h5read(filePath, '/node_names');
+    data(vid).track_names = h5read(filePath, '/track_names');
 end
 
 node_names = {'head', 'center', 'abdomen', 'right_wing', 'left_wing'}; % currently assuming these are stable across all videos
 disp('data loaded')
 
 %% Post proofing cleaning
-
-% TODO: display which video has tracks remaining
 
 for vid = 1:length(proofedFlag)
     i = proofedFlag(vid);
@@ -133,19 +145,19 @@ for vid = 1:length(proofedFlag)
     end
 end
 
-
 % Confirm only 2 data tracks for each video
 for vid = 1:nvids
     occmat = squeeze(~isnan(data(vid).tracks(:,2,1,:)));
     occsum = sum(occmat,1);
     overcount = sum(occsum(3:end));
     if overcount>0
-        response = questdlg([num2str(overcount) ' remaining points outside of primary tracks. Ignore and delete data?']);
+        queststr = {['Vid ' num2str(vid)]; [num2str(overcount) ' points outside of primary tracks.']; 'Ignore and delete data?'};
+        response = questdlg(queststr);
         if ~strcmp('Yes',response)
+            disp(['Return to manual check of compiled video #' num2str(vid)])
             return
         end
     end
-    
     data(vid).occupancy_matrix = occmat(:,1:2);
 end
 
@@ -153,7 +165,6 @@ ntracks = [];
 for vid = 1:parameters.nVids
     ntracks(vid) = size(data(vid).occupancy_matrix,2);
 end
-
 
 %% Align the tracks from video to video: 
 % display image of fly postion at the end of the first video and then the
@@ -234,13 +245,10 @@ for vid = 1:nvids
 end
 
 %% Confirm and save fly identities
-
 pix2mm = 0.0289; % calculated on the new back setup 11/7/24
 fps = parameters.FPS;
 
-
 % Make male and female matrices
-
 wing = [];
 for sex = 1:2
     switch sex 
@@ -313,8 +321,8 @@ for sex = 1:2
             x = D2.pos(:,2,1);
             y = D2.pos(:,2,2);
     end
-S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2)).*pix2mm; % male speed
-speed(sex).speed = [0;(S./(1/fps))];
+    S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2)).*pix2mm; % male speed
+    speed(sex).speed = [0;(S./(1/fps))];
 end
 
 time = T.time;
@@ -364,12 +372,8 @@ close all
 
 
 %% Screen for frames with funky wing positions
-
+disp_fig = true;
 % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
-
-disp_fig = false; % display baseline figures?
-initial_var{end+1} = 'disp_fig';
-
 % Create variable to hold X and Y data for both male and female
 data = [];
 M = 1; % male fly index number
@@ -378,7 +382,6 @@ data(M).rawX = m.pos(:,:,1);
 data(M).rawY = m.pos(:,:,2);
 data(F).rawX = f.pos(:,:,1);
 data(F).rawY = f.pos(:,:,2);
-initial_var{end+1} = 'data';
 
 % For male and female, shift and rotate frame
 for sex = 1:2
@@ -514,12 +517,18 @@ if disp_fig
     fig = matchAxis(fig,true);
     
     % Save figure
-    save_figure(fig,[figDir  'M vs F wing position scatter'], fig_type);
+    save_figure(fig,[baseDir  'M vs F wing position scatter'], '-pdf');
 end
 
 
-%% Write to excel and set base parameters
+%% Write to excel and Save base parameters
 
+%  --------- save parameters ---------
+c = [baseFolder,'Trial Data/',trialID,'/'];
+if ~exist(c,'dir')
+    mkdir(c)
+end
+save([c,'basic data.mat'],'T','m','f','parameters','data')
 
 % --------- write parameters to excel sheet --------- 
 [excelfile, Excel, xlFile] = load_HighResExperiments;
@@ -527,36 +536,20 @@ trialID = [dateDir{1},'_',trialDir{1}];
 parameters.trialID = trialID;
 % DATE LOCATION:
 date_loc = (strcmp(excelfile(:,Excel.date),dateDir{1})); % find the rows in the excel sheet that match the current exp date
-% RAMP LOCATION:
-% find the ramp number using the diff between the folder and exp name
-rampnum = trialDir{1}(end);
-try rampnum = str2double(rampnum);
-    expName_short = parameters.expID(1:end-1);
-catch; rampnum = 1;
-    expName_short = parameters.expID;
+name_loc = (strcmp(excelfile(:,Excel.expID),expName)); % find name match
+loc = find(date_loc & name_loc);
+if isempty(loc)
+    warndlg('Can''t find the row location for the file to add the trial ID information. Input manually.')
+    disp(trialID)
+else
+    % write the trial ID into the excel sheet
+    isExcelFileOpen(xlFile);
+    writecell({trialID},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(loc)]);
+    writecell({'Y'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.basicfigs) num2str(loc)]);
 end
-ramp_col = excelfile(2:end,Excel.ramp);
-ramp_col = [ramp_col{:}];
-ramploc = [false, (ramp_col==rampnum)];
-% EXP ID LOCATION
-exploc = (strcmp(excelfile(:,Excel.expID),expName_short));
-% find location where these all align: 
-xlRow = find(all([date_loc, exploc,  ramploc'],2));
 
-% write the trial ID into the excel sheet
-writecell({trialID},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(xlRow)]);
+disp(['Finished processing ' trialID])
 
-% save parameters
-c = [baseFolder,'Trial Data/',trialID,'/'];
-if ~exist(c,'dir')
-    mkdir(c)
-end
-save([c,'basic data.mat'],'T','m','f','parameters')
-
-% Initial variables
-initial_var = who; % who = all variables created so far
-initial_var{end+1} = 'initial_var';
-initial_var{end+1} = 'well';
 
 
 

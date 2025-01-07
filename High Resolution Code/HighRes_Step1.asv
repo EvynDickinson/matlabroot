@@ -16,8 +16,16 @@ switch questdlg('Use excel spreadsheet to select files?')
         loc = cellfun(@isnan,excelfile(2:end,Excel.compiledvid));
         rownums = find(loc)+1; 
         eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
-        FileNames = format_eligible_files(eligible_files,filler_string);
-   
+        LOC = false(size(eligible_files));
+        for i = 1:size(eligible_files,2)
+            try LOC(:,i) = cellfun(@isnan,eligible_files(:,i));
+            catch
+            end
+        end
+        c = cellfun(@string,eligible_files);
+        c(LOC) = ' -- ';
+        FileNames = join(c);
+        
         fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select data to process');
         if isempty(fileIdx)
             disp('No trials selected')
@@ -191,12 +199,11 @@ for rampFolder = 1:size(rampName, 2)
         disp('couldn''t find an excel match for the file, but it was processed')
         disp([expDate ' ' expName])
     end
-    if ~isExcelFileOpen(xlFile,true)
-        writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.compiledvid) num2str(loc)]);
-    else
-        disp('Couldn''t write to excel sheet for:')
-        disp([expDate ' ' expName])
-    end
+    isExcelFileOpen(xlFile);
+    writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.compiledvid) num2str(loc)]);
+
+    rownums = find(loc)+1; 
+
 
 end
 

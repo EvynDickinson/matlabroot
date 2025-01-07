@@ -9,18 +9,10 @@ baseFolder = getDataPath(6,0);
 
 % Find trials that have nothing in their Proofed Column & have been tracked: 
 loc = cellfun(@isnan,excelfile(2:end,Excel.tracked));
-loc = ~loc;
+loc = ~loc; 
 rownums = find(loc)+1; 
 eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp, Excel.proofed]);
-LOC = false(size(eligible_files));
-for i = 1:size(eligible_files,2)
-    try LOC(:,i) = cellfun(@isnan,eligible_files(:,i));
-    catch
-    end
-end
-c = cellfun(@string,eligible_files);
-c(LOC) = ' -- ';
-FileNames = join(c);
+FileNames = format_eligible_files(eligible_files,filler_string);
 
 fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select data to process');
 if isempty(fileIdx)
@@ -103,8 +95,12 @@ for trial = 1:ntrials
     end 
 
     % write 'R' for ready into the excel sheet: 
-    isExcelFileOpen(xlFile);
-    writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.proofed) num2str(fileIdx(trial)+1)]);
+    if ~isExcelFileOpen(xlFile,true)
+        writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.proofed) num2str(fileIdx(trial)+1)]);
+    else 
+        disp('Couldn''t write to excel sheet for:')
+        disp([List.date{trial} ' ' List.expID{trial}])
+    end
 disp('  ')
 end
 

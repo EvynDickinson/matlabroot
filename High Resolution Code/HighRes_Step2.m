@@ -4,7 +4,12 @@
 
 %% Parallelized version: 
 clc; clear
-% TODO -- update this to read from the Courtship Experiments.xlsx file
+% TODO -- update this to read from the HighRes Experiments.xlsx file
+% specifically: have it pick up the files that have 'R' for ready and then
+% turn them to a 'Y' when it's done
+
+
+
 rootDir = getDataPath(5, 2, 'Select Date of data to process');
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
