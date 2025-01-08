@@ -12,7 +12,6 @@ loc = ~loc;
 rownums = find(loc)+1; 
 eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.groupready]);
 FileNames = format_eligible_files(eligible_files);
-
 fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
 if isempty(fileIdx)
     disp('No trials selected')

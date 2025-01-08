@@ -15,7 +15,7 @@ function [excelfile, Excel, xlFile] = load_HighResExperiments
 basePath = getCloudPath;
 baseFolder = basePath(1:end-5); % path to just the '/jeanne lab/' folder
 
-xlFile = [baseFolder 'HighResolution Experiments.xlsx'];
+xlFile = [baseFolder 'High Resolution Experiments.xlsx'];
 
 %load excel sheet data
 [~,~,excelfile] = xlsread(xlFile,'Exp List');
