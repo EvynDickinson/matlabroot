@@ -177,7 +177,7 @@ for vid = 1:nvids-1
     eROI = frame_end-buff:frame_end;
     sROI = 1:1+buff;
     
-    fig = figure;
+    fig = getfig(['Vid ' num2str(vid)],0,[882 694]);
     hold on
     for i = eROI
         plotFlySkeleton(fig, data(vid).tracks(i,:,1,1),data(vid).tracks(i,:,2,1),Color('dodgerblue'),true);
@@ -375,13 +375,13 @@ close all
 disp_fig = true;
 % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
 % Create variable to hold X and Y data for both male and female
-data = [];
+DATA = [];
 M = 1; % male fly index number
 F = 2; % female fly index number
-data(M).rawX = m.pos(:,:,1);
-data(M).rawY = m.pos(:,:,2);
-data(F).rawX = f.pos(:,:,1);
-data(F).rawY = f.pos(:,:,2);
+DATA(M).rawX = m.pos(:,:,1);
+DATA(M).rawY = m.pos(:,:,2);
+DATA(F).rawX = f.pos(:,:,1);
+DATA(F).rawY = f.pos(:,:,2);
 
 % For male and female, shift and rotate frame
 for sex = 1:2
@@ -468,8 +468,8 @@ for sex = 1:2
     newX(loc,:) = nan;
     newY(loc,:) = nan;
     % Save the cleaned, adjusted data
-    data(sex).x = newX;
-    data(sex).y = newY;
+    DATA(sex).x = newX;
+    DATA(sex).y = newY;
     
     if disp_fig
         % Plot fly positions after adjustments: 
@@ -487,7 +487,7 @@ for sex = 1:2
             title('After Correction')
 
         % Save figures
-        save_figure(fig,[figDir  sex_type ' wing position correction'], fig_type);
+        save_figure(fig,[baseDir  sex_type ' wing position correction'], '-pdf');
     end
 end
 
@@ -507,7 +507,7 @@ if disp_fig
             CList = {'teal', 'red', 'grey', 'blue', 'gold'};
             % plot each body point
             for i = 1:5
-                scatter(data(sex).x(:,i),data(sex).y(:,i),SZ, Color(CList{i}),'filled')
+                scatter(DATA(sex).x(:,i),DATA(sex).y(:,i),SZ, Color(CList{i}),'filled')
             end
             % format figure
             axis square equal
@@ -522,8 +522,11 @@ end
 
 
 %% Write to excel and Save base parameters
+old_data = data;
+data = DATA;
 
 %  --------- save parameters ---------
+trialID = [dateDir{1},'_',trialDir{1}];
 c = [baseFolder,'Trial Data/',trialID,'/'];
 if ~exist(c,'dir')
     mkdir(c)
@@ -532,7 +535,7 @@ save([c,'basic data.mat'],'T','m','f','parameters','data')
 
 % --------- write parameters to excel sheet --------- 
 [excelfile, Excel, xlFile] = load_HighResExperiments;
-trialID = [dateDir{1},'_',trialDir{1}];
+
 parameters.trialID = trialID;
 % DATE LOCATION:
 date_loc = (strcmp(excelfile(:,Excel.date),dateDir{1})); % find the rows in the excel sheet that match the current exp date

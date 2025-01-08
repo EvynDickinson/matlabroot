@@ -2,65 +2,59 @@
 %% LOAD data
 clear; clc;
 baseFolder = [getDataPath(6,0),'Trial Data/'];
-
-% find files that can be run
-[excelfile, Excel, xlFile] = load_HighResExperiments;
-
-% Find trials that have a name 
-loc = cellfun(@isnan,excelfile(2:end,Excel.basicfigs));
-loc = ~loc;
-rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.groupready]);
-FileNames = format_eligible_files(eligible_files);
-fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
-if isempty(fileIdx)
-    disp('No trials selected')
-    return
-end
-% pull the list of dates and arenas to be 
-dateDir = eligible_files(fileIdx,1);
-trialDir = eligible_files(fileIdx,2); 
-baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
-
-
 trialDir = selectFolder(baseFolder); 
 baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+
 figDir = [baseDir,'Figures/']; 
 if ~exist(figDir, 'dir')
     mkdir(figDir)
 end
 
-load([baseDir, 'basic data.mat']) % load the parameters and temp table
-disp('data loaded')
-
-% Experiment parameters
-nvids = parameters.nVids; % number of videos
-fps = parameters.FPS;
-time = T.time;
-blkbnd = true;
-fig_type = '-png';
-[foreColor,backColor] = formattingColors(blkbnd); % get background colors
-pix2mm = 0.0289; % calculated on the new back setup 11/7/24
-
-% Create variable to store body points
-body = [];
-for i = 1:length(parameters.node_names)
-    body.(parameters.node_names{i}) = i;
+processed_path = [baseDir 'post-5.1 data.mat'];
+if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, load that?'))
+            curr_baseFolder = baseFolder;
+            curr_baseDir = baseDir;
+            load(processed_path)
+            baseFolder = curr_baseFolder;
+            baseDir = curr_baseDir;
+            disp('Data loaded!')
+            clearvars('-except',initial_var{:})
+else
+    if strcmp('Yes', questdlg('Run basic analysis now?'))
+            load([baseDir, 'basic data.mat']) % load the parameters and temp table
+            disp('data loaded')
+            
+            % Experiment parameters
+            nvids = parameters.nVids; % number of videos
+            fps = parameters.FPS;
+            time = T.time;
+            blkbnd = true;
+            fig_type = '-png';
+            [foreColor,backColor] = formattingColors(blkbnd); % get background colors
+            pix2mm = 0.0289; % calculated on the new back setup 11/7/24
+            
+            % Create variable to store body points
+            body = [];
+            for i = 1:length(parameters.node_names)
+                body.(parameters.node_names{i}) = i;
+            end
+            
+            M = 1; % male fly index number
+            F = 2; % female fly index number
+            
+            % Initial variables
+            initial_var = who; % who = all variables created so far
+            initial_var{end+1} = 'initial_var';
+            initial_var{end+1} = 'well';
+            
+            disp_fig = false; % display baseline figures?
+            initial_var{end+1} = 'disp_fig';
+            disp('Data loaded, continuing evaluation')
+    end
 end
 
-M = 1; % male fly index number
-F = 2; % female fly index number
-
-% Initial variables
-initial_var = who; % who = all variables created so far
-initial_var{end+1} = 'initial_var';
-initial_var{end+1} = 'well';
-
-disp_fig = false; % display baseline figures?
-initial_var{end+1} = 'disp_fig';
 
 %% ANALYSIS: Extract calculated variables
-
 clearvars('-except',initial_var{:})
 
 % Inter-fly-distance from the fly's center point
@@ -80,7 +74,7 @@ m.speed = [0;(D./(1/fps))];
 D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % female speed
 f.speed = [0; (D./(1/fps))];
 
-%% ANALYSIS: Screen for frames with funky wing positions
+%% ANALYSIS: Screen for frames with funky wing positions 9move d
 % clearvars('-except',initial_var{:})
 % 
 % % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
@@ -231,7 +225,6 @@ f.speed = [0; (D./(1/fps))];
 % end
 
 %% ANALYSIS: Calculate M and F wing angles
-
 clearvars('-except',initial_var{:})
 
 % Calculate wing angles for male and female
@@ -357,6 +350,37 @@ initial_var{end+1} = 'fY';
 theta = data(M).mfbodyangle; 
 test = theta<90; % when is male less than 90 deg from female
 
+% ------------------------- 3) Demo selected angles in male positions relative to female fly ------------------------- 
+zoom = [-250,250];
+skip = 20;
+
+fig = getfig('',1,[1075 871]);
+hold on
+
+% plot male coordinates for head and body within test constraints
+x = mX(test,[body.head,body.center]);
+y = mY(test,[body.head,body.center]);
+% only plot every [skip value] points to reduce volume
+x = x(1:skip:end,:);
+y = y(1:skip:end,:);
+plot(x',y','color',data(M).color)
+scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
+
+% plot female coordiates for head, body, and abdomen
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',data(F).color, 'LineWidth', 2)
+
+% format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+save_figure(fig,[figDir ' all male fly body positions relative to female'],'-png');
 
 % ------------------------- 4) Establish likely and unlikely courtship positions ------------------------- 
 
@@ -496,6 +520,66 @@ position.all_likely = loc;
 position.unlikely = ~loc;
 initial_var{end+1} = 'position';
 
+% ------------------------- 5) Visualize likely and unlikely courtship positions ------------------------- 
+
+zoom = [-250,250];
+
+% pull point locations that will be plotted
+skip = 20;
+
+likelyidx = likelyidx(1:skip:end);
+unlikelyidx = unlikelyidx(1:skip:end);
+allidx = [likelyidx; unlikelyidx];
+
+fig = getfig('',1,[1075 871]);
+hold on
+
+% % plot all fly positions unlikely courtship male fly body positions
+% kolor = Color('grey');
+% x = mX(allidx,[body.head,body.center]);
+% y = mY(allidx,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% % axis equal square
+% formatFig(fig,blkbnd)
+% set(gca,'XColor','none','YColor','none')
+
+% plot the unlikely courtship male fly body positions
+kolor = Color('red');
+x = mX(unlikelyidx,[body.head,body.center]);
+y = mY(unlikelyidx,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% plot the likely courtship male fly body positions
+kolor = Color('limegreen');
+x = mX(likelyidx,[body.head,body.center]);
+y = mY(likelyidx,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% plot female head, center, and abdoment
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
+
+% format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+formatFig(fig,blkbnd);
+rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+
+save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png');
+
+
+
 %% ANALYSIS: Identify food well and calulate distance to food
 
 % determine if the well outlines already exist
@@ -520,6 +604,8 @@ if ~exist(well_file, 'file')
             well.radius(i) = roi.Radius;
             well.center(i,:) = roi.Center;
         end
+    h = warndlg('Close this when finished with the final well location');
+    uiwait(h)    
     save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
 
     well.R = mean(well.radius)*pix2mm;
@@ -651,8 +737,6 @@ for sex = 1:2
 
 end
 
-% quick plot of when the two flies are in the various regions over time: 
-
 %% ANALYSIS: Determine temperature bins and directions
 clearvars('-except',initial_var{:})
 
@@ -664,7 +748,7 @@ if ~exist(temp_file, 'file')
     x = []; 
     fig = getfig; 
     plot(time, T.temperature,'color', 'k')
-    title('click the start or the ramp, bottom, and top')
+    title('click (1) the start of the ramp, (2) the bottom, and (3) the end of the ramp')
     for i = 1:3
         [xi, ~] = crosshairs(1,{'black','black','red','red'});      % get a point
         [~,xidx] = min(abs(time-xi));
@@ -732,7 +816,6 @@ T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
 tP = getTempTurnPoints(parameters.protocol);
 
 %% ANALYSIS: Calculate male wing extension
-
 clearvars('-except',initial_var{:})
 
 Lwing = [];
@@ -866,6 +949,60 @@ end
 T.court_chase = mt; % time restriction 2 seconds
 T.chase_all = chase; % NO time limit
 
+%% FIGURE: M body positions during chase
+% Pull point locations that will be plotted
+skip = 20;
+zoom = [-250,250];
+
+% screening = close_dist;
+
+fig = getfig('',1,[1075 871]);
+hold on
+% Plot all male body positions
+kolor = Color('grey');
+x = mX(1:skip:end,[body.head,body.center]);
+y = mY(1:skip:end,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% axis equal square
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+% Plot the all male body positions under chase instances
+kolor = Color('green');
+x = mX(T.court_chase,[body.head,body.center]);
+y = mY(T.court_chase,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% % Screening
+% kolor = Color('green');
+% x = mX(screening,[body.head,body.center]);
+% y = mY(screening,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% Plot female body
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
+
+% Format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+formatFig(fig,blkbnd);
+% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
+
+% Save figure
+save_figure(fig,[figDir 'chase positions M fly'],fig_type,1,0);
 
 %% ANALYSIS: Circling behavior
 % TODO: add some visualization image for the periods of circling
@@ -942,7 +1079,6 @@ ok_var(const_var) = nan;% all data points with acceptable variance
 % Full selection criteria: 
 V = position.likely & head_dist & const_var & f_speed_cut;
 
-
 %  --- Find periods longer than 1 second ---
 a = diff(V); % when does the speed switch between stability and instability 
 % Add the first chase value to the list to account for the starting condition
@@ -991,10 +1127,9 @@ for sex = 1:2
 end
 
 %% ANALYSIS: Extract sleep data
-
 clearvars('-except',initial_var{:})
 
-bout = 5*60*parameters.FPS;
+bout = 5*60*parameters.FPS; %(5-min period minimum for sleep threshold)
 dummy = [];
 
 % Extract sleep bouts from position data
@@ -1038,4 +1173,50 @@ end
 m.sleep = dummy(1).sleep;
 f.sleep = dummy(2).sleep;
 
-%% 
+%%  Save the 'analyzed' data package:
+clearvars('-except',initial_var{:})
+
+switch questdlg('Save processed data?')
+    case 'Yes'
+        save([baseDir 'post-5.1 data.mat'],'-v7.3')
+        disp('Saved data file')
+    case 'No'
+        return
+    case 'Cancel'
+        return
+end
+
+
+
+
+%% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
+
+% vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
+% movieInfo = VideoReader(vidpath); %read in video
+% demoImg = (read(movieInfo,1));
+% well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
+% 
+% % distance between well 1 and 3
+% d = [];
+% well_1 = well_loc(:,1);
+% well_3 = well_loc(:,3);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% % distance between well 2 and 4
+% well_1 = well_loc(:,2);
+% well_3 = well_loc(:,4);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% 
+% pixelsbetweenwells = mean(d); %pixels
+% actualdistance =  31.2; %mm
+% pix2mm = actualdistance/pixelsbetweenwells; % multiplier
+
+
+
+
+
+
+
+
+
+
+
