@@ -1,11 +1,13 @@
 
 
 %% Behavior probability map
+clearvars('-except',initial_var{:})
 
 % 1 = on food
 % 2 = sleeping
 % 3 = edge-occupancy
 % 4 = courtship
+b_list = {'on_food', 'sleeping', 'edge_occupancy','courtship'};
 
 behavior = nan([length(time),4]);
 
@@ -14,14 +16,14 @@ behavior(m.sleep,2) = 2;
 behavior(data(M).OutterRing,3) = 3;
 behavior(T.CI,4) = 4;
 
-figure;
-for i = 1:4
-    scatter(time, behavior(:,i))
-end
+% figure;
+% for i = 1:4
+%     scatter(time, behavior(:,i))
+% end
 
 sum(data(M).OutterRing)
 
-% dummy data set: 
+% build a dummy data set for testing: 
 ntime = length(time);
 
 behavior = nan([ntime,4]);
@@ -41,23 +43,23 @@ end
 
 % what are the transitions? 
 
-% 
 % if sleep co-occurs with other behavior markers, sleep takes priority 
 sleep_override = sum(~isnan(behavior(:,1:3)),2)>1 & ~isnan(behavior(:,2));
 behavior(sleep_override,[1,3,4]) = nan; % override the other states since they can't be coincident with sleep
 
-
-
-
-% TODO: set everything in these locations to just sleeeeeep
+% Condense all the states into a single vector with numbers for each state
+% at every point in time. nan represent frames with undetermined states
+% TODO: refine this to check for more potential over laps etc.
 beh = nan(size(time));
-for i = 4:-1:1
+for i = [4,3,1,2] % ordered so that sleep is the last to fill and overrides the other states 
     loc = find(~isnan(behavior(:,i)));
     beh(loc) = i;
 end
-beh(1:17) = [NaN 1 1 1 NaN 1 NaN NaN NaN 3 3 2 NaN 4 4 4 1]; % easy start test
+% preload the start of the behavior vector with specific test scenarios:
+a = [NaN 1 1 1 NaN 1 NaN NaN NaN 3 3 2 NaN 4 4 4 1 nan 1 1 nan 1 1 1 nan nan 1 1 1 1 1]; % easy start test
+beh(1:length(a))  = a;
 
-state_starts = find(~isnan(beh)); % each time point that is an assigned state 
+state_starts = find(~isnan(beh)); % each time point (frame #) that is an assigned state 
 
 % TODO
 % 1) for each state point, find the next state
@@ -70,46 +72,72 @@ state_starts = find(~isnan(beh)); % each time point that is an assigned state
 
 time_buff = 2; % number of frames that can be 'skipped' before the state is considered switched
 
+% create a table that holds information on each state transition: 
+tic 
 ST = table('Size', [length(state_starts),7],...
         'VariableNames',{'state1', 'state1_start', 'state1_end', 'state2', 'state2_start','state2_end', 'transition'},...
         'VariableTypes', repmat({'double'},[1,7]));
-idx = 1;
-for i = 1:length(state_starts)-1 % for each time point with a state
+idx = 1; % initialize the state transition #
+for i = 1:length(state_starts)-1 % for each time point with a state (though the ultimate list will be shorter since repeat states count as 1)
     curr_state = beh(state_starts(i)); % current behavior state
-    % find the next state
+    
+    % skip this (i) if the current state start is in the preceding on-going state
+    if idx-1>0
+        if ST.state1_end(idx-1)>=state_starts(i) 
+            continue
+        end
+    end
+
+    % find the next state 
     for i_dt = 1:length(state_starts(i)+1:state_starts(end))
         t = state_starts(i+i_dt); % t = index for state_type moving forward from current one
         next_state = beh(t);
         frames_since_last_known_state = t-state_starts(i+i_dt-1); % how many nans from last state point
-
+        
+        % STATE CONTINUATION:
         % if the next state is the same as the current state and the last
-        % time gap is within the acceptable range, skip to the next (i) state
+        % time gap is within the acceptable range, skip to the next (i)
+        % state as this one (current t) is a continuation of the same state
         if curr_state==next_state && (frames_since_last_known_state<=time_buff)
             continue % same state, look at next statepoints
         
+        % NEW STATE
         % Register this as a state transition if either:
-        % -- the next state is the same as the current one and the time gap is outside the allowable range
-        % -- the state is different from the current one
-        elseif (next_state==curr_state && (t-state_starts(i)<=time_buff)) || ~(next_state==curr_state)
-            ST.state1(idx) = beh(state_starts(i));
-            ST.state1_start(idx) = state_starts(i);
+        % -- the next state is the same as the current one and the time gap is outside the allowable range 
+        % -- or the state is different from the current one
+        elseif (next_state==curr_state && (frames_since_last_known_state>time_buff)) || ~(next_state==curr_state)
+            ST.state1(idx) = beh(state_starts(i)); % current state of the fly
+            ST.state1_start(idx) = state_starts(i); % frame at which the current state started
+            ST.state1_end(idx) = state_starts(i+i_dt-1);
             
-            ST.transition(idx) = str2double([num2str(curr_state) num2str(next_state)]);
-            ST.state2(idx) = next_state;
-            ST.state2_start(idx) = t;
-            idx = idx+1;
+            ST.transition(idx) = str2double([num2str(curr_state) num2str(next_state)]); % state transition number ID
+            ST.state2(idx) = next_state; % next state of the fly
+            ST.state2_start(idx) = t; % frame at which the next state begins
+            if idx>1
+                ST.state2_end(idx-1) = ST.state1_end(idx);
+            end
+            if idx==2
+                ST.state2_end(1) = ST.state1_end(2);
+            end
+            idx = idx+1; 
+            break % break i_dt loop since next state has been found
         end
-        
     end
 end
+toc
 
-            
-i_dt = i_dt+1;
-   
-
-    next_state = (state_starts(i)+1:ntime); % next behavior state
+% remove extra locations from the table
+z = (ST.state1==0 & ST.state2==0);
+ST(z,:) = [];
 
 
+%% Histogram of the different state transitions: 
+bin_edges = min(ST.transition)-1:max(ST.transition)+1;
+fig = figure; 
+histogram(ST.transition,bin_edges)
+xlabel('transition')
+ylabel('count (#)')
+fig = formatFig(fig);
 
 
 
