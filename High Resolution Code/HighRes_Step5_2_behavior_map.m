@@ -7,7 +7,8 @@ clearvars('-except',initial_var{:})
 % 2 = sleeping
 % 3 = edge-occupancy
 % 4 = courtship
-b_list = {'on_food', 'sleeping', 'edge_occupancy','courtship'};
+b_list = {'food', 'sleeping', 'edge','courtship'};
+nstates = length(b_list);
 
 behavior = nan([length(time),4]);
 
@@ -130,8 +131,10 @@ toc
 z = (ST.state1==0 & ST.state2==0);
 ST(z,:) = [];
 
+ntrans = size(ST,1); % how many transition exist in the experiment 
 
-%% Histogram of the different state transitions: 
+%% Histogram of the different state transitions & total count of the behaviors (~time)
+
 bin_edges = min(ST.transition)-1:max(ST.transition)+1;
 fig = figure; 
 histogram(ST.transition,bin_edges)
@@ -139,9 +142,44 @@ xlabel('transition')
 ylabel('count (#)')
 fig = formatFig(fig);
 
+fig = figure; 
+histogram(beh, 0:1:nstates+1)
+xlabel('state')
+ylabel('count (#)')
+fig = formatFig(fig);
+
+%% Make the probability map as a heatmap with the transition probability as a shaded square with a number
+% then it will also be easy to make a 'difference' map between each of the
+% temperature periods (yes yes) 
+
+transition_list = sort(unique(ST.transition));
+
+transitions = [];
+for i = 1:length(transition_list)
+    transitions(i) = sum(ST.transition==transition_list(i));
+end
+transitions = reshape(transitions,[nstates, nstates])';
+
+% quick transition matrix for the states
+fig = getfig;
+heatmap(transitions)
+xlabel('State 2')
+ylabel('State 1')
+set(gca, 'XDisplayLabels',b_list,'YDisplayLabels',b_list)
+ax = gca;
+ax.XDisplayLabels
+
+% 1) for the full experiment -- how 
 
 
 
+%% What are the transition probabilities within each temperature condition?
+
+% start hold
+
+
+
+%% 
 
 
 
