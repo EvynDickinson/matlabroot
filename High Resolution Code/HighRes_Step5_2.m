@@ -16,23 +16,31 @@
 % courtship index 
 % courtship index vs temperature
 
-%% Prep data
-% clear; clc;
-% baseFolder = [getDataPath(6,0),'Trial Data/'];
-% trialDir = selectFolder(baseFolder); 
-% baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
-% figDir = [baseDir,'Figures/']; 
-% if ~exist(figDir, 'dir')
-%     mkdir(figDir)
-% end
-% 
-% load([baseDir, 'basic data.mat']) % load the parameters and temp table
-% disp('data loaded')
+% Prep data
+clear; clc;
+baseFolder = [getDataPath(6,0),'Trial Data/'];
+trialDir = selectFolder(baseFolder); 
+baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+figDir = [baseDir,'Figures/']; 
+if ~exist(figDir, 'dir')
+    mkdir(figDir)
+end
 
-% % Experiment parameters
-% blkbnd = true;
-% fig_type = '-png';
+load([baseDir, 'basic data.mat']) % load the parameters and temp table
+disp('data loaded')
 
+% Experiment parameters
+blkbnd = true;
+fig_type = '-png';
+
+% Initial variables
+            initial_var = who; % who = all variables created so far
+            initial_var{end+1} = 'initial_var';
+            initial_var{end+1} = 'well';
+            
+            disp_fig = false; % display baseline figures?
+            initial_var{end+1} = 'disp_fig';
+            
 %% FIGURE: Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})
 % Compare male L and R wing angles
