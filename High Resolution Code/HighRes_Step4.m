@@ -2,12 +2,6 @@
 % tracks (frame, body points, XY, fly)
 % body points (head, center, abdomen, right wing, left wing)
 
-%% PARAMETERS TO SHOW: 
-
-% 2) each fly speed
-% 3) body angle between flies
-% 4) male fly wing angle
-
 %% Load tracking points
 clear; clc;
 baseFolder = getDataPath(6,0);
@@ -245,6 +239,9 @@ for vid = 1:nvids
 end
 
 %% Confirm and save fly identities
+if ~exist([baseDir '/Figures'], 'dir')
+    mkdir([baseDir '/Figures'])
+end
 pix2mm = 0.0289; % calculated on the new back setup 11/7/24
 fps = parameters.FPS;
 
@@ -302,13 +299,17 @@ hold on
     plot(time, wing(2).angle(:,2),'color', Color('deeppink'),'linewidth', 1,'LineStyle','--') % right wing
 xlabel('time (s)')
 ylabel('wing angle (\circ)')
-formatFig(fig, true);
-% save_figure(fig,[baseFolder 'Figures/M and F wing angles'],fig_type);
+formatFig(fig);
+% save_figure(fig,[baseDir 'Figures/M and F wing angles'],-'png');
 
 fig = getfig;
 hold on
 histogram(wing(1).angle(:))
 histogram(wing(2).angle(:),'FaceColor',Color('deeppink'))
+xlabel('Wing angle (\circ)')
+formatFig(fig);
+set(gca, 'ycolor', 'none')
+% save_figure(fig,[baseDir 'Figures/M and F wing angle histogram'],-'png');
 
 % Compare fly speed
 speed = [];
@@ -337,10 +338,8 @@ formatFig(fig, true);
 % View fly image
 vidname = [baseDir, 'compiled_video_1.avi'];
 vidh = VideoReader(vidname);
-frame = 3500;
-
+frame = randi(vidh.NumFrames);
 img = read(vidh,frame);
-
 fig = getfig;
 imshow(img)
 hold on
@@ -349,7 +348,7 @@ plotFlySkeleton(fig, D2.pos(frame,:,1),D2.pos(frame,:,2),Color('pink'),1);
 
 
 % Save fly identities
-response = questdlg('What is pink?','Fly Sex','Female','Male','Cancel','Female');
+response = questdlg('Which is pink?','Fly Sex','Female','Male','Cancel','Female');
 switch response
     case 'Female'
         f = D2;
@@ -357,18 +356,19 @@ switch response
         m = D1;
         m.wing = wing(1);
         parameters.OGFlyOrder = 'MF';
+        close all
     case 'Male'
         f = D1;
         f.wing = wing(1);
         m = D2;
         m.wing = wing(2);
         parameters.OGFlyOrder = 'FM';
+        close all
     case 'Cancel'
         return
 end
 parameters.node_names = node_names;
 
-close all
 
 
 %% Screen for frames with funky wing positions
@@ -487,7 +487,7 @@ for sex = 1:2
             title('After Correction')
 
         % Save figures
-        save_figure(fig,[baseDir  sex_type ' wing position correction'], '-pdf');
+        save_figure(fig,[baseDir  'Figures/ ' sex_type ' wing position correction'], '-pdf');
     end
 end
 
@@ -517,7 +517,7 @@ if disp_fig
     fig = matchAxis(fig,true);
     
     % Save figure
-    save_figure(fig,[baseDir  'M vs F wing position scatter'], '-pdf');
+    save_figure(fig,[baseDir  'Figures/M vs F wing position scatter'], '-pdf');
 end
 
 

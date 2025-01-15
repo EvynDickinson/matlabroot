@@ -9,7 +9,6 @@ clc; clear
 % turn them to a 'Y' when it's done
 
 
-
 rootDir = getDataPath(5, 2, 'Select Date of data to process');
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);

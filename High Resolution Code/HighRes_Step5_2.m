@@ -92,6 +92,7 @@ fig = figure;
     xlabel('distance to food (mm)')
     formatFig(fig, blkbnd);
     set(gca,'ycolor', 'none')
+    save_figure(fig,[figDir 'distance to food histogram M vs F'],fig_type);
 
 % flies ON food
 T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
@@ -133,7 +134,8 @@ fig =  getfig('',1);
         ylabel('distance to food (mm)')
         xlabel('time (min)')
 
-formatFig(fig, blkbnd, [r,c],sb);
+    formatFig(fig, blkbnd, [r,c],sb);
+    save_figure(fig,[figDir 'Distance to food with points on food M vs F'],fig_type);
 
 %% FIGURE: Plot body position during wing extension
 % wing angle > 60 deg
@@ -597,6 +599,7 @@ xlabel('time (min)','color', foreColor)
 set(gca, 'ycolor', 'none')
 ylabel('Courtship Metrics','color', foreColor)
 ylim([0,y1+1+tickH])
+save_figure(fig,[figDir 'Courtship Index timecourse'],fig_type);
 
 
 %% FIGURE: Fly turning over time 
@@ -644,7 +647,8 @@ set(gca, 'xcolor', backColor,'ycolor',backColor)
 title([num2str(data(1).mfbodyangle(frame))])
 end
 
-%% FIGURE: Sleep
+%% FIGURE: (TODO) Sleep
+% update the figure to plot both male and female sleep over time
 clearvars('-except',initial_var{:})
 
 % bout = 5*60*parameters.FPS;
@@ -710,7 +714,15 @@ ylim([0,2])
 
 
 
-%%
+%% FIGURE: (WORKING 1/15) simple summary of fly positions across the trial...
+
+% ba
+
+% plot the occupancy of the different regions over time
+fig = getfig('', 1);
+
+hold on
+
 
 
 
