@@ -289,28 +289,6 @@ for sex = 1:2
     end
 end
 
-% Compare male and female wing angles
-time = T.time;
-fig = getfig('',true, [1032 300]); 
-hold on
-    plot(time, wing(1).angle(:,1),'color', Color('dodgerblue'),'linewidth', 1) % left wing
-    plot(time, wing(1).angle(:,2),'color', Color('dodgerblue'),'linewidth', 1,'LineStyle','--') % right wing
-    plot(time, wing(2).angle(:,1),'color', Color('deeppink'),'linewidth', 1) % left wing
-    plot(time, wing(2).angle(:,2),'color', Color('deeppink'),'linewidth', 1,'LineStyle','--') % right wing
-xlabel('time (s)')
-ylabel('wing angle (\circ)')
-formatFig(fig);
-% save_figure(fig,[baseDir 'Figures/M and F wing angles'],-'png');
-
-fig = getfig;
-hold on
-histogram(wing(1).angle(:))
-histogram(wing(2).angle(:),'FaceColor',Color('deeppink'))
-xlabel('Wing angle (\circ)')
-formatFig(fig);
-set(gca, 'ycolor', 'none')
-% save_figure(fig,[baseDir 'Figures/M and F wing angle histogram'],-'png');
-
 % Compare fly speed
 speed = [];
 for sex = 1:2
@@ -326,48 +304,138 @@ for sex = 1:2
     speed(sex).speed = [0;(S./(1/fps))];
 end
 
-time = T.time;
-fig = getfig('',true, [1032 300]); 
-hold on
-    plot(time, speed(1).speed(:,1),'color', Color('dodgerblue'),'linewidth', 1)
-    plot(time, speed(2).speed(:,1),'color', Color('deeppink'),'linewidth', 1)
-xlabel('time (s)')
-ylabel('speed (mm/s)')
-formatFig(fig, true);
 
-% View fly image
-vidname = [baseDir, 'compiled_video_1.avi'];
-vidh = VideoReader(vidname);
-frame = randi(vidh.NumFrames);
-img = read(vidh,frame);
-fig = getfig;
-imshow(img)
-hold on
-plotFlySkeleton(fig, D1.pos(frame,:,1),D1.pos(frame,:,2),Color('dodgerblue'),1); 
-plotFlySkeleton(fig, D2.pos(frame,:,1),D2.pos(frame,:,2),Color('pink'),1); 
+% Figure
+r = 4;
+c = 7;
+sb(1).idx = 1:3; % wing angles over time
+sb(2).idx = 8:10; % speed over time
+sb(3).idx = [15:17, 22:24]; % wing angle histogram
+sb(4).idx = [4:7,11:14, 18:21, 25:28]; % arena image
+
+unclear = true;
+
+while unclear == true
+fig = getfig('Fly identification',true);
+    % Wing angles over time
+    subplot(r, c, sb(1).idx)
+        hold on
+        plot(time, wing(1).angle(:,1),'color', Color('dodgerblue'),'linewidth', 1) % left wing
+        plot(time, wing(1).angle(:,2),'color', Color('dodgerblue'),'linewidth', 1,'LineStyle','--') % right wing
+        plot(time, wing(2).angle(:,1),'color', Color('deeppink'),'linewidth', 1) % left wing
+        plot(time, wing(2).angle(:,2),'color', Color('deeppink'),'linewidth', 1,'LineStyle','--') % right wing
+    % Speed over time
+    subplot(r, c, sb(2).idx)
+        hold on
+        plot(time, speed(1).speed(:,1),'color', Color('dodgerblue'),'linewidth', 1)
+        plot(time, speed(2).speed(:,1),'color', Color('deeppink'),'linewidth', 1)
+    % Wing angle histogram
+    subplot(r,c,sb(3).idx)
+        hold on
+        histogram(wing(1).angle(:)) %,'FaceColor', Color('dodgerblue'))
+        histogram(wing(2).angle(:),'FaceColor',Color('deeppink'))
+        xlim([0,90])
+    % Arena image
+    subplot(r,c,sb(4).idx)
+        vidname = [baseDir, 'compiled_video_1.avi'];
+        vidh = VideoReader(vidname);
+        frame = randi(vidh.NumFrames);
+        img = read(vidh,frame);
+        imshow(img)
+        plotFlySkeleton(fig, D1.pos(frame,:,1),D1.pos(frame,:,2),Color('dodgerblue'),1); 
+        plotFlySkeleton(fig, D2.pos(frame,:,1),D2.pos(frame,:,2),Color('pink'),1); 
+        % Zoom in on pink fly
+        xlimits = D2.pos(frame,2,1);
+        ylimits = D2.pos(frame,2,2);
+        buff = 250;
+        xlim([xlimits-buff, xlimits+buff])
+        ylim([ylimits-buff, ylimits+buff])
+uiwait(fig)
 
 
 % Save fly identities
-response = questdlg('Which is pink?','Fly Sex','Female','Male','Cancel','Female');
+response = questdlg('Which is pink?','Fly Sex','Female','Male','I dont know','Female');
 switch response
     case 'Female'
+        unclear = false;
         f = D2;
         f.wing = wing(2);
         m = D1;
         m.wing = wing(1);
         parameters.OGFlyOrder = 'MF';
+        parameters.node_names = node_names;
         close all
     case 'Male'
+        unclear = false;
         f = D1;
         f.wing = wing(1);
         m = D2;
         m.wing = wing(2);
         parameters.OGFlyOrder = 'FM';
+        parameters.node_names = node_names;
         close all
-    case 'Cancel'
-        return
+    case 'I dont know'
+        unclear = true;
 end
-parameters.node_names = node_names;
+end
+
+
+%% Randomized male track check point
+
+r = 2;
+c = 4;
+% sb(1).idx = 1;
+% sb(2).idx = 2;
+% sb(3).idx = 3;
+% sb(4).idx = 4;
+% sb(5).idx = 5;
+% sb(6).idx = 6;
+% sb(7).idx = 7;
+% sb(8).idx = 8;
+
+frame = [];
+nimg = 4; % number of image pairs to show per figure
+
+for vid = 1:4 % nvids
+vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
+vidh = VideoReader(vidname);
+frame = randi(vidh.NumFrames);
+img = read(vidh,frame);
+
+fig = getfig;
+    for sb = 1:nimg
+    hold on
+        % Male fly
+            subplot(r,c,sb)
+            imshow(img)
+            plotFlySkeleton(fig, m.pos(frame,:,1),m.pos(frame,:,2),Color('dodgerblue'),0); 
+            % Zoom in on fly
+            xlimits = m.pos(frame,2,1);
+            ylimits = m.pos(frame,2,2);
+            buff = 75;
+            xlim([xlimits-buff, xlimits+buff])
+            ylim([ylimits-buff, ylimits+buff])
+        % Female fly
+            subplot(r,c,(sb+nimg))
+            imshow(img)
+            plotFlySkeleton(fig, f.pos(frame,:,1),f.pos(frame,:,2),Color('pink'),0); 
+            % Zoom in on pink fly
+            xlimits = f.pos(frame,2,1);
+            ylimits = f.pos(frame,2,2);
+            buff = 75;
+            xlim([xlimits-buff, xlimits+buff])
+            ylim([ylimits-buff, ylimits+buff])
+    end
+end
+
+
+
+
+
+
+
+
+
 
 
 

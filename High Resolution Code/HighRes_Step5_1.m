@@ -1061,7 +1061,53 @@ end
 
 
 
+%% Calculate sleep
 
+clearvars('-except',initial_var{:})
+
+bout = 5*60*parameters.FPS;
+dummy = [];
+
+% Extract sleep bouts from position data
+for sex = 1:2
+    switch sex
+        case 1
+            x = m.pos(:,2,1); % male center
+        case 2
+            x = f.pos(:,2,1); % female center
+    end
+    % Calculate difference between all x values
+    x_diff = diff(x); 
+    % Identify when position is not changing
+    u = abs(x_diff)<= 1;
+    % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
+    a = diff(u);
+    % Add the first position value to the list to account for the starting condition
+    b = [u(1); a]; 
+    % Frames where 'position-no-change' period starts/end
+    slp_start = find(b == 1); 
+    slp_stop = find(b == -1);
+    % If sleep doesn't stop by end, add stop location at end of slp_stop
+    if u(end)
+        slp_stop(end + 1) = length(time);
+    end
+    % Calculate the length of each 'position-no-change' bout
+    slp_dur = slp_stop - slp_start;
+    % Find where bout lasts longer than 5min (when is sleep)
+    slp_loc = find(slp_dur > bout);
+
+    % Create dummy matrix with only true sleep bouts
+    mt = false(size(time));
+    for i = 1:length(slp_loc)
+        ii = slp_loc(i);
+        mt(slp_start(ii):slp_stop(ii)) = true;
+    end
+    dummy(sex).sleep = mt;
+end
+
+% Save sleep data
+m.sleep = dummy(1).sleep;
+f.sleep = dummy(2).sleep;
 
 
 
