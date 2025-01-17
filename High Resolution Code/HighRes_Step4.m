@@ -314,6 +314,7 @@ sb(3).idx = [15:17, 22:24]; % wing angle histogram
 sb(4).idx = [4:7,11:14, 18:21, 25:28]; % arena image
 
 unclear = true;
+time = T.time;
 
 while unclear == true
 fig = getfig('Fly identification',true);
@@ -324,17 +325,23 @@ fig = getfig('Fly identification',true);
         plot(time, wing(1).angle(:,2),'color', Color('dodgerblue'),'linewidth', 1,'LineStyle','--') % right wing
         plot(time, wing(2).angle(:,1),'color', Color('deeppink'),'linewidth', 1) % left wing
         plot(time, wing(2).angle(:,2),'color', Color('deeppink'),'linewidth', 1,'LineStyle','--') % right wing
+        ylabel('wing angle')
+        xlabel('time (min)')
     % Speed over time
     subplot(r, c, sb(2).idx)
         hold on
         plot(time, speed(1).speed(:,1),'color', Color('dodgerblue'),'linewidth', 1)
         plot(time, speed(2).speed(:,1),'color', Color('deeppink'),'linewidth', 1)
+        ylabel('speed (mm/s)')
+        xlabel('time (min)')
     % Wing angle histogram
     subplot(r,c,sb(3).idx)
         hold on
         histogram(wing(1).angle(:)) %,'FaceColor', Color('dodgerblue'))
         histogram(wing(2).angle(:),'FaceColor',Color('deeppink'))
         xlim([0,90])
+        ylabel('frequency')
+        xlabel('wing angle')
     % Arena image
     subplot(r,c,sb(4).idx)
         vidname = [baseDir, 'compiled_video_1.avi'];
@@ -382,64 +389,56 @@ end
 
 %% Randomized track switch check point
 
-response = questdlg('Double check for track switches?');
-
-row = 2;
-col = 4;
-nfigs = ceil(parameters.nVids/col);
-
-frame = [];
-vid = 0;
-
-for figs = 1:nfigs
-    fig = getfig;
-    for pics = 1:col
-        vid = vid + 1;
-        if vid > parameters.nVids
-            return
+response = questdlg('Double check for track switches?', '','Yes', 'No', 'Yes');
+switch response
+    case 'Yes'
+    row = 2;
+    col = 4;
+    nfigs = ceil(parameters.nVids/col);
+    
+    frame = [];
+    vid = 0;
+    
+    for figs = 1:nfigs
+        fig = getfig;
+        for pics = 1:col
+            vid = vid + 1;
+            if vid > parameters.nVids
+                return
+            end
+            vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
+            vidh = VideoReader(vidname);
+            frame = randi(vidh.NumFrames);
+            img = read(vidh,frame);
+            a = T.vidNums == vid;
+            b = T.vidFrame == frame;
+            exp_frame = T.frame(find(a & b));
+            % Male fly
+            subplot(row, col, pics)
+                imshow(img)
+                plotFlySkeleton(fig, m.pos(exp_frame,:,1),m.pos(exp_frame,:,2),Color('dodgerblue'),0); 
+                % Zoom in on fly
+                xlimits = m.pos(exp_frame,2,1);
+                ylimits = m.pos(exp_frame,2,2);
+                buff = 75;
+                xlim([xlimits-buff, xlimits+buff])
+                ylim([ylimits-buff, ylimits+buff])
+                title(['video ', num2str(vid), ', frame ', num2str(exp_frame)])
+            % Female fly
+            subplot(row, col, (pics + col))
+                imshow(img)
+                plotFlySkeleton(fig, f.pos(exp_frame,:,1),f.pos(exp_frame,:,2),Color('pink'),0);
+                % Zoom in on pink fly
+                xlimits = f.pos(exp_frame,2,1);
+                ylimits = f.pos(exp_frame,2,2);
+                buff = 75;
+                xlim([xlimits-buff, xlimits+buff])
+                ylim([ylimits-buff, ylimits+buff])
         end
-        vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
-        vidh = VideoReader(vidname);
-        frame = randi(vidh.NumFrames);
-        img = read(vidh,frame);
-        a = T.vidNums == vid;
-        b = T.vidFrame == frame;
-        exp_frame = T.frame(find(a & b));
-        % Male fly
-        subplot(row, col, pics)
-            imshow(img)
-            plotFlySkeleton(fig, m.pos(exp_frame,:,1),m.pos(exp_frame,:,2),Color('dodgerblue'),0); 
-            % Zoom in on fly
-            xlimits = m.pos(exp_frame,2,1);
-            ylimits = m.pos(exp_frame,2,2);
-            buff = 75;
-            xlim([xlimits-buff, xlimits+buff])
-            ylim([ylimits-buff, ylimits+buff])
-            title(['video ', num2str(vid)])
-        % Female fly
-        subplot(row, col, (pics + col))
-            imshow(img)
-            plotFlySkeleton(fig, f.pos(exp_frame,:,1),f.pos(exp_frame,:,2),Color('pink'),0);
-            % Zoom in on pink fly
-            xlimits = f.pos(exp_frame,2,1);
-            ylimits = f.pos(exp_frame,2,2);
-            buff = 75;
-            xlim([xlimits-buff, xlimits+buff])
-            ylim([ylimits-buff, ylimits+buff])
     end
+    case 'No'
+        return
 end
-
-
-
-
-
-
-
-
-
-
-
-
 
 %% Screen for frames with funky wing positions
 disp_fig = true;
