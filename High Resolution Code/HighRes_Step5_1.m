@@ -586,6 +586,11 @@ for sex = 1:2
 
 end
 
+% Fly on the food: 
+T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
+disp('Flies on food: M & F')
+sum(T.FlyOnFood)
+
 %% ANALYSIS: Determine temperature bins and directions
 clearvars('-except',initial_var{:})
 
@@ -953,6 +958,10 @@ end
 T.circling_all = V; % when the male fly is circling the female (no time restriction)
 T.circling_1sec = constant_velocity; % when circling is longer than 1 second
 
+% COURTSHIP INDEX
+CI = any([T.court_chase,T.wing_ext,T.circling_1sec],2); % courtship index
+T.CI = CI;
+
 %% ANALYSIS: Fly turning 
 
 clearvars('-except',initial_var{:})
@@ -1023,7 +1032,7 @@ m.sleep = dummy(1).sleep;
 f.sleep = dummy(2).sleep;
 
 
-%% Behavior probability map
+%% ANALYSIS: Behavior probability map
 clearvars('-except',initial_var{:})
 
 % 1 = on food
@@ -1191,7 +1200,7 @@ end
 clearvars('-except',initial_var{:})
 
 sexes = {'male', 'female'};
-nstates = data(sex).states.nstates;
+nstates = data(1).states.nstates;
 b_list = strrep(data(1).states.b_list,'_',' ');
 fig = getfig('',1,[ 937 406]);
 for sex = 1:2
@@ -1209,7 +1218,7 @@ fig = getfig('',1,[ 937 406]);
 for sex = 1:2
     subplot(1,2,sex);
     hold on
-    h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+    % h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
 
     for i = 1:4
         y = data(sex).states.behavior(:,i);

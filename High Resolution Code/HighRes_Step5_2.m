@@ -95,9 +95,9 @@ fig = figure;
     save_figure(fig,[figDir 'distance to food histogram M vs F'],fig_type);
 
 % flies ON food
-T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
-disp('Flies on food: M & F')
-sum(T.FlyOnFood)
+% T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
+% disp('Flies on food: M & F')
+% sum(T.FlyOnFood)
 
 %% FIGURE: Fly distance to food and flies on food timecourse
 r = 4;
@@ -551,8 +551,8 @@ clearvars('-except',initial_var{:})
 tickH = 1; % tick height
 LS = 0.5; % vertical space between ticks
 LW = 1; % tick line width
-CI = any([T.court_chase,T.wing_ext,T.circling_1sec],2); % courtship index
-T.CI = CI;
+% CI = any([T.court_chase,T.wing_ext,T.circling_1sec],2); % courtship index
+% T.CI = CI;
 
 idx = [T.circling_all, T.circling_1sec,T.wing_ext_all,...
        T.wing_ext,T.chase_all,T.court_chase,CI];
@@ -715,13 +715,13 @@ ylim([0,2])
 
 
 %% FIGURE: (WORKING 1/15) simple summary of fly positions across the trial...
-
-% ba
-
-% plot the occupancy of the different regions over time
-fig = getfig('', 1);
-
-hold on
+% 
+% % ba
+% 
+% % plot the occupancy of the different regions over time
+% fig = getfig('', 1);
+% 
+% hold on
 
 
 
