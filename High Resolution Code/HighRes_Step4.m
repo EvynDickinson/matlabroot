@@ -380,53 +380,55 @@ end
 end
 
 
-%% Randomized male track check point
+%% Randomized track switch check point
 
-r = 2;
-c = 4;
-% sb(1).idx = 1;
-% sb(2).idx = 2;
-% sb(3).idx = 3;
-% sb(4).idx = 4;
-% sb(5).idx = 5;
-% sb(6).idx = 6;
-% sb(7).idx = 7;
-% sb(8).idx = 8;
+response = questdlg('Double check for track switches?');
+
+row = 2;
+col = 4;
+nfigs = ceil(parameters.nVids/col);
 
 frame = [];
-nimg = 4; % number of image pairs to show per figure
+vid = 0;
 
-for vid = 1:4 % nvids
-vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
-vidh = VideoReader(vidname);
-frame = randi(vidh.NumFrames);
-img = read(vidh,frame);
-
-fig = getfig;
-    for sb = 1:nimg
-    hold on
+for figs = 1:nfigs
+    fig = getfig;
+    for pics = 1:col
+        vid = vid + 1;
+        if vid > parameters.nVids
+            return
+        end
+        vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
+        vidh = VideoReader(vidname);
+        frame = randi(vidh.NumFrames);
+        img = read(vidh,frame);
+        a = T.vidNums == vid;
+        b = T.vidFrame == frame;
+        exp_frame = T.frame(find(a & b));
         % Male fly
-            subplot(r,c,sb)
+        subplot(row, col, pics)
             imshow(img)
-            plotFlySkeleton(fig, m.pos(frame,:,1),m.pos(frame,:,2),Color('dodgerblue'),0); 
+            plotFlySkeleton(fig, m.pos(exp_frame,:,1),m.pos(exp_frame,:,2),Color('dodgerblue'),0); 
             % Zoom in on fly
-            xlimits = m.pos(frame,2,1);
-            ylimits = m.pos(frame,2,2);
+            xlimits = m.pos(exp_frame,2,1);
+            ylimits = m.pos(exp_frame,2,2);
             buff = 75;
             xlim([xlimits-buff, xlimits+buff])
             ylim([ylimits-buff, ylimits+buff])
+            title(['video ', num2str(vid)])
         % Female fly
-            subplot(r,c,(sb+nimg))
+        subplot(row, col, (pics + col))
             imshow(img)
-            plotFlySkeleton(fig, f.pos(frame,:,1),f.pos(frame,:,2),Color('pink'),0); 
+            plotFlySkeleton(fig, f.pos(exp_frame,:,1),f.pos(exp_frame,:,2),Color('pink'),0);
             % Zoom in on pink fly
-            xlimits = f.pos(frame,2,1);
-            ylimits = f.pos(frame,2,2);
+            xlimits = f.pos(exp_frame,2,1);
+            ylimits = f.pos(exp_frame,2,2);
             buff = 75;
             xlim([xlimits-buff, xlimits+buff])
             ylim([ylimits-buff, ylimits+buff])
     end
 end
+
 
 
 
