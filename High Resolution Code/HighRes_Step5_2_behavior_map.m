@@ -226,6 +226,43 @@ for sex = 1:2
     title(sexes{sex})
 end
 
+%% How long to each behavior state after each temp change and what order?
+for sex = 1:2 % for each of the two flies 
+    freq = [];
+    for r = 1:size(tRate,2) % for each of the different temperature regimes
+        roi = tRate(r).idx; % get the temperature regime frame indeces 
+        for i = 1:data(sex).states.nstates % for each type of behavior | state
+            freq(r,i).name = data(sex).states.b_list{i};
+            total_frames = diff(roi);
+            
+            % -- make a list of all the times for this behavior (so we can do a frequency graph etc) 
+            loc = data(sex).states.ST.state1==i;
+            a = find(loc);
+            if isempty(a)
+                [freq(r,i).n_states, freq(r,i).n_instances, freq(r,i).perc_time_in_state] = deal(0);
+                [freq(r,i).time_to_first_instance, freq(r,i).temp_at_first_instance] = deal(nan);
+                continue
+            end
+            first_frame = data(sex).states.ST.state1_start(a(1));
+            freq(r,i).n_states = sum(loc); % number of times the behavior occured (not the duration of them)
+            
+            % -- total time in the state and the percent of the temp regime in that state
+            freq(r,i).n_instances = sum(data(sex).states.beh==i); % number of time points with the observed behavior
+            freq(r,i).perc_time_in_state = (freq(r,i).n_instances/total_frames)*100;
+            
+            % -- pull time of the first one
+            freq(r,i).time_to_first_instance = (first_frame - roi(1))/parameters.FPS; % in seconds
+
+            % -- pull the temp for the first one
+            freq(r,i).temp_at_first_instance = mean(T.temperature(first_frame:first_frame+3));
+
+        end
+    end
+    data(sex).states.freq = freq;
+end
+% when (if) does each state arise in each temp regime? At what temp is the
+% behavior observed?
+
 
 %% Save data 
 clearvars('-except',initial_var{:})
@@ -241,42 +278,14 @@ switch questdlg('Save processed data?')
 end
 
 
-
-
-
-
-
-
-%% How long to each behavior state after each temp change and what order?
-freq = [];
-for sex = 1:2
-    for r = 1:size(tRate,2)
-        roi = tRate(r).idx; % get the temperature regime frame indeces 
-        for i = 1:nstates
-            loc = find(data(sex).states.ST.state1==i);
-            % -- make a list of all the times for this behavior (so we can do
-            % a frequency graph etc) 
-
-            % -- pull time of the first one
-
-            % -- pull the temp for the first one
-
-
-        end
-    end
-end
-% when (if) does each state arise in each temp regime? At what temp is the
-% behavior observed?
-
-
 %% Pointed Question: when after the onset of heat does the 
 
 % how long after the onset of each temperature event does it take for flies
 % to return to food?
 
-for sex = 1:2
-    
-    data(sex).states.
+% for sex = 1:2
+% 
+%     data(sex).states.
 
 
 
