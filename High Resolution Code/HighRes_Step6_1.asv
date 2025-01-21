@@ -9,31 +9,51 @@ baseFolder = [getDataPath(6,0),'Trial Data/'];
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
 % Find trials that have nothing in their Proofed Column & have been tracked: 
-loc = cellfun(@isnan,excelfile(2:end,Excel.groupready));
-loc = ~loc;
-rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
-FileNames = format_eligible_files(eligible_files);
+switch questdlg('Load options from excel?')
+    case 'Yes'
+            loc = cellfun(@isnan,excelfile(2:end,Excel.groupready));
+            loc = ~loc;
+            rownums = find(loc)+1; 
+            eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
+            FileNames = format_eligible_files(eligible_files);
+            
+            fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
+            if isempty(fileIdx)
+                disp('No trials selected')
+                return
+            else
+                
+                for i = 1:length(fileIdx)
+                    selectedFiles{i} = [eligible_files{idx(i),1} '_' eligible_files{idx(i),2}];
+                end
+            end
 
-fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
-if isempty(fileIdx)
-    disp('No trials selected')
-    return
+            
+            % pull the list of dates and arenas to be loaded
+            % TODO: need some way to pair these by group and ramp 
+            % dateStr = eligible_files(fileIdx,1);
+            % trialStr = eligible_files(fileIdx,2); 
+
+            % for now, load all the trials as 'independent' trials
+    case 'No'
+          fileList = dir(baseFolder);
+          fileIdx = listdlg('ListString', {fileList(4:end).name},'ListSize',[350,450],'promptstring', 'Select trial to process');
+            if isempty(fileIdx)
+                disp('No trials selected')
+                return
+            end
+            fileIdx = fileIdx + 3; % offset to account for the skipped presentation of the '.' files above
+            selectedFiles = {fileList(fileIdx).name};
+
+    case 'Cancel'
+        return
 end
-% pull the list of dates and arenas to be loaded
-% TODO: need some way to pair these by group and ramp 
-% dateStr = eligible_files(fileIdx,1);
-% trialStr = eligible_files(fileIdx,2); 
-
-% for now, load all the trials as 'independent' trials
 
 field_list = {'T','data','f', 'fX', 'fY', 'fps', 'm', 'mX', 'mY', 'nvids', 'parameters', 'pix2mm', 'position', 'tRate', 'time', 'well'};
 fly = struct;
 for i = 1:length(fileIdx)
-    dateStr = eligible_files{i,1};
-    trialStr = eligible_files{i,2}; 
-    dummy = load([baseFolder dateStr '_' trialStr '/post-5.1 data.mat']);
-    fly(i).name = [dateStr '_' trialStr];
+    dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
+    fly(i).name = selectedFiles{i};
     for ii = 1:length(field_list)
         fly(i).(field_list{ii}) = dummy.(field_list{ii});
     end
@@ -43,64 +63,36 @@ F = 2;
 M = 1;
 body = dummy.body;
 
+num.trials = length(fly);
+
 clear i ii dummy rownums ans fileIdx field_list FileNames loc trialStr dateStr
 initial_var = who; initial_var{end+1} = 'initial_var';
 clearvars('-except',initial_var{:})
 
-%% Compare across groups.
 
 
 
 
 
 
-trialDir = selectFolder(baseFolder); 
-baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
 
-figDir = [baseDir,'Figures/']; 
-if ~exist(figDir, 'dir')
-    mkdir(figDir)
-end
 
-processed_path = [baseDir 'post-5.1 data.mat'];
-if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, load that?'))
-            curr_baseFolder = baseFolder;
-            curr_baseDir = baseDir;
-            load(processed_path)
-            baseFolder = curr_baseFolder;
-            baseDir = curr_baseDir;
-            disp('Data loaded!')
-            clearvars('-except',initial_var{:})
-else
-    if strcmp('Yes', questdlg('Run basic analysis now?'))
-            load([baseDir, 'basic data.mat']) % load the parameters and temp table
-            disp('data loaded')
-            
-            % Experiment parameters
-            nvids = parameters.nVids; % number of videos
-            fps = parameters.FPS;
-            time = T.time;
-            blkbnd = true;
-            fig_type = '-png';
-            [foreColor,backColor] = formattingColors(blkbnd); % get background colors
-            pix2mm = 0.0289; % calculated on the new back setup 11/7/24
-            
-            % Create variable to store body points
-            body = [];
-            for i = 1:length(parameters.node_names)
-                body.(parameters.node_names{i}) = i;
-            end
-            
-            M = 1; % male fly index number
-            F = 2; % female fly index number
-            
-            % Initial variables
-            initial_var = who; % who = all variables created so far
-            initial_var{end+1} = 'initial_var';
-            initial_var{end+1} = 'well';
-            
-            disp_fig = false; % display baseline figures?
-            initial_var{end+1} = 'disp_fig';
-            disp('Data loaded, continuing evaluation')
-    end
-end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

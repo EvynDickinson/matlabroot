@@ -13,7 +13,7 @@ ylabel('temp (\circC)')
 formatFig(fig);
 
 %% Simple comparison across flies: distance to food over time
-
+clearvars('-except',initial_var{:})
 % compile the data: 
 [pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
 for i = 1:num.trials
@@ -41,13 +41,105 @@ ylabel('distance to food (mm)')
 formatFig(fig);
 
 
+%% Courtship frequency figure: 
+clearvars('-except',initial_var{:})
+% when and where is the concentration of courtship over experimental time?
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+% compile the data: 
+[pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
+for i = 1:num.trials
+    % for sex = 1:2
+        x = fly(i).time;
+        y = fly(i).T.CI;
+        pD(sex).x = [pD(sex).x, x];
+        pD(sex).y = [pD(sex).y, y];
+    % end
+end
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14];
+sb(3).idx = 3:c:r*c; %binned distance alignment
+LW = 1;
+
+fig = getfig('',1); 
+
+subplot(r,c,sb(1).idx);
+hold on
+for i = 1:num.trials
+    x = fly(i).time;
+    y = fly(i).T.temperature;
+    plot(x,y,'color', foreColor,'LineWidth', LW)
+end
+ylabel('temp (\circC)')
+
+subplot(r,c,sb(2).idx);
+hold on
+for sex = 1:2
+    x = mean(pD(sex).x,2);
+    y = sum(pD(sex).y,2);
+    plot(x,smooth(y,5*60,'moving'),'color', foreColor,'LineWidth',lw)
+end
+xlabel('time (min)')
+ylabel('courtship index sum')
+
+formatFig(fig,blkbgd,[r,c],sb);
+subplot(r,c,sb(1).idx);
+set(gca, 'xcolor', 'none')
 
 
 
+%% Flies on food: 
+clearvars('-except',initial_var{:})
+% when and where is the concentration of courtship over experimental time?
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
 
+% compile the data: 
+[pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
+for i = 1:num.trials
+    % for sex = 1:2
+        x = fly(i).time;
+        y = fly(i).T.CI;
+        pD(sex).x = [pD(sex).x, x];
+        pD(sex).y = [pD(sex).y, y];
+    % end
+end
 
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14];
+sb(3).idx = 3:c:r*c; %binned distance alignment
+LW = 1;
 
+fig = getfig('',1); 
 
+subplot(r,c,sb(1).idx);
+hold on
+for i = 1:num.trials
+    x = fly(i).time;
+    y = fly(i).T.temperature;
+    plot(x,y,'color', foreColor,'LineWidth', LW)
+end
+ylabel('temp (\circC)')
+
+subplot(r,c,sb(2).idx);
+hold on
+for sex = 1:2
+    x = mean(pD(sex).x,2);
+    y = sum(pD(sex).y,2);
+    plot(x,smooth(y,5*60,'moving'),'color', foreColor,'LineWidth',lw)
+end
+xlabel('time (min)')
+ylabel('courtship index sum')
+
+formatFig(fig,blkbgd,[r,c],sb);
+subplot(r,c,sb(1).idx);
+set(gca, 'xcolor', 'none')
 
 
 
