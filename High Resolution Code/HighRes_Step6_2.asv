@@ -1,0 +1,40 @@
+
+%% Find the temperature alignment across trials...
+fig = getfig('',1); hold on
+for i = 1:num.trials
+    x = fly(i).time;
+    y = fly(i).T.temperature;
+    plot(x,y)
+    z = [fly(i).tRate(:).idx];
+    v_line(x(z(2:2:end)),'r')
+end
+xlabel('time (min)')
+ylabel('temp (\circC)')
+formatFig(fig);
+
+%% Simple comparison across flies: distance to food over time
+
+plotData = [];
+for i = 1:num.trials
+    for sex = 1:2
+        x = fly(i).time;
+        y = fly(i).T.dist2food(:,sex);
+        plotData(sex).x = [plotData(sex).x, ]
+        plot(x,y,'color', fly(i).data(sex).color,'LineWidth',lw)
+    end
+end
+
+
+lw = 1;
+
+fig = getfig('',1); hold on
+for i = 1:num.trials
+    for sex = 1:2
+        x = fly(i).time;
+        y = fly(i).T.dist2food(:,sex);
+        plot(x,y,'color', fly(i).data(sex).color,'LineWidth',lw)
+    end
+end
+xlabel('time (min)')
+ylabel('temp (\circC)')
+formatFig(fig);

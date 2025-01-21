@@ -16,7 +16,7 @@ switch questdlg('Use excel spreadsheet to select files?')
         loc = cellfun(@isnan,excelfile(2:end,Excel.compiledvid));
         rownums = find(loc)+1; 
         eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
-        FileNames = format_eligible_files(eligible_files,filler_string);
+        FileNames = format_eligible_files(eligible_files);
    
         fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select data to process');
         if isempty(fileIdx)
@@ -40,7 +40,7 @@ initial_var{end+1} = 'initial_var';
 
 %% Run the extraction process
 
-for rampFolder = 1:size(rampName, 2)
+for rampFolder = 1:size(rampName, 1)
     clearvars('-except',initial_var{:})
 
     expName = rampName{rampFolder};
