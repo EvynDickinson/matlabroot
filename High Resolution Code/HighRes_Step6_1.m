@@ -22,8 +22,9 @@ switch questdlg('Load options from excel?')
                 disp('No trials selected')
                 return
             else
+                selectedFiles = {};
                 for i = 1:length(fileIdx)
-                    selectedFiles{i} = [eligible_files{idx(i),1} '_' eligible_files{idx(i),2}];
+                    selectedFiles{i} = [eligible_files{fileIdx(i),1} '_' eligible_files{fileIdx(i),2}];
                 end
             end
 

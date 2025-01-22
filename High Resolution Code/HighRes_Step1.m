@@ -192,7 +192,10 @@ for rampFolder = 1:size(rampName, 1)
         disp([expDate ' ' expName])
     end
     if ~isExcelFileOpen(xlFile,true)
-        writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.compiledvid) num2str(loc)]);
+        try writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.compiledvid) num2str(loc)]);
+        catch 
+            disp('couldn''t write to excel:  manually update')
+        end
     else
         disp('Couldn''t write to excel sheet for:')
         disp([expDate ' ' expName])
