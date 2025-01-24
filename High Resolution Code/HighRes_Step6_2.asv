@@ -1,152 +1,86 @@
 
-%% Find the temperature alignment across trials...
-[foreColor, ~] = formattingColors(blkbgd); %get background colors
-
-fig = getfig('',1); hold on
-for i = 1:num.trials
-    x = fly(i).time;
-    y = fly(i).T.temperature;
-    y = smooth(y,90,'moving');
-    plot(x,y)
-    z = [fly(i).tRate(:).idx];
-    v_line(x(z(2:2:end)),'r')
-end
-xlabel('time (min)')
-ylabel('temp (\circC)')
-formatFig(fig);
-
-% create a new matrix to look at trial alignment times
-idx = [1 3 5 7 8];
-MT = nan(num.trials, 5);
-for i = 1:num.trials
-    z = [fly(i).tRate(:).idx];
-    MT(i,:) = z(idx);
-end
-
-% find the ramp durations to make sure that everything is equally correct,
-% even if not perfectly time-synced
-xtick_lab = {};
-buff = 0.3;
-y = diff(MT,1,2);
-rampDur = mean(y(:,2:3),"all"); % mean ramp duration for our 
-y = y./(fly(1).fps*60);
-
-fig = figure; 
-hold on
-for i = 1:4
-    x = i*ones(num.trials,1);
-    scatter(x, y(:,i),35, fly(1).tRate(i).color,'filled', 'XJitter','density')
-    plot([i-buff, i+buff], [mean(y(:,i)), mean(y(:,i))],'color', foreColor)
-    xtick_lab{i} = fly(1).tRate(i).name;
-end
-ylabel('period duration (min)')
-set(gca, 'xtick', 1:4, 'XTickLabel', xtick_lab)
-subplot(1,2,1);
-hold on
-formatFig(fig, blkbgd);
-
-
-% Shift trials to align to the ramp trough:
-
-% preallocate empty space: 
-max_len = size(fly(1).T,1); % set up a buffered time
-optA =  nan(max_len,num.trials); %single data column for each trial
-optB = nan(max_len,2,num.trials); % two data columns per trial
-categories = {'IFD', 'cooling', 'warming', 'hold', 'wing_ext', 'wing_ext_all', 'court_chase', 'chase_all', 'circling_all', 'circling_1sec', 'CI'}; % from fly.T
-sub_cat = {'excentricity', 'OutterRing', 'foodQuad', 'foodcircle', 'turning'}; % from fly.data
-data = struct;
-for i = 1:length(categories)
-    data.(categories{i}) = optA;
-end
-[data.dist2food,data.FlyOnFood] = deal(optB);
-
-% fill in data and shift to appropriate place...
-middlePoint = median(MT(:,3)); % this is the new 'center point' in time for the aligned trials
-
-for i = 1:num.trials
-    curr_center = fly(i).tRate(3).idx(1);
-    shift_num = middlePoint-curr_center;
-    if shift_num<0
-        curr_idx = abs(shift_num)+1:max_len-(abs(shift_num)); % index of the current data to take
-
-    elseif shift_num>0
-        new_idx = shift_num+1:max_len;
-        curr_idx = 1:max_len-shift_num-1;
-
-    dummy(new_idx) =  fly(i).T.warming(curr_idx);
-
-    fly(i).T()
-
-
-
-
-dummy = optA;
-
-
-% Example data
-data = {rand(1, 10), rand(1, 15), rand(1, 8)}; % Cell array of time series
-reference_points = [5, 10, 3]; % Indices of reference points in each series
-align_to = 7; % Desired alignment index
-
-% Determine the maximum length of the aligned series
-max_len = max(cellfun(@length, data)) + max(abs(reference_points - align_to));
-
-% Preallocate aligned data
-aligned_data = cell(size(data));
-for i = 1:length(data)
-    % Calculate the shift needed
-    shift = align_to - reference_points(i);
-    
-    % Create the aligned series with NaN padding
-    series = data{i};
-    if shift > 0
-        % Pad with NaNs at the beginning
-        aligned_series = [nan(1, shift), series];
-    elseif shift < 0
-        % Trim the start of the series
-        aligned_series = series(-shift + 1:end);
-    else
-        % No shift needed
-        aligned_series = series;
-    end
-    
-    % Pad with NaNs to ensure uniform length
-    aligned_data{i} = [aligned_series, nan(1, max_len - length(aligned_series))];
-end
-
-% Convert cell array to matrix for easier visualization (optional)
-aligned_matrix = cell2mat(aligned_data');
-disp(aligned_matrix);
-
+% Generate figures to compare different behaviors and frequencies of
+% behaviors over time:
 
 
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
-% compile the data: 
-[pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
-for i = 1:num.trials
-    for sex = 1:2
-        x = fly(i).time;
-        y = fly(i).T.dist2food(:,sex);
-        pD(sex).x = [pD(sex).x, x];
-        pD(sex).y = [pD(sex).y, y];
-    end
-end
 
 % plot the data:
-lw = 1;
+lw = 0.25;
 sSpan = 5*fly(1).fps; %  5 second smoothing
 
 fig = getfig('',1); hold on
 for sex = 1:2
-    x = mean(pD(sex).x,2);
-    y = mean(pD(sex).y,2);
-    plot(x,smooth(y,5*60,'moving'),'color', fly(1).data(sex).color,'LineWidth',lw)
+    % plot all the trials
+    x = repmat(data.time, [1,num.trials]);
+    y = squeeze(data.dist2food(:,sex,:));
+    plot(x,y,'color', data.color(sex,:),'LineWidth',lw)
 end
 
 xlabel('time (min)')
 ylabel('distance to food (mm)')
 formatFig(fig);
+
+%% plot the avg and err for the two along with the temperature 
+clearvars('-except',initial_var{:})
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+LW = 1.5; %linewidth for plotting
+plot_err = true; % plot the error on the graph?
+fig_type = '-png';
+sSpan = 5*30;
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; % variable to examine timecourse
+sb(3).idx = 3:c:r*c; % temp binned variable alignment
+
+fig = getfig('',1);
+% temperature time course
+subplot(r,c,sb(1).idx); hold on
+x = data.time;
+y = data.temp;
+plot(x,y,'color', foreColor, 'linewidth',LW)
+
+% time course of variable
+subplot(r,c,sb(2).idx); hold on
+for sex = 1:2
+    x = data.time;
+    y_all = squeeze(data.dist2food(:,sex,:));
+    y_avg = smooth(mean(y_all,2,'omitnan'),sSpan,'moving');
+    y_err = smooth(std(y_all, 0,2,'omitnan'),sSpan,'moving');
+    plot_error_fills(plot_err, x, y_avg, y_err, data.color(sex,:),fig_type, 0.35);
+    plot(x,y_avg,'color',data.color(sex,:),'linewidth',LW+1)
+end
+
+%temp dependent variable
+subplot(r,c,sb(3).idx); hold on
+x = data.tempbin.temps;
+for sex = 1:2
+    %extract data
+    [y_avg, y_err] = deal([]);
+    for t = 1:length(x)
+        loc = data.tempbin.cooling(:,t);
+        y_sel = mean(squeeze(data.dist2food(loc,sex,:)),1,'omitnan');
+        y_avg(t) = mean(y_sel,'omitnan');
+        y_err(t) = std(y_sel, 0,2,'omitnan');
+    end
+    % plot data
+    plot_error_fills(plot_err, x, y_avg, y_err, data.color(sex,:),fig_type, 0.35);
+    plot(x,y_avg,'color',data.color(sex,:),'linewidth',LW+1)
+    
+
+
+    x = data.tempbin.temps;
+    y = grouped(i).dist.distavgbytemp(:,2);
+    y_err = grouped(i).dist.distavgbytemp_err(:,2);
+
+    plot(x,y,'color',kolor,'linewidth',LW+1)
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    dataString{i} = grouped(i).name;
+
+
 
 
 %% Courtship frequency figure: 

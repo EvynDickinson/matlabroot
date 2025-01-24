@@ -3,7 +3,8 @@
 %% Load grouped data to compare across flies and ramps
 
 clear; close all; clc
-baseFolder = [getDataPath(6,0),'Trial Data/'];
+baseDir = getDataPath(6,0);
+baseFolder = [baseDir,'Trial Data/'];
 
 % Find files that can be run
 [excelfile, Excel, xlFile] = load_HighResExperiments;
@@ -22,9 +23,9 @@ switch questdlg('Load options from excel?')
                 disp('No trials selected')
                 return
             else
-                
+                selectedFiles = {};
                 for i = 1:length(fileIdx)
-                    selectedFiles{i} = [eligible_files{idx(i),1} '_' eligible_files{idx(i),2}];
+                    selectedFiles{i} = [eligible_files{fileIdx(i),1} '_' eligible_files{fileIdx(i),2}];
                 end
             end
 
@@ -63,26 +64,225 @@ F = 2;
 M = 1;
 body = dummy.body;
 
+blkbgd = false;
+
 num.trials = length(fly);
 
-clear i ii dummy rownums ans fileIdx field_list FileNames loc trialStr dateStr
-initial_var = who; initial_var{end+1} = 'initial_var';
+clear i ii dummy rownums ans fileIdx field_list FileNames loc trialStr dateStr fileList selectedFiles eligible_files
+initial_var = who; 
+initial_var{end+1} = 'initial_var';
+initial_var{end+1} = 'data';
+
 clearvars('-except',initial_var{:})
 
 
+%% Find the temperature alignment across trials...
+% TODO -- slow down the figure progression so that you can see all of them
+% and approve etc.
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+fig = getfig('',1); hold on
+for i = 1:num.trials
+    x = fly(i).time;
+    y = fly(i).T.temperature;
+    y = smooth(y,90,'moving');
+    plot(x,y)
+    z = [fly(i).tRate(:).idx];
+    v_line(x(z(2:2:end)),'r')
+end
+xlabel('time (min)')
+ylabel('temp (\circC)')
+formatFig(fig);
+
+% create a new matrix to look at trial alignment times
+idx = [1 3 5 7 8];
+MT = nan(num.trials, 5);
+for i = 1:num.trials
+    z = [fly(i).tRate(:).idx];
+    MT(i,:) = z(idx);
+end
+
+% find the ramp durations to make sure that everything is equally correct,
+% even if not perfectly time-synced
+xtick_lab = {};
+buff = 0.3;
+y = diff(MT,1,2);
+rampDur = mean(y(:,2:3),"all"); % mean ramp duration for our 
+y = y./(fly(1).fps*60);
+
+fig = figure; 
+hold on
+for i = 1:4
+    x = i*ones(num.trials,1);
+    scatter(x, y(:,i),35, fly(1).tRate(i).color,'filled', 'XJitter','density')
+    plot([i-buff, i+buff], [mean(y(:,i)), mean(y(:,i))],'color', foreColor)
+    xtick_lab{i} = fly(1).tRate(i).name;
+end
+ylabel('period duration (min)')
+set(gca, 'xtick', 1:4, 'XTickLabel', xtick_lab)
+formatFig(fig, blkbgd);
+
+
+% Shift trials to align to the ramp trough:
+
+% preallocate empty space: 
+max_len = size(fly(1).T,1); % set up a buffered time
+optA =  nan(max_len,num.trials); %single data column for each trial
+optB = nan(max_len,2,num.trials); % two data columns per trial
+categories = {'temperature', 'frame', 'IFD', 'cooling', 'warming', 'hold', 'wing_ext', 'wing_ext_all', 'court_chase', 'chase_all', 'circling_all', 'circling_1sec', 'CI'}; % from fly.T
+sub_cat = {'eccentricity', 'OutterRing', 'foodQuad', 'foodcircle', 'turning'}; % from fly.data
+data = struct;
+for i = 1:length(categories)
+    data.(categories{i}) = optA;
+end
+[data.dist2food, data.FlyOnFood] = deal(optB);
+for i = 1:length(sub_cat)
+    data.(sub_cat{i}) = optB;
+end
+
+% fill in data and shift to appropriate place...
+middlePoint = median(MT(:,3)); % this is the new 'center point' in time for the aligned trials to minimize lost data across trials
+
+for i = 1:num.trials
+    curr_center = fly(i).tRate(3).idx(1);
+    shift_num = middlePoint-curr_center;
+    if shift_num<0 %shift data points to the left 
+        curr_idx = abs(shift_num)+1:max_len; % index of the current data to take
+        new_idx = 1:max_len-abs(shift_num);
+    elseif shift_num>0 % shift data points to the right
+        new_idx = shift_num+1:max_len;
+        curr_idx = 1:max_len-shift_num;
+    elseif shift_num==0
+        new_idx = 1:max_len;
+        curr_idx = 1:max_len;
+    else 
+        disp('unknown error')
+        return
+    end
+
+    loc = false(max_len, 1);
+    loc(curr_idx) = true;
+    % update the single data line trials from fly.T
+    for j = 1:length(categories)
+        data.(categories{j})(new_idx,i) = fly(i).T.(categories{j})(curr_idx);
+    end
+    % update the sex specific trial data lines from fly.data
+    for sex = 1:2
+        for j = 1:length(sub_cat)
+            data.(sub_cat{j})(new_idx,sex,i) = fly(i).data(sex).(sub_cat{j})(curr_idx);
+        end
+        data.dist2food(new_idx,sex,i) = fly(i).T.dist2food(curr_idx,sex);
+        data.FlyOnFood(new_idx,sex,i) = fly(i).T.FlyOnFood(curr_idx,sex);
+    end
+end
+
+data.time = fly(1).time;
+data.color(1,:) = fly(1).data(1).color; % male color
+data.color(2,:) = fly(1).data(2).color; % female color
+
+% save new indexes for plotting regions:
+data.middlepoint = middlePoint;
+a = (diff(data.cooling));
+[data.cooling_idx_all(:,1),~,~] = find(a==1);  % start of cooling
+[data.cooling_idx_all(:,2),~,~] = find(a==-1); % end of cooling (middlepoint)
+a = (diff(data.warming));
+[data.warming_idx_all(:,1),~,~] = find(a==1);  % start of warming
+[data.warming_idx_all(:,2),~,~] = find(a==-1); % end of warming (middlepoint)
+% universal timings: 
+data.cooling_idx = int32(median(data.cooling_idx_all));
+data.warming_idx = median(data.warming_idx_all);
+data.warming_idx(1) = data.warming_idx(1)+1; % offset the start of warming by 1 frame
+data.warming_idx = int32(data.warming_idx);
+
+% test to see how the alignment worked for the heating and cooling periods
+fig = getfig('',1);
+subplot(1,2,1)
+plot(data.cooling)
+v_line(middlePoint,'teal', '--',2)
+title('cooling')
+subplot(1,2,2)
+plot(data.warming)
+v_line(middlePoint,'teal', '--',2)
+title('warming')
+formatFig(fig, blkbgd,[1,2]);
+
+[r,~,~] = find(a==1); 
+
+% show the alignment across temperature
+fig = getfig('', 1);
+plot(data.temperature)
+% v_line(middlePoint,'teal', '--',2)
+v_line((data.cooling_idx),'dodgerblue', '--',2)
+v_line((data.warming_idx),'red', '--',2)
+xlabel('time')
+ylabel('temperature (\circC)')
+formatFig(fig,blkbgd);
+
+%% TODO: create temp bin groups here and a universal temperature ramp:
+
+% universal temperature profile: 
+data.temp = smooth(mean(data.temperature,2, 'omitnan'),5*30,'moving');
+
+temp_bins = floor(min(data.temp)):0.5:ceil(max(data.temp)); % 0.5 deg temperature bins
+idx = discretize(data.temp, temp_bins);
+[c_idx, h_idx] = deal(false(size(data.temp)));
+c_idx(data.cooling_idx(1):data.cooling_idx(2)) = true;
+h_idx(data.warming_idx(1):data.warming_idx(2)) = true;
+tempbin = [];
+tempbin.temps = temp_bins;
+[tempbin.all, tempbin.cooling, tempbin.warming] = deal(false(length(data.temp),length(temp_bins)));
+
+for i = 1:length(temp_bins)
+    tempbin.all(:,i) = (idx==i);
+    % cooling
+    loc = (idx==i) & c_idx;
+     
+    
 
 
 
 
+%% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
+clearvars('-except',initial_var{:})
+% temporary option:
+switch questdlg('Save to existing data structure?')
+    case 'Yes'
+        fileList = dir([baseDir 'grouped/']);
+        fileIdx = listdlg('ListString', {fileList(3:end).name},'ListSize',[350,450],'promptstring', 'Select group:');
+        if isempty(fileIdx)
+            disp('No group selected')
+            return
+        end
+        fileIdx = fileIdx + 2; % offset to account for the skipped presentation of the '.' files above
+        groupName = fileList(fileIdx).name;
 
+    case 'No'
+        str = inputdlg('Write group name:');
+        groupName = str{:};
+    case 'Cancel'
+        return
+end
+% make or assign the base grouped data folder
+groupDir = [baseDir 'grouped/' groupName '/'];
+if ~exist(groupDir, 'dir')
+    mkdir(groupDir)
+end
+% make or assign the figure folder in the grouped data folder
+figDir = [groupDir 'Figures/'];
+if ~exist(figDir, 'dir')
+    mkdir(figDir)
+end
 
+initial_var{end+1} = 'groupDir';
+initial_var{end+1} = 'figDir';
 
-
-
-
-
-
-
+% save the existing data (if desired): 
+clearvars('-except',initial_var{:})
+switch questdlg('Save data to grouped data structure?')
+    case 'Yes'
+        save([groupDir 'GroupData.mat'],'-v7.3')
+        disp('Data saved')
+end
 
 
 

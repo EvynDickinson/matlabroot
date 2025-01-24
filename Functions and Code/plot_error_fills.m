@@ -11,6 +11,7 @@ function h = plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA)
 % kolor = color of line
 % fig_type = '-pdf' or '-png'
 % FA = 0.2 (default shading alpha)
+% automatically removes nans for plotting
 %
 % ES Dickinson, Yale University 2023
 
