@@ -9,69 +9,97 @@ baseFolder = [baseDir,'Trial Data/'];
 % Find files that can be run
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
-% Find trials that have nothing in their Proofed Column & have been tracked: 
-switch questdlg('Load options from excel?')
-    case 'Yes'
-            loc = cellfun(@isnan,excelfile(2:end,Excel.groupready));
-            loc = ~loc;
-            rownums = find(loc)+1; 
-            eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
-            FileNames = format_eligible_files(eligible_files);
-            
-            fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
-            if isempty(fileIdx)
-                disp('No trials selected')
-                return
-            else
-                selectedFiles = {};
-                for i = 1:length(fileIdx)
-                    selectedFiles{i} = [eligible_files{fileIdx(i),1} '_' eligible_files{fileIdx(i),2}];
-                end
-            end
-
-            
-            % pull the list of dates and arenas to be loaded
-            % TODO: need some way to pair these by group and ramp 
-            % dateStr = eligible_files(fileIdx,1);
-            % trialStr = eligible_files(fileIdx,2); 
-
-            % for now, load all the trials as 'independent' trials
-    case 'No'
-          fileList = dir(baseFolder);
-          fileIdx = listdlg('ListString', {fileList(4:end).name},'ListSize',[350,450],'promptstring', 'Select trial to process');
-            if isempty(fileIdx)
-                disp('No trials selected')
-                return
-            end
-            fileIdx = fileIdx + 3; % offset to account for the skipped presentation of the '.' files above
-            selectedFiles = {fileList(fileIdx).name};
-
-    case 'Cancel'
+if strcmp(questdlg('Load premade data structure?'),'Yes')
+    FileNames = dir([baseDir 'grouped/']);
+    FileNames = {FileNames(3:end).name};
+    fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select data group to load');
+    if isempty(fileIdx)
+        disp('No trials selected, build a new one')
         return
-end
-
-field_list = {'T','data','f', 'fX', 'fY', 'fps', 'm', 'mX', 'mY', 'nvids', 'parameters', 'pix2mm', 'position', 'tRate', 'time', 'well'};
-fly = struct;
-for i = 1:length(fileIdx)
-    dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
-    fly(i).name = selectedFiles{i};
-    for ii = 1:length(field_list)
-        fly(i).(field_list{ii}) = dummy.(field_list{ii});
+    else  
+        load([baseDir 'grouped/' FileNames{fileIdx} '/GroupData.mat'])
+        % set up the data paths for the current computer configuration: 
+        baseDir = getDataPath(6,0,'Select the location for saving new data and figures:');
+        baseFolder = [baseDir,'Trial Data/'];
+        % make or assign the base grouped data folder
+        groupDir = [baseDir 'grouped/' FileNames{fileIdx} '/'];
+        if ~exist(groupDir, 'dir')
+            mkdir(groupDir)
+        end
+        % make or assign the figure folder in the grouped data folder
+        figDir = [groupDir 'Figures/'];
+        if ~exist(figDir, 'dir')
+            mkdir(figDir)
+        end
+        disp('Data structure loaded')
+        return % down loading the data
     end
+else
+    % Find trials that have nothing in their Proofed Column & have been tracked: 
+    switch questdlg('Load options from excel?')
+        case 'Yes'
+                loc = cellfun(@isnan,excelfile(2:end,Excel.groupready));
+                loc = ~loc;
+                rownums = find(loc)+1; 
+                eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
+                FileNames = format_eligible_files(eligible_files);
+                
+                fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
+                if isempty(fileIdx)
+                    disp('No trials selected')
+                    return
+                else
+                    selectedFiles = {};
+                    for i = 1:length(fileIdx)
+                        selectedFiles{i} = [eligible_files{fileIdx(i),1} '_' eligible_files{fileIdx(i),2}];
+                    end
+                end
+    
+                
+                % pull the list of dates and arenas to be loaded
+                % TODO: need some way to pair these by group and ramp 
+                % dateStr = eligible_files(fileIdx,1);
+                % trialStr = eligible_files(fileIdx,2); 
+    
+                % for now, load all the trials as 'independent' trials
+        case 'No'
+              fileList = dir(baseFolder);
+              fileIdx = listdlg('ListString', {fileList(4:end).name},'ListSize',[350,450],'promptstring', 'Select trial to process');
+                if isempty(fileIdx)
+                    disp('No trials selected')
+                    return
+                end
+                fileIdx = fileIdx + 3; % offset to account for the skipped presentation of the '.' files above
+                selectedFiles = {fileList(fileIdx).name};
+    
+        case 'Cancel'
+            return
+    end
+    
+    field_list = {'T','data','f', 'fX', 'fY', 'fps', 'm', 'mX', 'mY', 'nvids', 'parameters', 'pix2mm', 'position', 'tRate', 'time', 'well'};
+    fly = struct;
+    for i = 1:length(fileIdx)
+        dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
+        fly(i).name = selectedFiles{i};
+        for ii = 1:length(field_list)
+            fly(i).(field_list{ii}) = dummy.(field_list{ii});
+        end
+    end
+    
+    F = 2;
+    M = 1;
+    body = dummy.body;
+    
+    blkbgd = false;
+    
+    num.trials = length(fly);
+    
+    clear i ii dummy rownums ans fileIdx field_list FileNames loc trialStr dateStr fileList selectedFiles eligible_files
+    initial_var = who; 
+    initial_var{end+1} = 'initial_var';
+    initial_var{end+1} = 'data';
+
 end
-
-F = 2;
-M = 1;
-body = dummy.body;
-
-blkbgd = false;
-
-num.trials = length(fly);
-
-clear i ii dummy rownums ans fileIdx field_list FileNames loc trialStr dateStr fileList selectedFiles eligible_files
-initial_var = who; 
-initial_var{end+1} = 'initial_var';
-initial_var{end+1} = 'data';
 
 clearvars('-except',initial_var{:})
 
@@ -174,6 +202,8 @@ for i = 1:num.trials
         data.dist2food(new_idx,sex,i) = fly(i).T.dist2food(curr_idx,sex);
         data.FlyOnFood(new_idx,sex,i) = fly(i).T.FlyOnFood(curr_idx,sex);
     end
+    data.sleep(new_idx,M,i) = fly(i).m.sleep(curr_idx);
+    data.sleep(new_idx,F,i) = fly(i).f.sleep(curr_idx);
 end
 
 data.time = fly(1).time;
@@ -218,6 +248,8 @@ xlabel('time')
 ylabel('temperature (\circC)')
 formatFig(fig,blkbgd);
 
+disp('next:')
+
 %% TODO: create temp bin groups here and a universal temperature ramp:
 
 % universal temperature profile: 
@@ -241,10 +273,11 @@ for i = 1:length(temp_bins)
 end
         
 data.tempbin = tempbin;
-
+disp('next:')
 
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})
+
 % temporary option:
 switch questdlg('Save to existing data structure?')
     case 'Yes'

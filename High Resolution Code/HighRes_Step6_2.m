@@ -22,13 +22,71 @@ xlabel('time (min)')
 ylabel('distance to food (mm)')
 formatFig(fig);
 
-%% plot the avg and err for the two along with the temperature 
+%% plot the avg and err of a variable for both flies along with the temperature 
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
 LW = 1.5; %linewidth for plotting
 plot_err = true; % plot the error on the graph?
 fig_type = '-png';
 sSpan = 5*30;
+
+opt_list = {'distance to food', 'inter-fly-distance','courtship index', 'flies on food', 'eccentricity', 'food quadrant', 'food circle', 'turning','sleep'};
+list_idx = listdlg('promptstring','Select the variable to plot', 'ListString',opt_list,'ListSize',[200,180]);
+if isempty(fileIdx)
+        disp('No variable selected')
+        return
+end  
+
+% pre-load variable specific data format
+switch opt_list{list_idx}
+    case 'distance to food'
+        y_label = [opt_list{list_idx} ' (mm)'];
+        axis_dir = 'reverse';
+        d_type = 2; % M F separate
+        d_name = 'dist2food';
+    case 'inter-fly-distance'
+        y_label = [opt_list{list_idx} ' (mm)'];
+        axis_dir = 'norm';
+        d_type = 1; % combined MF
+        d_name = 'IFD';
+    case 'courtship index'
+        y_label = opt_list{list_idx};
+        axis_dir = 'norm';
+        d_type = 1; % combined MF
+        d_name = 'CI';
+    case 'flies on food'
+        y_label = opt_list{list_idx};
+        axis_dir = 'norm';
+        d_type = 2; % M F separate
+        d_name = 'FlyOnFood';
+    case 'eccentricity'
+        y_label = [opt_list{list_idx} ' (mm)'];
+        axis_dir = 'norm';
+        d_type = 2; % M F separate
+        d_name = opt_list{list_idx};
+    case 'food quadrant'
+        y_label = [opt_list{list_idx} ' (%)'];
+        axis_dir = 'norm';
+        d_type = 2; % M F separate
+        d_name = 'foodQuad';
+    case 'food circle'
+        y_label = [opt_list{list_idx} ' (%)'];
+        axis_dir = 'norm';
+        d_type = 2; % M F separate
+        d_name = opt_list{list_idx};
+    case 'turning'
+        y_label = [opt_list{list_idx} ' (mm/s)'];
+        axis_dir = 'norm';
+        d_type = 2; % M F separate
+        d_name = opt_list{list_idx};
+    case 'sleep'
+        y_label = [opt_list{list_idx} ' (%)'];
+        axis_dir = 'norm';
+        d_type = 2; % M F separate
+        d_name = opt_list{list_idx};
+end
+
+
 % set up figure aligments
 r = 5; %rows
 c = 3; %columns
@@ -42,6 +100,10 @@ subplot(r,c,sb(1).idx); hold on
 x = data.time;
 y = data.temp;
 plot(x,y,'color', foreColor, 'linewidth',LW)
+% TODO: update this code to load and parse the data correctly for diff
+% sized data structures (e.g., 2 flies vs single column)
+% data 
+raw_data = data.(d_name);
 
 % time course of variable
 subplot(r,c,sb(2).idx); hold on
@@ -79,9 +141,19 @@ for sex = 1:2
     plot(x,w_avg,'color',data.color(sex,:),'linewidth',LW+1,'LineStyle','-')
 end
 
+% format figure: 
+formatFig(fig, blkbgd, [r,c],sb);
+subplot(r,c,sb(1).idx);
+    set(gca, 'xcolor', 'none')
+    ylabel('\circC')
+subplot(r,c,sb(2).idx);    
+    ylabel(y_label)
+    xlabel('time (min)')
+subplot(r,c,sb(3).idx);
+    ylabel(y_label)
+    xlabel('temp (\circC)')
 
-   
-
+save_figure(fig, [figDir 'distance to food timecourse'],fig_type);
 
 
 
