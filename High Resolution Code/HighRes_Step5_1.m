@@ -666,9 +666,6 @@ T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
 idx = find(strcmp('end hold',{tRate(:).name}));
 T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
 
-% % Find temperature bins: 
-tP = getTempTurnPoints(parameters.protocol);
-
 %% ANALYSIS: Calculate male wing extension
 clearvars('-except',initial_var{:})
 
@@ -803,60 +800,7 @@ end
 T.court_chase = mt; % time restriction 2 seconds
 T.chase_all = chase; % NO time limit
 
-%% FIGURE: M body positions during chase
-% Pull point locations that will be plotted
-skip = 20;
-zoom = [-250,250];
 
-% screening = close_dist;
-
-fig = getfig('',1,[1075 871]);
-hold on
-% Plot all male body positions
-kolor = Color('grey');
-x = mX(1:skip:end,[body.head,body.center]);
-y = mY(1:skip:end,[body.head,body.center]);
-plot(x',y','color',kolor)
-scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-% axis equal square
-formatFig(fig,blkbnd);
-set(gca,'XColor','none','YColor','none')
-
-% Plot the all male body positions under chase instances
-kolor = Color('lime');
-x = mX(T.court_chase,[body.head,body.center]);
-y = mY(T.court_chase,[body.head,body.center]);
-plot(x',y','color',kolor)
-scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-
-% % Screening
-% kolor = Color('green');
-% x = mX(screening,[body.head,body.center]);
-% y = mY(screening,[body.head,body.center]);
-% plot(x',y','color',kolor)
-% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-
-% Plot female body
-x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
-y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
-plot(x',y','color',foreColor, 'LineWidth', 2)
-% xlim([-2000,1500]); ylim([-2000,2000])
-
-% Format figure
-axis  equal square
-h_line(0,'gray',':',2)
-v_line(0,'grey',':',2)
-xlim(zoom)
-ylim(zoom)
-formatFig(fig,blkbnd);
-set(gca,'XColor','none','YColor','none')
-
-formatFig(fig,blkbnd);
-% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
-% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
-
-% Save figure
-save_figure(fig,[figDir 'chase positions M fly'],fig_type,1,0);
 
 %% ANALYSIS: Circling behavior
 % TODO: add some visualization image for the periods of circling
@@ -1270,6 +1214,7 @@ for sex = 1:2
     pie(x,xplode)
     title(sexes{sex})
 end
+save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type);
 
 % when (if) does each state arise in each temp regime? At what temp is the
 % behavior observed?

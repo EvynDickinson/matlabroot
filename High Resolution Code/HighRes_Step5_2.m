@@ -68,22 +68,6 @@ ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
 save_figure(fig,[figDir 'M and F wing angles'],fig_type);
 
-%% FIGURE: Visualize body angles over time
-clearvars('-except',initial_var{:})
-
-% Compare male and female wing angles
-sSpan = 1;%0*fps;
-fig = getfig('',true, [1032 300]); 
-hold on
-  scatter(time, smooth(data(1).mfbodyangle,sSpan,'moving'),1, foreColor)
-    % plot(time, smooth(angleDegrees,sSpan,'moving'), 'color', Color('deeppink'),'linewidth', 1)
-xlabel('time (s)')
-ylabel('body angle (\circ)')
-formatFig(fig, blkbnd);
-save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
-
-% figure;
-% polarhistogram(angleDegrees)
 
 %% FIGURE: Distance to food histogram
 clearvars('-except',initial_var{:})
@@ -185,6 +169,60 @@ save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
 % xlims = xlim;
 % ylims = ylim;
 
+%% FIGURE: M body positions during chase
+% Pull point locations that will be plotted
+skip = 20;
+zoom = [-250,250];
+
+% screening = close_dist;
+
+fig = getfig('',1,[1075 871]);
+hold on
+% Plot all male body positions
+kolor = Color('grey');
+x = mX(1:skip:end,[body.head,body.center]);
+y = mY(1:skip:end,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% axis equal square
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+% Plot the all male body positions under chase instances
+kolor = Color('lime');
+x = mX(T.court_chase,[body.head,body.center]);
+y = mY(T.court_chase,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% % Screening
+% kolor = Color('green');
+% x = mX(screening,[body.head,body.center]);
+% y = mY(screening,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% Plot female body
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
+
+% Format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+formatFig(fig,blkbnd);
+% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
+
+% Save figure
+save_figure(fig,[figDir 'chase positions M fly'],fig_type);
 %% FIGURE: Chase overlaid on arena with temp timecourse
 
 switch questdlg(['Show all ' num2str(size(m.chaseroi,1)) ' instances of chase?'])
@@ -634,53 +672,53 @@ xlabel('time (min)')
 ylabel('turning (\circ/s)')
 save_figure(fig,[figDir 'Fly turning over time'],fig_type);
 
-%% FIGURE: (TODO) Sleep
+%% FIGURE: Sleep
 % update the figure to plot both male and female sleep over time
 clearvars('-except',initial_var{:})
 
-% bout = 5*60*parameters.FPS;
-% dummy = [];
-% 
-% % Extract sleep bouts from position data
-% for sex = 1:2
-%     switch sex
-%         case 1
-%             x = m.pos(:,2,1); % male center
-%         case 2
-%             x = f.pos(:,2,1); % female center
-%     end
-%     % Calculate difference between all x values
-%     x_diff = diff(x); 
-%     % Identify when position is not changing
-%     u = abs(x_diff)<= 1;
-%     % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-%     a = diff(u);
-%     % Add the first position value to the list to account for the starting condition
-%     b = [u(1); a]; 
-%     % Frames where 'position-no-change' period starts/end
-%     slp_start = find(b == 1); 
-%     slp_stop = find(b == -1);
-%     % If sleep doesn't stop by end, add stop location at end of slp_stop
-%     if u(end)
-%         slp_stop(end + 1) = length(time);
-%     end
-%     % Calculate the length of each 'position-no-change' bout
-%     slp_dur = slp_stop - slp_start;
-%     % Find where bout lasts longer than 5min (when is sleep)
-%     slp_loc = find(slp_dur > bout);
-% 
-%     % Create dummy matrix with only true sleep bouts
-%     mt = false(size(time));
-%     for i = 1:length(slp_loc)
-%         ii = slp_loc(i);
-%         mt(slp_start(ii):slp_stop(ii)) = true;
-%     end
-%     dummy(sex).sleep = mt;
-% end
-% 
-% % Save sleep data
-% m.sleep = dummy(1).sleep;
-% f.sleep = dummy(2).sleep;
+bout = 5*60*parameters.FPS;
+dummy = [];
+
+% Extract sleep bouts from position data
+for sex = 1:2
+    switch sex
+        case 1
+            x = m.pos(:,2,1); % male center
+        case 2
+            x = f.pos(:,2,1); % female center
+    end
+    % Calculate difference between all x values
+    x_diff = diff(x); 
+    % Identify when position is not changing
+    u = abs(x_diff)<= 1;
+    % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
+    a = diff(u);
+    % Add the first position value to the list to account for the starting condition
+    b = [u(1); a]; 
+    % Frames where 'position-no-change' period starts/end
+    slp_start = find(b == 1); 
+    slp_stop = find(b == -1);
+    % If sleep doesn't stop by end, add stop location at end of slp_stop
+    if u(end)
+        slp_stop(end + 1) = length(time);
+    end
+    % Calculate the length of each 'position-no-change' bout
+    slp_dur = slp_stop - slp_start;
+    % Find where bout lasts longer than 5min (when is sleep)
+    slp_loc = find(slp_dur > bout);
+
+    % Create dummy matrix with only true sleep bouts
+    mt = false(size(time));
+    for i = 1:length(slp_loc)
+        ii = slp_loc(i);
+        mt(slp_start(ii):slp_stop(ii)) = true;
+    end
+    dummy(sex).sleep = mt;
+end
+
+% Save sleep data
+m.sleep = dummy(1).sleep;
+f.sleep = dummy(2).sleep;
 
 % Figure
 lw = 2;
@@ -699,7 +737,7 @@ hold on
 formatFig(fig);
 ylim([0,2])
 
-
+save_figure(fig,[figDir 'Fly sleep over time'],fig_type);
 
 %% FIGURE: (WORKING 1/15) simple summary of fly positions across the trial...
 % 
@@ -1051,6 +1089,22 @@ save_figure(fig,[baseFolder 'Figures/full frame image with flies ' num2str(time(
 
 save_figure(fig,[baseFolder 'Figures/zoom frame image with flies ' num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 
+%% FIGURE: Visualize body angles over time
+clearvars('-except',initial_var{:})
+
+% Compare male and female wing angles
+sSpan = 1;%0*fps;
+fig = getfig('',true, [1032 300]); 
+hold on
+  scatter(time, smooth(data(1).mfbodyangle,sSpan,'moving'),1, foreColor)
+    % plot(time, smooth(angleDegrees,sSpan,'moving'), 'color', Color('deeppink'),'linewidth', 1)
+xlabel('time (s)')
+ylabel('body angle (\circ)')
+formatFig(fig, blkbnd);
+save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
+
+% figure;
+% polarhistogram(angleDegrees)
 %%
 
 
