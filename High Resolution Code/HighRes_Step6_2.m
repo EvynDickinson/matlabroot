@@ -17,10 +17,48 @@ for sex = 1:2
     y = squeeze(data.dist2food(:,sex,:));
     plot(x,y,'color', data.color(sex,:),'LineWidth',lw)
 end
-
 xlabel('time (min)')
 ylabel('distance to food (mm)')
 formatFig(fig);
+save_figure(fig, [figDir 'test fly distance to food all trials'],fig_type)
+
+%% plot the female and male positions within the arena ...
+% TODO: need to rotate the arena to match the food alignment across trials...
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+a = inputdlg(['There are ' num2str(num.trials) ' figures, how many columns?']);
+c = str2double(a{:});
+r = ceil(num.trials/c);
+
+% female position figure: 
+fig = getfig('female fly positions in the arena', 1,[1064 774]);
+for i = 1:num.trials
+    subplot(r,c,i); % male position in arena
+    x = fly(i).f.pos(:,body.center,1);
+    y = fly(i).f.pos(:,body.center,2);
+    scatter(x,y,3, data.color(F,:))
+    hold on
+    scatter(fly(i).well.food(1),fly(i).well.food(2),10, foreColor)
+    axis square equal
+    set(gca, 'XColor','none', 'ycolor', 'none')
+end
+save_figure(fig, [figDir 'female fly positions in arena'],fig_type)
+
+% male position figure: 
+fig = getfig('male fly positions in the arena', 1,[1064 774]);
+for i = 1:num.trials
+    subplot(r,c,i); % male position in arena
+    x = fly(i).m.pos(:,body.center,1);
+    y = fly(i).m.pos(:,body.center,2);
+    scatter(x,y,3, data.color(M,:))
+    hold on
+    scatter(fly(i).well.food(1),fly(i).well.food(2),10, foreColor)
+    axis square equal
+    set(gca, 'XColor','none', 'ycolor', 'none')
+end
+save_figure(fig, [figDir 'male fly positions in arena'],fig_type)
+
+
 
 %% plot the avg and err of a variable for both flies along with the temperature 
 clearvars('-except',initial_var{:})

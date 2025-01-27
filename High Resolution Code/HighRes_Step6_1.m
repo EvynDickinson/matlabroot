@@ -16,23 +16,18 @@ if strcmp(questdlg('Load premade data structure?'),'Yes')
     if isempty(fileIdx)
         disp('No trials selected, build a new one')
         return
-    else  
+    else
         load([baseDir 'grouped/' FileNames{fileIdx} '/GroupData.mat'])
         % set up the data paths for the current computer configuration: 
         baseDir = getDataPath(6,0,'Select the location for saving new data and figures:');
         baseFolder = [baseDir,'Trial Data/'];
         % make or assign the base grouped data folder
-        groupDir = [baseDir 'grouped/' FileNames{fileIdx} '/'];
-        if ~exist(groupDir, 'dir')
-            mkdir(groupDir)
-        end
+        groupDir = createFolder([baseDir 'grouped/' FileNames{fileIdx} '/']);
         % make or assign the figure folder in the grouped data folder
-        figDir = [groupDir 'Figures/'];
-        if ~exist(figDir, 'dir')
-            mkdir(figDir)
-        end
+        figDir = createFolder([groupDir 'Figures/']);
+
         disp('Data structure loaded')
-        return % down loading the data
+        return % downloading the data
     end
 else
     % Find trials that have nothing in their Proofed Column & have been tracked: 
@@ -101,6 +96,38 @@ else
 
 end
 
+% make or assign the figure folder in the grouped data folder
+% temporary option:
+switch questdlg('Will this data be saved to an existing data structure?')
+    case 'Yes'
+        fileList = dir([baseDir 'grouped/']);
+        fileIdx = listdlg('ListString', {fileList(3:end).name},'ListSize',[350,450],'promptstring', 'Select group:');
+        if isempty(fileIdx)
+            disp('No group selected')
+            return
+        end
+        fileIdx = fileIdx + 2; % offset to account for the skipped presentation of the '.' files above
+        groupName = fileList(fileIdx).name;
+
+    case 'No'
+        str = inputdlg('Write group name:');
+        groupName = str{:};
+    case 'Cancel'
+        return
+end
+
+% make or assign the base grouped data folder
+groupDir = createFolder([baseDir 'grouped/' groupName '/']);
+% make or assign the figure folder in the grouped data folder
+figDir = createFolder([groupDir 'Figures/']);
+
+initial_var{end+1} = 'groupDir';
+initial_var{end+1} = 'figDir';
+initial_var{end+1} = 'groupName';
+
+fig_type = '-png';
+initial_var{end+1} = 'fig_type';
+
 clearvars('-except',initial_var{:})
 
 
@@ -108,6 +135,8 @@ clearvars('-except',initial_var{:})
 % TODO -- slow down the figure progression so that you can see all of them
 % and approve etc.
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+alignmentDir = createFolder([figDir, 'Alignment Figures/']);
 
 fig = getfig('',1); hold on
 for i = 1:num.trials
@@ -121,6 +150,8 @@ end
 xlabel('time (min)')
 ylabel('temp (\circC)')
 formatFig(fig);
+title([groupName ' | n = ' num2str(num.trials)])
+save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type)
 
 % create a new matrix to look at trial alignment times
 idx = [1 3 5 7 8];
@@ -148,8 +179,9 @@ for i = 1:4
 end
 ylabel('period duration (min)')
 set(gca, 'xtick', 1:4, 'XTickLabel', xtick_lab)
+title([groupName ' | n = ' num2str(num.trials)])
 formatFig(fig, blkbgd);
-
+save_figure(fig, [alignmentDir 'raw section durations'],fig_type)
 
 % Shift trials to align to the ramp trough:
 
@@ -230,27 +262,38 @@ subplot(1,2,1)
 plot(data.cooling)
 v_line(middlePoint,'teal', '--',2)
 title('cooling')
+xlabel('frame')
+set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
+ylim([-0.1,1.1])
 subplot(1,2,2)
 plot(data.warming)
 v_line(middlePoint,'teal', '--',2)
+xlabel('frame')
+set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
+ylim([-0.1,1.1])
 title('warming')
 formatFig(fig, blkbgd,[1,2]);
+save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type)
 
 [r,~,~] = find(a==1); 
 
 % show the alignment across temperature
 fig = getfig('', 1);
 plot(data.temperature)
+hold on
 % v_line(middlePoint,'teal', '--',2)
 v_line((data.cooling_idx),'dodgerblue', '--',2)
 v_line((data.warming_idx),'red', '--',2)
 xlabel('time')
 ylabel('temperature (\circC)')
 formatFig(fig,blkbgd);
+title([groupName ' | n = ' num2str(num.trials)])
+save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type)
 
 disp('next:')
 
 %% TODO: create temp bin groups here and a universal temperature ramp:
+clearvars('-except',initial_var{:})
 
 % universal temperature profile: 
 data.temp = smooth(mean(data.temperature,2, 'omitnan'),5*30,'moving');
@@ -277,38 +320,6 @@ disp('next:')
 
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})
-
-% temporary option:
-switch questdlg('Save to existing data structure?')
-    case 'Yes'
-        fileList = dir([baseDir 'grouped/']);
-        fileIdx = listdlg('ListString', {fileList(3:end).name},'ListSize',[350,450],'promptstring', 'Select group:');
-        if isempty(fileIdx)
-            disp('No group selected')
-            return
-        end
-        fileIdx = fileIdx + 2; % offset to account for the skipped presentation of the '.' files above
-        groupName = fileList(fileIdx).name;
-
-    case 'No'
-        str = inputdlg('Write group name:');
-        groupName = str{:};
-    case 'Cancel'
-        return
-end
-% make or assign the base grouped data folder
-groupDir = [baseDir 'grouped/' groupName '/'];
-if ~exist(groupDir, 'dir')
-    mkdir(groupDir)
-end
-% make or assign the figure folder in the grouped data folder
-figDir = [groupDir 'Figures/'];
-if ~exist(figDir, 'dir')
-    mkdir(figDir)
-end
-
-initial_var{end+1} = 'groupDir';
-initial_var{end+1} = 'figDir';
 
 % save the existing data (if desired): 
 clearvars('-except',initial_var{:})

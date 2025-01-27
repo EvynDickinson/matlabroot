@@ -1,5 +1,7 @@
 
 
+
+
 %% Parallelized version: 
 clc; clear
 % TODO -- update this to read from the HighRes Experiments.xlsx file
@@ -13,7 +15,7 @@ rampName = selectFolder([rootDir paths.courtship  dateDir{1}],true,'Select Folde
 
 % option to change the save folder to a secondary location and not back to
 % the server: 
-if strcmp(questdlg('Do you want to save videos back to the same start folder?'), 'No')
+if strcmp('Do you want to save videos back to the same start folder?', 'No')
     disp('select the location where you want to create a new folder to save the compiled videos')
     endDir = [uigetdir '/'];
 else
@@ -35,10 +37,6 @@ for ramp = 1:size(rampName,2)
     expName = rampName{ramp};
 
     baseDir = [startDir  dateDir{1} '\' expName '\'];
-    vidBase = [endDir dateDir{1} '\' expName '\'];
-    if ~exist(vidBase, 'dir')
-        mkdir(vidBase)
-    end
     
     % load parameters:
     load([baseDir, expName ' alignment table.mat'],'parameters')
@@ -59,7 +57,7 @@ for ramp = 1:size(rampName,2)
     tic
     parfor vid = 1:nVids
         % Each compiled video is processed independently in parallel
-        vidPath = [vidBase 'compiled_video_' num2str(vid)];
+        vidPath = [baseDir 'compiled_video_' num2str(vid)];
         % Convert matrix to video file
         v = VideoWriter([vidPath '.avi'], 'Motion JPEG AVI');
         v.Quality = 95;
