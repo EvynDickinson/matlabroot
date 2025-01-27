@@ -635,7 +635,7 @@ if ~exist(temp_file, 'file')
     plot(time, smooth(T.temperature,fps*10,'moving'),'color', 'k','linewidth', 5)
     xlabel('time (min)')
     ylabel('temperature (\circC)')
-    formatFig(fig,false)
+    formatFig(fig,false);
     title('temperature conditions')
     
      if strcmp(questdlg('save temperature regions?'),'Yes')
