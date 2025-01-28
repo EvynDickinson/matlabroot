@@ -26,7 +26,7 @@ if strcmp(questdlg('Load premade data structure?'),'Yes')
         % make or assign the figure folder in the grouped data folder
         figDir = createFolder([groupDir 'Figures/']);
 
-        disp('Data structure loaded')
+        disp('Data structure finished loading')
         return % downloading the data
     end
 else
@@ -318,6 +318,31 @@ end
 data.tempbin = tempbin;
 disp('next:')
 
+%% Update the distance to food metrics that were incorrect before 1.23.25
+
+for i = 1:num.trials
+    % calculate distance to food (from fly head)
+    x1 = fly(i).m.pos(:,body.center,1);  % x location for male center
+    y1 = fly(i).m.pos(:,body.center,2); % y location for male center
+    x2 = fly(i).f.pos(:,body.center,1); % x location for female center
+    y2 = fly(i).f.pos(:,body.center,2); % y location for female center
+    c1 = fly(i).well.food(1); % food well center
+    c2 = fly(i).well.food(2); % food well center
+    
+    M_dist  = (sqrt((x1-c1).^2 + (y1-c2).^2)).*fly(i).pix2mm;
+    F_dist = (sqrt((x2-c1).^2 + (y2-c2).^2)).*fly(i).pix2mm;
+
+    data.dist2food(:,M,i) = M_dist;
+    data.dist2food(:,F,i) = F_dist;
+
+    fly(i).m.dist2food = M_dist;
+    fly(i).f.dist2food = F_dist;
+    fly(i).T.dist2food = [M_dist, F_dist];
+
+end
+
+disp('updated distance to food data structures')
+
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})
 
@@ -325,7 +350,7 @@ clearvars('-except',initial_var{:})
 clearvars('-except',initial_var{:})
 switch questdlg('Save data to grouped data structure?')
     case 'Yes'
-        save([groupDir 'GroupData.mat'],'-v7.3')
+        save([groupDir 'GroupData.mat'],'-v7.3');
         disp('Data saved')
 end
 
