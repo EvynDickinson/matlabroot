@@ -1307,7 +1307,7 @@ clearvars('-except',initial_vars{:})
 R = 30; %mm
 maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
 
-% Find the percent of the flies that are in the outer ring
+% Find the percent of the flies that are in a circle around the food 
 for exp = 1:num.exp
     counts = []; ring_per = [];
     centers = [];
