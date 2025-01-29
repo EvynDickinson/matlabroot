@@ -350,7 +350,7 @@ R = 25; %mm -- this is from looking at the traces of where the flies are able to
 innerR = R*sqrt(3/4); % (old: radius of the inner 50% occupancy space R*sqrt(1/2))
 maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
 
-eccentricity = [];
+
 for i = 1:num.trials
     % % find distance from center for each fly center point: 
     % xi = fly(i).well.center(5,1);
@@ -365,14 +365,15 @@ for i = 1:num.trials
     % Df = sqrt(((xf-xi).^2 + (yf-yi).^2)).*fly(i).pix2mm; 
     for sex = 1:2
         D = fly(i).data(sex).eccentricity;
-    
         % outer ring occupancy
-        data.OutterRing(:,sex,i) = D>=innerR; % find the locations that are between edge and inner R
-        data(sex).OutterRing = D<=R & D>=innerR; % find the locations that are between edge and inner R
+        data.OutterRing(:,sex,i) = D>=innerR; % find the locations that are greater than the inner 75%
+        fly(i).data(sex).OutterRing = D>=innerR; % find the locations that are greater than the inner 75%
     end
 end
 
+disp('updated outer ring to food data structures')
 
+% TODO: need to update the behavior matrix now with these... redo
 
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})

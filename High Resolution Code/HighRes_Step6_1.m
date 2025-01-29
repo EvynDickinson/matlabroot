@@ -373,6 +373,9 @@ end
 
 disp('updated outer ring to food data structures')
 
+% TODO: need to update the behavior matrix now with these... redo and add
+% this to 5.1 and reprocess the data on that front...
+
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})
 

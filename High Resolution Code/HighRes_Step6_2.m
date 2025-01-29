@@ -497,8 +497,153 @@ set(gca, 'xcolor', 'none')
 %% TODO: group behavior state transition map
 
 %% TODO:  grouped Courtship behavior frequency time course
+clearvars('-except',initial_var{:})
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+kolor = Color('gold');
+% simple plot of when the different courtship behaviors are happening
+r = 5;
+c = 1;
+lw = 2;
+
+fig = getfig('',1);
+% time
+subplot(r,c,1); hold on 
+x = data.time;
+y = data.temp;
+plot(x,y,'color', foreColor, 'linewidth', lw)
+ylabel('\circC')
+
+% full courtship index
+subplot(r,c,2); hold on 
+    x = data.time;
+    y = sum(data.CI,2);
+    plot(x,y,'color', foreColor, 'linewidth', lw)
+    ylabel('CI')
+
+% wing extension
+subplot(r,c,3); hold on 
+    x = data.time;
+    y = sum(data.wing_ext_all,2);
+    plot(x,y,'color', foreColor, 'linewidth', lw)
+    y = sum(data.wing_ext,2);
+    plot(x,y,'color', kolor, 'linewidth', lw)
+    ylabel('wing ext')
+
+% chasing
+subplot(r,c,4); hold on 
+    x = data.time;
+    y = sum(data.chase_all,2);
+    plot(x,y,'color', foreColor, 'linewidth', lw)
+    y = sum(data.court_chase,2);
+    plot(x,y,'color', kolor, 'linewidth', lw)
+    ylabel('chase')
+
+% circling
+subplot(r,c,5); hold on 
+    x = data.time;
+    y = sum(data.circling_all,2);
+    plot(x,y,'color', foreColor, 'linewidth', lw)
+    y = sum(data.circling_1sec,2);
+    plot(x,y,'color', kolor, 'linewidth', lw)
+    ylabel('circling')
+    xlabel('time (min)')
+
+% formating: 
+formatFig(fig, blkbgd,[r,c]);
+trans = [data.cooling_idx, data.warming_idx(2)];
+for i = 1:r
+    subplot(r,c,i)
+    v_line(data.time(trans),'r', '-',1)
+    if i<r
+        set(gca, 'xcolor', 'none')
+    end
+end
+
+save_figure(fig, [figDir 'courtship behaviors over time'],fig_type);
+
 
 %% TODO: behavior probabilities for states that happen before sleep & how long it took between them...
+clearvars('-except',initial_var{:})
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+% what is the behavior that happened just prior to sleep and how long ago
+% did it happen?
+[behavior_next, behavior_last] = deal([]);
+index = 1;
+for i = 1:num.trials
+    for sex = 1:2
+        loc = find(diff(data.sleep(:,sex,i))==1)+1;  % frame number of when sleep starts
+        sleep_off = find(diff(data.sleep(:,sex,i))==-1);
+        % behavior comparisions
+        if ~isempty(loc)
+            for sleep = 1:length(loc)
+                % last behavior that happened before sleep
+                outRing_last = find(data.OutterRing(1:loc(sleep),sex,i), 1, 'last' ); % outer ring 
+                outRing_last = empty2nan(outRing_last);
+                onFood_last = find(data.FlyOnFood(1:loc(sleep),sex,i), 1, 'last' ); % on food
+                onFood_last = empty2nan(onFood_last);
+                if sex==1
+                    courtship_last = find(data.FlyOnFood(1:loc(sleep),sex,i), 1, 'last' ); % on food
+                    courtship_last = empty2nan(courtship_last);
+                else
+                    courtship_last = nan;
+                end
+                [frame_last, idx_last] = max([outRing_last, onFood_last, courtship_last]);
+                %save into large matrix
+                behavior_last(index,:) = [i, loc(sleep), idx_last, frame_last, outRing_last, onFood_last, courtship_last];
+
+                % next behavior that happened after sleep
+                outRing_next = find(data.OutterRing(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % outer ring 
+                outRing_next = empty2nan(outRing_next);
+                onFood_next = find(data.FlyOnFood(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % on food
+                onFood_next = empty2nan(onFood_next);
+                if sex==1
+                    courtship_next = find(data.FlyOnFood(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % on food
+                    courtship_next = empty2nan(courtship_next);
+                else
+                    courtship_next = nan;
+                end
+                [frame_next, idx_next] = min([outRing_next, onFood_next, courtship_next]);
+                %save into large matrix
+                behavior_next(index,:) = [i, sleep_off(sleep), idx_next, frame_next, outRing_next, onFood_next, courtship_next];
+                
+                % increase the matrix count: 
+                index = index+1;
+            end
+        end
+    end
+    disp(i)
+end
+
+% figure -- what were the last and next behaviors?
+time_to_sleep = ((behavior_last(:,2)-behavior_last(:,5:7))./fly(1).fps)./60; % in minutes
+time_since_sleep = ((behavior_next(:,5:7) - behavior_next(:,2))./fly(1).fps)./60; % in minutes
+
+beh_list = {'outer ring', 'food', 'courtship'};
+
+fig = getfig('',1);
+subplot(1,2,1); hold on
+    x = repmat([1,2,3],[size(time_to_sleep,1),1]);
+    plot(x', time_to_sleep')
+    scatter(x, time_to_sleep,35,foreColor,'filled')
+    xlim([0,4])
+    set(gca, 'xtick', 1:3,'xticklabel', beh_list)
+    ylabel('time from last behavior to sleep (min)')
+    title('Previous Behavior')
+subplot(1,2,2); hold on
+    x = repmat([1,2,3],[size(time_since_sleep,1),1]);
+    plot(x', time_since_sleep')
+    scatter(x, time_since_sleep,35,foreColor,'filled')
+    xlim([0,4])
+    set(gca, 'xtick', 1:3,'xticklabel', beh_list)
+    ylabel('time to next behavior after sleep (min)')
+    title('Subsequent Behavior')
+formatFig(fig, blkbgd,[1,2]);
+
+save_figure(fig, [figDir 'behaviors before and after sleep'],fig_type);
+
+% TODO: add a frequency scatter plot that shows the number of instances per
+% temperature region
 
 %% 
 
