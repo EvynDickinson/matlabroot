@@ -445,7 +445,7 @@ end
 well_file = [baseDir 'well locations.mat'];
 if ~exist(well_file, 'file')    
     % pull up picture to find food well
-    vidpath = [getDataPath(6, 2), parameters.date, '/', parameters.videoName, '/compiled_video_1.avi'];
+    vidpath = [getDataPath(6, 0), parameters.date, '/', parameters.videoName, '/compiled_video_1.avi'];
     % vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
     movieInfo = VideoReader(vidpath); %read in video
     demoImg = (read(movieInfo,T.vidFrame(1)));

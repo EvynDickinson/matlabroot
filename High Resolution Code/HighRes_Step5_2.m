@@ -255,7 +255,7 @@ for i = 1:size(m.chaseroi,1)
     vidnum = T.vidNums(frame);
     
     % Pull and read in video
-    vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    vidpath = [getDataPath(6, 0), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath);
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 215/255]);
@@ -367,7 +367,7 @@ for i = 1:size(m.chaseroi,1)
     frame = m.chaseroi(i,2);
     vidnum = T.vidNums(frame);
     
-    vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    vidpath = [getDataPath(6, 0), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath); %read in video
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
@@ -653,14 +653,6 @@ save_figure(fig,[figDir 'Courtship Index timecourse'],fig_type);
 
 fig = getfig;
 histogram(ext_dur)
-
-
-
-
-
-
-
-
 
 %% FIGURE: Fly turning over time 
 clearvars('-except',initial_var{:})
