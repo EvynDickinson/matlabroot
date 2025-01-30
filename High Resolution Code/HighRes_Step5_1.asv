@@ -161,7 +161,7 @@ clearvars('-except',initial_var{:})
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-response = questdlg('Visualize M positions too?','','Yes','No','Yes');
+response = questdlg('Visualize M positions too?','Yes','No','Yes');
 
 data(M).color = Color('dodgerblue');
 data(F).color = Color('deeppink');
@@ -201,7 +201,40 @@ initial_var{end+1} = 'fY';
 theta = data(M).mfbodyangle; 
 test = theta<90; % when is male less than 90 deg from female
 
-% ------------------------- 3) Establish likely and unlikely courtship positions ------------------------- 
+% ------------------------- 3) Demo selected angles in male positions relative to female fly ------------------------- 
+if showfig == 1
+    zoom = [-250,250];
+    skip = 20;
+    
+    fig = getfig('',1,[1075 871]);
+    hold on
+    
+    % plot male coordinates for head and body within test constraints
+    x = mX(test,[body.head,body.center]);
+    y = mY(test,[body.head,body.center]);
+    % only plot every [skip value] points to reduce volume
+    x = x(1:skip:end,:);
+    y = y(1:skip:end,:);
+    plot(x',y','color',data(M).color)
+    scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
+    
+    % plot female coordiates for head, body, and abdomen
+    x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+    y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+    plot(x',y','color',data(F).color, 'LineWidth', 2)
+    
+    % format figure
+    axis  equal square
+    h_line(0,'gray',':',2)
+    v_line(0,'grey',':',2)
+    xlim(zoom)
+    ylim(zoom)
+    formatFig(fig,blkbnd);
+    set(gca,'XColor','none','YColor','none')
+    
+    save_figure(fig,[figDir ' all male fly body positions relative to female'],'-png');
+
+% ------------------------- 4) Establish likely and unlikely courtship positions ------------------------- 
 
 % Determine fly body length (~2.5mm)
 BL = 2.5/pix2mm; % in pixels
@@ -339,46 +372,13 @@ position.all_likely = loc;
 position.unlikely = ~loc;
 initial_var{end+1} = 'position';
 
-% ------------------------------------------ 4) Visualizations ------------------------------------------ 
+% ------------------------- 5) Visualize likely and unlikely courtship positions ------------------------- 
 
 switch response
     case 'Yes'
 
-    % 4.1) Demo selected angles in male positions relative to female fly
-        zoom = [-250,250];
-        skip = 20;
-        
-        fig = getfig('',1,[1075 871]);
-        hold on
-        
-        % plot male coordinates for head and body within test constraints
-        x = mX(test,[body.head,body.center]);
-        y = mY(test,[body.head,body.center]);
-        % only plot every [skip value] points to reduce volume
-        x = x(1:skip:end,:);
-        y = y(1:skip:end,:);
-        plot(x',y','color',data(M).color)
-        scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
-        
-        % plot female coordiates for head, body, and abdomen
-        x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
-        y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
-        plot(x',y','color',data(F).color, 'LineWidth', 2)
-        
-        % format figure
-        axis  equal square
-        h_line(0,'gray',':',2)
-        v_line(0,'grey',':',2)
-        xlim(zoom)
-        ylim(zoom)
-        formatFig(fig,blkbnd);
-        set(gca,'XColor','none','YColor','none')
-        
-        save_figure(fig,[figDir ' all male fly body positions relative to female'],'-png');    
 
-        %---------------------------------------------------------------------------------------------------------
-
-        % 4.2) Visualize likely and unlikely courtship positions 
+        % Visualize likely and unlikely courtship positions
         zoom = [-250,250];
         
         % pull point locations that will be plotted

@@ -134,40 +134,48 @@ clearvars('-except',initial_var{:})
 
 % demo images of wing extension:
 frames = find(T.wing_ext==1);
-endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
-try 
-    roi = frames(1):frames(endidx(1));
-catch
-    roi = frames(1):frames(end);
-end
-
-fig = getfig('',1); hold on
-% plot the female fly
-for ff = 1:length(roi)
-    frame = roi(ff);
-    for sex = 1:2
-        x = data(sex).rawX(frame,:);
-        y = data(sex).rawY(frame,:);
-        kolor = data(sex).color;
-        plotFlySkeleton(fig, x,y,kolor,false);
-        scatter(x,y, 15, Color('grey'),'filled')
-        scatter(x(body.head),y(body.head), 35, Color('yellow'),'filled', 'Marker','^')
-        % scatter(x(body.center),y(body.center), 15, Color('grey'),'filled')
-        
-        if sex==1
-            scatter(x(body.left_wing),y(body.left_wing),35,foreColor,'filled')
+if isempty(frames)
+    disp('no bouts of wing extension found')
+    return
+else
+    endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
+    try 
+        % find frame where extension bout ends
+        roi = frames(1):frames(endidx(1));
+    catch
+        % if extension bout doesn't end by the end, use last frame
+        roi = frames(1):frames(end);
+    end
+    
+    fig = getfig('',1); hold on
+    % plot the female fly
+    for ff = 1:length(roi)
+        frame = roi(ff);
+        for sex = 1:2
+            x = data(sex).rawX(frame,:);
+            y = data(sex).rawY(frame,:);
+            kolor = data(sex).color;
+            plotFlySkeleton(fig, x,y,kolor,false);
+            scatter(x,y, 15, Color('grey'),'filled')
+            scatter(x(body.head),y(body.head), 35, Color('yellow'),'filled', 'Marker','^')
+            % scatter(x(body.center),y(body.center), 15, Color('grey'),'filled')
+            
+            if sex==1
+                scatter(x(body.left_wing),y(body.left_wing),35,foreColor,'filled')
+            end
         end
     end
+    formatFig(fig,blkbnd);
+    set(gca, 'xcolor', 'none', 'ycolor', 'none')
+    save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
 end
-formatFig(fig,blkbnd);
-set(gca, 'xcolor', 'none', 'ycolor', 'none')
-save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
-% 
-% xlim(xlims)
-% ylim(ylims)
-% % 
-% xlims = xlim;
-% ylims = ylim;
+    % 
+    % xlim(xlims)
+    % ylim(ylims)
+    % % 
+    % xlims = xlim;
+    % ylims = ylim;
+
 
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
@@ -250,7 +258,7 @@ for i = 1:size(m.chaseroi,1)
     vidpath = [getDataPath(6, 2), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath);
     demoImg = (read(movieInfo,T.vidFrame(frame)));
-    img = imadjust(demoImg,[72/255, 180/255]);
+    img = imadjust(demoImg,[72/255, 215/255]);
 
     % Scatter point size and linewidth
     sz = 10;
@@ -432,8 +440,8 @@ for i = 1:size(m.chaseroi,1)
 
     % 6) Male wingspread 
     subplot(r,c,sb(6).idx); hold on
-        plot(time,data(M).wingangle(:,1),'color', Color('Dodgerblue'),'LineWidth', lw)
-        plot(time,data(M).wingangle(:,2),'color', Color('Cyan'),'LineWidth', lw)
+        plot(time,data(M).wingangle(:,1),'color', Color('dodgerblue'),'LineWidth', lw)
+        plot(time,data(M).wingangle(:,2),'color', Color('gold'),'LineWidth', lw)
         h_line(50,'grey', ':',1)
         % Axes labels and limits
         ylabel('M wing angle (\circ)')
@@ -641,6 +649,18 @@ ylabel('Courtship Metrics','color', foreColor)
 ylim([0,y1+1+tickH])
 save_figure(fig,[figDir 'Courtship Index timecourse'],fig_type);
 
+%%
+
+fig = getfig;
+histogram(ext_dur)
+
+
+
+
+
+
+
+
 
 %% FIGURE: Fly turning over time 
 clearvars('-except',initial_var{:})
@@ -663,13 +683,25 @@ clearvars('-except',initial_var{:})
 %     data(sex).turning = [nan; theta].*(fps);
 % end
 
-fig = getfig('',1); hold on
-for sex = 1:2
-    plot(time,smooth(data(sex).turning,fps,'moving'),'color', data(sex).color)
-end
-h_line(0,'grey','--')
-xlabel('time (min)')
-ylabel('turning (\circ/s)')
+r = 4;
+c = 1;
+sb(1).idx = 1; %  temperature
+sb(2).idx = [2:4]; % circing
+
+fig = getfig('',1);
+subplot(r, c, sb(1).idx)
+    hold on
+    plot(time,T.temperature,'color', backColor,'LineWidth', 1)
+    ylabel('Temp (\circC)')
+subplot(r, c, sb(2).idx)
+    hold on
+    for sex = 1:2
+        plot(time,smooth(data(sex).turning,fps,'moving'),'color', data(sex).color)
+    end
+    h_line(0,'grey','--')
+    xlabel('Time (min)')
+    ylabel('Turning (\circ/s)')
+
 save_figure(fig,[figDir 'Fly turning over time'],fig_type);
 
 %% FIGURE: Sleep
@@ -739,6 +771,14 @@ ylim([0,2])
 
 save_figure(fig,[figDir 'Fly sleep over time'],fig_type);
 
+g = find(m.sleep);
+h = find(f.sleep);
+if [isempty(g) & isempty(h)]
+    disp('no male or female sleep found')
+else
+    return
+end
+
 %% FIGURE: (WORKING 1/15) simple summary of fly positions across the trial...
 % 
 % % ba
@@ -783,7 +823,7 @@ hold on
     zeroloc = T.courtposition == 0;
     y1(zeroloc) = nan;
     plot(T.time, y*y1, 'color', Color('gray'), 'LineWidth', 3)
-    % xlabel('time (s)')
+    % xlabel('time (min)')
     ylabel('inter-fly distance (mm)')
 
 % FLY SPEED

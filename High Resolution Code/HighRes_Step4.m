@@ -160,6 +160,8 @@ for vid = 1:parameters.nVids
     ntracks(vid) = size(data(vid).occupancy_matrix,2);
 end
 
+disp('cleaned data proofed')
+
 %% Align the tracks from video to video: 
 % display image of fly postion at the end of the first video and then the
 % next chunk for the subsequent video to see if they align
@@ -167,7 +169,7 @@ buff = 4;
 vid_align = false([1,nvids]);
 vid_align(1) = true;
 for vid = 1:nvids-1
-    frame_end = size(data(vid).occupancy_matrix,1);
+    frame_end = length(data(vid).occupancy_matrix);
     eROI = frame_end-buff:frame_end;
     sROI = 1:1+buff;
     
@@ -344,16 +346,20 @@ fig = getfig('Fly identification',true);
         xlabel('wing angle')
     % Arena image
     subplot(r,c,sb(4).idx)
-        vidname = [baseDir, 'compiled_video_1.avi'];
+        vid = 1;
+        vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
         vidh = VideoReader(vidname);
         frame = randi(vidh.NumFrames);
         img = read(vidh,frame);
+        a = T.vidNums == vid;
+        b = T.vidFrame == frame;
+        exp_frame = T.frame(find(a & b));
         imshow(img)
-        plotFlySkeleton(fig, D1.pos(frame,:,1),D1.pos(frame,:,2),Color('dodgerblue'),1); 
-        plotFlySkeleton(fig, D2.pos(frame,:,1),D2.pos(frame,:,2),Color('pink'),1); 
+        plotFlySkeleton(fig, D1.pos(exp_frame,:,1),D1.pos(exp_frame,:,2),Color('dodgerblue'),1); 
+        plotFlySkeleton(fig, D2.pos(exp_frame,:,1),D2.pos(exp_frame,:,2),Color('pink'),1); 
         % Zoom in on pink fly
-        xlimits = D2.pos(frame,2,1);
-        ylimits = D2.pos(frame,2,2);
+        xlimits = D2.pos(exp_frame,2,1);
+        ylimits = D2.pos(exp_frame,2,2);
         buff = 250;
         xlim([xlimits-buff, xlimits+buff])
         ylim([ylimits-buff, ylimits+buff])
@@ -408,11 +414,22 @@ switch response
             end
             vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
             vidh = VideoReader(vidname);
-            frame = randi(vidh.NumFrames);
+            frame = randi(vidh.NumFrames); 
+            % mnotrack = isnan(m.pos(exp_frame,2,1));
+            % fnotrack = isnan(f.pos(exp_frame,2,1)); 
+            % while mnotrack == true | fnotrack == true
+            % frame = randi(vidh.NumFrames); 
+            % mnotrack = isnan(m.pos(exp_frame,2,1));
+            % fnotrack = isnan(f.pos(exp_frame,2,1)); 
+            % end
+            % if mnotrack == true | fnotrack == true
+            %     frame = randi(vidh.NumFrames);
+            % end
             img = read(vidh,frame);
             a = T.vidNums == vid;
             b = T.vidFrame == frame;
             exp_frame = T.frame(find(a & b));
+            
             % Male fly
             subplot(row, col, pics)
                 imshow(img)
