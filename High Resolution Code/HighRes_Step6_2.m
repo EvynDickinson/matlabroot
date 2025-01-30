@@ -642,8 +642,67 @@ formatFig(fig, blkbgd,[1,2]);
 
 save_figure(fig, [figDir 'behaviors before and after sleep'],fig_type);
 
-% TODO: add a frequency scatter plot that shows the number of instances per
-% temperature region
+%% TODO: add a frequency scatter plot that shows the number of instances per temperature region
+clearvars('-except',initial_var{:})
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+temp_regimes = {'hold', 'cooling', 'warming', 'hold'};
+ntypes = length(temp_regimes);
+data_type = 'CI';
+
+% Extract data for plotting
+plotData = [];
+for t = 1:ntypes
+    switch t
+        case 1 % hold
+            t_name = 'pre hold';
+            idx = 1:data.cooling_idx(1)-1;
+        case 2 % cooling
+            t_name = 'cooling';
+            idx = data.cooling_idx(1):data.cooling_idx(2);
+        case 3 % warming
+            t_name = 'warming';
+            idx = data.warming_idx(1):data.warming_idx(2);
+        case 4 % post hold
+            t_name = 'post hold';
+            idx = data.warming_idx(2)+1:length(data.temp);
+    end
+
+    % have some switch mechanism here to look at different types of parameters
+    raw_data = data.(data_type);
+    
+    y_raw = sum(raw_data(idx,:),'omitnan');
+    y = y_raw./(length(idx)/(fly(1).fps*60)); % instances per minute
+    
+    plotData(t,:) = y;
+end
+
+% Visualize Data:
+buff = 0.2;
+avg_buff = 0.3;
+sz = 35;
+lw = 2;
+cList = {'grey', 'dodgerblue', 'red', 'grey'};
+
+fig = getfig('',1);
+hold on
+for t = 1:ntypes
+    x = shuffle_data(linspace(t-buff,t+buff,num.trials));
+    y = plotData(t,:);
+    scatter(x,y,sz, Color(cList{t}), "filled")
+    x = [t-avg_buff, t+avg_buff];
+    y_mean = mean(y, 'omitnan');
+    plot(x,[y_mean, y_mean],"Color",foreColor, 'linewidth', lw)
+    y_err = std(y, 'omitnan')/num.trials;
+    y_sem = [y_mean-y_err, y_mean+y_err];
+    plot(x,[y_sem(1), y_sem(1)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
+    plot(x,[y_sem(2), y_sem(2)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
+end
+
+
+
+
+
 
 %% 
 
