@@ -648,7 +648,8 @@ clearvars('-except',initial_var{:})
 
 temp_regimes = {'hold', 'cooling', 'warming', 'hold'};
 ntypes = length(temp_regimes);
-data_type = 'CI';
+% data_type = 'CI';
+data_type = 'chase_all';
 
 % Extract data for plotting
 plotData = [];
@@ -680,11 +681,11 @@ end
 % Visualize Data:
 buff = 0.2;
 avg_buff = 0.3;
-sz = 35;
+sz = 60;
 lw = 2;
 cList = {'grey', 'dodgerblue', 'red', 'grey'};
 
-fig = getfig('',1);
+fig = getfig('',1,[547 526]);
 hold on
 for t = 1:ntypes
     x = shuffle_data(linspace(t-buff,t+buff,num.trials));
@@ -698,10 +699,16 @@ for t = 1:ntypes
     plot(x,[y_sem(1), y_sem(1)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
     plot(x,[y_sem(2), y_sem(2)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
 end
+set(gca, 'xtick', 1:ntypes,'xticklabel', temp_regimes)
+ylabel([data_type ' frequency (#/min)'])
+formatFig(fig, blkbgd);
 
-
-
-
+% run statistical tests: are they different? 
+statData = plotData';
+[p,tbl,stats] = kruskalwallis(statData,[],'off');
+c = multcompare(stats);
+tbl = array2table(c,"VariableNames", ...
+    ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"])
 
 
 %% 
