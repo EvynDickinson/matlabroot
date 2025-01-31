@@ -169,12 +169,61 @@ else
     set(gca, 'xcolor', 'none', 'ycolor', 'none')
     save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
 end
-    % 
-    % xlim(xlims)
-    % ylim(ylims)
-    % % 
-    % xlims = xlim;
-    % ylims = ylim;
+
+% Pull point locations that will be plotted
+skip = 20;
+zoom = [-250,250];
+
+% screening = close_dist;
+
+fig = getfig('Male positions during wing extension',1,[1075 871]);
+hold on
+% Plot all male body positions
+kolor = Color('grey');
+x = mX(1:skip:end,[body.head,body.center]);
+y = mY(1:skip:end,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% axis equal square
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+% Plot the all male body positions under chase instances
+kolor = Color('lime');
+x = mX(T.wing_ext,[body.head,body.center]);
+y = mY(T.wing_ext,[body.head,body.center]);
+plot(x',y','color',kolor)
+scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% % Screening
+% kolor = Color('green');
+% x = mX(screening,[body.head,body.center]);
+% y = mY(screening,[body.head,body.center]);
+% plot(x',y','color',kolor)
+% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+
+% Plot female body
+x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+plot(x',y','color',foreColor, 'LineWidth', 2)
+% xlim([-2000,1500]); ylim([-2000,2000])
+
+% Format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+xlim(zoom)
+ylim(zoom)
+formatFig(fig,blkbnd);
+set(gca,'XColor','none','YColor','none')
+
+formatFig(fig,blkbnd);
+% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
+
+% Save figure
+save_figure(fig,[figDir 'wing extension positions M fly'],fig_type);
+
 
 
 %% FIGURE: M body positions during chase
@@ -184,7 +233,7 @@ zoom = [-250,250];
 
 % screening = close_dist;
 
-fig = getfig('',1,[1075 871]);
+fig = getfig('Male positions during chase',1,[1075 871]);
 hold on
 % Plot all male body positions
 kolor = Color('grey');
@@ -231,6 +280,7 @@ formatFig(fig,blkbnd);
 
 % Save figure
 save_figure(fig,[figDir 'chase positions M fly'],fig_type);
+
 %% FIGURE: Chase overlaid on arena with temp timecourse
 
 switch questdlg(['Show all ' num2str(size(m.chaseroi,1)) ' instances of chase?'])
@@ -246,6 +296,8 @@ c = 1;
 sb(1).idx = 1;
 sb(2).idx = 2:5;
 
+loc = getDataPath(6,0);
+
 % For each bout of chase, plot M and F movement on arena image
 for i = 1:size(m.chaseroi,1)
     % Frame numbers at start and end of each chase bout
@@ -255,7 +307,7 @@ for i = 1:size(m.chaseroi,1)
     vidnum = T.vidNums(frame);
     
     % Pull and read in video
-    vidpath = [getDataPath(6, 0), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    vidpath = [loc, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath);
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 215/255]);
@@ -356,6 +408,8 @@ sb(6).idx = [51:54, 60:63]; % male wing angles
 timebuff = 3; % time buffer before and after chase (in seconds)
 timebuff = timebuff/60; % set to minutes
 
+loc = getDataPath(6,0);
+
 % Plot body movements and timecourses for each chase bout
 for i = 1:size(m.chaseroi,1)
     % Establish x limits for non-temp timecourses
@@ -367,7 +421,7 @@ for i = 1:size(m.chaseroi,1)
     frame = m.chaseroi(i,2);
     vidnum = T.vidNums(frame);
     
-    vidpath = [getDataPath(6, 0), parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    vidpath = [loc, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath); %read in video
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
@@ -514,7 +568,7 @@ roi = 94845:94845+fps;
 % endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
 % roi = frames(1):frames(endidx(1));
 
-fig = getfig('',1); hold on
+fig = getfig('Male positions during circling',1); hold on
 % plot the female fly
 for ff = 1:length(roi)
     frame = roi(ff);

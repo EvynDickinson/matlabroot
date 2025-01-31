@@ -348,7 +348,7 @@ switch response
         zoom = [-250,250];
         skip = 20;
         
-        fig = getfig('',1,[1075 871]);
+        fig = getfig('Random selection of all male positions relative to female',1,[1075 871]);
         hold on
         
         % plot male coordinates for head and body within test constraints
@@ -388,7 +388,7 @@ switch response
         unlikelyidx = unlikelyidx(1:skip:end);
         allidx = [likelyidx; unlikelyidx];
         
-        fig = getfig('',1,[1075 871]);
+        fig = getfig('Likely and unlikely courtship positions',1,[1075 871]);
         hold on
         
         % % plot all fly positions unlikely courtship male fly body positions
@@ -988,6 +988,13 @@ end
 m.sleep = dummy(1).sleep;
 f.sleep = dummy(2).sleep;
 
+g = find(m.sleep);
+h = find(f.sleep);
+if [isempty(g) & isempty(h)]
+    disp('no male or female sleep found')
+else
+    return
+end
 
 %% ANALYSIS: Behavior probability map
 clearvars('-except',initial_var{:})
