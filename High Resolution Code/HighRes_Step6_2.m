@@ -700,7 +700,7 @@ for t = 1:ntypes
     plot(x,[y_sem(2), y_sem(2)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
 end
 set(gca, 'xtick', 1:ntypes,'xticklabel', temp_regimes)
-ylabel([data_type ' frequency (#/min)'])
+ylabel([strrep(data_type,'_', '-') ' frequency (#/min)'])
 formatFig(fig, blkbgd);
 
 % run statistical tests: are they different? 
