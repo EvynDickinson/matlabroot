@@ -20,7 +20,8 @@
 
 % Prep data
 clear; clc;
-baseFolder = [getDataPath(6,0),'Trial Data/'];
+path = getDataPath(6,0);
+baseFolder = [loc,'Trial Data/'];
 trialDir = selectFolder(baseFolder); 
 baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
 figDir = [baseDir,'Figures/']; 
@@ -36,9 +37,10 @@ blkbnd = true;
 fig_type = '-png';
 
 % Initial variables
-            initial_var = who; % who = all variables created so far
-            initial_var{end+1} = 'initial_var';
-            initial_var{end+1} = 'well';
+initial_var = who; % who = all variables created so far
+initial_var{end+1} = 'initial_var';
+initial_var{end+1} = 'well';
+initial_var{end+1} = 'path';
             
             disp_fig = false; % display baseline figures?
             initial_var{end+1} = 'disp_fig';
@@ -296,8 +298,6 @@ c = 1;
 sb(1).idx = 1;
 sb(2).idx = 2:5;
 
-loc = getDataPath(6,0);
-
 % For each bout of chase, plot M and F movement on arena image
 for i = 1:size(m.chaseroi,1)
     % Frame numbers at start and end of each chase bout
@@ -307,7 +307,7 @@ for i = 1:size(m.chaseroi,1)
     vidnum = T.vidNums(frame);
     
     % Pull and read in video
-    vidpath = [loc, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    vidpath = [path, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath);
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 215/255]);
@@ -408,8 +408,6 @@ sb(6).idx = [51:54, 60:63]; % male wing angles
 timebuff = 3; % time buffer before and after chase (in seconds)
 timebuff = timebuff/60; % set to minutes
 
-loc = getDataPath(6,0);
-
 % Plot body movements and timecourses for each chase bout
 for i = 1:size(m.chaseroi,1)
     % Establish x limits for non-temp timecourses
@@ -421,7 +419,7 @@ for i = 1:size(m.chaseroi,1)
     frame = m.chaseroi(i,2);
     vidnum = T.vidNums(frame);
     
-    vidpath = [loc, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+    vidpath = [path, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
     movieInfo = VideoReader(vidpath); %read in video
     demoImg = (read(movieInfo,T.vidFrame(frame)));
     img = imadjust(demoImg,[72/255, 215/255]); % adjust the contrast of the image
