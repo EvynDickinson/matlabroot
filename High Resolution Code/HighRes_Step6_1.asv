@@ -73,11 +73,15 @@ else
     
     field_list = {'T','data','f', 'fX', 'fY', 'fps', 'm', 'mX', 'mY', 'nvids', 'parameters', 'pix2mm', 'position', 'tRate', 'time', 'well'};
     fly = struct;
+    fill_idx = 1;
     for i = 1:length(fileIdx)
-        dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
-        fly(i).name = selectedFiles{i};
-        for ii = 1:length(field_list)
-            fly(i).(field_list{ii}) = dummy.(field_list{ii});
+        try dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
+            fly(fill_idx).name = selectedFiles{i};
+            for ii = 1:length(field_list)
+                fly(fill_idx).(field_list{ii}) = dummy.(field_list{ii});
+            end
+            fill_idx = fill_idx +1;
+        catch; disp(['Missing data: ' selectedFiles{i}])
         end
     end
     
@@ -373,7 +377,8 @@ end
 
 disp('updated outer ring to food data structures')
 
-% TODO: need to update the behavior matrix now with these... redo
+% TODO: need to update the behavior matrix now with these... redo and add
+% this to 5.1 and reprocess the data on that front...
 
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})

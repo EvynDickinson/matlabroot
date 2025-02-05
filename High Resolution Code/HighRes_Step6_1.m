@@ -70,14 +70,18 @@ else
         case 'Cancel'
             return
     end
-    
+
     field_list = {'T','data','f', 'fX', 'fY', 'fps', 'm', 'mX', 'mY', 'nvids', 'parameters', 'pix2mm', 'position', 'tRate', 'time', 'well'};
     fly = struct;
+    fill_idx = 1;
     for i = 1:length(fileIdx)
-        dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
-        fly(i).name = selectedFiles{i};
-        for ii = 1:length(field_list)
-            fly(i).(field_list{ii}) = dummy.(field_list{ii});
+        try dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
+            fly(fill_idx).name = selectedFiles{i};
+            for ii = 1:length(field_list)
+                fly(fill_idx).(field_list{ii}) = dummy.(field_list{ii});
+            end
+            fill_idx = fill_idx +1;
+        catch; disp(['Missing data: ' selectedFiles{i}])
         end
     end
     
@@ -151,7 +155,7 @@ xlabel('time (min)')
 ylabel('temp (\circC)')
 formatFig(fig);
 title([groupName ' | n = ' num2str(num.trials)])
-save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type)
+save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type);
 
 % create a new matrix to look at trial alignment times
 idx = [1 3 5 7 8];
@@ -181,7 +185,7 @@ ylabel('period duration (min)')
 set(gca, 'xtick', 1:4, 'XTickLabel', xtick_lab)
 title([groupName ' | n = ' num2str(num.trials)])
 formatFig(fig, blkbgd);
-save_figure(fig, [alignmentDir 'raw section durations'],fig_type)
+save_figure(fig, [alignmentDir 'raw section durations'],fig_type);
 
 % Shift trials to align to the ramp trough:
 
@@ -273,7 +277,7 @@ set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
 ylim([-0.1,1.1])
 title('warming')
 formatFig(fig, blkbgd,[1,2]);
-save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type)
+save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type);
 
 [r,~,~] = find(a==1); 
 
@@ -288,7 +292,7 @@ xlabel('time')
 ylabel('temperature (\circC)')
 formatFig(fig,blkbgd);
 title([groupName ' | n = ' num2str(num.trials)])
-save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type)
+save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type);
 
 disp('next:')
 
