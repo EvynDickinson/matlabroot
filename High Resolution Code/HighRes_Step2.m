@@ -47,14 +47,15 @@ for ramp = 1:size(rampName,2)
     
     % Start parallel pool if it's not already running
     if isempty(gcp('nocreate'))
-        parpool(11);
+        % parpool(11);
+        parpool;
     end
     
     %  loop for parallel processing
     iStart = vROI(:,1);
     iEnd = vROI(:,2);
     N = (iEnd-iStart)+1;
-    hz = parameters.FPS;
+    hz = parameters.FPS; 
     
     tic
     parfor vid = 1:nVids
