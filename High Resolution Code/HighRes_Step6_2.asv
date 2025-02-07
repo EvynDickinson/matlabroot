@@ -650,8 +650,9 @@ clearvars('-except',initial_var{:})
 
 temp_regimes = {'hold', 'cooling', 'warming', 'hold'};
 ntypes = length(temp_regimes);
-% data_type = 'CI';
-data_type = 'wing_ext';
+data_type = 'CI';
+
+% data_type = 'wing_ext_all';
 % data_type = 'chase_all';
 
 % Extract data for plotting
@@ -671,7 +672,7 @@ for t = 1:ntypes
             t_name = 'post hold';
             idx = data.warming_idx(2)+1:length(data.temp);
     end
-
+    
     % have some switch mechanism here to look at different types of parameters
     raw_data = data.(data_type);
     
