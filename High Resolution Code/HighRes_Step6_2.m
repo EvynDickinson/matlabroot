@@ -713,7 +713,7 @@ statData = plotData';
 [p,tbl,stats] = kruskalwallis(statData,[],'off');
 fig2 = getfig('', 1, [633 580]);
 c = multcompare(stats);
-tbl = array2table(c,"VariableNames", ...
+tble = array2table(c,"VariableNames", ...
     ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"])
 formatFig(fig2, blkbgd);
 

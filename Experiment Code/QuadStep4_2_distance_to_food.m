@@ -15,7 +15,7 @@ nMax =  num.exp;%
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
 % set up figure aligments
-r = 5; %rowsœ
+r = 5; %rows
 c = 3; %columns
 sb(1).idx = 1:2; %temp timecourse
 sb(2).idx = [4,5,7,8]; %distance from food timecourse %TODO: normalize this to something more intuitive?
@@ -300,7 +300,7 @@ for i = num.exp:-1:1
                 rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
             end
             y = mean(rawY,2,'omitnan')*scaler;
-            y_err = std(rawY,0,2,'omitnan')*scaler;
+            y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
             plot(x,y,'color',kolor,'linewidth',1.25)
             plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
 
@@ -316,12 +316,12 @@ for i = num.exp:-1:1
             end
             % cooling
             y = mean(YC,2,'omitnan')*scaler;
-            y_err = std(YC,0,2,'omitnan')*scaler;
+            y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
             plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
             plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
             % heating
             y = mean(YH,2,'omitnan')*scaler;
-            y_err = std(YH,0,2,'omitnan')*scaler;
+            y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
             plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
             plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
      end
