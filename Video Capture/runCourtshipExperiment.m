@@ -1,16 +1,25 @@
 
-clear; clc
-imaqreset
+clear; clc; imaqreset; parameters = [];
 
-%% Set up the experiment parameters
+% PARAMETERS THAT MAY CHANGE EACH TIME
+expName = 'Berlin_courtship_F_LRR_caviar_ramp3';% Experiment name
+parameters.protocol = 'courtship_F_LRR_25-17'; % Temperature Protocol
+parameters.experimenter = 'Becca';  % Experimenter
+parameters.ArenaA.genotype = 'Berlin'; % Genotype
+parameters.ArenaA.well_1 = 'Caviar'; % Well 1
+parameters.ArenaA.well_2 = 'Empty'; % Well 2
+parameters.ArenaA.well_3 = 'Empty'; % Well 3
+parameters.ArenaA.well_4 = 'Empty';% Well 4
+parameters.ArenaA.sex = 'mixed'; % Sex of flies
+
+% Set up the experiment parameters
 dateStr = char(datetime('now','Format','MM.dd.yyyy'));
-baseFolder = ['F:\Evyn\Courtship Tracking\' dateStr '\'];
+baseFolder = ['E:\Evyn\Courtship Tracking\' dateStr '\'];
+
 if ~exist(baseFolder)
     mkdir(baseFolder)
 end
 cd(baseFolder) % set current path to video folder
-
-expName = 'Berlin_courtship_F_LRR_caviar_ramp1';
 
 start_pause = 5; % min delay before recording should start
 totalLength = 16*4; % 16 min pre, 16 down, 16 up, 16 post
@@ -28,22 +37,13 @@ parameters.ITI = 5;
 parameters.FPS = hz;
 parameters.recordingduration = totalLength;
 parameters.fragmentduration = trial;
-parameters.protocol = 'courtship_F_LRR_25-17'; %TODO dynamic
 parameters.numFrag = nsamples; % number of video fragments
-parameters.experimenter = 'Becca'; %TODO dynamic
 parameters.day_night = 'D'; %'N' 
 parameters.date = dateStr;
-
-% Experiment:
 parameters.expID = expName;
 parameters.videoName = expName;
-parameters.ArenaA.genotype = 'Berlin';% TODO: get genotype information here 
-parameters.ArenaA.sex = 'mixed';
 parameters.ArenaA.starved_hours = 0;
-parameters.ArenaA.well_1 = 'Empty';
-parameters.ArenaA.well_2 = 'Empty';
-parameters.ArenaA.well_3 = 'Empty';
-parameters.ArenaA.well_4 = 'Caviar';
+
 
 % save parameter file
 if isfile([baseFolder expName 'dataMat.mat']) %prevent overwriting the file

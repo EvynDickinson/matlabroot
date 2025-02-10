@@ -97,6 +97,7 @@ pause(start_pause*60)
 % pause(10)
     
 % for n = 1:numSections
+n = 1;
 % save start temp log information    
 tempLogStart(n,:) = [n, logTempNow(tempLogPath)];
 disp(tempLogStart(n,:))
