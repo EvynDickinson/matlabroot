@@ -125,7 +125,7 @@ fig =  getfig('',1);
     formatFig(fig, blkbnd, [r,c],sb);
     save_figure(fig,[figDir 'Distance to food with points on food M vs F'],fig_type);
 
-%% FIGURE: Plot body position during wing extension
+%% FIGURE: M body position during wing extension
 % wing angle > 60 deg
 % L wing angle in appropriate quadrants
 % R wing angle in appropriate quandrants
@@ -234,54 +234,59 @@ skip = 20;
 zoom = [-250,250];
 
 % screening = close_dist;
-
-fig = getfig('Male positions during chase',1,[1075 871]);
-hold on
-% Plot all male body positions
-kolor = Color('grey');
-x = mX(1:skip:end,[body.head,body.center]);
-y = mY(1:skip:end,[body.head,body.center]);
-plot(x',y','color',kolor)
-scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-% axis equal square
-formatFig(fig,blkbnd);
-set(gca,'XColor','none','YColor','none')
-
-% Plot the all male body positions under chase instances
-kolor = Color('lime');
-x = mX(T.court_chase,[body.head,body.center]);
-y = mY(T.court_chase,[body.head,body.center]);
-plot(x',y','color',kolor)
-scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-
-% % Screening
-% kolor = Color('green');
-% x = mX(screening,[body.head,body.center]);
-% y = mY(screening,[body.head,body.center]);
-% plot(x',y','color',kolor)
-% scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-
-% Plot female body
-x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
-y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
-plot(x',y','color',foreColor, 'LineWidth', 2)
-% xlim([-2000,1500]); ylim([-2000,2000])
-
-% Format figure
-axis  equal square
-h_line(0,'gray',':',2)
-v_line(0,'grey',':',2)
-xlim(zoom)
-ylim(zoom)
-formatFig(fig,blkbnd);
-set(gca,'XColor','none','YColor','none')
-
-formatFig(fig,blkbnd);
-% rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
-% save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
-
-% Save figure
-save_figure(fig,[figDir 'chase positions M fly'],fig_type);
+frames = find(T.court_chase==1);
+if isempty(frames)
+    disp('no bouts of chase found')
+    return
+else
+    fig = getfig('Male positions during chase',1,[1075 871]);
+    hold on
+    % Plot all male body positions
+    kolor = Color('grey');
+    x = mX(1:skip:end,[body.head,body.center]);
+    y = mY(1:skip:end,[body.head,body.center]);
+    plot(x',y','color',kolor)
+    scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+    % axis equal square
+    formatFig(fig,blkbnd);
+    set(gca,'XColor','none','YColor','none')
+    
+    % Plot the all male body positions under chase instances
+    kolor = Color('lime');
+    x = mX(T.court_chase,[body.head,body.center]);
+    y = mY(T.court_chase,[body.head,body.center]);
+    plot(x',y','color',kolor)
+    scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+    
+    % % Screening
+    % kolor = Color('green');
+    % x = mX(screening,[body.head,body.center]);
+    % y = mY(screening,[body.head,body.center]);
+    % plot(x',y','color',kolor)
+    % scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+    
+    % Plot female body
+    x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+    y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+    plot(x',y','color',foreColor, 'LineWidth', 2)
+    % xlim([-2000,1500]); ylim([-2000,2000])
+    
+    % Format figure
+    axis  equal square
+    h_line(0,'gray',':',2)
+    v_line(0,'grey',':',2)
+    xlim(zoom)
+    ylim(zoom)
+    formatFig(fig,blkbnd);
+    set(gca,'XColor','none','YColor','none')
+    
+    formatFig(fig,blkbnd);
+    % rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+    % save_figure(fig, 'G:\My Drive\Jeanne Lab\Presentations\Data Presentation 12.6.2024\All Chase Positions',fig_type);
+    
+    % Save figure
+    save_figure(fig,[figDir 'chase positions M fly'],fig_type);
+end
 
 %% FIGURE: Chase overlaid on arena with temp timecourse
 
@@ -551,7 +556,7 @@ for i = 1:size(m.chaseroi,1)
 end
 
 
-%% FIGURE: (TODO) M body positions relative to female during circling
+%% FIGURE: (TODO) M body positions during circling
 % Pull point locations that will be plotted
 skip = 20;
 zoom = [-250,250];
@@ -596,7 +601,11 @@ save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
 
 
 % screening = close_dist;
-
+frames = find(T.circling_1sec==1);
+if isempty(frames)
+    disp('no bouts of circling found')
+    return
+else
 fig = getfig('',1,[1075 871]);
 hold on
 % Plot all male body positions
@@ -644,6 +653,7 @@ formatFig(fig,blkbnd);
 
 % Save figure
 save_figure(fig,[figDir 'Circling positions M fly'],fig_type);
+end
 
 %% FIGURE: CI & behavior components
 clearvars('-except',initial_var{:})
