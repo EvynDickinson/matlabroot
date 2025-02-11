@@ -45,6 +45,7 @@ for ii = 1 : num.exp
 end
 
 % FIGURE:
+
 buff = 0.1;
 buff2 = 0.2;
 sz = 35;
@@ -77,7 +78,6 @@ title(title_str)
 
 save_figure(fig,[fig_dir 'outer ring occupancy from ' title_str],fig_type);
 
-
 % timecourse for the same temperature data:
 scaler = 1; plot_err = 1;
 fig = getfig('',true,[480 680]); hold on
@@ -105,6 +105,94 @@ xlabel('temperature (\circC)')
 
 save_figure(fig,[fig_dir 'outer ring occupancy tuning curve'],fig_type);
 
+
+% STATISTICS: 
+% Differences between heating and cooling? ANOVA of absolute area between
+% the curves -- asking if it differs significantly from zero and then
+% asking if it differs between the different experiment conditions: 
+
+% Is there a difference in the percent of flies in the outer rim during
+% heating and cooling for each of the conditions? 
+
+
+% How do the COOLING temperature dependent lines differ? Slope based analysis
+temp = []; occ = []; exp = [];
+%format the data for the statistical test
+for i = 1:num.exp
+    x = repmat((grouped(i).ring.temps'),[num.trial(i),1]);
+    temp = [temp; x];
+    y = grouped(i).ring.decreasing.raw(:);
+    occ  = [occ; y];
+    exp = [exp; i*ones(size(y))];
+end
+%run the ancova test
+[~,~,~,stats] = aoctool(temp,occ,exp);
+%run the multicomparison to look at differences in slope
+c = multcompare(stats,"Estimate", "slope","CriticalValueType","bonferroni","Display","on");
+% display the statistical differences: 
+thresh = 0.05;
+cPlot = []; pPlot = [];
+for i = 1:size(c,1)
+    cPlot(c(i,1),c(i,2)) = c(i,6);
+    cPlot(c(i,2),c(i,1)) = c(i,6);
+    if c(i,6)<=thresh
+        pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
+    end
+end
+fig = getfig('',1,[705 649]);
+% imagesc(cPlot);
+% axis square equal
+xlim([0.5,num.exp+0.5])
+ylim([0.5,num.exp+0.5])
+hold on
+scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
+v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+formatFig(fig, blkbgd);
+set(gca,'XTick',0:1:num.exp,'YTick',0:1:num.exp,'XTickLabel',{grouped(:).name},'YTickLabel',{grouped(:).name})
+set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+
+save_figure(fig,[fig_dir 'outer ring occupancy cooling slope stats'],fig_type);
+
+
+% How do the WARMING temperature dependent lines differ? Slope based analysis
+temp = []; occ = []; exp = [];
+%format the data for the statistical test
+for i = 1:num.exp
+    x = repmat((grouped(i).ring.temps'),[num.trial(i),1]);
+    temp = [temp; x];
+    y = grouped(i).ring.increasing.raw(:);
+    occ  = [occ; y];
+    exp = [exp; i*ones(size(y))];
+end
+%run the ancova test
+[~,~,~,stats] = aoctool(temp,occ,exp);
+%run the multicomparison to look at differences in slope
+c = multcompare(stats,"Estimate", "slope","CriticalValueType","bonferroni","Display","on");
+% display the statistical differences: 
+thresh = 0.05;
+cPlot = []; pPlot = [];
+for i = 1:size(c,1)
+    cPlot(c(i,1),c(i,2)) = c(i,6);
+    cPlot(c(i,2),c(i,1)) = c(i,6);
+    if c(i,6)<=thresh
+        pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
+    end
+end
+fig = getfig('',1,[705 649]);
+% imagesc(cPlot);
+% axis square equal
+xlim([0.5,num.exp+0.5])
+ylim([0.5,num.exp+0.5])
+hold on
+scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
+v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+formatFig(fig, blkbgd);
+set(gca,'XTick',0:1:num.exp,'YTick',0:1:num.exp,'XTickLabel',{grouped(:).name},'YTickLabel',{grouped(:).name})
+set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+
+save_figure(fig,[fig_dir 'outer ring occupancy warming slope stats'],fig_type);
 
 %% 
 
