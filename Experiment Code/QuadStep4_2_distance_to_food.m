@@ -364,27 +364,28 @@ end
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
-%%
+%% FIGURE: Multimetric tuning curves
 clearvars('-except',initial_vars{:})
 
-plot_err = true;
 autoLim = true;
 xlim_auto = true; % change the time range for the x axis
 time_limits = [0,900]; % time limits if manual control over x-axis range
-nMax =  num.exp;%
-[~,backColor] = formattingColors(blkbgd); %get background colors
+nMax =  num.exp;
+[~,backColor] = formattingColors(blkbgd); % get background colors
 
+% Select which parameters you want to look at
 paramList = {'Proximity to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed','Sleep'};
-idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200], 'SelectionMode','multiple');
+idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200], 'SelectionMode','multiple', 'InitialValue',[4,5,6,7]);
 if isempty(idx)
     disp('No choice selected')
     return
 end
 
+% Select which plot type you want
 plotType = true;
 if plotType
     qList = {'Single trial lines', 'Average', 'Heating and Cooling'};
-    pidx = listdlg('ListString', qList,'PromptString', ['How do you want to plot the data:'],'ListSize',[300,200]);
+    pidx = listdlg('ListString', qList,'PromptString', 'How do you want to plot the data:','ListSize',[300,200],'InitialValue',3);
     if isempty(pidx)
         disp('No choice selected')
         return
@@ -395,70 +396,121 @@ else
     fig_dir = '';
 end
 
-nPlots = length(idx);
-
-fig = getfig;
-for ii = 1:nPlots
-    [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamProperties(paramList{idx(ii)},typeString);
-    for i = num.exp:-1:1
-        subplot(1,nPlots,ii)
-            x = grouped(i).time;
-            kolor = grouped(i).color;
-                switch dType
-                     case 1 % single trial lines
-                        for trial = 1:num.trial(i)
-                            if strcmp(pName, 'dist')
-                                x = grouped(i).(pName).distavgbytemp(:,1);
-                                rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
-                            else
-                                x = grouped(i).(pName).temps;
-                                rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
-                            end
-                            y = mean(rawY,2,'omitnan')*scaler;
-                            plot(x,y,'color',kolor,'linewidth',1.25)
-                        end
-                
-                     case 2 % avg lines (combined heating and cooling)
-                        if strcmp(pName, 'dist')
-                            x = grouped(i).(pName).distavgbytemp(:,1);
-                            rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
-                        else
-                            x = grouped(i).(pName).temps;
-                            rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
-                        end
-                        y = mean(rawY,2,'omitnan')*scaler;
-                        y_err = std(rawY,0,2,'omitnan')*scaler;
-                        plot(x,y,'color',kolor,'linewidth',1.25)
-                        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                
-                     case 3 % separated heating and cooling
-                        if strcmp(pName, 'dist')
-                            x = grouped(i).(pName).distavgbytemp(:,1);
-                            YC = grouped(i).decreasing.all;
-                            YH = grouped(i).increasing.all;
-                        else
-                            x = grouped(i).(pName).temps;
-                            YC = grouped(i).(pName).decreasing.raw;
-                            YH = grouped(i).(pName).increasing.raw;
-                        end
-                        % cooling
-                        y = mean(YC,2,'omitnan')*scaler;
-                        y_err = std(YC,0,2,'omitnan')*scaler;
-                        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                        plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
-                        % heating
-                        y = mean(YH,2,'omitnan')*scaler;
-                        y_err = std(YH,0,2,'omitnan')*scaler;
-                        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                        plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
-                end
-    end
+% Plot error default for below depending on plot type
+switch pidx
+    case 2
+        err_dft = 'True';
+    case 3
+        err_dft = 'True';
 end
 
+% Plot SEM?
+switch questdlg('Plot error?','','True','False', 'Cancel',err_dft)
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
 
+% Number of subplots based on number of parameters
+nPlots = length(idx);
 
+% FIGURE
+fig = getfig;
+% Create a subplot for each parameter
+for ii = 1:nPlots
+    [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamProperties(paramList{idx(ii)},typeString);
+    % Plot parameter data for each experiment group
+    for i = num.exp:-1:1
+        subplot(1,nPlots,ii)
+            hold on
+            kolor = grouped(i).color; % colorse
+            
+            switch dType
+                % Single trial lines
+                case 1 
+                    for trial = 1:num.trial(i)
+                        % If plotting proximity to food
+                        if strcmp(pName, 'dist')
+                            x = grouped(i).(pName).distavgbytemp(:,1);
+                            rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
+                        % If plotting all other parameters
+                        else
+                            x = grouped(i).(pName).temps;
+                            rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
+                        end
+                        y = mean(rawY,2,'omitnan')*scaler;
+                        plot(x,y,'color',kolor,'linewidth',1.25)
+                    end
 
+                % Avgerage lines (combined heating and cooling)
+                case 2 
+                    % If plotting proximity to food
+                    if strcmp(pName, 'dist')
+                        x = grouped(i).(pName).distavgbytemp(:,1);
+                        rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
+                    % If plotting all other parameters
+                    else
+                        x = grouped(i).(pName).temps;
+                        rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
+                    end
+                    y = mean(rawY,2,'omitnan')*scaler;
+                    y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i)); % calculate SEM
+                    plot(x,y,'color',kolor,'linewidth',1.25)
+                    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35); % plot error
+            
+                 case 3 % separated heating and cooling
+                     % If plotting proximity to food
+                     if strcmp(pName, 'dist')
+                        x = grouped(i).(pName).distavgbytemp(:,1);
+                        YC = grouped(i).decreasing.all;
+                        YH = grouped(i).increasing.all;
+                    % If plotting all other parameters
+                     else
+                        x = grouped(i).(pName).temps;
+                        YC = grouped(i).(pName).decreasing.raw;
+                        YH = grouped(i).(pName).increasing.raw;
+                    end
+                    % Plot cooling
+                    y = mean(YC,2,'omitnan')*scaler;
+                    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i)); % calculate SEM
+                    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35); % plot error
+                    plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
+                    % Plot heating
+                    y = mean(YH,2,'omitnan')*scaler;
+                    y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i)); % calculate SEM
+                    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35); % plot error
+                    plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
+            end % switch data type end            
+    end % experiment loop end
 
+    % FORMAT
+    formatFig(fig,blkbgd,[1,nPlots]);
+    % Axis labels
+    ylabel(y_lab)
+    xlabel('temp (\circC)')
+    % Plot null distribution line
+    h_line(nullD,'grey',':',2) %36.2
+    % Set axis direction and minimum limits
+    set(gca,'ydir',y_dir)
+    if min(ylim) < 0
+        ylim([0,max(ylim)])
+    end
+end % subplot loop end
+
+% Set figure folder
+loc_dir = [saveDir, fig_dir];
+% If figure folder doesn't exist, create
+if ~exist(loc_dir, 'dir')
+    mkdir(loc_dir)
+end
+
+% Save figure
+save_figure(fig,[loc_dir 'Multimetric tuning curves (' paramList{idx} ')'],fig_type);
 
 
 %% FIGURE: WORKING highlight specific trials within the grouped data:

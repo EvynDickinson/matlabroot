@@ -70,13 +70,13 @@ end
     switch typeString
         case 'Single trial lines'
             dType = 1;
-            fig_dir = '/all trial lines/';
+            fig_dir = '/tuning curves all trial lines/';
         case 'Average'
             dType = 2;
-            fig_dir = '/time course/';
+            fig_dir = '/tuning curves/';
         case 'Heating and Cooling'
             dType = 3;
-            fig_dir = '/time course H and C/';
+            fig_dir = '/tuning curves H and C/';
          case ''
             disp('')
             return
