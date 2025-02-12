@@ -2,19 +2,19 @@
 clear; clc; imaqreset; parameters = [];
 
 % PARAMETERS THAT MAY CHANGE EACH TIME
-expName = 'Berlin_courtship_F_LRR_caviar_ramp3';% Experiment name
+expName = 'Berlin_courtship_F_LRR_caviar_ramp1';% Experiment name
 parameters.protocol = 'courtship_F_LRR_25-17'; % Temperature Protocol
 parameters.experimenter = 'Becca';  % Experimenter
 parameters.ArenaA.genotype = 'Berlin'; % Genotype
-parameters.ArenaA.well_1 = 'Caviar'; % Well 1
+parameters.ArenaA.well_1 = 'Empty'; % Well 1
 parameters.ArenaA.well_2 = 'Empty'; % Well 2
 parameters.ArenaA.well_3 = 'Empty'; % Well 3
-parameters.ArenaA.well_4 = 'Empty';% Well 4
+parameters.ArenaA.well_4 = 'Caviar';% Well 4
 parameters.ArenaA.sex = 'mixed'; % Sex of flies
 
 % Set up the experiment parameters
 dateStr = char(datetime('now','Format','MM.dd.yyyy'));
-baseFolder = ['E:\Evyn\Courtship Tracking\' dateStr '\'];
+baseFolder = ['F:\Evyn\Courtship Tracking\' dateStr '\'];
 
 if ~exist(baseFolder)
     mkdir(baseFolder)

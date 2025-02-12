@@ -127,9 +127,22 @@ fprintf(['\n' 'Experiment Done' '\n'])
 
 
 
-
-
-
+%%
+% % USE THIS TO PULL OUT THE TIME AND TEMP DATA FOR AN EXPERIMENT
+% basepath = 'E:\Evyn\Courtship Tracking\02.10.2025\Dummy_high_res_LTS_35-15_Caviar_1\';
+% 
+% timestamps = NaT(5820,1);
+% tempLogs = NaN(5820,5);
+% 
+% for i = 1:5820
+%     dummy = load([basepath 'file' num2str(i)],'tempLog','timestamp');
+%     timestamps(i,1) = dummy.timestamp;
+%     tempLogs(i,:) = dummy.tempLog;
+%     disp([num2str(i) ' / 5820'])
+% end
+% 
+% save('LTS test timing data.mat')
+ 
 
 
 

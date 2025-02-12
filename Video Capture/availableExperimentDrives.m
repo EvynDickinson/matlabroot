@@ -11,6 +11,7 @@ function [drive, expProtocol] = availableExperimentDrives
 % stored: 
 F_free = (java.io.File("F:").getFreeSpace()*1e-12); % answer in Terabytes
 E_free = (java.io.File("E:").getFreeSpace()*1e-12); % answer in Terabytes
+H_free = (java.io.File("H:").getFreeSpace()*1e-12); % answer in Terabytes
 
 % query what temp protocol is being used: 
 a = questdlg('Select your temp protocol:','','F LRR 25-17', 'LTS 35-15','Cancel','F LRR 25-17');
@@ -21,23 +22,25 @@ switch a
         expProtocol = 'courtship_F_LRR_25-17';
     case 'LTS 35-15'
         expProtocol = 'high_res_LTS_35-15';
-        reqSpace = 3.8; % how many terrabytes of free space required
+        reqSpace = 3.4; % how many terrabytes of free space required
     case 'Cancel'
         warndlg('No drive selected')
         drive = nan;
         return
 end
-sizestr = ['E: ' num2str(E_free) ' (TB) | F: ' num2str(F_free) ' (TB)'];
+sizestr = ['F: ' num2str(F_free) ' (TB) | E: ' num2str(E_free) ' (TB) | H: ' num2str(H_free) ' (TB)'];
 
 F_available = F_free>=reqSpace;
 E_available = E_free>=reqSpace;
-if F_available && ~E_available
+H_available = H_free>=reqSpace;
+
+if F_available && ~E_available && ~H_available
     str = 'F';
     autostr = 'F';
-elseif E_available && ~F_available
+elseif E_available && ~F_available && ~H_available
     str = 'E';
     autostr = 'E';
-elseif E_available && F_available
+elseif E_available && F_available && ~H_available
     str = 'E and F';
     autostr = 'E';
 else 
@@ -52,3 +55,9 @@ if strcmp(drive, 'Cancel')
     warndlg('No drive selected')
     drive = nan;
 end
+
+
+
+
+
+
