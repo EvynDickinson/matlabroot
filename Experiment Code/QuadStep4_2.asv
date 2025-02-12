@@ -607,6 +607,9 @@ switch expGroup
     case 'R77C10-gal4 F LRR caviar comparisons'
          expOrder = 1:3; %
         colors = {'dodgerblue','Gold','magenta'};
+    case 'IR25a-gal4;TM2 F LRR caviar comparisons'
+        expOrder = [1,3,2];
+        colors = {'darkorchid','gold', 'turquoise'};
 end
 
 if ~exist('colors','var')
@@ -624,6 +627,11 @@ for exp = 1:num.exp
     i = expOrder(exp);
     disp(expNames{i})
 end
+
+% % update color map without running the rest of the data: 
+% for i = 1:num.exp
+%     grouped(expOrder(i)).color = Color(colors{(i)});
+% end
 
 for i = 1:num.exp % FOR EACH DATA GROUP
     % GENERAL
