@@ -20,8 +20,8 @@ for ii = 1 : num.exp
     idx = find(x>=temps(1) & x<=temps(2)); % index for pulling the address of time points within testing temp band
     cool_frames = [];  warm_frames = []; % set empty matrex for the frame list to fill
     for t = 1:length(idx)
-        coolIdx = find(grouped(i).position.temp_rates<0); %warming rate index
-        warmIdx = find(grouped(i).position.temp_rates>0); %cooling rate index
+        coolIdx = find(grouped(i).position.temp_rates<0); % warming rate index
+        warmIdx = find(grouped(i).position.temp_rates>0); % cooling rate index
         % compile the frame numbers that occur during the cooling and warming
         % periods within the above selected temperature range
         cool_frames = [cool_frames; grouped(i).position.loc(coolIdx,idx(t)).frames]; 
@@ -136,7 +136,6 @@ save_figure(fig,[fig_dir 'outer ring occupancy tuning curve'],fig_type);
 % Is there a difference in the percent of flies in the outer rim during
 % heating and cooling for each of the conditions? 
 
-
 % How do the COOLING temperature dependent lines differ? Slope based analysis
 temp = []; occ = []; exp = [];
 %format the data for the statistical test
@@ -147,7 +146,7 @@ for i = 1:num.exp
     occ  = [occ; y];
     exp = [exp; i*ones(size(y))];
 end
-%run the ancova test
+% run the ancova test
 [~,~,~,stats] = aoctool(temp,occ,exp);
 %run the multicomparison to look at differences in slope
 c = multcompare(stats,"Estimate", "slope","CriticalValueType","bonferroni","Display","on");
@@ -296,7 +295,7 @@ save_figure(fig,[fig_dir 'outer ring occupancy warming intercept stats'],fig_typ
 %% 
 
 % test if the data comes from a normal distribution:
-h = kstest(x)
+h = kstest(x);
 
 
 %% FIGURE & STATS: Hysteresis for each genotype / trial
@@ -320,7 +319,6 @@ for ii = 1:num.exp
     p_limit = alpha/m;
     SD(ii).h = SD(ii).p<=p_limit;
     % cumulative difference between heating and cooling
-
 end
 
 r = 10;
@@ -329,7 +327,7 @@ sb(1).idx = 1;
 sb(2).idx = 2:r;
 
 % timecourse for the same temperature data:
-scaler = 1; plot_err = 1;
+scaler = 1; plot_err = 1; y_lim = [];
 fig = getfig('',true,[480 680]); 
 %significance plot
 subplot(r,c,sb(1).idx)
@@ -340,6 +338,7 @@ for i = 1:num.exp
     y(~SD(i).h) = nan;
     plot(x,y,'color', SD(i).kolor,'linewidth', 1.5)
 end
+y_lim = [y_lim; ylim];
 % plot temp tuning curve
 subplot(r,c,sb(2).idx)
 hold on
@@ -359,15 +358,18 @@ for i = 1:num.exp
     plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
     plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')        
 end
+y_lim = [y_lim; ylim];
 ylabel('flies in outer ring (%)')
 xlabel('temperature (\circC)')
 
 formatFig(fig, blkbgd,[r,c],sb);
+subplot(r,c,sb(2).idx)
+ylim = [min(y_lim(:,1)) max(y_lim(:,2))]; 
 subplot(r,c,sb(1).idx)
-set(gca,'XColor','none', 'YColor','none')
+ylim = [min(y_lim(:,1)) max(y_lim(:,2))]; 
+set(gca,'XColor','k', 'YColor','none')
 
 save_figure(fig,[fig_dir 'outer ring occupancy tuning curve with running heat cool stats'],fig_type);
-
 
 
 % FIGURE: Cumulative difference in outer ring occupancy
@@ -378,14 +380,14 @@ r = 1; %rows
 c = 3; %columns
 plot_err = false;
 plotSig = true; %plot significance stars
-[foreColor,backColor] = formattingColors(blkbgd);
+[foreColor,~] = formattingColors(blkbgd);
 
 fig = getfig('',true,[480 680]); 
 hold on
 for ii = 1:num.exp
     i = expOrder(ii);
     kolor = grouped(i).color;
-    y = abs(grouped(i).ring.decreasing.raw-grouped(i).ring.increasing.raw);
+    y = (grouped(i).ring.decreasing.raw-grouped(i).ring.increasing.raw);
     plotY = sum(y,1,'omitnan');
     x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
     scatter(x,plotY,SZ,kolor,"filled","o")
@@ -401,7 +403,7 @@ set(gca, 'xcolor', 'none')
 [p, mlt, id] = deal([]);
 for ii = 1:num.exp
     i = expOrder(ii);
-    y = abs(grouped(i).ring.decreasing.raw-grouped(i).ring.increasing.raw);
+    y = (grouped(i).ring.decreasing.raw-grouped(i).ring.increasing.raw);
     plotY = sum(y,1,'omitnan');
     [~,p(ii)] = ttest(plotY);
     group_name{ii} = expNames{i};
@@ -456,6 +458,7 @@ end
 
 % save figure
 save_figure(fig,[fig_dir expGroup ' outer ring occupancy cumulative hysteresis summary'],fig_type);
+
 
 
 %% TODO: incorporate the dynamic structure from below to compare different types of experimental data
@@ -581,7 +584,7 @@ formatFig(fig,blkbgd,[r,c],sb);
 % temp
 subplot(r,c,sb(1).idx)
 ylabel('\circC')
-set(gca,"XColor",backColor)
+set(gca,"XColor",'none')
 
 % distance
 subplot(r,c,sb(2).idx)
@@ -611,6 +614,165 @@ end
 
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
+
+
+%% Linear regression for each trial 
+clearvars('-except',initial_vars{:})
+[foreColor,~] = formattingColors(blkbgd); %get background colors
+
+% for each trial, pull out all the data within the cooling regions and fit
+% a linear model to those data points (not binned): 
+stats = struct;
+for i = 1:num.exp
+    [stats(i).R2, stats(i).slp, stats(i).RMSE, stats(i).intercept] = deal(nan(num.trial(i),1));
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    raw_y = grouped(i).ring.all; % pull all the raw data for this parameter
+    roi = tp.DownROI; % find the region for all cooling points
+    for trial = 1:num.trial(i)
+        temp = grouped(i).temp(roi);
+        y = raw_y(roi,trial);
+        mdl = fitlm(temp,y);
+        stats(i).R2(trial) = mdl.Rsquared.Ordinary;
+        stats(i).slp(trial) = table2array(mdl.Coefficients(2,1));
+        stats(i).intercept(trial) = table2array(mdl.Coefficients(1,1));
+        stats(i).RMSE(trial) = mdl.RMSE;
+    end
+    disp(['Finished ' num2str(i)])
+end
+
+% PLOT LINEAR FIT PARAMETERS
+r = 1;
+c = 3;
+buff = 0.2;
+buff2 = 0.3;
+fig = getfig('',1); 
+% slope
+subplot(r,c,1)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).slp;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+h_line(0,'grey','--')
+ylabel('Slope of temp - outer ring occupancy')
+% R2
+subplot(r,c,2)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).R2;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+% h_line(0,'grey','--')
+ylabel('R2 value')
+% RMSE value
+subplot(r,c,3)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).RMSE;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+% h_line(0,'grey','--')
+ylabel('RMSE')
+
+formatFig(fig,blkbgd,[r,c]);
+for i = 1:c
+    subplot(r,c,i)
+    set(gca, 'xcolor', 'none')
+end
+
+slopes = [];
+for i = 1:num.exp
+    slopes = [slopes; i*ones(num.trial(i),1), stats(i).slp];
+end
+
+aov = anova(slopes(:,1), slopes(:,2));
+m = multcompare(aov,"CriticalValueType","bonferroni");
+% % display statistical differences: 
+% for 
+% 
+% end
+
+
+%% FIGURE: time difference in region during warming vs cooling
+clearvars('-except',initial_vars{:})
+fig_dir = createFolder([saveDir, 'Stats/']);
+[foreColor,~] = formattingColors(blkbgd); %get background colors
+
+% DATA EXTRACTION:
+% for each trial, pull out all the data within the cooling regions and
+% warming regions for comparision:
+pd = struct;
+pd.all = nan(max(num.trial),num.exp);
+[pd.avg, pd.sem] = deal(nan(num.exp,1));
+for i = 1:num.exp
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    raw_y = grouped(i).ring.all; % pull all the raw data for this parameter
+    roi = tp.DownROI; % find the region for all cooling points
+    y = ((sum(raw_y(roi,:)))/length(roi))./num.trial; % find proportion of frames in the desired region
+    y = y/(fps * 60 * 60); % convert to rate/mins
+    pd.all(1:num.trial(i),i) = y;
+    pd.avg(i) = mean(y,'omitnan');
+    pd.sem(i) = std(y)/sqrt(num.trial(i));
+end
+
+% FIGURE: 
+% r = 1;
+% c = 3;
+buff = 0.2;
+buff2 = 0.3;
+fig = getfig('',1); 
+% slope
+% subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    exp = expOrder(i);
+    x = shuffle_data(linspace(i-buff,i+buff,num.trial(exp)));
+    y = rmnan(pd.all(:,exp));
+    scatter(x,y,35, grouped(exp).color,'filled')
+    y_avg = [pd.avg(exp), pd.avg(exp)];
+    % errorbar
+    errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
+end
+formatFig(fig, blkbgd);
+ylabel('Time spent in outer')
+
+% For temp rate experiments only: show as the rate of time/hour vs absolute time
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
