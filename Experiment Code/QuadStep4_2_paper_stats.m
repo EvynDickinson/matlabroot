@@ -714,27 +714,65 @@ fig_dir = createFolder([saveDir, 'Stats/']);
 % for each trial, pull out all the data within the cooling regions and
 % warming regions for comparision:
 pd = struct;
-pd.all = nan(max(num.trial),num.exp);
+[pd.all, pd.c_avg,  pd.h_avg] = deal(nan(max(num.trial),num.exp));
 [pd.avg, pd.sem] = deal(nan(num.exp,1));
 for i = 1:num.exp
     tp = getTempTurnPoints(data(i).temp_protocol);
-    raw_y = grouped(i).ring.all; % pull all the raw data for this parameter
-    roi = tp.DownROI; % find the region for all cooling points
-    y = ((sum(raw_y(roi,:)))/length(roi))./num.trial; % find proportion of frames in the desired region
-    y = y/(fps * 60 * 60); % convert to rate/mins
+    raw_y = grouped(i).ring.all; % pull all the raw data for this parameter (this is the percent of flies in this region...)
+    raw_y = (raw_y.*data(i).T.NumFlies')./100;  % total number of flies in the region
+    roi_c = tp.DownROI; % find the region for all cooling points
+    roi_w = tp.UpROI; % find the region for all cooling points
+    c_count = sum(raw_y(roi_c,:))./data(i).T.NumFlies'; % avg frames per fly in the region (cooling)
+    h_count = sum(raw_y(roi_w,:))./data(i).T.NumFlies'; % avg frames per fly in the region (warming)
+    c_avg = ((c_count./length(roi_c)))*100; % each fly spent this % of time in the region
+    h_avg = ((h_count./length(roi_w)))*100; % each fly spent this % of time in the region
+    y = c_avg - h_avg; 
+    pd.c_avg(1:num.trial(i),i) = c_avg;
+    pd.h_avg(1:num.trial(i),i) = h_avg;
     pd.all(1:num.trial(i),i) = y;
     pd.avg(i) = mean(y,'omitnan');
     pd.sem(i) = std(y)/sqrt(num.trial(i));
 end
 
+% Stats: are there significant differences during heating and cooling? (for each genotype)
+alpha = 0.05/num.exp;
+h = ttest((pd.c_avg), (pd.h_avg),'Alpha',alpha);
+
+
 % FIGURE: 
-% r = 1;
-% c = 3;
+r = 1;
+c = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
 buff = 0.2;
 buff2 = 0.3;
 fig = getfig('',1); 
-% slope
-% subplot(r,c,1)
+% heating vs cooling
+subplot(r,c,sb(1).idx)
+hold on
+x_ticks = [];
+for i = 1:num.exp
+    exp = expOrder(i);
+    x1 = (i-buff2)*ones(num.trial(exp),1);
+    y1 = rmnan(pd.c_avg(:,exp));
+    x2 = (i+buff2)*ones(num.trial(exp),1);
+    y2 = rmnan(pd.h_avg(:,exp));
+    x = [i-buff2; i+buff2];
+    y = [mean(y1); mean(y2)];
+    plot([x1,x2]',[y1,y2]', 'color', grouped(exp).color,'linewidth', 1)
+    plot(x,y, 'color', foreColor,'linewidth', 2.5)
+    x_ticks = [x_ticks; x];
+    % y_avg = [pd.avg(exp), pd.avg(exp)];
+    % % errorbar
+    % errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    % % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
+end
+xlim([0,num.exp+1])
+set(gca, 'xtick', x_ticks, 'XTickLabel', repmat({'C','H'},[1, num.exp]))
+ylabel('Avg time spent in region (%)')
+
+% difference:
+subplot(r,c,sb(2).idx)
 hold on
 for i = 1:num.exp
     exp = expOrder(i);
@@ -746,8 +784,22 @@ for i = 1:num.exp
     errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
     % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
 end
-formatFig(fig, blkbgd);
-ylabel('Time spent in outer')
+xlim([0,num.exp+1])
+h_line(0,'grey', '--')
+ylabel('Difference in time spent in region btwn C vs H (%)')
+
+formatFig(fig, blkbgd,[r,c], sb);
+subplot(r,c,sb(2).idx)
+set(gca, 'xcolor', 'none')
+
+% plot the statistics: TODO
+
+
+% Run some statistics for this: 
+
+
+
+
 
 % For temp rate experiments only: show as the rate of time/hour vs absolute time
 
