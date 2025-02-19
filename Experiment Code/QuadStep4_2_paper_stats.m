@@ -1,7 +1,11 @@
 
+%% 
+
+% test if the data comes from a normal distribution:
+h = kstest(x);
 
 
-%% FIGURE: Thermal Threat / Temperature Escape Behavior
+%% FIGURES & STATS: Thermal Threat / Temperature Escape Behavior
 clearvars('-except',initial_vars{:})
 fig_dir = createFolder([saveDir, 'Stats/']);
 [foreColor,~] = formattingColors(blkbgd);
@@ -73,7 +77,6 @@ for i = 1:num.exp
     x = shuffle_data(linspace(xx-buff, xx+buff,length(rawY)));
     scatter(x,rawY,sz,kolor, "filled")
     plot([xx-buff2,xx+buff2],[mean(rawY),mean(rawY)],'Color',kolor,'LineWidth',lw)
-    cooling
     xx = i+buff2;
     kolor = Color('dodgerblue');
     rawY = SD.c_occ(:,i);
@@ -171,20 +174,20 @@ v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 formatFig(fig, blkbgd);
 names = strrep({grouped(:).name},'_',' ');
-set(gca,'XTick',0:1:num.exp,'YTick',0:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
 set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
 save_figure(fig,[fig_dir 'outer ring occupancy cooling slope stats'],fig_type);
 
-
 % How do the COOLING temperature dependent lines differ? Intercept based analysis
 temp = []; occ = []; exp = [];
-%format the data for the statistical test
-for i = 1:num.exp
+% format the data for the statistical test
+for tt = 1:num.exp
+    i = expOrder(tt);
     x = repmat((grouped(i).ring.temps'),[num.trial(i),1]);
     temp = [temp; x];
     y = grouped(i).ring.decreasing.raw(:);
     occ  = [occ; y];
-    exp = [exp; i*ones(size(y))];
+    exp = [exp; tt*ones(size(y))];
 end
 %run the ancova test
 [~,~,~,stats] = aoctool(temp,occ,exp);
@@ -203,16 +206,18 @@ end
 fig = getfig('',1,[705 649]);
 % imagesc(cPlot);
 % axis square equal
-xlim([0.5,num.exp+0.5])
-ylim([0.5,num.exp+0.5])
+lims = [0.5,num.exp+0.5];
+xlim(lims)
+ylim(lims)
 hold on
 scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
 v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 formatFig(fig, blkbgd);
-names = strrep({grouped(:).name},'_',' ');
-set(gca,'XTick',0:1:num.exp,'YTick',0:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+names = strrep({grouped(expOrder).name},'_',' ');
+set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
 set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+plot(lims, lims)
 save_figure(fig,[fig_dir 'outer ring occupancy cooling intercept stats'],fig_type);
 
 % How do the WARMING temperature dependent lines differ? Slope based analysis
@@ -249,7 +254,8 @@ scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
 v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 formatFig(fig, blkbgd);
-set(gca,'XTick',0:1:num.exp,'YTick',0:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+names = strrep({grouped(:).name},'_',' ');
+set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
 set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
 save_figure(fig,[fig_dir 'outer ring occupancy warming slope stats'],fig_type);
 
@@ -288,14 +294,10 @@ v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
 formatFig(fig, blkbgd);
 names = strrep({grouped(:).name},'_',' ');
-set(gca,'XTick',0:1:num.exp,'YTick',0:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
 set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
 save_figure(fig,[fig_dir 'outer ring occupancy warming intercept stats'],fig_type);
 
-%% 
-
-% test if the data comes from a normal distribution:
-h = kstest(x);
 
 
 %% FIGURE & STATS: Hysteresis for each genotype / trial
@@ -367,7 +369,7 @@ subplot(r,c,sb(2).idx)
 ylim = [min(y_lim(:,1)) max(y_lim(:,2))]; 
 subplot(r,c,sb(1).idx)
 ylim = [min(y_lim(:,1)) max(y_lim(:,2))]; 
-set(gca,'XColor','k', 'YColor','none')
+set(gca,'XColor','none', 'YColor','none')
 
 save_figure(fig,[fig_dir 'outer ring occupancy tuning curve with running heat cool stats'],fig_type);
 
@@ -616,9 +618,10 @@ end
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
 
-%% Linear regression for each trial 
+%% FIGURE & STATS: Linear regression for each trial for cooling outer ring
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd); %get background colors
+fig_dir = createFolder([saveDir, 'Stats/']);
 
 % for each trial, pull out all the data within the cooling regions and fit
 % a linear model to those data points (not binned): 
@@ -685,24 +688,52 @@ for exp = 1:num.exp
 end
 % h_line(0,'grey','--')
 ylabel('RMSE')
-
 formatFig(fig,blkbgd,[r,c]);
 for i = 1:c
     subplot(r,c,i)
     set(gca, 'xcolor', 'none')
 end
+save_figure(fig,[fig_dir 'outer ring individual fit cooling slope fits'],fig_type);
 
+% STATS: n-way anova of slope values for each group
 slopes = [];
 for i = 1:num.exp
-    slopes = [slopes; i*ones(num.trial(i),1), stats(i).slp];
+    exp = expOrder(i);
+    slopes = [slopes; i*ones(num.trial(exp),1), stats(exp).slp];
 end
 
 aov = anova(slopes(:,1), slopes(:,2));
-m = multcompare(aov,"CriticalValueType","bonferroni");
-% % display statistical differences: 
-% for 
-% 
-% end
+c = multcompare(aov,"CriticalValueType","bonferroni");
+c = table2array(c);
+% display the statistical differences: 
+thresh = 0.05; % significance level (p value adujsted to bonferroni already)
+cPlot = []; pPlot = []; names = [];
+for i = 1:size(c,1)
+    cPlot(c(i,1),c(i,2)) = (c(i,6));
+    cPlot(c(i,2),c(i,1)) = c(i,6);
+    if c(i,6)<=thresh
+        pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
+    end
+end
+names = strrep({grouped(expOrder).name},'_',' ');
+
+lims = [0.5,num.exp+0.5];
+fig = getfig('',1,[705 649]);
+% imagesc(cPlot);
+% axis square equal
+xlim(lims)
+ylim(lims)
+hold on
+scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
+v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+formatFig(fig, blkbgd);
+set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+plot(lims,lims)
+save_figure(fig,[fig_dir 'outer ring individual fit cooling slope stats'],fig_type);
+
+
 
 
 %% FIGURE: time difference in region during warming vs cooling
@@ -802,6 +833,112 @@ set(gca, 'xcolor', 'none')
 
 
 % For temp rate experiments only: show as the rate of time/hour vs absolute time
+
+
+
+
+
+
+%% FIGURE + STATS: dynamic variable linearity comparision between experiment types
+
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(false);
+switch questdlg('Increasing or decreasing?','','Warming', 'Cooling', 'Cancel', 'Cooling')
+    case 'Warming'
+        d_type = 'increasing';
+        l_type = '-';
+        x_dir = 'normal';
+    case 'Cooling'
+        d_type = 'decreasing';
+        l_type = '--';
+        x_dir = 'reverse';
+    case {'Cancel',''}
+        disp('Canceled selection')
+        return
+end
+
+switch questdlg('Analyze the slope or intercept?','','Slope', 'Intercept', 'Cancel', 'Slope')
+    case 'Slope'
+        a_type = 'slope';
+    case 'Intercept'
+        a_type = 'intercept';
+    case {'Cancel',''}
+        disp('Canceled selection')
+        return
+end
+
+% How do the selected temperature dependent lines differ?
+temp = []; y_data = []; exp = [];
+%format the data for the statistical test
+for tt = 1:num.exp
+    i = expOrder(tt);
+    x = repmat((grouped(i).(pName).temps'),[num.trial(i),1]);
+    temp = [temp; x];
+    y = grouped(i).(pName).(d_type).raw(:);
+    y_data  = [y_data; y];
+    exp = [exp; tt*ones(size(y))];
+end
+% run the ancova test
+[~,~,~,stats] = aoctool(temp,y_data,exp);
+%run the multicomparison to look at differences in slope
+c = multcompare(stats,"Estimate", a_type,"CriticalValueType","bonferroni","Display","off");
+% display the statistical differences: 
+thresh = 0.05;
+cPlot = []; pPlot = [];
+for i = 1:size(c,1)
+    cPlot(c(i,1),c(i,2)) = c(i,6);
+    cPlot(c(i,2),c(i,1)) = c(i,6);
+    if c(i,6)<=thresh
+        pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
+    end
+end
+
+% PLOT STATISTCAL COMPARISON:
+fig = getfig('',1,[705 649]);
+% imagesc(cPlot);
+% axis square equal
+lims = [0.5,num.exp+0.5];
+xlim(lims)
+ylim(lims)
+hold on
+scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
+v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+formatFig(fig, blkbgd);
+names = strrep({grouped(expOrder).name},'_',' ');
+set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+title([title_str ' ' d_type ' temp ' a_type ' stats'])
+plot(lims, lims)
+save_figure(fig,[fig_dir title_str ' ' d_type ' temp ' a_type ' stats'],fig_type);
+
+% PLOT RAW DATA BEING COMPARED:
+plot_err = 1;
+fig = getfig('',true,[480 680]); hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    x = grouped(i).(pName).temps;
+    YC = grouped(i).(pName).(d_type).raw;
+    y = mean(YC,2,'omitnan')*scaler;
+    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
+end
+% y = rangeLine(fig,2,true);
+% plot(temps, [y,y],'color', foreColor,'linewidth', 1.5)
+formatFig(fig, blkbgd);
+ylabel(y_lab)
+xlabel('temperature (\circC)')
+set(gca, 'YDir',y_dir,'XDir', x_dir)
+save_figure(fig,[fig_dir title_str ' ' d_type ' temp tuning curve'],fig_type);
+
+% TODO: add scatter plot here & stats for individually fit statistics for the given data
+
+
+
+
+
+
+
 
 
 
