@@ -769,14 +769,11 @@ end
 alpha = 0.05/num.exp;
 h = ttest((pd.c_avg), (pd.h_avg),'Alpha',alpha);
 
-
 % FIGURE: 
-r = 1;
-c = 3;
+r = 1; c = 3;
 sb(1).idx = 1:2;
 sb(2).idx = 3;
-buff = 0.2;
-buff2 = 0.3;
+buff = 0.2; buff2 = 0.3;
 fig = getfig('',1); 
 % heating vs cooling
 subplot(r,c,sb(1).idx)
@@ -824,6 +821,17 @@ subplot(r,c,sb(2).idx)
 set(gca, 'xcolor', 'none')
 
 % plot the statistics: TODO
+H = h(expOrder);
+subplot(r,c,sb(1).idx)
+y = rangeLine(fig,2,true);
+x = 1:num.exp;
+Y = y*ones(size(x));
+x(~H) = [];
+Y(~H) = [];
+scatter(x,Y,35,foreColor, 'Marker','*')
+
+save_figure(fig,[fig_dir 'Avg time spent in outer ring H & C'],fig_type);
+
 
 
 % Run some statistics for this: 
