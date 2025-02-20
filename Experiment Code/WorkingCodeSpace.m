@@ -1470,7 +1470,62 @@ for i = 1:num.exp
 end
 
 
+%% Extract timestamps and templogs from HighRes data sets
 
+% look for a raw folder
+% or look for regular files in the main folder (*file#.mat)
+% print out a list of files that still have the raw files that need to be
+% deleted -- add this as a column to the excel file
+clear; close all; clc
+
+[excelfile, Excel, xlFile] = load_HighResExperiments;
+
+rootDir = getDataPath(5, 2, 'Select location for data');
+paths = getPathNames;
+
+for i = 21:length(excelfile)
+    date = excelfile{i,Excel.date};
+    folder = excelfile{i,Excel.expID};
+    rootFolder = [rootDir, paths.courtship, date '/' folder '/'];
+    if isfolder([rootFolder 'raw'])
+        basePath = [rootFolder 'raw/'];
+    else
+        basePath = rootFolder;
+    end
+    a = dir([basePath '*file*.mat']);
+    if ~isempty(a)
+        tic
+        timestamps = struct;
+        timestamps.time = [];
+        timestamps.tempLog = [];
+        for ii = 1:length(a)
+            dummy = load([basePath 'file' num2str(ii) '.mat'],'timestamp', 'tempLog');
+            timestamps.time{ii,1} = dummy.timestamp;
+            timestamps.tempLog(ii,:) = dummy.tempLog;
+        end
+        % save the data 
+        save([rootFolder 'raw timestamps.mat'],'timestamps');
+        statusStr = 'Y'; % as in the data is now saved
+        disp([date ' ' folder ' ' statusStr])
+        toc
+    else
+        statusStr = 'N'; % as in this data does not exist any longer
+        disp([date ' ' folder ' ' statusStr])
+    end
+
+    % write that the data has been processed
+    if ~isExcelFileOpen(xlFile,true)
+        try writecell({statusStr},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.raw) num2str(i)]);
+        catch 
+            disp('couldn''t write to excel:  manually update')
+        end
+    else
+        disp('couldn''t write to excel:  manually update')
+    end
+end
+    
+
+%% 
 
 
 

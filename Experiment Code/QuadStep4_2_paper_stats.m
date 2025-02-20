@@ -765,9 +765,33 @@ for i = 1:num.exp
     pd.sem(i) = std(y)/sqrt(num.trial(i));
 end
 
+% STATISTICAL ANALYSIS: 
 % Stats: are there significant differences during heating and cooling? (for each genotype)
 alpha = 0.05/num.exp;
 h = ttest((pd.c_avg), (pd.h_avg),'Alpha',alpha);
+
+% Comparison between peak % time in region during warming or cooling across
+% conditions
+y_cool = pd.c_avg(:);
+y_warm = pd.h_avg(:);
+exp = repmat({grouped(:).name},[size(pd.c_avg,1),1]);
+exp = reshape(exp, [numel(exp), 1]);
+c_regime = repmat({'cooling'},size(exp));
+w_regime = repmat({'warming'},size(exp)); 
+% concatenate the vectors
+temp_regime = [c_regime; w_regime];
+experiments = [exp; exp];
+y = [y_cool; y_warm];
+% remove nans
+loc = isnan(y);
+temp_regime(loc) = [];
+y(loc) = [];
+experiments(loc) = [];
+% test for interaction between temperature regime (heat vs cool) and experiment groups
+tbl = table(experiments,temp_regime,y,VariableNames=["experiments" "temp_regime" "Y"]);
+aovInteraction = anova(tbl,"Y ~ experiments + temp_regime + experiments:temp_regime");
+
+anova1(pd.c_avg)
 
 % FIGURE: 
 r = 1; c = 3;
@@ -831,6 +855,9 @@ Y(~H) = [];
 scatter(x,Y,35,foreColor, 'Marker','*')
 
 save_figure(fig,[fig_dir 'Avg time spent in outer ring H & C'],fig_type);
+
+
+
 
 
 
