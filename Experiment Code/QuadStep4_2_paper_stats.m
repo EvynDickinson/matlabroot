@@ -770,8 +770,10 @@ end
 
 % STATISTICAL ANALYSIS: 
 % Stats: are there significant differences during heating and cooling? (for each genotype)
-alpha = 0.05/num.exp;
+alpha = 0.05/num.exp; %bonferonni MCC
 h = ttest((pd.c_avg), (pd.h_avg),'Alpha',alpha);
+disp('Groups with significant differences between heating and cooling:')
+disp({grouped(logical(h)).name}')
 
 % Comparison between peak % time in region during warming or cooling across
 % conditions
@@ -882,13 +884,95 @@ x(~H) = [];
 Y(~H) = [];
 scatter(x,Y,35,foreColor, 'Marker','*')
 
-save_figure(fig,[fig_dir 'Avg time spent in outer ring H & C'],fig_type);
+save_figure(fig,[fig_dir 'Percent time spent in outer ring H & C'],fig_type);
 
 % TODO (2/20): For temp rate experiments only: show as the rate of time/hour vs absolute time
+plotData = []; [c_avg, h_avg] = deal(nan(max(num.trial), num.exp));
+for i = 1:num.exp
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    % find the total time in heating or cooling:
+    dur_c = (length(tp.DownROI)/fps)/60; % total time cooling (min)
+    dur_h = (length(tp.UpROI)/fps)/60; % total time cooling (min)
+    % get the translated time: 
+    plotData(i).c = (rmnan(pd.c_avg(:,i))*dur_c)/100; % minutes in the region during cooling
+    plotData(i).h = (rmnan(pd.h_avg(:,i))*dur_h)/100; % minutes in the region during warming
+    plotData(i).diff = plotData(i).h-plotData(i).c;
+    c_avg(1:num.trial(i),i) = plotData(i).c;
+    h_avg(1:num.trial(i),i) = plotData(i).h;
+end
 
+% STATISTICAL ANALYSIS: 
+% Stats: are there significant differences during heating and cooling? (for each genotype)
+% **SHOULD** be identical to the data above
+alpha = 0.05/num.exp; %bonferonni MCC
+h = ttest((c_avg), (h_avg),'Alpha',alpha);
+disp('Groups with significant differences between heating and cooling:')
+disp({grouped(logical(h)).name}')
 
+% FIGURE: 
+r = 1; c = 3;
+sb(1).idx = 1:2;
+sb(2).idx = 3;
+buff = 0.2; buff2 = 0.3;
+fig = getfig('',1); 
+% heating vs cooling
+subplot(r,c,sb(1).idx)
+hold on
+x_ticks = [];
+for i = 1:num.exp
+    exp = expOrder(i);
+    x1 = (i-buff2)*ones(num.trial(exp),1);
+    y1 = plotData(exp).c;
+    x2 = (i+buff2)*ones(num.trial(exp),1);
+    y2 = plotData(exp).h;
+    x = [i-buff2; i+buff2];
+    y = [mean(y1); mean(y2)];
+    plot([x1,x2]',[y1,y2]', 'color', grouped(exp).color,'linewidth', 1)
+    plot(x,y, 'color', foreColor,'linewidth', 2.5)
+    x_ticks = [x_ticks; x];
+    % y_avg = [pd.avg(exp), pd.avg(exp)];
+    % % errorbar
+    % errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    % % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
+end
+xlim([0,num.exp+1])
+set(gca, 'xtick', x_ticks, 'XTickLabel', repmat({'C','H'},[1, num.exp]))
+ylabel('Avg time spent in region (min)')
 
+% difference:
+subplot(r,c,sb(2).idx)
+hold on
+for i = 1:num.exp
+    exp = expOrder(i);
+    x = shuffle_data(linspace(i-buff,i+buff,num.trial(exp)));
+    y = plotData(exp).diff;
+    scatter(x,y,35, grouped(exp).color,'filled')
+    y_avg = [mean(y), mean(y)];
+    % errorbar
+    errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
+end
+xlim([0,num.exp+1])
+h_line(0,'grey', '--')
+ylabel('Time (min) spent in heating (+) vs cooling (-)')
 
+formatFig(fig, blkbgd,[r,c], sb);
+subplot(r,c,sb(2).idx)
+set(gca, 'xcolor', 'none')
+
+% plot the statistics: TODO
+H = h(expOrder);
+subplot(r,c,sb(1).idx)
+y = rangeLine(fig,2,true);
+x = 1:num.exp;
+Y = y*ones(size(x));
+x(~H) = [];
+Y(~H) = [];
+scatter(x,Y,35,foreColor, 'Marker','*')
+
+save_figure(fig,[fig_dir 'Time spent in outer ring during H & C'],fig_type);
+
+% TODO 2/21: reprint these figures
 
 
 %% FIGURE + STATS: dynamic variable linearity comparision between experiment types
