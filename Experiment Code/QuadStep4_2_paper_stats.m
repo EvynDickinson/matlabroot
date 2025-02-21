@@ -705,32 +705,35 @@ end
 aov = anova(slopes(:,1), slopes(:,2));
 c = multcompare(aov,"CriticalValueType","bonferroni");
 c = table2array(c);
-% display the statistical differences: 
-thresh = 0.05; % significance level (p value adujsted to bonferroni already)
-cPlot = []; pPlot = []; names = [];
-for i = 1:size(c,1)
-    cPlot(c(i,1),c(i,2)) = (c(i,6));
-    cPlot(c(i,2),c(i,1)) = c(i,6);
-    if c(i,6)<=thresh
-        pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
-    end
-end
 names = strrep({grouped(expOrder).name},'_',' ');
-
-lims = [0.5,num.exp+0.5];
-fig = getfig('',1,[705 649]);
-% imagesc(cPlot);
-% axis square equal
-xlim(lims)
-ylim(lims)
-hold on
-scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
-v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
-h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
-formatFig(fig, blkbgd);
-set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
-set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
-plot(lims,lims)
+fig = getMultiCompSignTable(c, 1:num.exp, blkbgd, 0.05, names);
+title('outer ring individual fit cooling slope stats')
+% % display the statistical differences: 
+% thresh = 0.05; % significance level (p value adujsted to bonferroni already)
+% cPlot = []; pPlot = []; names = [];
+% for i = 1:size(c,1)
+%     cPlot(c(i,1),c(i,2)) = (c(i,6));
+%     cPlot(c(i,2),c(i,1)) = c(i,6);
+%     if c(i,6)<=thresh
+%         pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
+%     end
+% end
+% names = strrep({grouped(expOrder).name},'_',' ');
+% 
+% lims = [0.5,num.exp+0.5];
+% fig = getfig('',1,[705 649]);
+% % imagesc(cPlot);
+% % axis square equal
+% xlim(lims)
+% ylim(lims)
+% hold on
+% scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
+% v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+% h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
+% formatFig(fig, blkbgd);
+% set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
+% set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+% plot(lims,lims)
 save_figure(fig,[fig_dir 'outer ring individual fit cooling slope stats'],fig_type);
 
 
@@ -791,7 +794,32 @@ experiments(loc) = [];
 tbl = table(experiments,temp_regime,y,VariableNames=["experiments" "temp_regime" "Y"]);
 aovInteraction = anova(tbl,"Y ~ experiments + temp_regime + experiments:temp_regime");
 
-anova1(pd.c_avg)
+% One-way anova of time spent in the region during warming | cooling across
+% experiment groups
+names = strrep({grouped(expOrder).name},'_',' ');
+for tt = 1:2
+    switch tt
+        case 1
+            y_type = 'cooling';
+            y_raw = y_cool;
+        case 2 
+            y_type = 'warming';
+            y_raw = y_warm;
+    end
+    [p,~,stats] = anova1(y_raw, exp, 'off'); 
+    [c, m,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni");
+    cold_stats = array2table(c, "VariableNames", ["Group", "Control Group", "Lower Limit","Difference","Upper Limit","P-value"]);
+    cold_stats.("Group") = gnames(cold_stats.("Group"));
+    cold_stats.("Control Group") = gnames(cold_stats.("Control Group"));
+    fprintf(['\n \n ' y_type '\n'])
+    disp(cold_stats)
+    
+    % PLOT anova mulitple comparisons matrix
+    fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names);
+    title(['Time in region during ' y_type])
+    save_figure(fig,[fig_dir 'outer ring differences in time in region ' y_type],fig_type);
+end
+
 
 % FIGURE: 
 r = 1; c = 3;
@@ -856,18 +884,7 @@ scatter(x,Y,35,foreColor, 'Marker','*')
 
 save_figure(fig,[fig_dir 'Avg time spent in outer ring H & C'],fig_type);
 
-
-
-
-
-
-% Run some statistics for this: 
-
-
-
-
-
-% For temp rate experiments only: show as the rate of time/hour vs absolute time
+% TODO (2/20): For temp rate experiments only: show as the rate of time/hour vs absolute time
 
 
 
@@ -916,34 +933,9 @@ end
 [~,~,~,stats] = aoctool(temp,y_data,exp);
 %run the multicomparison to look at differences in slope
 c = multcompare(stats,"Estimate", a_type,"CriticalValueType","bonferroni","Display","off");
-% display the statistical differences: 
-thresh = 0.05;
-cPlot = []; pPlot = [];
-for i = 1:size(c,1)
-    cPlot(c(i,1),c(i,2)) = c(i,6);
-    cPlot(c(i,2),c(i,1)) = c(i,6);
-    if c(i,6)<=thresh
-        pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
-    end
-end
-
-% PLOT STATISTCAL COMPARISON:
-fig = getfig('',1,[705 649]);
-% imagesc(cPlot);
-% axis square equal
-lims = [0.5,num.exp+0.5];
-xlim(lims)
-ylim(lims)
-hold on
-scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
-v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
-h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
-formatFig(fig, blkbgd);
 names = strrep({grouped(expOrder).name},'_',' ');
-set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
-set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
+fig = getMultiCompSignTable(c, 1:num.exp, blkbgd, 0.05, names);
 title([title_str ' ' d_type ' temp ' a_type ' stats'])
-plot(lims, lims)
 save_figure(fig,[fig_dir title_str ' ' d_type ' temp ' a_type ' stats'],fig_type);
 
 % PLOT RAW DATA BEING COMPARED:
