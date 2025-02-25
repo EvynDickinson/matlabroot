@@ -1,8 +1,19 @@
 
-function [fig, cPlot, pPlot] = getMultiCompSignTable(c, expOrder, blkbgd, thresh, names)
 
-% TODO: get this to account for group names that don't match the right order....
 
+function [fig, cPlot, pPlot] = getMultiCompSignTable(c, expOrder, blkbgd, thresh, names, namematch)
+% [fig, cPlot, pPlot] = getMultiCompSignTable(c, expOrder, blkbgd, thresh, names, namematch)
+%
+% c = the stats list structure
+% expOrder = the desired order within the matrix, default is 1:n
+% blkbng = T|F for the desired background color (true=black)
+% thresh = significance level of p-value for plotting a significance star (default 0.05)
+% names = label names for each category (default 1:n)
+% namematch = T|F ; match the name order to the experiment order, (e.g., if both need
+% to be ordered by the expOrder, set this to true. If false, it will pair expOrder(1)
+% with name(1)) Default is false -- e.g. that the names do NOT need to rearranged
+%
+% ES Dickinson
 
 if nargin <3
     blkbgd = true;
@@ -19,10 +30,20 @@ end
 if nargin <5
     names = 1:n;
 end
+if nargin == 6 && namematch
+    nameList = names(expOrder);
+else
+    nameList = names;
+end
 
 buff = 0.5; % spacing for plotting (1/2 column width)
-sz = 150; % plot symbol size
+sz = 700; % plot symbol size
 lw = 4;
+if blkbgd
+    lcolor = 'white';
+else
+    lcolor = 'black';
+end
 
 % display the statistical differences: 
     
@@ -44,12 +65,14 @@ lw = 4;
     xlim(lims)
     ylim(lims)
     hold on
-    scatter(pPlot(:,1), pPlot(:,2), sz, foreColor, '*')
-    v_line(buff:1:n+buff,'grey','-',1)
-    h_line(buff:1:n+buff,'grey','-',1)
-    plot(lims,lims)
+    scatter(pPlot(:,1), pPlot(:,2), sz, foreColor,'filled', 'pentagram')
+    v_line(buff:1:n+buff,lcolor,'-',lw)
+    h_line(buff:1:n+buff,lcolor,'-',lw)
+    %     v_line(buff:1:n+buff,'grey','-',lw)
+    % h_line(buff:1:n+buff,'grey','-',lw)
+    plot(lims,lims,'color', Color('gold'),'linewidth', 1.5)
 
     formatFig(fig, blkbgd);
-    set(gca,'XTick',1:1:n,'YTick',1:1:n,'XTickLabel',names,'YTickLabel',names)
+    set(gca,'XTick',1:1:n,'YTick',1:1:n,'XTickLabel',nameList,'YTickLabel',nameList)
     set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
-    
+    set(gca, 'LineWidth', lw+1)  %change box lines to 1 larger than inner lines

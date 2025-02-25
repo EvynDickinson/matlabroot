@@ -708,38 +708,13 @@ c = table2array(c);
 names = strrep({grouped(expOrder).name},'_',' ');
 fig = getMultiCompSignTable(c, 1:num.exp, blkbgd, 0.05, names);
 title('outer ring individual fit cooling slope stats')
-% % display the statistical differences: 
-% thresh = 0.05; % significance level (p value adujsted to bonferroni already)
-% cPlot = []; pPlot = []; names = [];
-% for i = 1:size(c,1)
-%     cPlot(c(i,1),c(i,2)) = (c(i,6));
-%     cPlot(c(i,2),c(i,1)) = c(i,6);
-%     if c(i,6)<=thresh
-%         pPlot = [pPlot; c(i,1),c(i,2); c(i,2),c(i,1)];
-%     end
-% end
-% names = strrep({grouped(expOrder).name},'_',' ');
-% 
-% lims = [0.5,num.exp+0.5];
-% fig = getfig('',1,[705 649]);
-% % imagesc(cPlot);
-% % axis square equal
-% xlim(lims)
-% ylim(lims)
-% hold on
-% scatter(pPlot(:,1), pPlot(:,2), 100, foreColor, '*')
-% v_line(0.5:1:num.exp+0.5,'grey','-',0.5)
-% h_line(0.5:1:num.exp+0.5,'grey','-',0.5)
-% formatFig(fig, blkbgd);
-% set(gca,'XTick',1:1:num.exp,'YTick',1:1:num.exp,'XTickLabel',names,'YTickLabel',names)
-% set(gca, 'TickLength',[0,0],'Box','on','XDir', 'reverse', 'YDir','normal','XTickLabelRotation',90)
-% plot(lims,lims)
+
 save_figure(fig,[fig_dir 'outer ring individual fit cooling slope stats'],fig_type);
 
 
 
 
-%% FIGURE & STATS: show time in specific region during warming vs cooling (temp independent) 
+%% FIGURES & STATS: relative and absolute time in specific regions during warming vs cooling (temp independent) 
 clearvars('-except',initial_vars{:})
 fig_dir = createFolder([saveDir, 'Stats/']);
 [foreColor,~] = formattingColors(blkbgd); %get background colors
@@ -761,13 +736,14 @@ for i = 1:num.exp
     h_count = sum(raw_y(roi_w,:))./data(i).T.NumFlies'; % avg frames per fly in the region (warming)
     c_avg = ((c_count./length(roi_c)))*100; % each fly spent this % of time in the region
     h_avg = ((h_count./length(roi_w)))*100; % each fly spent this % of time in the region
-    y = c_avg - h_avg; 
+    y = h_avg - c_avg; 
     pd.c_avg(1:num.trial(i),i) = c_avg;
     pd.h_avg(1:num.trial(i),i) = h_avg;
     pd.all(1:num.trial(i),i) = y;
     pd.avg(i) = mean(y,'omitnan');
     pd.sem(i) = std(y)/sqrt(num.trial(i));
 end
+% note: PD structure is not is experiment order, it is in grouped order.
 
 % ------------ STATISTICAL ANALYSES ------------ 
 
@@ -799,7 +775,7 @@ disp(aovInteraction)
 
 % One-way anova of % time spent in the region during warming | cooling across
 % experiment groups
-names = strrep({grouped(expOrder).name},'_',' ');
+names = strrep({grouped(:).name},'_',' ');
 for tt = 1:2
     switch tt
         case 1
@@ -818,7 +794,7 @@ for tt = 1:2
     disp(cold_stats)
     
     % PLOT anova mulitple comparisons matrix
-    fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names);
+    fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names,true);
     title(['Time in ' title_str ' during ' y_type],'Color',foreColor)
     save_figure(fig,[fig_dir title_str ' differences in time during ' y_type],fig_type);
 end
@@ -833,8 +809,8 @@ exp = reshape(exp,[numel(y),1]);
 loc = isnan(y);
 y(loc) = [];
 exp(loc) = [];
-[p,~,stats] = anova1(y, exp, 'off'); 
-[c, m,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni",'Display','off');
+[~,~,stats] = anova1(y, exp, 'off'); 
+[c, ~,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni",'Display','off');
 group_stats = array2table(c, "VariableNames", ["Group", "Control Group", "Lower Limit","Difference","Upper Limit","P-value"]);
 group_stats.("Group") = gnames(group_stats.("Group"));
 group_stats.("Control Group") = gnames(group_stats.("Control Group"));
@@ -842,7 +818,7 @@ fprintf('\n \n Grouped data: \n')
 disp(group_stats)
 
 % PLOT anova mulitple comparisons matrix
-fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names);
+fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names,true);
 title(['Assymetry btwn W&C in ' title_str],'Color',foreColor)
 save_figure(fig,[fig_dir title_str ' asymetry across W and C percent time'],fig_type);
 
@@ -856,7 +832,7 @@ disp({grouped(logical(h)).name}')
 
 % ---------------------------------------------------------
 
-% FIGURE: 
+% Group FIGURE: 
 r = 1; c = 3;
 sb(1).idx = 1:2;
 sb(2).idx = 3;
@@ -916,9 +892,13 @@ x = 1:num.exp;
 Y = y*ones(size(x));
 x(~H) = [];
 Y(~H) = [];
-scatter(x,Y,35,foreColor, 'Marker','*')
+scatter(x,Y,150,foreColor, 'filled', 'pentagram')
 
 save_figure(fig,[fig_dir 'Percent time spent in ' title_str ' H & C'],fig_type);
+
+% --------------------------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------------------
+% ------------------------------- Absolute time comparisons --------------------------------------------
 
 % Show as total time spent in a region, rather than the proportion of time (mostly
 % interesting for the different temperature rate experiments) 
@@ -932,6 +912,7 @@ for i = 1:num.exp
     plotData(i).c = ((rmnan(pd.c_avg(:,i))*dur_c)/100)*scaler; % minutes in the region during cooling
     plotData(i).h = ((rmnan(pd.h_avg(:,i))*dur_h)/100)*scaler; % minutes in the region during warming
     plotData(i).diff = plotData(i).h-plotData(i).c;
+    plotData(i).sem = std(plotData(i).diff)./sqrt(num.trial(i));
     c_avg(1:num.trial(i),i) = plotData(i).c;
     h_avg(1:num.trial(i),i) = plotData(i).h;
 end
@@ -982,7 +963,7 @@ for i = 1:num.exp
     scatter(x,y,35, grouped(exp).color,'filled')
     y_avg = [mean(y), mean(y)];
     % errorbar
-    errorbar(i,y_avg(1), pd.sem(exp)*scaler,'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    errorbar(i,y_avg(1), plotData(exp).sem,'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
     % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
 end
 xlim([0,num.exp+1])
@@ -1001,57 +982,65 @@ x = 1:num.exp;
 Y = y*ones(size(x));
 x(~H) = [];
 Y(~H) = [];
-scatter(x,Y,35,foreColor, 'Marker','*')
-
+scatter(x,Y,150,foreColor, 'filled', 'pentagram')
 save_figure(fig,[fig_dir 'Time spent in ' title_str ' during H & C'],fig_type);
+
+% ---------------------------------------------------------
+
+% One-way anova in the warming/cooling assymetry behavior between exp groups
+y = []; exp = [];
+for i = 1:num.exp
+    y = [y; plotData(i).diff];
+    exp = [exp; repmat({grouped(i).name},size(plotData(i).diff))];
+end
+[p,~,stats] = anova1(y, exp, 'off'); 
+[c, m,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni",'Display','off');
+group_stats = array2table(c, "VariableNames", ["Group", "Control Group", "Lower Limit","Difference","Upper Limit","P-value"]);
+group_stats.("Group") = gnames(group_stats.("Group"));
+group_stats.("Control Group") = gnames(group_stats.("Control Group"));
+fprintf('\n \n Grouped data: \n')
+disp(group_stats)
+
+% PLOT anova mulitple comparisons matrix
+fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names,true);
+title(['time assymetry btwn W&C in ' title_str],'Color',foreColor)
+save_figure(fig,[fig_dir title_str ' asymetry across W and C absolute time'],fig_type);
 
 
 %% FIGURE + STATS: dynamic variable linearity comparision between experiment types
-
+% fully grouped models -- not run on individual trials but fit across all trials' data
+clearvars('-except',initial_vars{:})
+fig_dir = createFolder([saveDir, 'Stats/']);
+[foreColor,~] = formattingColors(blkbgd); %get background colors
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(false);
-switch questdlg('Increasing or decreasing?','','Warming', 'Cooling', 'Cancel', 'Cooling')
+a = questdlg('Increasing or decreasing?','','Warming', 'Cooling', 'Cancel', 'Cooling');
+switch a
     case 'Warming'
         d_type = 'increasing';
         l_type = '-';
         x_dir = 'normal';
+        roi_name = 'UpROI';
     case 'Cooling'
         d_type = 'decreasing';
         l_type = '--';
         x_dir = 'reverse';
+        roi_name = 'DownROI';
     case {'Cancel',''}
         disp('Canceled selection')
         return
 end
 
-switch questdlg('Analyze the slope or intercept?','','Slope', 'Intercept', 'Cancel', 'Slope')
-    case 'Slope'
-        a_type = 'slope';
-    case 'Intercept'
-        a_type = 'intercept';
-    case {'Cancel',''}
-        disp('Canceled selection')
-        return
-end
-
-% How do the selected temperature dependent lines differ?
-temp = []; y_data = []; exp = [];
-%format the data for the statistical test
-for tt = 1:num.exp
-    i = expOrder(tt);
-    x = repmat((grouped(i).(pName).temps'),[num.trial(i),1]);
-    temp = [temp; x];
-    y = grouped(i).(pName).(d_type).raw(:);
-    y_data  = [y_data; y];
-    exp = [exp; tt*ones(size(y))];
-end
-% run the ancova test
-[~,~,~,stats] = aoctool(temp,y_data,exp);
-%run the multicomparison to look at differences in slope
-c = multcompare(stats,"Estimate", a_type,"CriticalValueType","bonferroni","Display","off");
-names = strrep({grouped(expOrder).name},'_',' ');
-fig = getMultiCompSignTable(c, 1:num.exp, blkbgd, 0.05, names);
-title([title_str ' ' d_type ' temp ' a_type ' stats'])
-save_figure(fig,[fig_dir title_str ' ' d_type ' temp ' a_type ' stats'],fig_type);
+% switch questdlg('Analyze the slope or intercept?','','Slope', 'Intercept', 'Cancel', 'Slope')
+%     case 'Slope'
+%         a_type = 'slope';
+%         b_type = 'slp';
+%     case 'Intercept'
+%         a_type = 'intercept';
+%         b_type = 'intercept';
+%     case {'Cancel',''}
+%         disp('Canceled selection')
+%         return
+% end
 
 % PLOT RAW DATA BEING COMPARED:
 plot_err = 1;
@@ -1073,14 +1062,307 @@ xlabel('temperature (\circC)')
 set(gca, 'YDir',y_dir,'XDir', x_dir)
 save_figure(fig,[fig_dir title_str ' ' d_type ' temp tuning curve'],fig_type);
 
-% TODO: add scatter plot here & stats for individually fit statistics for the given data
+% How do the selected temperature dependent lines differ?
+temp = []; y_data = []; exp = [];
+%format the data for the statistical test
+for tt = 1:num.exp
+    i = expOrder(tt);
+    x = repmat((grouped(i).(pName).temps'),[num.trial(i),1]);
+    temp = [temp; x];
+    y = grouped(i).(pName).(d_type).raw(:);
+    y_data  = [y_data; y];
+    exp = [exp; tt*ones(size(y))];
+end
+% run the ancova test
+[~,~,~,stats] = aoctool(temp,y_data,exp,0.05,'','','', "off");
+for ii = 1:2
+    switch ii
+        case 1
+            param_type = 'slope';
+        case 2 
+            param_type = 'intercept';
+    end
+    %run the multicomparison to look at differences in slope
+    c = multcompare(stats,"Estimate", param_type,"CriticalValueType","bonferroni","Display","off");
+    names = strrep({grouped(expOrder).name},'_',' ');
+    fig = getMultiCompSignTable(c, 1:num.exp, blkbgd, 0.05, names);
+    title([title_str ' ' d_type ' temp ' param_type ' stats'],'color', foreColor)
+    save_figure(fig,[fig_dir title_str ' ' d_type ' temp ' param_type ' stats'],fig_type);
+end
+
+% -------------------------------------------------------------------------------------------------------------
+% -----------------------------    Individual fits for the data     -----------------------------------
+% -------------------------------------------------------------------------------------------------------------
+
+% for each trial, pull out all the data within the cooling regions and fit
+% a linear model to those data points (not binned): 
+stats = struct;
+for i = 1:num.exp
+    [stats(i).R2, stats(i).slp, stats(i).RMSE, stats(i).intercept] = deal(nan(num.trial(i),1));
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    raw_y = grouped(i).(pName).all; % pull all the raw data for this parameter
+    roi = tp.(roi_name); % find the region for all cooling points
+    for trial = 1:num.trial(i)
+        temp = grouped(i).temp(roi);
+        y = raw_y(roi,trial);
+        mdl = fitlm(temp,y);
+        stats(i).R2(trial) = mdl.Rsquared.Ordinary;
+        stats(i).slp(trial) = table2array(mdl.Coefficients(2,1));
+        stats(i).intercept(trial) = table2array(mdl.Coefficients(1,1));
+        stats(i).RMSE(trial) = mdl.RMSE;
+    end
+    disp(['Finished ' num2str(i)])
+end
+
+% PLOT LINEAR FIT PARAMETERS
+r = 1;
+c = 4;
+buff = 0.2;
+buff2 = 0.3;
+fig = getfig('',1); 
+% slope
+subplot(r,c,1)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).slp.*scaler;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+h_line(0,'grey','--')
+ylabel([ 'Slope of temp - ' title_str ' occupancy'])
+% intercept
+subplot(r,c,2)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).intercept.*scaler;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+h_line(0,'grey','--')
+ylabel(['Intercept of temp - ' title_str ' occupancy'])
+% R2
+subplot(r,c,3)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).R2;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+ylabel('R2 value')
+% RMSE value
+subplot(r,c,4)
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(i)));
+    y = stats(i).RMSE;
+    scatter(x,y,35, grouped(i).color,'filled')
+    y_avg = mean(y);
+    plot([exp-buff2,exp+buff2],[y_avg, y_avg],'Color', foreColor,'linewidth', 1.5)
+end
+ylabel('RMSE')
+formatFig(fig,blkbgd,[r,c]);
+for i = 1:c
+    subplot(r,c,i)
+    set(gca, 'xcolor', 'none')
+end
+save_figure(fig,[fig_dir title_str ' individual fits'],fig_type);
+
+% STATS: n-way anova of slope values for each group
+for ii = 1:2
+    switch ii
+        case 1 
+            param_str = 'slp';
+            b = 'slope';
+        case 2
+            param_str = 'intercept';
+            b = 'intercept';
+    end
+    y_raw = [];
+    for i = 1:num.exp
+        exp = expOrder(i);
+        y_raw = [y_raw; i*ones(num.trial(exp),1), stats(exp).(param_str)];
+    end
+    
+    aov = anova(y_raw(:,1), y_raw(:,2));
+    c = multcompare(aov,"CriticalValueType","bonferroni");
+    c = table2array(c);
+    names = strrep({grouped(expOrder).name},'_',' ');
+    fig = getMultiCompSignTable(c, 1:num.exp, blkbgd, 0.05, names);
+    title([title_str ' individual fit ' a ' ' b ' fits'],'color', foreColor)
+
+    save_figure(fig,[fig_dir title_str ' individual fit ' a ' ' b ' fit stats'],fig_type);
+end
 
 
 
+%%
 
+%% FIGURE: Time Course for single parameter -- select your metric
+% TODO add flies on food to this section
+clearvars('-except',initial_vars{:})
 
+plot_err = true;
+autoLim = true;
+xlim_auto = true; % change the time range for the x axis
+time_limits = [0,900]; % time limits if manual control over x-axis range
+nMax =  num.exp;%
+[~,backColor] = formattingColors(blkbgd); %get background colors
 
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(true);
+switch questdlg('Plot error?','','True','False', 'Cancel','True')
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
+if isempty(title_str)
+    return
+end
+fig_dir = [saveDir, dir_end];
+% set figure folder
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
 
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
+sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
+
+LW = 0.75;
+sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = num.exp:-1:1
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+   % selected parameter time course
+    subplot(r,c,sb(2).idx); hold on
+        switch dType
+            case 1 % single trial lines
+                for trial = 1:num.trial(i)
+                    y = smooth(grouped(i).(pName).all(:,trial),sSpan, 'moving')*scaler;
+                    plot(x,y,'LineWidth',LW,'Color',kolor)
+                end
+            case {2, 3} % avg line
+                y = smooth(grouped(i).(pName).avg,sSpan, 'moving')*scaler;
+                plot(x,y,'LineWidth',LW,'Color',kolor)
+        end
+
+    %temp vs dependent variable tuning curve
+    subplot(r,c,sb(3).idx); hold on
+    
+     switch dType
+         case 1 % single trial lines
+            for trial = 1:num.trial(i)
+                if strcmp(pName, 'dist')
+                    x = grouped(i).(pName).distavgbytemp(:,1);
+                    rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
+                else
+                    x = grouped(i).(pName).temps;
+                    rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
+                end
+                y = mean(rawY,2,'omitnan')*scaler;
+                plot(x,y,'color',kolor,'linewidth',1.25)
+            end
+
+         case 2 % avg lines (combined heating and cooling)
+            if strcmp(pName, 'dist')
+                x = grouped(i).(pName).distavgbytemp(:,1);
+                rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
+            else
+                x = grouped(i).(pName).temps;
+                rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
+            end
+            y = mean(rawY,2,'omitnan')*scaler;
+            y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+            plot(x,y,'color',kolor,'linewidth',1.25)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+
+         case 3 % separated heating and cooling
+            if strcmp(pName, 'dist')
+                x = grouped(i).(pName).distavgbytemp(:,1);
+                YC = grouped(i).decreasing.all;
+                YH = grouped(i).increasing.all;
+            else
+                x = grouped(i).(pName).temps;
+                YC = grouped(i).(pName).decreasing.raw;
+                YH = grouped(i).(pName).increasing.raw;
+            end
+            % cooling
+            y = mean(YC,2,'omitnan')*scaler;
+            y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
+            % heating
+            y = mean(YH,2,'omitnan')*scaler;
+            y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
+     end
+     dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",backColor)
+
+% distance
+subplot(r,c,sb(2).idx)
+ylabel(y_lab)
+xlabel('time (min)')
+set(gca,'ydir',y_dir)
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel(y_lab)
+xlabel('temp (\circC)')
+% if ~autoLim
+%     ylim(dt_lim)
+% end
+h_line(nullD,'grey',':',2) %36.2
+set(gca,'ydir',y_dir)
+
+if ~xlim_auto
+    subplot(r,c,sb(1).idx)
+    set(gca, 'xlim', time_limits)
+    subplot(r,c,sb(2).idx)
+    set(gca, 'xlim', time_limits)
+    % ylim([0,100])
+    % ylim([20,100])
+end
+
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
 
 
