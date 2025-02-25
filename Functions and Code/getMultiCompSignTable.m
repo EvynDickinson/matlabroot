@@ -1,6 +1,9 @@
 
 function [fig, cPlot, pPlot] = getMultiCompSignTable(c, expOrder, blkbgd, thresh, names)
 
+% TODO: get this to account for group names that don't match the right order....
+
+
 if nargin <3
     blkbgd = true;
 end
@@ -19,6 +22,7 @@ end
 
 buff = 0.5; % spacing for plotting (1/2 column width)
 sz = 150; % plot symbol size
+lw = 4;
 
 % display the statistical differences: 
     

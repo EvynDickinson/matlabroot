@@ -1,6 +1,6 @@
 
 
-function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PlotParamSelection(plotType,location_only)
+function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PlotParamSelection(plotType,locaction_only)
 % [pName,y_dir,y_lab,nullD,scaler] = PlotParamSelection(plotType);
 % plotType = true --> select the type of data to plot (e.g., avg, single
 % trial, separated heating and cooling
@@ -17,10 +17,10 @@ function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PlotParamSe
 % ES Dickinson, 2024
 
 % Select the type of information to plot: 
-if nargin>1 && location_only
-    paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy'};
-else
+if nargin<2 |
     paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Proximity to Food','Speed','Sleep'};
+else
+    paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy'};
 end
 
 idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200]);

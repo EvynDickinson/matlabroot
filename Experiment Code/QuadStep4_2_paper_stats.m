@@ -739,12 +739,13 @@ save_figure(fig,[fig_dir 'outer ring individual fit cooling slope stats'],fig_ty
 
 
 
-%% FIGURE: time difference in region during warming vs cooling
+%% FIGURE & STATS: show time in specific region during warming vs cooling (temp independent) 
 clearvars('-except',initial_vars{:})
 fig_dir = createFolder([saveDir, 'Stats/']);
 [foreColor,~] = formattingColors(blkbgd); %get background colors
+[title_str, pName,~,~,~,scaler,~,~] = PlotParamSelection(false,true);
 
-% DATA EXTRACTION:
+% ------------ DATA EXTRACTION ------------ 
 % for each trial, pull out all the data within the cooling regions and
 % warming regions for comparision:
 pd = struct;
@@ -752,7 +753,7 @@ pd = struct;
 [pd.avg, pd.sem] = deal(nan(num.exp,1));
 for i = 1:num.exp
     tp = getTempTurnPoints(data(i).temp_protocol);
-    raw_y = grouped(i).ring.all; % pull all the raw data for this parameter (this is the percent of flies in this region...)
+    raw_y = grouped(i).(pName).all; % pull all the raw data for this parameter (this is the percent of flies in this region...)
     raw_y = (raw_y.*data(i).T.NumFlies')./100;  % total number of flies in the region
     roi_c = tp.DownROI; % find the region for all cooling points
     roi_w = tp.UpROI; % find the region for all cooling points
@@ -768,15 +769,11 @@ for i = 1:num.exp
     pd.sem(i) = std(y)/sqrt(num.trial(i));
 end
 
-% STATISTICAL ANALYSIS: 
-% Stats: are there significant differences during heating and cooling? (for each genotype)
-alpha = 0.05/num.exp; %bonferonni MCC
-h = ttest((pd.c_avg), (pd.h_avg),'Alpha',alpha);
-disp('Groups with significant differences between heating and cooling:')
-disp({grouped(logical(h)).name}')
+% ------------ STATISTICAL ANALYSES ------------ 
 
-% Comparison between peak % time in region during warming or cooling across
-% conditions
+% ---------------------------------------------------------
+% ANOVA with Interactions:
+% Comparison between peak % time in region during warming & cooling across conditions
 y_cool = pd.c_avg(:);
 y_warm = pd.h_avg(:);
 exp = repmat({grouped(:).name},[size(pd.c_avg,1),1]);
@@ -795,8 +792,12 @@ experiments(loc) = [];
 % test for interaction between temperature regime (heat vs cool) and experiment groups
 tbl = table(experiments,temp_regime,y,VariableNames=["experiments" "temp_regime" "Y"]);
 aovInteraction = anova(tbl,"Y ~ experiments + temp_regime + experiments:temp_regime");
+disp('ANOVA with interaction test for data:')
+disp(aovInteraction)
 
-% One-way anova of time spent in the region during warming | cooling across
+% ---------------------------------------------------------
+
+% One-way anova of % time spent in the region during warming | cooling across
 % experiment groups
 names = strrep({grouped(expOrder).name},'_',' ');
 for tt = 1:2
@@ -808,8 +809,8 @@ for tt = 1:2
             y_type = 'warming';
             y_raw = y_warm;
     end
-    [p,~,stats] = anova1(y_raw, exp, 'off'); 
-    [c, m,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni");
+    [~,~,stats] = anova1(y_raw, exp, 'off'); 
+    [c, ~,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni",'Display','off');
     cold_stats = array2table(c, "VariableNames", ["Group", "Control Group", "Lower Limit","Difference","Upper Limit","P-value"]);
     cold_stats.("Group") = gnames(cold_stats.("Group"));
     cold_stats.("Control Group") = gnames(cold_stats.("Control Group"));
@@ -818,10 +819,42 @@ for tt = 1:2
     
     % PLOT anova mulitple comparisons matrix
     fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names);
-    title(['Time in region during ' y_type])
-    save_figure(fig,[fig_dir 'outer ring differences in time in region ' y_type],fig_type);
+    title(['Time in ' title_str ' during ' y_type],'Color',foreColor)
+    save_figure(fig,[fig_dir title_str ' differences in time during ' y_type],fig_type);
 end
 
+% ---------------------------------------------------------
+
+% One-way anova in the warming/cooling assymetry behavior between exp groups
+names = strrep({grouped(:).name},'_',' ');
+exp = repmat({grouped(:).name},[size(pd.all,1),1]);
+y = pd.all(:); %pd is not expOrder but grouped order
+exp = reshape(exp,[numel(y),1]);
+loc = isnan(y);
+y(loc) = [];
+exp(loc) = [];
+[p,~,stats] = anova1(y, exp, 'off'); 
+[c, m,~,gnames] = multcompare(stats,"CriticalValueType","bonferroni",'Display','off');
+group_stats = array2table(c, "VariableNames", ["Group", "Control Group", "Lower Limit","Difference","Upper Limit","P-value"]);
+group_stats.("Group") = gnames(group_stats.("Group"));
+group_stats.("Control Group") = gnames(group_stats.("Control Group"));
+fprintf('\n \n Grouped data: \n')
+disp(group_stats)
+
+% PLOT anova mulitple comparisons matrix
+fig = getMultiCompSignTable(c, expOrder, blkbgd, 0.05, names);
+title(['Assymetry btwn W&C in ' title_str],'Color',foreColor)
+save_figure(fig,[fig_dir title_str ' asymetry across W and C percent time'],fig_type);
+
+% ---------------------------------------------------------
+
+% Stats: are there significant differences during heating and cooling? (for each genotype)
+alpha = 0.05/num.exp; %bonferonni MCC
+h = ttest((pd.c_avg), (pd.h_avg),'Alpha',alpha);
+disp('Groups with significant differences between heating and cooling:')
+disp({grouped(logical(h)).name}')
+
+% ---------------------------------------------------------
 
 % FIGURE: 
 r = 1; c = 3;
@@ -836,9 +869,9 @@ x_ticks = [];
 for i = 1:num.exp
     exp = expOrder(i);
     x1 = (i-buff2)*ones(num.trial(exp),1);
-    y1 = rmnan(pd.c_avg(:,exp));
+    y1 = rmnan(pd.c_avg(:,exp))*scaler;
     x2 = (i+buff2)*ones(num.trial(exp),1);
-    y2 = rmnan(pd.h_avg(:,exp));
+    y2 = rmnan(pd.h_avg(:,exp))*scaler;
     x = [i-buff2; i+buff2];
     y = [mean(y1); mean(y2)];
     plot([x1,x2]',[y1,y2]', 'color', grouped(exp).color,'linewidth', 1)
@@ -849,9 +882,9 @@ for i = 1:num.exp
     % errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
     % % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
 end
-xlim([0,num.exp+1])
+xlim([1-(buff2*2),num.exp+(2*buff2)])
 set(gca, 'xtick', x_ticks, 'XTickLabel', repmat({'C','H'},[1, num.exp]))
-ylabel('Avg time spent in region (%)')
+ylabel(['Avg time spent in ' title_str ' (%)'])
 
 % difference:
 subplot(r,c,sb(2).idx)
@@ -859,22 +892,23 @@ hold on
 for i = 1:num.exp
     exp = expOrder(i);
     x = shuffle_data(linspace(i-buff,i+buff,num.trial(exp)));
-    y = rmnan(pd.all(:,exp));
+    y = rmnan(pd.all(:,exp))*scaler;
     scatter(x,y,35, grouped(exp).color,'filled')
     y_avg = [pd.avg(exp), pd.avg(exp)];
+    y_avg = y_avg*scaler;
     % errorbar
-    errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    errorbar(i,y_avg(1), pd.sem(exp)*scaler,'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
     % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
 end
 xlim([0,num.exp+1])
 h_line(0,'grey', '--')
-ylabel('Difference in time spent in region btwn C vs H (%)')
+ylabel(['Difference in time spent in ' title_str ' btwn C vs H (%)'])
 
 formatFig(fig, blkbgd,[r,c], sb);
 subplot(r,c,sb(2).idx)
 set(gca, 'xcolor', 'none')
 
-% plot the statistics: TODO
+% plot the statistics
 H = h(expOrder);
 subplot(r,c,sb(1).idx)
 y = rangeLine(fig,2,true);
@@ -884,9 +918,10 @@ x(~H) = [];
 Y(~H) = [];
 scatter(x,Y,35,foreColor, 'Marker','*')
 
-save_figure(fig,[fig_dir 'Percent time spent in outer ring H & C'],fig_type);
+save_figure(fig,[fig_dir 'Percent time spent in ' title_str ' H & C'],fig_type);
 
-% TODO (2/20): For temp rate experiments only: show as the rate of time/hour vs absolute time
+% Show as total time spent in a region, rather than the proportion of time (mostly
+% interesting for the different temperature rate experiments) 
 plotData = []; [c_avg, h_avg] = deal(nan(max(num.trial), num.exp));
 for i = 1:num.exp
     tp = getTempTurnPoints(data(i).temp_protocol);
@@ -894,8 +929,8 @@ for i = 1:num.exp
     dur_c = (length(tp.DownROI)/fps)/60; % total time cooling (min)
     dur_h = (length(tp.UpROI)/fps)/60; % total time cooling (min)
     % get the translated time: 
-    plotData(i).c = (rmnan(pd.c_avg(:,i))*dur_c)/100; % minutes in the region during cooling
-    plotData(i).h = (rmnan(pd.h_avg(:,i))*dur_h)/100; % minutes in the region during warming
+    plotData(i).c = ((rmnan(pd.c_avg(:,i))*dur_c)/100)*scaler; % minutes in the region during cooling
+    plotData(i).h = ((rmnan(pd.h_avg(:,i))*dur_h)/100)*scaler; % minutes in the region during warming
     plotData(i).diff = plotData(i).h-plotData(i).c;
     c_avg(1:num.trial(i),i) = plotData(i).c;
     h_avg(1:num.trial(i),i) = plotData(i).h;
@@ -906,8 +941,6 @@ end
 % **SHOULD** be identical to the data above
 alpha = 0.05/num.exp; %bonferonni MCC
 h = ttest((c_avg), (h_avg),'Alpha',alpha);
-disp('Groups with significant differences between heating and cooling:')
-disp({grouped(logical(h)).name}')
 
 % FIGURE: 
 r = 1; c = 3;
@@ -935,9 +968,9 @@ for i = 1:num.exp
     % errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
     % % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
 end
-xlim([0,num.exp+1])
+xlim([1-(buff2*2),num.exp+(2*buff2)])
 set(gca, 'xtick', x_ticks, 'XTickLabel', repmat({'C','H'},[1, num.exp]))
-ylabel('Avg time spent in region (min)')
+ylabel(['Avg time spent in ' title_str ' (min)'])
 
 % difference:
 subplot(r,c,sb(2).idx)
@@ -949,7 +982,7 @@ for i = 1:num.exp
     scatter(x,y,35, grouped(exp).color,'filled')
     y_avg = [mean(y), mean(y)];
     % errorbar
-    errorbar(i,y_avg(1), pd.sem(exp),'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
+    errorbar(i,y_avg(1), pd.sem(exp)*scaler,'Color',foreColor,'linewidth', 1.5,'Marker','square','MarkerFaceColor',foreColor)
     % plot([i-buff2,i+buff2],y_avg,'Color', foreColor,'linewidth', 1.5)
 end
 xlim([0,num.exp+1])
@@ -970,9 +1003,7 @@ x(~H) = [];
 Y(~H) = [];
 scatter(x,Y,35,foreColor, 'Marker','*')
 
-save_figure(fig,[fig_dir 'Time spent in outer ring during H & C'],fig_type);
-
-% TODO 2/21: reprint these figures
+save_figure(fig,[fig_dir 'Time spent in ' title_str ' during H & C'],fig_type);
 
 
 %% FIGURE + STATS: dynamic variable linearity comparision between experiment types
