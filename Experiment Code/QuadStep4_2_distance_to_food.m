@@ -3581,9 +3581,15 @@ sz = 50;
 LW = 3;
 
 % temperatures to plot for each group -- aim for min and max temperatures
-expList = [2, 2, 4, 4, 1, 5]; % experiment group order
-tempList = [17, 25, 17, 25, 17, 25]; % temperatures for each data set
-cList = {'dodgerblue', 'red', 'dodgerblue', 'red', 'dodgerblue', 'red'};
+% expList = [2, 2, 4, 4, 1, 5]; % experiment group order
+% tempList = [17, 25, 17, 25, 17, 25]; % temperatures for each data set
+% cList = {'dodgerblue', 'red', 'dodgerblue', 'red', 'dodgerblue', 'red'};
+
+% parameters for running every experiment in order with one temp value:
+expList = nan(num.exp*2,1);
+expList(1:2:end) = expOrder; expList(2:2:end) = expOrder;
+tempList = repmat([17,25],[1,num.exp]);
+cList = repmat({'dodgerblue', 'red',},[1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true,[565 649]); hold on
@@ -3610,7 +3616,8 @@ ylim([0, 100])
 set(gca, 'TickDir', 'out') 
 ylabel('flies in outer ring (%)')
 set(gca, 'xtick', 1:length(expList), 'xticklabel', tempList)
-legend(dataString,'FontSize',7,'box', 'off')
+legend(dataString,'FontSize',7,'box', 'off','textcolor', foreColor)
+% set(gca, 'xcolor', 'none')
 
 save_figure(fig,[saveDir 'Ring occupancy 17-25 scatter'],fig_type);
 
@@ -3646,19 +3653,8 @@ else
     disp(sig_comp)
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+[fig, cPlot, pPlot] = getMultiCompSignTable(c, 1:length(dataString), blkbgd, sigThreshold, dataString);
+save_figure(fig,[saveDir 'Ring occupancy 17-25 scatter stats summary'],fig_type);
 
 %% FIGURE: food in 10% food circle OCCUPATION timecourse standard figure
 clearvars('-except',initial_vars{:})

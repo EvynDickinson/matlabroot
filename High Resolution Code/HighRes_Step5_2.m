@@ -101,7 +101,7 @@ spike_W = 0.5;    % raster line width
 fig =  getfig('',1); 
     subplot(r,c,sb(1).idx); hold on
         plot(time, T.temperature, 'color', foreColor,'linewidth', lw)
-        ylabel('temp (\circC')
+        ylabel('temp (\circC)')
     subplot(r,c,sb(2).idx); hold on
         for sex = 1:2
             % plot the smoothed average distance
@@ -827,7 +827,7 @@ save_figure(fig,[figDir 'Fly sleep over time'],fig_type);
 
 g = find(m.sleep);
 h = find(f.sleep);
-if [isempty(g) & isempty(h)]
+if isempty(g) && isempty(h)
     disp('no male or female sleep found')
 else
     return

@@ -603,6 +603,7 @@ disp('Flies on food: M & F')
 sum(T.FlyOnFood)
 
 %% ANALYSIS: Determine temperature bins and directions
+% TODO (2/26) update this to work for LTS 15-35 ramps
 clearvars('-except',initial_var{:})
 
 initial_var{end+1} = 'tRate';
