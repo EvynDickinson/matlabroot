@@ -1384,13 +1384,14 @@ for exp = 1:num.exp
     i = expOrder(exp);
     % find time points: 
     tp = getTempTurnPoints(data(i).temp_protocol);
-    offset = fps*60*abs(tp.rates(1));
+    offset = 2*fps*60/abs(tp.rates(1));
     roi1 = tp.down(:,2);
-    roi2 = (roi1-720);
+    roi2 = (roi1-offset);
     roi = [];
     for ii = 1:length(roi1)
         roi = [roi; (roi2(ii):roi1(ii))'];
     end
+    roi = int64(roi);
     % plot time points: 
      y = mean(grouped(i).quadrant.all(roi,:),1,'omitnan');
      x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
@@ -1413,13 +1414,14 @@ for exp = 1:num.exp
     i = expOrder(exp);
     % find time points: 
     tp = getTempTurnPoints(data(i).temp_protocol);
-    offset = fps*60*abs(tp.rates(1));
+    offset = 2*fps*60/abs(tp.rates(1));
     roi1 = tp.down(:,2);
-    roi2 = (roi1-720);
+    roi2 = (roi1-offset);
     roi = [];
     for ii = 1:length(roi1)
         roi = [roi; (roi2(ii):roi1(ii))'];
     end
+    roi = int64(roi);
     % plot time points: 
      y = mean(grouped(i).ring.all(roi,:),1,'omitnan');
      x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
@@ -1441,13 +1443,107 @@ for exp = 1:num.exp
     i = expOrder(exp);
     % find time points: 
     tp = getTempTurnPoints(data(i).temp_protocol);
-    offset = fps*60*abs(tp.rates(1));
+    offset = 2*fps*60/abs(tp.rates(1));
     roi1 = tp.down(:,2);
-    roi2 = (roi1-720);
+    roi2 = (roi1-offset);
     roi = [];
     for ii = 1:length(roi1)
         roi = [roi; (roi2(ii):roi1(ii))'];
     end
+    roi = int64(roi);
+    % plot time points: 
+     y = mean(grouped(i).speed.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color)
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2,'linestyle', ':')
+end
+formatFig(fig, blkbgd);
+% h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,11])
+ylabel('speed (mm/s)')
+save_figure(fig, [saveDir, 'speed during coldest 2C cooling'],fig_type);
+
+
+%% TODO: update this to work for all other trial types: currently plots the avg occupancy for the WARMEST two degrees of the fast temp ramp
+clearvars('-except',initial_vars{:})
+[foreColor,~] = formattingColors(blkbgd);
+
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING THE COLDEST 2C 
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = 2*fps*60/abs(tp.rates(1));
+    roi1 = tp.down(:,1);
+    roi2 = (roi1+offset);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi1(ii):roi2(ii))'];
+    end
+    roi = int64(roi);
+    % plot time points: 
+     y = mean(grouped(i).quadrant.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color,'filled')
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+formatFig(fig, blkbgd);
+h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,100])
+ylabel('Food quadrant occupancy (%)')
+save_figure(fig, [saveDir, 'quad occ during warmest 2C cooling'],fig_type);
+
+
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING THE COLDEST 2C 
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = 2*fps*60/abs(tp.rates(1));
+    roi1 = tp.down(:,1);
+    roi2 = (roi1+offset);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi1(ii):roi2(ii))'];
+    end
+    roi = int64(roi);
+    % plot time points: 
+     y = mean(grouped(i).ring.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color,'filled')
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+formatFig(fig, blkbgd);
+h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,100])
+ylabel('Outer ring occupancy (%)')
+save_figure(fig, [saveDir, 'outer ring occ during warmest 2C cooling'],fig_type);
+
+% SHOW THE FLIES SPEED DURING THE COLDEST 2C 
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = 2*fps*60/abs(tp.rates(1));
+    roi1 = tp.down(:,1);
+    roi2 = (roi1+offset);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi1(ii):roi2(ii))'];
+    end
+    roi = int64(roi);
     % plot time points: 
      y = mean(grouped(i).speed.all(roi,:),1,'omitnan');
      x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
@@ -1459,7 +1555,7 @@ formatFig(fig, blkbgd);
 set(gca, 'xcolor', 'none')
 ylim([0,11])
 ylabel('speed (mm/s)')
-save_figure(fig, [saveDir, 'speed during coldest 2C cooling'],fig_type);
+save_figure(fig, [saveDir, 'speed during warmest 2C cooling'],fig_type);
 
 %% TODO = this works for the temp hold trials but  needs updating or saving & dynamics
 
@@ -1527,6 +1623,61 @@ save_figure(fig, [saveDir, 'Outer ring occ during coldest 2C cooling with food']
 
 
 
+
+%%
+
+alpha = 0.05/num.exp;
+% SHOW THE FLIES SPEED DURING THE COLDEST 2C 
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find cooler time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = 1*fps*60/abs(tp.rates(1));
+    roi1 = tp.down(:,1);
+    roi2 = (roi1+offset);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi1(ii):roi2(ii))'];
+    end
+    roi = int64(roi);
+    % plot time points: 
+     y1 = mean(grouped(i).speed.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y1,50,grouped(i).color,'filled')
+     plot([exp-0.35, exp+0.35],[mean(y1), mean(y1)],'color', foreColor,'linewidth', 2)
+
+    % find warmer time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = 1*fps*60/abs(tp.rates(1));
+    roi1 = tp.down(:,2);
+    roi2 = (roi1-offset);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi2(ii):roi1(ii))'];
+    end
+    roi = int64(roi);
+    % plot time points: 
+     y = mean(grouped(i).speed.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color)
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2,'linestyle', ':')
+
+     % run quick t-test (with bonferonni MCC)
+     [~,p] = ttest(y,y1);
+     if p<alpha
+         scatter(exp,10.5,100,foreColor,'pentagram','filled')
+     end
+
+end
+formatFig(fig, blkbgd);
+% h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,11])
+ylabel('speed (mm/s)')
+save_figure(fig, [saveDir, 'speed during warmest vs coolest 2C cooling'],fig_type);
 
 
 
