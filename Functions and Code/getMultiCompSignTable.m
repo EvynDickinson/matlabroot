@@ -65,7 +65,9 @@ end
     xlim(lims)
     ylim(lims)
     hold on
-    scatter(pPlot(:,1), pPlot(:,2), sz, foreColor,'filled', 'pentagram')
+    if ~isempty(pPlot)
+        scatter(pPlot(:,1), pPlot(:,2), sz, foreColor,'filled', 'pentagram')
+    end
     v_line(buff:1:n+buff,lcolor,'-',lw)
     h_line(buff:1:n+buff,lcolor,'-',lw)
     %     v_line(buff:1:n+buff,'grey','-',lw)

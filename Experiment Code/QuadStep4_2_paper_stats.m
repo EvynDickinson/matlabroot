@@ -1372,6 +1372,132 @@ fig_dir = createFolder([saveDir, 'Stats/']);
 % [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(false);
 
 
+%% TODO: update this to work for all other trial types: currently plots the avg occupancy for the coldest two degrees of the fast temp ramp
+clearvars('-except',initial_vars{:})
+[foreColor,~] = formattingColors(blkbgd);
+
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING 'FICTIVE' COLDEST 2C (FOR F LRR)
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = fps*60*abs(tp.rates(1));
+    roi1 = tp.down(:,2);
+    roi2 = (roi1-720);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi2(ii):roi1(ii))'];
+    end
+    % plot time points: 
+     y = mean(grouped(i).quadrant.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color,'filled')
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+formatFig(fig, blkbgd);
+h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,100])
+ylabel('Food quadrant occupancy (%)')
+save_figure(fig, [saveDir, 'quad occ during coldest 2C cooling no food'],fig_type);
+
+
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING 'FICTIVE' COLDEST 2C (FOR F LRR)
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = fps*60*abs(tp.rates(1));
+    roi1 = tp.down(:,2);
+    roi2 = (roi1-720);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi2(ii):roi1(ii))'];
+    end
+    % plot time points: 
+     y = mean(grouped(i).ring.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color,'filled')
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+formatFig(fig, blkbgd);
+h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,100])
+ylabel('Outer ring occupancy (%)')
+save_figure(fig, [saveDir, 'outer ring occ during coldest 2C cooling no food'],fig_type);
+
+
+%% TODO = this works for the temp hold trials but  needs updating or saving & dynamics
+
+[foreColor,~] = formattingColors(blkbgd);
+
+tp = getTempTurnPoints('linear_ramp_F_25-17');
+tRange = 17:19;
+roi1 = tp.down(:,2);
+roi2 = (roi1-720);
+roi = [];
+for i = 1:length(roi1)
+    roi = [roi; (roi2(i):roi1(i))'];
+end
+
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING 'FICTIVE' COLDEST 2C (FOR F LRR)
+cList = repmat({'darkorange','grey'},[1,num.exp/2]);
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for i = 2:2:num.exp
+     y = mean(grouped(i).quadrant.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(i-buff, i+buff, num.trial(i)));
+     scatter(x,y,50,Color(cList{i}),'filled')
+     plot([i-0.35, i+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+formatFig(fig, blkbgd);
+h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,100])
+ylabel('Food quadrant occupancy (%)')
+save_figure(fig, [saveDir, 'quad occ during coldest 2C cooling no food'],fig_type,1,0);
+for i = 1:2:num.exp
+     y = mean(grouped(i).quadrant.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(i-buff, i+buff, num.trial(i)));
+     scatter(x,y,50,Color(cList{i}),'filled')
+     plot([i-0.35, i+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+save_figure(fig, [saveDir, 'quad occ during coldest 2C cooling food'],fig_type,1,1);
+
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING 'FICTIVE' COLDEST 2C (FOR F LRR)
+cList = repmat({'darkorange','grey'},[1,num.exp/2]);
+buff = 0.2;
+buff2 = 0.4;
+fig = getfig('',1,[508 680]);
+hold on
+for i = 2:2:num.exp
+     y = mean(grouped(i).ring.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(i-buff, i+buff, num.trial(i)));
+     scatter(x,y,50,Color(cList{i}),'filled')
+     plot([i-buff2, i+buff2],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+ylim([0,100])
+formatFig(fig, blkbgd);
+h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylabel('Outer ring occupancy (%)')
+save_figure(fig, [saveDir, 'Outer ring occ during coldest 2C cooling no food'],fig_type,1,0);
+for i = 1:2:num.exp
+     y = mean(grouped(i).ring.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(i-buff, i+buff, num.trial(i)));
+     scatter(x,y,50,Color(cList{i}),'filled')
+     plot([i-buff2, i+buff2],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+save_figure(fig, [saveDir, 'Outer ring occ during coldest 2C cooling with food'],fig_type,1,1);
+
 
 
 
