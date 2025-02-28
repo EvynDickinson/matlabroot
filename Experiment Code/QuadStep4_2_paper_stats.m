@@ -1376,7 +1376,7 @@ fig_dir = createFolder([saveDir, 'Stats/']);
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd);
 
-% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING 'FICTIVE' COLDEST 2C (FOR F LRR)
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING THE COLDEST 2C 
 buff = 0.2;
 fig = getfig('',1,[508 680]);
 hold on
@@ -1405,7 +1405,7 @@ ylabel('Food quadrant occupancy (%)')
 save_figure(fig, [saveDir, 'quad occ during coldest 2C cooling no food'],fig_type);
 
 
-% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING 'FICTIVE' COLDEST 2C (FOR F LRR)
+% SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING THE COLDEST 2C 
 buff = 0.2;
 fig = getfig('',1,[508 680]);
 hold on
@@ -1433,6 +1433,33 @@ ylim([0,100])
 ylabel('Outer ring occupancy (%)')
 save_figure(fig, [saveDir, 'outer ring occ during coldest 2C cooling no food'],fig_type);
 
+% SHOW THE FLIES SPEED DURING THE COLDEST 2C 
+buff = 0.2;
+fig = getfig('',1,[508 680]);
+hold on
+for exp = 1:num.exp
+    i = expOrder(exp);
+    % find time points: 
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    offset = fps*60*abs(tp.rates(1));
+    roi1 = tp.down(:,2);
+    roi2 = (roi1-720);
+    roi = [];
+    for ii = 1:length(roi1)
+        roi = [roi; (roi2(ii):roi1(ii))'];
+    end
+    % plot time points: 
+     y = mean(grouped(i).speed.all(roi,:),1,'omitnan');
+     x = shuffle_data(linspace(exp-buff, exp+buff, num.trial(i)));
+     scatter(x,y,50,grouped(i).color,'filled')
+     plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2)
+end
+formatFig(fig, blkbgd);
+% h_line(25,'grey', '--', 1.5)
+set(gca, 'xcolor', 'none')
+ylim([0,11])
+ylabel('speed (mm/s)')
+save_figure(fig, [saveDir, 'speed during coldest 2C cooling no food'],fig_type);
 
 %% TODO = this works for the temp hold trials but  needs updating or saving & dynamics
 
