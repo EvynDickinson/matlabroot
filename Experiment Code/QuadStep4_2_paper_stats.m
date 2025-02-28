@@ -1402,7 +1402,7 @@ h_line(25,'grey', '--', 1.5)
 set(gca, 'xcolor', 'none')
 ylim([0,100])
 ylabel('Food quadrant occupancy (%)')
-save_figure(fig, [saveDir, 'quad occ during coldest 2C cooling no food'],fig_type);
+save_figure(fig, [saveDir, 'quad occ during coldest 2C cooling'],fig_type);
 
 
 % SHOW THE FLIES THAT ARE IN THE FOOD QUADRANT DURING THE COLDEST 2C 
@@ -1431,7 +1431,7 @@ h_line(25,'grey', '--', 1.5)
 set(gca, 'xcolor', 'none')
 ylim([0,100])
 ylabel('Outer ring occupancy (%)')
-save_figure(fig, [saveDir, 'outer ring occ during coldest 2C cooling no food'],fig_type);
+save_figure(fig, [saveDir, 'outer ring occ during coldest 2C cooling'],fig_type);
 
 % SHOW THE FLIES SPEED DURING THE COLDEST 2C 
 buff = 0.2;
@@ -1459,7 +1459,7 @@ formatFig(fig, blkbgd);
 set(gca, 'xcolor', 'none')
 ylim([0,11])
 ylabel('speed (mm/s)')
-save_figure(fig, [saveDir, 'speed during coldest 2C cooling no food'],fig_type);
+save_figure(fig, [saveDir, 'speed during coldest 2C cooling'],fig_type);
 
 %% TODO = this works for the temp hold trials but  needs updating or saving & dynamics
 
