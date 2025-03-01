@@ -89,37 +89,32 @@ switch computerName
         serverPath = paths.EvynMacServerPath;
         %TODO (3/1)
     case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
-        % 
+
     case 'DENALI'
         serverPath = paths.denaliServerPath;
+        permanentPath = [];
     case 'MWMJ0LY4WH'
         serverPath = paths.chilkatServerPath;
-        % TODO (3/1)
-        % serverTwoPath = paths.togiakServerTwoPath; 
+        permanentPath = [];
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;
-end
-if exist(serverTwoPath, 'dir') == 7
-    serverTwoDrive = true;
 end
 
 % Output folder paths for available options
 
 availablePaths.serverPath = serverPath;
-availablePaths.serverTwoPath = serverTwoPath;
 availablePaths.permanentPath = permanentPath;
 availablePaths.onthegoPath = onthegoPath;
 availablePaths.storagePath = storagePath;
 
 availableDrives.server = serverDrive;
-availableDrives.serverTwo = serverTwoDrive;
 availableDrives.permanent = permanentDrive;
 availableDrives.portable = portableDrive;
 availableDrives.storage = storageDrive;
 
 % Return error if there aren't available drives
-if ~permanentDrive && ~serverDrive && ~portableDrive && ~serverTwoDrive
+if ~permanentDrive && ~serverDrive && ~portableDrive
     warndlg({'No local, portable, or server directories available';...
              'Try reestablishing a VPN connection and/or checking the OnTheGoDrive'})
 end

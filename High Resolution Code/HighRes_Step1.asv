@@ -5,8 +5,12 @@ clear; clc;
 
 %% Load the data
 % Find files that can be run
-rootDir = getDataPath(5, 2, 'Select location for data');
+rootDir = getDataPath(5, 0, 'Where is the raw data?');
+trackingDir = getDataPath(5, 2);
+trackingDir = [trackingDir paths.courtship 'Current Tracking Files/']
 paths = getPathNames;
+
+
 
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
@@ -16,16 +20,8 @@ switch questdlg('Use excel spreadsheet to select files?')
         loc = cellfun(@isnan,excelfile(2:end,Excel.compiledvid));
         rownums = find(loc)+1; 
         eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp]);
-        LOC = false(size(eligible_files));
-        for i = 1:size(eligible_files,2)
-            try LOC(:,i) = cellfun(@isnan,eligible_files(:,i));
-            catch
-            end
-        end
-        c = cellfun(@string,eligible_files);
-        c(LOC) = ' -- ';
-        FileNames = join(c);
-        
+        FileNames = format_eligible_files(eligible_files);
+   
         fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select data to process');
         if isempty(fileIdx)
             disp('No trials selected')
@@ -48,7 +44,7 @@ initial_var{end+1} = 'initial_var';
 
 %% Run the extraction process
 
-for rampFolder = 1:size(rampName, 2)
+for rampFolder = 1:size(rampName, 1)
     clearvars('-except',initial_var{:})
 
     expName = rampName{rampFolder};
@@ -83,9 +79,16 @@ for rampFolder = 1:size(rampName, 2)
     % Pull the temp & time information together: 
     fileList = dir([baseDir 'file*.mat']);
     dummy = [];
+    timestamps.time = [];
+    timestamps.tempLog = [];
     for i = 1:length(fileList)
         dummy(i).data = load([baseDir, 'file' num2str(i) '.mat'],'timestamp','tempLog');
+        timestamps.time{ii,1} = dummy(i).data.timestamp;
+        timestamps.tempLog(ii,:) = dummy(i).data.tempLog;
     end
+    % save the timestamp data 
+    save([baseDir 'raw timestamps.mat'],'timestamps');
+
     % need to load the start temp too: 
     load([baseDir, expName ' RampStartTempLog.mat'],'tempLogStart');
     % Create the temp start-stop matrix for the data: 
@@ -191,6 +194,12 @@ for rampFolder = 1:size(rampName, 2)
     
     save_figure(fig, [baseDir, 'Video Alignments'],'-png',true);
 
+
+    % Copy tracking models to folder: 
+    trackingDir = [trackingFolder 'Tracking'];
+    copyfile(trackingDir, targetDir)
+
+
     % write 'R' for ready into the compiled video column of the excel data sheet
     loc1 = strcmp(excelfile(:,Excel.expID),expName); % name alignment
     loc2 = strcmp(excelfile(:,Excel.date),expDate); % date alignment
@@ -199,11 +208,15 @@ for rampFolder = 1:size(rampName, 2)
         disp('couldn''t find an excel match for the file, but it was processed')
         disp([expDate ' ' expName])
     end
-    isExcelFileOpen(xlFile);
-    writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.compiledvid) num2str(loc)]);
-
-    rownums = find(loc)+1; 
-
+    if ~isExcelFileOpen(xlFile,true)
+        try writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.compiledvid) num2str(loc)]);
+        catch 
+            disp('couldn''t write to excel:  manually update')
+        end
+    else
+        disp('Couldn''t write to excel sheet for:')
+        disp([expDate ' ' expName])
+    end
 
 end
 

@@ -5,8 +5,12 @@ clear; clc;
 
 %% Load the data
 % Find files that can be run
-rootDir = getDataPath(5, 2, 'Select location for data');
+rootDir = getDataPath(5, 0, 'Where is the raw data?');
 paths = getPathNames;
+
+% Find the location of the tracking files for these trials
+trackingDir = getDataPath(5, 2);
+trackingDir = [trackingDir paths.courtship 'Current Tracking Files/'];
 
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
@@ -75,9 +79,16 @@ for rampFolder = 1:size(rampName, 1)
     % Pull the temp & time information together: 
     fileList = dir([baseDir 'file*.mat']);
     dummy = [];
+    timestamps.time = [];
+    timestamps.tempLog = [];
     for i = 1:length(fileList)
         dummy(i).data = load([baseDir, 'file' num2str(i) '.mat'],'timestamp','tempLog');
+        timestamps.time{ii,1} = dummy(i).data.timestamp;
+        timestamps.tempLog(ii,:) = dummy(i).data.tempLog;
     end
+    % save the timestamp data 
+    save([baseDir 'raw timestamps.mat'],'timestamps');
+
     % need to load the start temp too: 
     load([baseDir, expName ' RampStartTempLog.mat'],'tempLogStart');
     % Create the temp start-stop matrix for the data: 
@@ -182,6 +193,9 @@ for rampFolder = 1:size(rampName, 1)
     set(gca, 'xcolor', 'none')
     
     save_figure(fig, [baseDir, 'Video Alignments'],'-png',true);
+
+    % Copy tracking models to folder: 
+    copyfile(trackingDir, baseDir)
 
     % write 'R' for ready into the compiled video column of the excel data sheet
     loc1 = strcmp(excelfile(:,Excel.expID),expName); % name alignment

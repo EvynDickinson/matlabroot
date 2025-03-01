@@ -21,7 +21,7 @@ function path = getDataPath(dataType, dataLocation, promptString)
 % 3) removable drive
 % 4) storage drive
 % 5) server path 2
-% 6) either server (user selected each time)
+% 6) either server (TODO)
 % 
 % ES Dickinson, Yale University, June 2024
 
@@ -148,7 +148,7 @@ end
 
 % Appropriate drive location selection
 if dataLocation==0 % USER INPUT SELECTION
-    all_locations = {'Svalbard', 'Server Two', 'Local', 'Storage', 'On The Go', 'Manually Select'};
+    all_locations = {'Svalbard', 'Server Two', 'Local', 'Storage', 'On The Go', 'Other'};
     loc = [availableDrives.server, availableDrives.serverTwo, availableDrives.permanent,...
                availableDrives.storage, availableDrives.portable,true];
     loc_options = all_locations(loc);
@@ -163,31 +163,24 @@ if dataLocation==0 % USER INPUT SELECTION
         case 'Local'
             drive_loc_sel = 1;
         case 'Storage'
-            drive_loc_sel = 4;
-        case 'On The Go'
-            drive_loc_sel = 3;
-        case 'Manually Select'
-            drive_loc_sel = 0;
-    end
+            drive_loc_sel = ;
+        case
+            drive_loc_sel = ;
+        case
+            drive_loc_sel = ;
 
     dataLocation = drive_loc_sel;
 end
 
+
 % CONSTRUCT THE DATA PATH
 switch dataLocation
-    case 0 % user select path manually:
-        basePath = uigetdir;
-        path = [basePath, '\' path_end];   
     case 1 % local permanent path
         path = [availablePaths.permanentPath, path_end];
     case 2 % server path
         path = [availablePaths.serverPath, path_end];
     case 3 % portable drive
         path = [availablePaths.onthegoPath, path_end];
-    case 4 % storage drive
-        path = [availablePaths.storagePath, path_end];
-    case 5 % portable drive
-        path = [availablePaths.serverTwoPath, path_end];
 end
 
 % disp(path)
