@@ -1483,7 +1483,7 @@ clear; close all; clc
 rootDir = getDataPath(5, 2, 'Select location for data');
 paths = getPathNames;
 
-for i = 21:length(excelfile)
+for i = 2:length(excelfile)
     date = excelfile{i,Excel.date};
     folder = excelfile{i,Excel.expID};
     rootFolder = [rootDir, paths.courtship, date '/' folder '/'];
@@ -1526,6 +1526,23 @@ end
     
 
 %% 
+
+%% test the difference in start times for an experiment
+startDir = uigetdir;
+% startDir = ['I:\Data\02.28.2025\Berlin_courtship_F_LRR_caviar_ramp4\'];
+
+tic
+time = NaT([1,768]);
+for i = 1:768
+    dummy = load([startDir, 'file' num2str(i)],'timestamp');
+    time(i) = dummy.timestamp; 
+    disp(i)
+end
+toc
+
+a = diff(time);
+
+figure; plot(a)
 
 
 
