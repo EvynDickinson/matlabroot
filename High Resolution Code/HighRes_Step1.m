@@ -83,8 +83,8 @@ for rampFolder = 1:size(rampName, 1)
     timestamps.tempLog = [];
     for i = 1:length(fileList)
         dummy(i).data = load([baseDir, 'file' num2str(i) '.mat'],'timestamp','tempLog');
-        timestamps.time{ii,1} = dummy(i).data.timestamp;
-        timestamps.tempLog(ii,:) = dummy(i).data.tempLog;
+        timestamps.time{i,1} = dummy(i).data.timestamp;
+        timestamps.tempLog(i,:) = dummy(i).data.tempLog;
     end
     % save the timestamp data 
     save([baseDir 'raw timestamps.mat'],'timestamps');

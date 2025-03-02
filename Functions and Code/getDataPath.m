@@ -101,7 +101,7 @@ end
 % are they available? 
 portableDrive = availableDrives.portable;
 serverDrive = availableDrives.serverTwo;
-serverTwoDrive = availablePaths.servertwo;
+serverTwoDrive = availableDrives.serverTwo;
 permanentDrive = availableDrives.permanent;
 storageDrive = availableDrives.storage;
 
