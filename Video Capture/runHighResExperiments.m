@@ -7,7 +7,7 @@ parameters = [];
 dateStr = char(datetime('now','Format','MM.dd.yyyy'));
 [drive, parameters.protocol] = availableExperimentDrives; % get drive location for saving
 if isnan(drive); return; end
-baseFolder = createFolder([drive ':\Evyn\Courtship Tracking\' dateStr '\']);
+baseFolder = createFolder([drive '\Courtship Videos\' dateStr '\']);
 cd(baseFolder) % set current path to video folder
 genotype = getGenotype; % pull genotype information
 [food, wellLoc] = getFoodType(1);% pull food well option

@@ -7,7 +7,7 @@ clc; clear
 % turn them to a 'Y' when it's done
 % TODO: have this copy the tracking files into each of the folders! 
 
-rootDir = getDataPath(5, 2, 'Select Date of data to process');
+rootDir = getDataPath(5, 0, 'Select data location');
 paths = getPathNames;
 dateDir = selectFolder([rootDir, paths.courtship]);
 rampName = selectFolder([rootDir paths.courtship  dateDir{1}],true,'Select Folders to Compile');
