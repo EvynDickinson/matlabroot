@@ -92,10 +92,9 @@ switch computerName
         % 
     case 'DENALI'
         serverPath = paths.denaliServerPath;
-    case 'MWMJ0LY4WH'
+    case 'MWMJ0LY4WH' %becca's computer
         serverPath = paths.chilkatServerPath;
-        % TODO (3/1)
-        % serverTwoPath = paths.togiakServerTwoPath; 
+        serverTwoPath = paths.chilkatServerTwoPath;
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;
