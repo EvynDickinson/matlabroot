@@ -71,7 +71,7 @@ permanentPath = [];
 
 
 % server drive test
-[serverPath, serverTwoPath, permanentPath]  = deal([]);
+[serverPath, serverTwoPath, permanentPath, serverTwoDrive]  = deal([]);
 
 switch computerName
     case 'ACADIA'

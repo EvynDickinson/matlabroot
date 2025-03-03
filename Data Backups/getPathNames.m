@@ -28,4 +28,4 @@ paths.chilkatServerPath = 'S:\Evyn\DATA\';
 paths.EvynPCServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
 paths.acadiaServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
 paths.togiakServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
-%TODO: add for Becca's computer and the mac laptops
+% paths.chilkatServerTwoPath = %TODO: add for Becca's computer and the mac laptops
