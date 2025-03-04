@@ -1,3 +1,12 @@
+
+%% Update name in high res experiments
+
+parameters.expID = 'Berlin_courtship_F_LRR_no_food_ramp1';
+parameters.videoName = 'Berlin_courtship_F_LRR_no_food_ramp1';
+
+expName = 'Berlin_courtship_F_LRR_no_food_ramp1';
+
+
 %% 
 vidPath = 'E:\My Drive\Jeanne Lab\DATA\08.12.2021\DummyVid_20C_1.avi';
 movieInfo = VideoReader(vidPath); %read in video

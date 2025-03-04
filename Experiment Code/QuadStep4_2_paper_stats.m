@@ -1679,11 +1679,46 @@ ylim([0,11])
 ylabel('speed (mm/s)')
 save_figure(fig, [saveDir, 'speed during warmest vs coolest 2C cooling'],fig_type);
 
+%% FIGURE: 3D representation of parameters for temperature rate data
 
+clearvars('-except',initial_vars{:})
+fig_dir = createFolder([saveDir, 'Stats/']);
+[foreColor,~] = formattingColors(blkbgd); %get background colors
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(false,true);
+sz = 35;
+% x - temperature
+% y - occupancy %
+% z - speed
+% open / closed =  cooling / warming
+fig = getfig('',1); hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    for t = 1:2 % heating and cooling
+        if t == 1
+            d_type = 'increasing';
+        else
+            d_type = 'decreasing';
+        end
+        x = grouped(i).(pName).temps;
+        x = repmat(x',[1,num.trial(i)]);
+        y = grouped(i).(pName).(d_type).raw.*scaler;
+        z = grouped(i).speed.(d_type).raw;
+        if t==1
+            scatter3(x,y,z,sz,kolor,'filled')
+        else
+            scatter3(x,y,z,sz,kolor)
+        end
+    end
+end
+formatFig(fig,blkbgd);
+xlabel('temp (\circC)')
+ylabel(y_lab)
+zlabel('speed (mm/s)')
+set(gca, 'ZColor',foreColor)
 
+saveas(fig,[saveDir 'temp x speed x ' pName ' 3D scatter']); % save as fig type for later 3d rotation etc 
 
-
-
+%% Heat map of speed at different locations:
 
 
 

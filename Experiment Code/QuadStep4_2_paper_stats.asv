@@ -1635,7 +1635,7 @@ for exp = 1:num.exp
     i = expOrder(exp);
     % find cooler time points: 
     tp = getTempTurnPoints(data(i).temp_protocol);
-    offset = 2*fps*60/abs(tp.rates(1));
+    offset = 1*fps*60/abs(tp.rates(1));
     roi1 = tp.down(:,1);
     roi2 = (roi1+offset);
     roi = [];
@@ -1651,7 +1651,7 @@ for exp = 1:num.exp
 
     % find warmer time points: 
     tp = getTempTurnPoints(data(i).temp_protocol);
-    offset = 2*fps*60/abs(tp.rates(1));
+    offset = 1*fps*60/abs(tp.rates(1));
     roi1 = tp.down(:,2);
     roi2 = (roi1-offset);
     roi = [];
@@ -1665,7 +1665,7 @@ for exp = 1:num.exp
      scatter(x,y,50,grouped(i).color)
      plot([exp-0.35, exp+0.35],[mean(y), mean(y)],'color', foreColor,'linewidth', 2,'linestyle', ':')
 
-     % run quick t-test
+     % run quick t-test (with bonferonni MCC)
      [~,p] = ttest(y,y1);
      if p<alpha
          scatter(exp,10.5,100,foreColor,'pentagram','filled')
@@ -1677,9 +1677,39 @@ formatFig(fig, blkbgd);
 set(gca, 'xcolor', 'none')
 ylim([0,11])
 ylabel('speed (mm/s)')
-% save_figure(fig, [saveDir, 'speed during warmest 2C cooling'],fig_type);
+save_figure(fig, [saveDir, 'speed during warmest vs coolest 2C cooling'],fig_type);
 
+%% FIGURE: 3D representation of parameters for temperature rate data
 
+clearvars('-except',initial_vars{:})
+fig_dir = createFolder([saveDir, 'Stats/']);
+[foreColor,~] = formattingColors(blkbgd); %get background colors
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(false,true);
+sz = 35;
+% x - temperature
+% y - occupancy %
+% z - speed
+% open / closed =  cooling / warming
+fig = getfig('',1); hold on
+for i = 1:num.exp
+    kolor = grouped(i).centres
+    for t = 1:2 % heating and cooling
+        if t == 1
+            d_type = 'increasing';
+        else
+            d_type = 'decreasing';
+        end
+        x = grouped(i).(pName).temps;
+        x = repmat(x',[1,num.trial(i)]);
+        y = grouped(i).(pName).(d_type).raw.*scaler;
+        z = grouped(i).speed.(d_type).raw;
+        if t==1
+            scatter3(x,y,z,sz,kolor,'filled')
+        else
+            scatter3(x,y,z,sz,kolor)
+        end
+    end
+end
 
 
 
