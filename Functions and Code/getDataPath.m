@@ -1,6 +1,6 @@
 
 
-function path = getDataPath(dataType, dataLocation, promptString)
+function [path, location_name] = getDataPath(dataType, dataLocation, promptString)
 % path = getDataPath(dataType, dataLocation, promptString)
 % 
 % dataType options:
@@ -153,7 +153,7 @@ if dataLocation==0 % USER INPUT SELECTION
                availableDrives.storage, availableDrives.portable,true];
     loc_options = all_locations(loc);
     idx = listdlg("PromptString",promptString,'ListString',loc_options,'SelectionMode','single',...
-        'OKString','Get It', 'CancelString','Heck No','InitialValue',1);
+        'OKString','Get It', 'CancelString','Heck No','InitialValue',1,'ListSize',[300,150]);
     
     switch loc_options{idx}
         case 'Svalbard'
@@ -178,16 +178,22 @@ switch dataLocation
     case 0 % user select path manually:
         basePath = uigetdir;
         path = [basePath, '\' path_end];   
+        location_name  = 'unknown';
     case 1 % local permanent path
         path = [availablePaths.permanentPath, path_end];
+        location_name  = 'internal drive';
     case 2 % server path
         path = [availablePaths.serverPath, path_end];
+        location_name  = 'svalbard';
     case 3 % portable drive
         path = [availablePaths.onthegoPath, path_end];
+        location_name  = 'OnTheGo';
     case 4 % storage drive
         path = [availablePaths.storagePath, path_end];
+        location_name  = 'data storage';
     case 5 % portable drive
         path = [availablePaths.serverTwoPath, path_end];
+        location_name  = 'server two';
 end
 
 % disp(path)

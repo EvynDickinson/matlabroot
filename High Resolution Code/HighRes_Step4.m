@@ -2,10 +2,10 @@
 % tracks (frame, body points, XY, fly)
 % body points (head, center, abdomen, right wing, left wing)
 
+
 %% Load tracking points
 clear; clc;
 baseFolder = getDataPath(6,0);
-
 
 % Find files that can be run
 [excelfile, Excel, xlFile] = load_HighResExperiments;

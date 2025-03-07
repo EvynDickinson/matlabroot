@@ -42,8 +42,8 @@ initial_var{end+1} = 'initial_var';
 initial_var{end+1} = 'well';
 initial_var{end+1} = 'path';
             
-            disp_fig = false; % display baseline figures?
-            initial_var{end+1} = 'disp_fig';
+disp_fig = false; % display baseline figures?
+initial_var{end+1} = 'disp_fig';
             
 %% FIGURE: Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})

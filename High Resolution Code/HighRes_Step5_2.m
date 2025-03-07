@@ -1,3 +1,6 @@
+
+% TransferProcessedDataToServer
+
 %% 
 % pos (frame, body points, XY)
 % body points (head, center, abdomen, right wing, left wing)
@@ -20,7 +23,7 @@
 
 % Prep data
 clear; clc;
-path = getDataPath(6,0);
+loc = getDataPath(6,0);
 baseFolder = [loc,'Trial Data/'];
 trialDir = selectFolder(baseFolder); 
 baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
@@ -42,8 +45,8 @@ initial_var{end+1} = 'initial_var';
 initial_var{end+1} = 'well';
 initial_var{end+1} = 'path';
             
-            disp_fig = false; % display baseline figures?
-            initial_var{end+1} = 'disp_fig';
+disp_fig = false; % display baseline figures?
+initial_var{end+1} = 'disp_fig';
             
 %% FIGURE: Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})
@@ -230,7 +233,11 @@ save_figure(fig,[figDir 'wing extension positions M fly'],fig_type);
 
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
-skip = 20;
+if strcmp(parameters.protocol,'high_res_LTS_35-15')
+    skip = 100;
+else
+    skip = 20;
+end
 zoom = [-250,250];
 
 % screening = close_dist;
@@ -287,6 +294,9 @@ else
     % Save figure
     save_figure(fig,[figDir 'chase positions M fly'],fig_type);
 end
+
+
+
 
 %% FIGURE: Chase overlaid on arena with temp timecourse
 
@@ -399,6 +409,7 @@ end
 
 %% FIGURES: Visualize chasing overlaid on arena image, with side zoom on other parameters 
 clearvars('-except',initial_var{:})
+chaseDir = createFolder([figDir, 'Chase Figures\']);
 
 % Subplots
 r = 7;
@@ -552,7 +563,7 @@ for i = 1:size(m.chaseroi,1)
         end
 
     % Save figure
-    save_figure(fig,[figDir 'Chase Bout Zoom_', num2str(i), ' from ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
+    save_figure(fig,[chaseDir 'Chase Bout Zoom_', num2str(i), ' from ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
 end
 
 

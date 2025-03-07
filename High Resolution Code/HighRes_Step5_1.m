@@ -1,4 +1,6 @@
 
+% TransferProcessedDataToServer
+
 %% LOAD data
 clear; clc;
 path = getDataPath(6,0);
@@ -606,43 +608,38 @@ sum(T.FlyOnFood)
 % TODO (2/26) update this to work for LTS 15-35 ramps
 clearvars('-except',initial_var{:})
 
+tp = getTempParamsHighRes(parameters.protocol);
+
 initial_var{end+1} = 'tRate';
 temp_file = [baseDir 'temp regions.mat'];
 if ~exist(temp_file, 'file') 
     
-    % manually select the different time points for now TODO automate them
+    % manually select the different time points
     x = []; 
     fig = getfig; 
     plot(time, T.temperature,'color', 'k')
-    title('click (1) the start of the ramp, (2) the bottom, and (3) the end of the ramp')
-    for i = 1:3
-        [xi, ~] = crosshairs(1,{'black','black','red','red'});      % get a point
+    title(tp.labelstr)
+    for i = 1:tp.ntrans
+        [xi, ~] = crosshairs(1,{'black','black','red','red'});  % get a point
         [~,xidx] = min(abs(time-xi));
         x(i) = xidx(1);
         v_line(time(x(i)),'r','--',1)
     end
+
     % find the x-time value for each time period
-    tRate = struct;
+    tRate = tp.tRate;
     tRate(1).idx = [1, x(1)-1];
-    tRate(1).name = 'start hold';
-    tRate(1).color = Color('grey');
-    tRate(2).idx = [x(1), x(2)-1];
-    tRate(2).name = 'cooling';
-    tRate(2).color = Color('dodgerblue');
-    tRate(3).idx = [x(2), x(3)-1];
-    tRate(3).name = 'warming';
-    tRate(3).color = Color('red');
-    tRate(4).idx = [ x(3),T.frame(end)];
-    tRate(4).name = 'end hold';
-    tRate(4).color = Color('grey');
+    for i = 2:tp.ntrans
+        tRate(i).idx = [x(i-1), x(i)-1];
+    end
+    tRate(end).idx = [ x(i),T.frame(end)];
     
     % plot the regions onto the graph
     hold on
     ylims = ylim;
-    for i = 1:4
+    for i = 1:length(tRate)
         roi = time(tRate(i).idx);
-        % h = rectangle('Position', [roi(1), ylims(1), roi(2), ylims(2)], 'FaceColor', tRate(i).color);
-        h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+        rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
     end
     plot(time, smooth(T.temperature,fps*10,'moving'),'color', 'k','linewidth', 5)
     xlabel('time (min)')
@@ -666,17 +663,27 @@ MT = false(size(time));
 %cooling
 idx = find(strcmp('cooling',{tRate(:).name}));
 T.cooling = MT;
-T.cooling(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+if ~isempty(idx)
+    for i = 1:length(idx)
+        T.cooling(tRate(idx(i)).idx(1):tRate(idx(i)).idx(2)) = true;
+    end
+end
 %warming
 idx = find(strcmp('warming',{tRate(:).name}));
 T.warming = MT;
-T.warming(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
-%hold
-idx = find(strcmp('start hold',{tRate(:).name}));
+if ~isempty(idx)
+    for i = 1:length(idx)
+        T.warming(tRate(idx(i)).idx(1):tRate(idx(i)).idx(2)) = true;
+    end
+end
+%holds
+idx = [find(strcmp('start hold',{tRate(:).name})) , find(strcmp('end hold',{tRate(:).name}))];
 T.hold = MT;
-T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
-idx = find(strcmp('end hold',{tRate(:).name}));
-T.hold(tRate(idx).idx(1):tRate(idx).idx(2)) = true;
+if ~isempty(idx)
+    for i = 1:length(idx)
+        T.hold(tRate(idx(i)).idx(1):tRate(idx(i)).idx(2)) = true;
+    end
+end
 
 %% ANALYSIS: Calculate male wing extension
 clearvars('-except',initial_var{:})
@@ -1234,7 +1241,7 @@ for sex = 1:2
     xplode = true(size(x));
     xplode(1) = false; % do not explode out the unknown states/positions
     pie(x,xplode)
-    title(sexes{sex})
+    title({sexes{sex}; '   '})
 end
 save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type);
 
@@ -1253,7 +1260,6 @@ switch questdlg('Save processed data?')
     case 'Cancel'
         return
 end
-
 
 
 
