@@ -154,6 +154,10 @@ if dataLocation==0 % USER INPUT SELECTION
     loc_options = all_locations(loc);
     idx = listdlg("PromptString",promptString,'ListString',loc_options,'SelectionMode','single',...
         'OKString','Get It', 'CancelString','Heck No','InitialValue',1,'ListSize',[300,150]);
+    if isempty(idx)
+        disp('Bummer, no data drive selected')
+        return
+    end
     
     switch loc_options{idx}
         case 'Svalbard'

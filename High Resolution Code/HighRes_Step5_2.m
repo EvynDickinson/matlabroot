@@ -18,13 +18,13 @@
 % make a plot of all behaviors that meet everything but the time minimum &
 % plot them with the 'official' behavior periods (raster plot style)
 % circling behavior
-% courtship index 
+% courtship index  
 % courtship index vs temperature
 
 % Prep data
 clear; clc;
-loc = getDataPath(6,0);
-baseFolder = [loc,'Trial Data/'];
+startloc = getDataPath(6,0);
+baseFolder = [startloc,'Trial Data/'];
 trialDir = selectFolder(baseFolder); 
 baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
 figDir = [baseDir,'Figures/']; 

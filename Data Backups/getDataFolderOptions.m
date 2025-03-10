@@ -46,7 +46,7 @@ paths.computerName = computerName;
 % BASE DRIVE LOCATION SELECTION
 
 % portable drive test
-[serverDrive, portableDrive, storageDrive] = deal(false);
+[serverDrive, portableDrive, storageDrive, serverTwoDrive] = deal(false);
 matchingDrives = findDriveByName(paths.removableDrive); % test if there is a removable drive attached
 if ~isempty(matchingDrives)
     portableDrive = true;
@@ -71,7 +71,7 @@ permanentPath = [];
 
 
 % server drive test
-[serverPath, serverTwoPath, permanentPath, serverTwoDrive]  = deal([]);
+[serverPath, serverTwoPath, permanentPath]  = deal([]);
 
 switch computerName
     case 'ACADIA'
