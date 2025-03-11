@@ -1241,7 +1241,7 @@ for sex = 1:2
     xplode = true(size(x));
     xplode(1) = false; % do not explode out the unknown states/positions
     pie(x,xplode)
-    title(sexes{sex})
+    title({sexes{sex}; '   '})
 end
 save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type);
 
@@ -1260,7 +1260,6 @@ switch questdlg('Save processed data?')
     case 'Cancel'
         return
 end
-
 
 
 
@@ -1286,7 +1285,34 @@ end
 % pix2mm = actualdistance/pixelsbetweenwells; % multiplier
 
 
+% Current trial movie path: 
+loc_str = ['Experiment: ' parameters.date ' ' parameters.expID];
+disp(loc_str)
+dummypath = uigetdir;
+movieInfo = VideoReader([dummypath '/compiled_video_1.avi']); %read in video
+demoImg = (read(movieInfo,1));
 
+% ArenaArea = 2827.43;
+R = 25; %mm %functional distance they can reach in the circle
+innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
+dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
+maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
+
+centre = well.center(5,:);
+foodWell = well.center(well.food_idx,:);
+figure; imshow(demoImg);
+    viscircles(centre,R/pix2mm,'color', foreColor);
+    viscircles(centre,innerR/pix2mm,'color', foreColor);
+    viscircles(foodWell,maxR/pix2mm,'color', foreColor);
+    hold on
+% plot all the position points within this experiment: 
+
+x = data(M).rawX(:,body.head);
+y = data(M).rawY(:,body.head);
+scatter(x,y,1,'b','filled')
+x = data(F).rawX(:,body.head);
+y = data(F).rawY(:,body.head);
+scatter(x,y,1,'m','filled')
 
 
 
