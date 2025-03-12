@@ -1,5 +1,4 @@
 
-% TransferProcessedDataToServer
 
 %% LOAD data
 clear; clc;
@@ -1296,7 +1295,7 @@ end
 % demoImg = (read(movieInfo,1));
 % 
 % % ArenaArea = 2827.43;
-% R = 29.5;%25.6; %mm %functional distance they can reach in the circle
+% R = 29.5; %25.6; %mm %functional distance they can reach in the circle
 % innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
 % dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
 % maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
