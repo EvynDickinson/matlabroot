@@ -1048,14 +1048,14 @@ subplot(r,c,5); hold on
 oglim = xlim;
 formatFig(fig, blkbnd,[r,c]);
 
-xlimit = [0 64];
+%xlimit = [0 64];
 for i = 1:4
     subplot(r,c,i)
     set(gca, 'xcolor', 'none')
-    xlim(xlimit)
+    %xlim(xlimit)
 end
 subplot(r,c,5)
-xlim(xlimit)
+%xlim(xlimit)
 
 
 save_figure(fig,[figDir, 'Full timecourse zoom in'], fig_type);
