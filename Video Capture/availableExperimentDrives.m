@@ -53,7 +53,13 @@ drive_base = full_List{a};
 b = strsplit(drive_base,':');
 switch b{1}
     case 'Storage'
-        drive = Storage;
+        if isempty(Storage)
+            drive = uigetdir;
+            drive = drive(1:end-1);
+        else
+            drive = Storage;
+        end
+        
     case 'E'
         drive = 'E:';
     case 'F'

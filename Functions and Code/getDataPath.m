@@ -100,7 +100,7 @@ end
 [availableDrives, availablePaths] = getDataFolderOptions;
 % are they available? 
 portableDrive = availableDrives.portable;
-serverDrive = availableDrives.serverTwo;
+serverDrive = availableDrives.server;
 serverTwoDrive = availableDrives.serverTwo;
 permanentDrive = availableDrives.permanent;
 storageDrive = availableDrives.storage;

@@ -9,7 +9,7 @@ rootDir = getDataPath(5, 0, 'Where is the raw data?');
 paths = getPathNames;
 
 % Find the location of the tracking files for these trials
-trackingDir = getDataPath(5, 2);
+trackingDir = getDataPath(5, 2,'Select svalbard for current tracking files');
 trackingDir = [trackingDir paths.courtship 'Current Tracking Files/'];
 
 [excelfile, Excel, xlFile] = load_HighResExperiments;

@@ -23,6 +23,9 @@ switch parameters.protocol
         expName = [genotype '_' parameters.protocol '_' food];
 end
 
+% parameters.protocol = 'Hold35C';
+% expName = [genotype '_' parameters.protocol '_' food];
+
 % auto-select and fill experiment information: 
 % expName = 'Berlin_courtship_F_LRR_caviar_ramp1';
 start_pause = 5; % min delay before recording should start
