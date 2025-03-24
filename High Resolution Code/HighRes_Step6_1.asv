@@ -261,7 +261,7 @@ switch fly(1).parameters.protocol
     case 'high_res_LTS_35-15'
         % TODO!! 3.23.25 work on adjusting this to work for the LTS
         % protocol -- need to get the code to work dynamically for there
-        % being two different warming periods and only one hold period 
+        % being two different warming periods and only one hodl pe
         
         % save new indexes for plotting regions: 
         a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling

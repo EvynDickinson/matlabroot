@@ -25,7 +25,7 @@ else
     if strcmp('Yes', questdlg('Run basic analysis now?'))
             load([baseDir, 'basic data.mat']) % load the parameters and temp table
             disp('data loaded')
-            
+            tic 
             % Experiment parameters
             nvids = parameters.nVids; % number of videos
             fps = parameters.FPS;
@@ -52,6 +52,7 @@ else
             
             disp_fig = false; % display baseline figures?
             initial_var{end+1} = 'disp_fig';
+            toc
             disp('Data loaded, continuing evaluation')
     end
 end
