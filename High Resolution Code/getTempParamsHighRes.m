@@ -36,4 +36,17 @@ switch protocol
         tRate(4).color = Color('grey');
         param.tRate = tRate;
 
+    case {'Hold35C','hold35'}
+        param.ntrans = 0;
+        param.labelstr = '  ';
+        % find the x-time value for each time period
+        tRate = struct;
+        tRate(1).name = 'hold';
+        tRate(1).color = Color('grey');
+        param.tRate = tRate;
 end
+% 
+% % options list:
+% 'Hold35C'
+% 'high_res_LTS_35-15'
+% 'courtship_F_LRR_25-17'

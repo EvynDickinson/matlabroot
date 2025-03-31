@@ -605,34 +605,54 @@ disp('Flies on food: M & F')
 sum(T.FlyOnFood)
 
 %% ANALYSIS: Determine temperature bins and directions
-% TODO (2/26) update this to work for LTS 15-35 ramps
+% TODO (2/26) update this to work for temp holds and trials that don't have
+% a temperature protocol name:
 clearvars('-except',initial_var{:})
 
+% Check if there is a paratameter protocol: 
+try disp(parameters.protocol)
+catch
+    warndlg('no temperature protocol found -- please manually select an option:')
+    [excelfile, Excel, xlFile] = load_HighResExperiments;
+    tempProtocolList = unique(excelfile(2:end,Excel.protocol));
+    startIdx = find(strcmp(tempProtocolList,'courtship_F_LRR_25-17'));
+    idx = listdlg('PromptString','Select temp protocol for this trial', 'SelectionMode', 'single', 'InitialValue',startIdx,...
+        'ListString',tempProtocolList,'ListSize',[200 200]);
+    if isempty(idx)
+        return
+    end
+    parameters.protocol = tempProtocolList{idx};
+end
 tp = getTempParamsHighRes(parameters.protocol);
-
+% TODO: 3/30 work on getting this to function with diff temp protocols
 initial_var{end+1} = 'tRate';
 temp_file = [baseDir 'temp regions.mat'];
 if ~exist(temp_file, 'file') 
-    
     % manually select the different time points
     x = []; 
     fig = getfig; 
     plot(time, T.temperature,'color', 'k')
     title(tp.labelstr)
-    for i = 1:tp.ntrans
-        [xi, ~] = crosshairs(1,{'black','black','red','red'});  % get a point
-        [~,xidx] = min(abs(time-xi));
-        x(i) = xidx(1);
-        v_line(time(x(i)),'r','--',1)
+    if tp.ntrans>0 % for all dynamic trials
+        for i = 1:tp.ntrans
+            [xi, ~] = crosshairs(1,{'black','black','red','red'});  % get a point
+            [~,xidx] = min(abs(time-xi));
+            x(i) = xidx(1);
+            v_line(time(x(i)),'r','--',1)
+        end
+        % find the x-time value for each time period
+        tRate = tp.tRate;
+        tRate(1).idx = [1, x(1)-1];
+        for i = 2:tp.ntrans
+            tRate(i).idx = [x(i-1), x(i)-1];
+        end
+        tRate(end).idx = [ x(i),T.frame(end)];
+    else % static trials
+        tRate = tp.tRate;
+        tRate(1).idx = [1, T.frame(end)];
+        y_avg = mean(T.temperature);
+        ylim([y_avg-2, y_avg+2]) 
     end
-
-    % find the x-time value for each time period
-    tRate = tp.tRate;
-    tRate(1).idx = [1, x(1)-1];
-    for i = 2:tp.ntrans
-        tRate(i).idx = [x(i-1), x(i)-1];
-    end
-    tRate(end).idx = [ x(i),T.frame(end)];
     
     % plot the regions onto the graph
     hold on
@@ -651,8 +671,9 @@ if ~exist(temp_file, 'file')
          save_figure(fig, [figDir, 'temperature regions'],'-pdf',1);
          save(temp_file,'tRate')
          disp('saved temperature regions')
-    else 
-     end
+     else 
+         close(fig)
+    end
 else
     load(temp_file,'tRate')
     disp('loaded temperature regions')
@@ -677,7 +698,7 @@ if ~isempty(idx)
     end
 end
 %holds
-idx = [find(strcmp('start hold',{tRate(:).name})) , find(strcmp('end hold',{tRate(:).name}))];
+idx = [find(strcmp('start hold',{tRate(:).name})) , find(strcmp('end hold',{tRate(:).name})), find(strcmp('hold',{tRate(:).name}))];
 T.hold = MT;
 if ~isempty(idx)
     for i = 1:length(idx)
@@ -737,7 +758,6 @@ T.wing_ext_all = wing_ext;
 % female speed > 0 x
 % if all are 1 then courtship
 % diff to see if chasing lasts > 2sec x
-
 clearvars('-except',initial_var{:})
 
 x = 1;
@@ -821,8 +841,6 @@ else
 end
 T.court_chase = mt; % time restriction 2 seconds
 T.chase_all = chase; % NO time limit
-
-
 
 %% ANALYSIS: Circling behavior
 % TODO: add some visualization image for the periods of circling
@@ -999,7 +1017,7 @@ f.sleep = dummy(2).sleep;
 
 g = find(m.sleep);
 h = find(f.sleep);
-if [isempty(g) & isempty(h)]
+if isempty(g) && isempty(h)
     disp('no male or female sleep found')
 else
     return
@@ -1019,95 +1037,83 @@ time_buff = 10; % number of frames that can be 'skipped' before the state is con
 
 for sex = 1:2 % male and female
    
-    % Fill in behavior states %TODO HERE: working to align everything for
-    % the loop
-    behavior = nan([length(time),4]);
-    behavior(T.FlyOnFood(:,sex),1) = 1;
-    switch sex
-        case 1
-            behavior(m.sleep,2) = 2;
-        case 2
-            behavior(f.sleep,2) = 2;
-    end
-    behavior(data(sex).OutterRing,3) = 3;
-    behavior(T.CI,4) = 4;
+    tic
+    % Initialize behavior states
+    behavior = nan(ntime, 4);
+    behavior(T.FlyOnFood(:, sex), 1) = 1;
     
-    % Build probabilty map
-    % if sleep co-occurs with other behavior markers, sleep takes priority 
-    sleep_override = sum(~isnan(behavior(:,1:3)),2)>1 & ~isnan(behavior(:,2));
-    behavior(sleep_override,[1,3,4]) = nan; % override the other states since they can't be coincident with sleep
-    
-    % Condense all the states into a single vector with numbers for each state
-    % at every point in time. nan represent frames with undetermined states
-    % TODO: refine this to check for more potential over laps etc.
-    beh = nan(size(time));
-    for i = [4,3,1,2] % ordered so that sleep is the last to fill and overrides the other states 
-        loc = find(~isnan(behavior(:,i)));
-        beh(loc) = i;
+    if sex == 1
+        behavior(m.sleep, 2) = 2;
+    else
+        behavior(f.sleep, 2) = 2;
     end
     
-    state_starts = find(~isnan(beh)); % each time point (frame #) that is an assigned state
-    
-    % create a table that holds information on each state transition: 
-    tic 
-    ST = table('Size', [length(state_starts),7],...
-            'VariableNames',{'state1', 'state1_start', 'state1_end', 'state2', 'state2_start','state2_end', 'transition'},...
-            'VariableTypes', repmat({'double'},[1,7]));
-    idx = 1; % initialize the state transition #
-    for i = 1:length(state_starts)-1 % for each time point with a state (though the ultimate list will be shorter since repeat states count as 1)
-        curr_state = beh(state_starts(i)); % current behavior state
-        
-        % skip this (i) if the current state start is in the preceding on-going state
-        if idx-1>0
-            if ST.state1_end(idx-1)>=state_starts(i) 
-                continue
-            end
-        end
-    
-        % find the next state 
-        for i_dt = 1:length(state_starts(i)+1:state_starts(end))
-            t = state_starts(i+i_dt); % t = index for state_type moving forward from current one
-            next_state = beh(t);
-            frames_since_last_known_state = t-state_starts(i+i_dt-1); % how many nans from last state point
-            
-            % STATE CONTINUATION:
-            % if the next state is the same as the current state and the last
-            % time gap is within the acceptable range, skip to the next (i)
-            % state as this one (current t) is a continuation of the same state
-            if curr_state==next_state && (frames_since_last_known_state<=time_buff)
-                continue % same state, look at next statepoints
-            
-            % NEW STATE
-            % Register this as a state transition if either:
-            % -- the next state is the same as the current one and the time gap is outside the allowable range 
-            % -- or the state is different from the current one
-            elseif (next_state==curr_state && (frames_since_last_known_state>time_buff)) || ~(next_state==curr_state)
-                ST.state1(idx) = beh(state_starts(i)); % current state of the fly
-                ST.state1_start(idx) = state_starts(i); % frame at which the current state started
-                ST.state1_end(idx) = state_starts(i+i_dt-1);
-                
-                ST.transition(idx) = str2double([num2str(curr_state) num2str(next_state)]); % state transition number ID
-                ST.state2(idx) = next_state; % next state of the fly
-                ST.state2_start(idx) = t; % frame at which the next state begins
-                if idx>1
-                    ST.state2_end(idx-1) = ST.state1_end(idx);
-                end
-                if idx==2
-                    ST.state2_end(1) = ST.state1_end(2);
-                end
-                idx = idx+1; 
-                break % break i_dt loop since next state has been found
-            end
-        end
-    end
-    % remove extra locations from the table
-    z = (ST.state1==0 & ST.state2==0);
-    ST(z,:) = [];
-    toc
+    behavior(data(sex).OutterRing, 3) = 3;
+    behavior(T.CI, 4) = 4;
 
+    % Sleep takes priority when overlapping with other states
+    sleep_override = ~isnan(behavior(:, 2)) & any(~isnan(behavior(:, [1, 3, 4])), 2);
+    behavior(sleep_override, [1, 3, 4]) = nan;
+
+    % Assign a single state per time point
+    beh = nan(size(time));
+    for i = [4, 3, 1, 2] % Sleep is assigned last to take priority
+        beh(~isnan(behavior(:, i))) = i;
+    end
+
+    % Find state start indices
+    state_starts = find(~isnan(beh));
+
+    % Preallocate a table for state transitions
+    max_transitions = numel(state_starts); % Overestimate, we'll trim later
+    ST = table(nan(max_transitions, 1), nan(max_transitions, 1), nan(max_transitions, 1), ...
+        nan(max_transitions, 1), nan(max_transitions, 1), nan(max_transitions, 1), nan(max_transitions, 1), ...
+        'VariableNames', {'state1', 'state1_start', 'state1_end', 'state2', 'state2_start', 'state2_end', 'transition'});
+
+    % Identify state transitions
+    idx = 1;
+    i = 1;
+    while i < numel(state_starts)
+        curr_state = beh(state_starts(i));
+        state1_start = state_starts(i);
+        state1_end = state1_start;
+
+        % Move forward until we find a new state or exceed time_buff
+        for j = i + 1:numel(state_starts)
+            t = state_starts(j);
+            next_state = beh(t);
+            gap = t - state1_end;
+
+            if curr_state == next_state && gap <= time_buff
+                state1_end = t; % Extend the current state
+            else
+                % Store state transition
+                ST.state1(idx) = curr_state;
+                ST.state1_start(idx) = state1_start;
+                ST.state1_end(idx) = state1_end;
+                ST.state2(idx) = next_state;
+                ST.state2_start(idx) = t;
+                ST.transition(idx) = str2double([num2str(curr_state), num2str(next_state)]);
+
+                % Update previous state's end time
+                if idx > 1
+                    ST.state2_end(idx - 1) = state1_end;
+                end
+
+                % Prepare for next transition
+                idx = idx + 1;
+                break;
+            end
+        end
+
+        i = j; % Move to next segment
+    end
+
+    % Trim empty rows
+    ST(idx:end, :) = [];
+   
     % Make the probability map as a heatmap with the transition probability as a shaded square with a number
-    % then it will also be easy to make a 'difference' map between each of the
-    % temperature periods (yes yes) 
+    % then it will also be easy to make a 'difference' map between each of the temperature periods
     
     transition_list = nan([nstates^2,1]);
     idx = 1;
@@ -1123,7 +1129,7 @@ for sex = 1:2 % male and female
         transitions(i) = sum(ST.transition==transition_list(i));
     end
     transitions = reshape(transitions,[nstates, nstates])';
-    
+
     % Save some of the data to the data structure for future use:
     data(sex).states.ST = ST;
     data(sex).states.b_list = b_list;
@@ -1132,41 +1138,93 @@ for sex = 1:2 % male and female
     data(sex).states.behavior = behavior;
     data(sex).states.transitions = transitions;
     data(sex).states.transition_list = transition_list;
+    toc
 end
+
+% % How long to each behavior state after each temp change and what order?
+% for sex = 1:2 % for each of the two flies 
+%     freq = [];
+%     for r = 1:size(tRate,2) % for each of the different temperature regimes
+%         roi = tRate(r).idx; % get the temperature regime frame indeces 
+%         for i = 1:data(sex).states.nstates % for each type of behavior | state
+%             freq(r,i).name = data(sex).states.b_list{i};
+%             total_frames = diff(roi);
+% 
+%             % -- make a list of all the times for this behavior (so we can do a frequency graph etc) 
+%             loc = data(sex).states.ST.state1==i;
+%             a = find(loc);
+%             if isempty(a)
+%                 [freq(r,i).n_states, freq(r,i).n_instances, freq(r,i).perc_time_in_state] = deal(0);
+%                 [freq(r,i).time_to_first_instance, freq(r,i).temp_at_first_instance] = deal(nan);
+%                 continue
+%             end
+%             first_frame = data(sex).states.ST.state1_start(a(1));
+%             freq(r,i).n_states = sum(loc); % number of times the behavior occured (not the duration of them)
+% 
+%             % -- total time in the state and the percent of the temp regime in that state
+%             freq(r,i).n_instances = sum(data(sex).states.beh==i); % number of time points with the observed behavior
+%             freq(r,i).perc_time_in_state = (freq(r,i).n_instances/total_frames)*100;
+% 
+%             % -- pull time of the first one
+%             freq(r,i).time_to_first_instance = (first_frame - roi(1))/parameters.FPS; % in seconds
+% 
+%             % -- pull the temp for the first one
+%             freq(r,i).temp_at_first_instance = mean(T.temperature(first_frame:first_frame+3));
+%         end
+%     end
+%     data(sex).states.freq = freq;
+% end
 
 % How long to each behavior state after each temp change and what order?
-for sex = 1:2 % for each of the two flies 
-    freq = [];
-    for r = 1:size(tRate,2) % for each of the different temperature regimes
-        roi = tRate(r).idx; % get the temperature regime frame indeces 
-        for i = 1:data(sex).states.nstates % for each type of behavior | state
-            freq(r,i).name = data(sex).states.b_list{i};
-            total_frames = diff(roi);
-            
-            % -- make a list of all the times for this behavior (so we can do a frequency graph etc) 
-            loc = data(sex).states.ST.state1==i;
-            a = find(loc);
-            if isempty(a)
-                [freq(r,i).n_states, freq(r,i).n_instances, freq(r,i).perc_time_in_state] = deal(0);
-                [freq(r,i).time_to_first_instance, freq(r,i).temp_at_first_instance] = deal(nan);
-                continue
-            end
-            first_frame = data(sex).states.ST.state1_start(a(1));
-            freq(r,i).n_states = sum(loc); % number of times the behavior occured (not the duration of them)
-            
-            % -- total time in the state and the percent of the temp regime in that state
-            freq(r,i).n_instances = sum(data(sex).states.beh==i); % number of time points with the observed behavior
-            freq(r,i).perc_time_in_state = (freq(r,i).n_instances/total_frames)*100;
-            
-            % -- pull time of the first one
-            freq(r,i).time_to_first_instance = (first_frame - roi(1))/parameters.FPS; % in seconds
+for sex = 1:2  % for each of the two flies
+    nstates = data(sex).states.nstates;
+    nregimes = numel(tRate);
 
-            % -- pull the temp for the first one
-            freq(r,i).temp_at_first_instance = mean(T.temperature(first_frame:first_frame+3));
+    % Preallocate freq struct
+    freq(nregimes, nstates) = struct(...
+        'name', '', ...
+        'n_states', 0, ...
+        'n_instances', 0, ...
+        'perc_time_in_state', 0, ...
+        'time_to_first_instance', nan, ...
+        'temp_at_first_instance', nan);
+
+    for r = 1:nregimes  % for each temperature regime
+        roi = tRate(r).idx;  % get the temperature regime frame indices
+        total_frames = diff(roi);
+
+        for i = 1:nstates  % for each type of behavior/state
+            freq(r, i).name = data(sex).states.b_list{i};
+            loc = (data(sex).states.ST.state1 == i);
+            
+            if ~any(loc)
+                continue  % Skip if behavior never occurred
+            end
+            
+            % Find first occurrence
+            first_idx = find(loc, 1, 'first');
+            first_frame = data(sex).states.ST.state1_start(first_idx);
+
+            % Number of occurrences
+            freq(r, i).n_states = sum(loc);
+
+            % Total time in state
+            beh_match = (data(sex).states.beh == i);
+            freq(r, i).n_instances = sum(beh_match);
+            freq(r, i).perc_time_in_state = (freq(r, i).n_instances / total_frames) * 100;
+
+            % Time to first instance in seconds
+            freq(r, i).time_to_first_instance = (first_frame - roi(1)) / parameters.FPS;
+
+            % Temperature at first occurrence (mean over 3 frames)
+            freq(r, i).temp_at_first_instance = mean(T.temperature(first_frame:first_frame+3));
         end
     end
+    
+    % Store results in data structure
     data(sex).states.freq = freq;
 end
+
 
 % FIGURES: number and distribution of behaviors that were observed
 % quick figure on the total set of observed behaviors

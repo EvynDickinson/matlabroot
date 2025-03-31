@@ -76,7 +76,6 @@ ylabel('wing angle (\circ)')
 formatFig(fig, blkbnd);
 save_figure(fig,[figDir 'M and F wing angles'],fig_type);
 
-
 %% FIGURE: Distance to food histogram
 clearvars('-except',initial_var{:})
 fig = figure; 
@@ -302,113 +301,113 @@ end
 
 
 %% FIGURE: Chase overlaid on arena with temp timecourse
-
-switch questdlg(['Show all ' num2str(size(m.chaseroi,1)) ' instances of chase?'])
-    case 'Yes'
-    case 'No'
-        return
-    case 'Cancel'
-        return
-end
-% Subplots
-r = 5;
-c = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:5;
-
-% For each bout of chase, plot M and F movement on arena image
-for i = 1:size(m.chaseroi,1)
-    % Frame numbers at start and end of each chase bout
-    plotroi = m.chaseroi(i,1):m.chaseroi(i,2);
-    % Identify which frame (last in each bout) and video to pull 
-    frame = m.chaseroi(i,2);
-    vidnum = T.vidNums(frame);
-    
-    % Pull and read in video
-    vidpath = [path, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
-    movieInfo = VideoReader(vidpath);
-    demoImg = (read(movieInfo,T.vidFrame(frame)));
-    img = imadjust(demoImg,[72/255, 215/255]);
-
-    % Scatter point size and linewidth
-    sz = 10;
-    lw = 1;
-    % Plot body position at every __ frame
-    frame_skip = 1;
-
-    % Create x and y limit variable for zoomed figures
-    [xlimits, ylimits] = deal([]);
-
-    % Plot body positions over chase bout
-    fig = getfig(' ', true, [759 900]); 
-    % 1) Temperature
-    subplot(r, c, sb(1).idx)
-        hold on
-        % Plot temp timecourse
-        x = time;
-        y = T.temperature;
-        plot(x,y,'color', foreColor,'LineWidth', lw)
-        % Plot vertical lines at each chase bout (orange = current bout shown)
-        v_line(time(m.chaseroi(:)),'teal',':',2)
-        v_line(time(m.chaseroi(i,:)),'orange',':',2)
-        % Axes labels and limits
-        xlabel('time (s)')
-        ylabel('\circC')
-        xlim([0,time(end)])
-    % 2) Body positions overlaid on arena image 
-    subplot(r, c, sb(2).idx)
-        % Plot arena image
-        imshow(img)
-        % Plot fly centers over the course of the chase bout
-        ROI = plotroi(1:frame_skip:end);
-        % Male positions
-        x1 = m.pos(ROI, 1,1);
-        y1 = m.pos(ROI, 1,2);
-        hold on
-        scatter(x1,y1,sz,Color('dodgerblue'), "filled")
-        % Female positions
-        x2 = f.pos(ROI, 1,1);
-        y2 = f.pos(ROI, 1,2);
-        scatter(x2,y2,sz,Color('deeppink'), "filled")
-    
-    % Format figure
-    formatFig(fig, blkbnd, [r,c], sb);
-    % lineROI = drawline(gca);
-    
-    % Save figure
-    save_figure(fig,[figDir 'Chase_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
-    
-    % ---------------------------------------- Zoom in on arena and display skeletons -----------------------------------
-        % Zoom in on the flies
-        xlimits(1) = min([x1; x2; m.pos(frame, :,1)'; f.pos(frame, :,1)']);
-        xlimits(2) = max([x1; x2; m.pos(frame, :,1)'; f.pos(frame, :,1)']);
-        ylimits(1) = min([y1;y2; m.pos(frame, :,2)'; f.pos(frame, :,2)']);
-        ylimits(2) = max([y1;y2; m.pos(frame, :,2)'; f.pos(frame, :,2)']);
-        buff = 50;
-        xlim([xlimits(1)-buff, xlimits(2)+buff])
-        ylim([ylimits(1)-buff, ylimits(2)+buff])
-
-        % Overlay the current body position of the male fly
-        x = m.pos(frame, :,1);
-        y = m.pos(frame, :,2);
-        scatter(x,y,sz,Color('black'), "filled")
-        skeleton = [1,2; 2,3; 2,4; 2,5];
-        for ii = 1:size(skeleton,1)
-            plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
-        end
-
-        % Overlay the current body position of the female fly
-        x = f.pos(frame, :,1);
-        y = f.pos(frame, :,2);
-        scatter(x,y,sz,Color('black'), "filled")
-        skeleton = [1,2; 2,3; 2,4; 2,5];
-        for ii = 1:size(skeleton,1)
-            plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
-        end
-    
-    % Save figure
-    save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
-end
+%  OLD CODE--- NOW INCORPORATED INTO THE NEXT SECTION
+% switch questdlg(['Show all ' num2str(size(m.chaseroi,1)) ' instances of chase?'])
+%     case 'Yes'
+%     case 'No'
+%         return
+%     case 'Cancel'
+%         return
+% end
+% % Subplots
+% r = 5;
+% c = 1;
+% sb(1).idx = 1;
+% sb(2).idx = 2:5;
+% 
+% % For each bout of chase, plot M and F movement on arena image
+% for i = 1:size(m.chaseroi,1)
+%     % Frame numbers at start and end of each chase bout
+%     plotroi = m.chaseroi(i,1):m.chaseroi(i,2);
+%     % Identify which frame (last in each bout) and video to pull 
+%     frame = m.chaseroi(i,2);
+%     vidnum = T.vidNums(frame);
+% 
+%     % Pull and read in video
+%     vidpath = [path, parameters.date, '\', parameters.videoName, '\compiled_video_', num2str(vidnum), '.avi'];
+%     movieInfo = VideoReader(vidpath);
+%     demoImg = (read(movieInfo,T.vidFrame(frame)));
+%     img = imadjust(demoImg,[72/255, 215/255]);
+% 
+%     % Scatter point size and linewidth
+%     sz = 10;
+%     lw = 1;
+%     % Plot body position at every __ frame
+%     frame_skip = 1;
+% 
+%     % Create x and y limit variable for zoomed figures
+%     [xlimits, ylimits] = deal([]);
+% 
+%     % Plot body positions over chase bout
+%     fig = getfig(' ', true, [759 900]); 
+%     % 1) Temperature
+%     subplot(r, c, sb(1).idx)
+%         hold on
+%         % Plot temp timecourse
+%         x = time;
+%         y = T.temperature;
+%         plot(x,y,'color', foreColor,'LineWidth', lw)
+%         % Plot vertical lines at each chase bout (orange = current bout shown)
+%         v_line(time(m.chaseroi(:)),'teal',':',2)
+%         v_line(time(m.chaseroi(i,:)),'orange',':',2)
+%         % Axes labels and limits
+%         xlabel('time (s)')
+%         ylabel('\circC')
+%         xlim([0,time(end)])
+%     % 2) Body positions overlaid on arena image 
+%     subplot(r, c, sb(2).idx)
+%         % Plot arena image
+%         imshow(img)
+%         % Plot fly centers over the course of the chase bout
+%         ROI = plotroi(1:frame_skip:end);
+%         % Male positions
+%         x1 = m.pos(ROI, 1,1);
+%         y1 = m.pos(ROI, 1,2);
+%         hold on
+%         scatter(x1,y1,sz,Color('dodgerblue'), "filled")
+%         % Female positions
+%         x2 = f.pos(ROI, 1,1);
+%         y2 = f.pos(ROI, 1,2);
+%         scatter(x2,y2,sz,Color('deeppink'), "filled")
+% 
+%     % Format figure
+%     formatFig(fig, blkbnd, [r,c], sb);
+%     % lineROI = drawline(gca);
+% 
+%     % Save figure
+%     save_figure(fig,[figDir 'Chase_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
+% 
+%     % ---------------------------------------- Zoom in on arena and display skeletons -----------------------------------
+%         % Zoom in on the flies
+%         xlimits(1) = min([x1; x2; m.pos(frame, :,1)'; f.pos(frame, :,1)']);
+%         xlimits(2) = max([x1; x2; m.pos(frame, :,1)'; f.pos(frame, :,1)']);
+%         ylimits(1) = min([y1;y2; m.pos(frame, :,2)'; f.pos(frame, :,2)']);
+%         ylimits(2) = max([y1;y2; m.pos(frame, :,2)'; f.pos(frame, :,2)']);
+%         buff = 50;
+%         xlim([xlimits(1)-buff, xlimits(2)+buff])
+%         ylim([ylimits(1)-buff, ylimits(2)+buff])
+% 
+%         % Overlay the current body position of the male fly
+%         x = m.pos(frame, :,1);
+%         y = m.pos(frame, :,2);
+%         scatter(x,y,sz,Color('black'), "filled")
+%         skeleton = [1,2; 2,3; 2,4; 2,5];
+%         for ii = 1:size(skeleton,1)
+%             plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
+%         end
+% 
+%         % Overlay the current body position of the female fly
+%         x = f.pos(frame, :,1);
+%         y = f.pos(frame, :,2);
+%         scatter(x,y,sz,Color('black'), "filled")
+%         skeleton = [1,2; 2,3; 2,4; 2,5];
+%         for ii = 1:size(skeleton,1)
+%             plot(x(skeleton(ii,:)),y(skeleton(ii,:)), 'color', Color('black'),'LineWidth', 1.5)
+%         end
+% 
+%     % Save figure
+%     save_figure(fig,[figDir 'Chase_zoom_', num2str(i), ' ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type);
+% end
 
 %% FIGURES: Visualize chasing overlaid on arena image, with side zoom on other parameters 
 clearvars('-except',initial_var{:})
@@ -780,7 +779,8 @@ end
 
 %% FIGURE: CI & behavior components
 clearvars('-except',initial_var{:})
-
+% TODO: add descriptions to the raster plot so we know what each one
+% corresponds to! 3/31
 tickH = 1; % tick height
 LS = 0.5; % vertical space between ticks
 LW = 1; % tick line width

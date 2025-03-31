@@ -25,7 +25,7 @@ else
     if strcmp('Yes', questdlg('Run basic analysis now?'))
             load([baseDir, 'basic data.mat']) % load the parameters and temp table
             disp('data loaded')
-            
+            tic 
             % Experiment parameters
             nvids = parameters.nVids; % number of videos
             fps = parameters.FPS;
@@ -52,6 +52,7 @@ else
             
             disp_fig = false; % display baseline figures?
             initial_var{end+1} = 'disp_fig';
+            toc
             disp('Data loaded, continuing evaluation')
     end
 end
@@ -604,34 +605,54 @@ disp('Flies on food: M & F')
 sum(T.FlyOnFood)
 
 %% ANALYSIS: Determine temperature bins and directions
-% TODO (2/26) update this to work for LTS 15-35 ramps
+% TODO (2/26) update this to work for temp holds and trials that don't have
+% a temperature protocol name:
 clearvars('-except',initial_var{:})
 
+% Check if there is a paratameter protocol: 
+try disp(parameters.protocol)
+catch
+    warndlg('no temperature protocol found -- please manually select an option:')
+    [excelfile, Excel, xlFile] = load_HighResExperiments;
+    tempProtocolList = unique(excelfile(2:end,Excel.protocol));
+    startIdx = find(strcmp(tempProtocolList,'courtship_F_LRR_25-17'));
+    idx = listdlg('PromptString','Select temp protocol for this trial', 'SelectionMode', 'single', 'InitialValue',startIdx,...
+        'ListString',tempProtocolList,'ListSize',[200 200]);
+    if isempty(idx)
+        return
+    end
+    parameters.protocol = tempProtocolList{idx};
+end
 tp = getTempParamsHighRes(parameters.protocol);
-
+% TODO: 3/30 work on getting this to function with diff temp protocols
 initial_var{end+1} = 'tRate';
 temp_file = [baseDir 'temp regions.mat'];
 if ~exist(temp_file, 'file') 
-    
     % manually select the different time points
     x = []; 
     fig = getfig; 
     plot(time, T.temperature,'color', 'k')
     title(tp.labelstr)
-    for i = 1:tp.ntrans
-        [xi, ~] = crosshairs(1,{'black','black','red','red'});  % get a point
-        [~,xidx] = min(abs(time-xi));
-        x(i) = xidx(1);
-        v_line(time(x(i)),'r','--',1)
+    if tp.ntrans>0 % for all dynamic trials
+        for i = 1:tp.ntrans
+            [xi, ~] = crosshairs(1,{'black','black','red','red'});  % get a point
+            [~,xidx] = min(abs(time-xi));
+            x(i) = xidx(1);
+            v_line(time(x(i)),'r','--',1)
+        end
+        % find the x-time value for each time period
+        tRate = tp.tRate;
+        tRate(1).idx = [1, x(1)-1];
+        for i = 2:tp.ntrans
+            tRate(i).idx = [x(i-1), x(i)-1];
+        end
+        tRate(end).idx = [ x(i),T.frame(end)];
+    else % static trials
+        tRate = tp.tRate;
+        tRate(1).idx = [1, T.frame(end)];
+        y_avg = mean(T.temperature);
+        ylim([y_avg-2, y_avg+2]) 
     end
-
-    % find the x-time value for each time period
-    tRate = tp.tRate;
-    tRate(1).idx = [1, x(1)-1];
-    for i = 2:tp.ntrans
-        tRate(i).idx = [x(i-1), x(i)-1];
-    end
-    tRate(end).idx = [ x(i),T.frame(end)];
     
     % plot the regions onto the graph
     hold on
@@ -650,8 +671,9 @@ if ~exist(temp_file, 'file')
          save_figure(fig, [figDir, 'temperature regions'],'-pdf',1);
          save(temp_file,'tRate')
          disp('saved temperature regions')
-    else 
-     end
+     else 
+         close(fig)
+    end
 else
     load(temp_file,'tRate')
     disp('loaded temperature regions')
@@ -676,7 +698,7 @@ if ~isempty(idx)
     end
 end
 %holds
-idx = [find(strcmp('start hold',{tRate(:).name})) , find(strcmp('end hold',{tRate(:).name}))];
+idx = [find(strcmp('start hold',{tRate(:).name})) , find(strcmp('end hold',{tRate(:).name})), find(strcmp('hold',{tRate(:).name}))];
 T.hold = MT;
 if ~isempty(idx)
     for i = 1:length(idx)
