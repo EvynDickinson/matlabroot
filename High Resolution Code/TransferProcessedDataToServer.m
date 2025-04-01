@@ -123,8 +123,9 @@ for i = 1:length(sel_loc)
         disp('Couldn''t write to excel sheet for:')
         disp(originalFolder)
     end
-
+disp(['successfully transferred: ', dataFolder])
 end
+
 
 
 
