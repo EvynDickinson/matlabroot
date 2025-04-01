@@ -535,7 +535,7 @@ clearvars('-except',initial_var{:})
 
 % Max Distance from Center of Arena : 29.612mm = 30mm radius
 % ArenaArea = 2827.43;
-R = 30; %mm
+R = 25.6;%30; %mm
 innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
 dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
 maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
@@ -612,7 +612,8 @@ clearvars('-except',initial_var{:})
 % Check if there is a paratameter protocol: 
 try disp(parameters.protocol)
 catch
-    warndlg('no temperature protocol found -- please manually select an option:')
+    h = warndlg('no temperature protocol found -- please manually select an option:');
+    uiwait(h);
     [excelfile, Excel, xlFile] = load_HighResExperiments;
     tempProtocolList = unique(excelfile(2:end,Excel.protocol));
     startIdx = find(strcmp(tempProtocolList,'courtship_F_LRR_25-17'));
@@ -1354,7 +1355,7 @@ end
 % demoImg = (read(movieInfo,1));
 % 
 % % ArenaArea = 2827.43;
-% R = 29.5; %25.6; %mm %functional distance they can reach in the circle
+% R =  25.6; % (full arena edge: 29.5)   %functional distance they can reach in the circle
 % innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
 % dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
 % maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena

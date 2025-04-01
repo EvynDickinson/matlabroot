@@ -22,21 +22,23 @@
 % courtship index vs temperature
 
 % Prep data
-clear; clc;
-startloc = getDataPath(6,0);
-if isempty(startloc)
-    return
+if ~strcmp(questdlg('Is data from 5.1 already loaded?'),'Yes')
+    clear; clc;
+    startloc = getDataPath(6,0);
+    if isempty(startloc)
+        return
+    end
+    baseFolder = [startloc,'Trial Data/'];
+    trialDir = selectFolder(baseFolder); 
+    baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+    figDir = [baseDir,'Figures/']; 
+    if ~exist(figDir, 'dir')
+        mkdir(figDir)
+    end
+    
+    load([baseDir, 'post-5.1 data.mat']) % load the parameters and temp table
+    disp('data loaded')
 end
-baseFolder = [startloc,'Trial Data/'];
-trialDir = selectFolder(baseFolder); 
-baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
-figDir = [baseDir,'Figures/']; 
-if ~exist(figDir, 'dir')
-    mkdir(figDir)
-end
-
-load([baseDir, 'post-5.1 data.mat']) % load the parameters and temp table
-disp('data loaded')
 
 % Experiment parameters
 blkbnd = true;
@@ -836,29 +838,11 @@ save_figure(fig,[figDir 'Courtship Index timecourse'],fig_type);
 
 %% FIGURE: Fly turning over time 
 clearvars('-except',initial_var{:})
-% for sex = 1:2
-%     % extract the x and y head and center positions to calculcate the slope of the body line
-%     x = data(sex).rawX(:,body.head:body.center);
-%     y = data(sex).rawY(:,body.head:body.center);
-% 
-%     % zero the flys center (actually unneccessary) 
-%     X = x - x(:,2);
-%     Y = y - y(:,2);
-%     % slope for each point in time
-%     slope = (Y(:,2)-Y(:,1))./(X(:,2)-X(:,1));
-%     m1 = slope(1:end-1);   % 'past' heading
-%     m2 = slope(2:end);      % 'current' heading
-% 
-%     % calculate the angle between the two slopes 
-%     theta = atan((m1-m2)./(1+(m1.*m2)));
-%     theta = rad2deg(theta);
-%     data(sex).turning = [nan; theta].*(fps);
-% end
 
 r = 4;
 c = 1;
 sb(1).idx = 1; %  temperature
-sb(2).idx = [2:4]; % circing
+sb(2).idx = 2:4; % circing
 
 fig = getfig('',1);
 subplot(r, c, sb(1).idx)
@@ -868,7 +852,7 @@ subplot(r, c, sb(1).idx)
 subplot(r, c, sb(2).idx)
     hold on
     for sex = 1:2
-        plot(time,smooth(data(sex).turning,fps,'moving'),'color', data(sex).color)
+        plot(time,smooth(data(sex).turning,fps*30,'moving'),'color', data(sex).color)
     end
     h_line(0,'grey','--')
     xlabel('Time (min)')
@@ -927,7 +911,7 @@ f.sleep = dummy(2).sleep;
 % Figure
 lw = 2;
 
-fig = getfig;
+fig = getfig('',1);
 hold on
     sSpan = fps; % single second smoothing
     y1 = smooth(m.sleep,sSpan,'moving'); % male
@@ -935,11 +919,10 @@ hold on
     % plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
     plot(time, y2, 'color', Color('deeppink'),'LineWidth', lw)
     plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
-    ylabel('sleep(mm/s)')
-    xlabel('time(min)')
-
+    xlabel('time (min)')
 formatFig(fig);
-ylim([0,2])
+ylim([-0.2,1.2])
+set(gca, 'ytick', [0,1],'YTickLabel', {'Awake', 'Sleep'})
 
 save_figure(fig,[figDir 'Fly sleep over time'],fig_type);
 
@@ -1057,30 +1040,30 @@ end
 subplot(r,c,5)
 %xlim(xlimit)
 
-
 save_figure(fig,[figDir, 'Full timecourse zoom in'], fig_type);
 
-
-
 %% FIGURE: Plot fly positions for given frames
-for frame = 1:20
+clearvars('-except',initial_var{:})
+time_roi = [58.5,59.5]; % time range (not frames) to seek
+frames = find(time>=time_roi(1) & time<=time_roi(2));
 
 % plot fly positions: 
-fig = getfig('',1,[560 420]);
+fig = getfig('',1,[560 420]); hold on
 
-    hold on
-    % for frame = frames
+for frame = frames
         plotFlySkeleton(fig, data(1).rawX(frame, :),data(1).rawY(frame, :),Color('dodgerblue'),true);
+
         plotFlySkeleton(fig, data(2).rawX(frame, :),data(2).rawY(frame, :),Color('deeppink'),true);
-    % end
     axis square equal
 set(gca, 'xcolor', backColor,'ycolor',backColor)
-title([num2str(data(1).mfbodyangle(frame))])
+% title([num2str(data(1).mfbodyangle(frame))])
 end
 
 %     close all
 %% FIGURE: Distance, speed, and speed correlation between flies over full video course
 % use the center body point to determine between-fly distance
+clearvars('-except',initial_var{:})
+
 sSpan = 90; % 3 seconds
 % [foreColor,backColor] = formattingColors(false); %get background colors
 
@@ -1097,9 +1080,9 @@ subplot(r,c,1)
 % FLY SPEED
 subplot(r,c,2); hold on 
     sSpan = fps; %single second smoothing
-    x = time(1:end-1);
-    y1 = smooth(speed(:,1),sSpan,'moving');
-    y2 = smooth(speed(:,2),sSpan,'moving');
+    x = time;
+    y1 = smooth(m.speed,sSpan,'moving');
+    y2 = smooth(f.speed,sSpan,'moving');
     plot(x, y1, 'color', Color('dodgerblue'),'LineWidth', 2)
     plot(x, y2, 'color', Color('deeppink'),'LineWidth', 2)
     ylabel('fly speed (mm/s)')
@@ -1109,7 +1092,7 @@ subplot(r,c,2); hold on
 subplot(r,c,3); hold on 
     tSpan = 3; % time window in seconds
     pSpan = tSpan * fps; % frames in the sliding window
-    y = runningCorrelation(speed, pSpan);
+    y = runningCorrelation([m.speed, f.speed], pSpan);
     y = smooth(y,pSpan,'moving');
     offset = ceil(pSpan/2);
     x = time(offset:offset+length(y)-1)';
@@ -1125,8 +1108,7 @@ set(gca, 'xcolor', backColor)
 subplot(r,c,2)
 set(gca, 'xcolor', backColor)
 
-save_figure(fig,[figDir 'speed and distance timecourse'], fig_type);
-
+save_figure(fig,[figDir 'speed and interfly distance timecourse'], fig_type);
 
 %% FIGURE: Plot fly positions for a given frame
 frame = 1;

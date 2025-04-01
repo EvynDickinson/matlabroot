@@ -1,4 +1,7 @@
 
+% TODO: 
+% R =  25.6;
+% Adjust the outer ring occupancy to represent the accessible space in the arena
 
 %% Load grouped data to compare across flies and ramps
 

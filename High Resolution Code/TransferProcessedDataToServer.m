@@ -29,7 +29,7 @@ if strcmp(StartName,'data storage')
     basestr = 'storage';
 end
 rows1 = ~cellfun('isempty', regexp(string(excelfile(:, Excel.storagedrive)), basestr, 'ignorecase'));
-rows0 = ~cellfun('isempty', regexp(string(excelfile(:, Excel.groupready)), basestr, 'ignorecase'));
+rows0 = strcmpi(string(excelfile(:, Excel.groupready)), 'Y');
 % list of files that haven't been uploaded to the server yet
 rows2 = cellfun(@(x) isempty(x) || (isnumeric(x) && isnan(x)), excelfile(:, Excel.processed_data_on_server));
 % list of files that have been processed far enough to be ready for processed data transfer
@@ -102,7 +102,7 @@ for i = 1:length(sel_loc)
     end
 
     % move all data files into their own folder
-    dataTypes = {'*.mat', '*.slp','*.h5', '*.py', '*.png'};
+    dataTypes = {'*.mat', '*.slp','*.h5', '*.py', '*.png','*.csv'};
     dataFolder = createFolder([originalFolder 'data']);
     for f = 1:length(dataTypes)
         if ~isempty(dir(fullfile(originalFolder, dataTypes{f})))
