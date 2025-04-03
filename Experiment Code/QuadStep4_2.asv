@@ -1375,11 +1375,26 @@ for exp = 1:num.exp
     grouped(exp).foodcircle.temps = temps;
 end
 
+%% Test the actual occupancy of the arena to see if the spatial constraints fit:
+
+% 1) pull up image of the arena from one of the videos OR just go blank screen
+
+% 2) overlay all the positions of the flies during the experiments
+
+for i = 1
+
+
+% 3) outline the projected arena outlines
+
+
+
+
+
 %% ANALYSIS: Flies on Food
 clearvars('-except',initial_vars{:})
 maxR = 3; % 2.5 mm radius of the physical well -- give 0.5mm buffer zone outside well since body mark is body center not head
 
-% Find the percent of the flies that are in the outer ring
+% Find the percent of the flies that are on the food 
 for exp = 1:num.exp
     counts = []; ring_per = [];
     for trial = 1:num.trial(exp)

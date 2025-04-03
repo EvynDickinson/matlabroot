@@ -893,6 +893,8 @@ for i = 1:num.exp
         end
       end
     end
+    grouped(i).position.trial(trial).x = x_data;
+    grouped(i).position.trial(trial).y = y_data;
   end
   
   % save trial data into broad structure
@@ -1375,11 +1377,32 @@ for exp = 1:num.exp
     grouped(exp).foodcircle.temps = temps;
 end
 
+%% Test the actual occupancy of the arena to see if the spatial constraints fit:
+% clearvars('-except',initial_vars{:})
+% R = 30; %mm
+% innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
+% dist_from_edge = (R - innerR);
+% 
+% % 1) pull up image of the arena from one of the videos OR just go blank screen
+% % 2) overlay all the positions of the flies during the experiments
+% fig = getfig('',1); hold on
+%     exp = 1;
+%     trial = 1;
+%     centre = data(exp).data(trial).data.centre; %distance to center of arena 
+%     x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
+%     y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
+%     scatter(x(:),y(:),2,'w','filled')
+%     formatFig(fig,true)
+% 
+%     viscircles(centre',R*pix2mm,'color', 'r','LineWidth',0.25);
+%     viscircles(centre',innerR*pix2mm,'color', 'r','LineWidth',0.25);
+
+
 %% ANALYSIS: Flies on Food
 clearvars('-except',initial_vars{:})
 maxR = 3; % 2.5 mm radius of the physical well -- give 0.5mm buffer zone outside well since body mark is body center not head
 
-% Find the percent of the flies that are in the outer ring
+% Find the percent of the flies that are on the food 
 for exp = 1:num.exp
     counts = []; ring_per = [];
     for trial = 1:num.trial(exp)

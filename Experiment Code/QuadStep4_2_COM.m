@@ -425,13 +425,9 @@ end
 
 %% FIGURE: plot heatmap of fly position within arena
 clearvars('-except',initial_vars{:})
-save_path = [saveDir 'COM/'];
+save_path = createFolder([saveDir 'COM/']);
 autoSave = true;
 
-% save_path = '/Users/evyndickinson/Desktop/data/';
-if ~exist(save_path,'dir')
-    mkdir(save_path)
-end
 fig_type = '-pdf';
 blkbgd = false;
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -549,6 +545,128 @@ end
 
 % make mask for arena sizing...
 
+%% FIGURE (TEMP HOLDS ONLY): 2D spatial occupancy in arena histogram
+% TODO 4/3 get this to work -- just saved all aligned position data to
+% grouped.position.trial.x/y so use that
+clearvars('-except',initial_vars{:})
+save_path = createFolder([saveDir 'COM/']);
+autoSave = true;
+
+fig_type = '-pdf';
+blkbgd = false;
+[foreColor,backColor] = formattingColors(blkbgd);
+
+% Find the occupancy for each bin:
+r = data(1).data(1).data.r; %pixel radius of the arena
+n = 26; % number of spatial bins
+autoLim = false;
+axis_limits = [0, 0.01];
+
+expList = 1:2:num.exp; % take the caviar trials first
+
+% % Set Temperature
+% for temp = [15:4:35] %[17,18, 20,30,32]%16:2:35 %(17:2:25)
+
+plotData = [];
+max_occ = [];
+% GROUP DATA
+for i = expList
+    % get the 'square' units for partitioning space  (aka grid lines for subdividing space) 
+    Cx = mean(grouped(i).position.well_pos.x(5,:)); %center X
+    Cy = mean(grouped(i).position.well_pos.y(5,:)); %center Y
+    x_edge = linspace(Cx-r,Cx+r,n);
+    y_edge = linspace(Cy-r,Cy+r,n);
+
+    % determine what a circle around the arena would look like:
+    % r needs to be transformed into unit square space...
+    square_unit = mean(diff(x_edge)); % pixel size for one bin
+    circ_r = r/square_unit; % arena radius in bin size
+    circ_X = discretize(Cx, x_edge);
+    circ_Y = discretize(Cy, y_edge);
+
+    % find the temp bin that corresponds to the selected temp:
+    % [~,idx] = min(abs(grouped(i).position.temp_list-temp));
+    % nRates = length(grouped(i).position.temp_rates);
+    % nflies = [];
+    % for rr = 1:nRates
+        % find x and y that are within each 'box'
+        x = data(i).data(trial).data.x_loc; % x locations for the entire experiment
+        y = data(i).data(trial).data.y_loc; % x locations for the entire experiment
+
+        % x = grouped(i).position.loc(rr,idx).x;
+        % y = grouped(i).position.loc(rr,idx).y;
+        nanLoc = isnan(x)| isnan(y);
+        x(nanLoc) = [];
+        y(nanLoc) = [];
+
+        xInd = discretize(x,x_edge);
+        yInd = discretize(y,y_edge);
+    
+        % find the number of flies within each spatial bin:
+        for row = 1:n
+            for col = 1:n
+                nflies(row,col) = sum(yInd==row & xInd==col);
+            end
+        end
+        % turn to prob and not direct occupancy
+        plotData(i,rr).data = nflies./sum(sum(nflies));
+        
+        max_occ = max([max_occ,max(max(plotData(i,rr).data))]);
+
+        % Find the wells within the binned space
+        % wellX = (grouped(i).position.well_pos.x(1:4,:)); 
+        % wellY = (grouped(i).position.well_pos.y(1:4,:));
+        % wellX = wellX(:);
+        % wellY = wellY(:);
+        xInd = discretize(0,x_edge);
+        yInd = discretize(0,y_edge);
+
+        plotData(i,rr).wells = [xInd,yInd];
+    end
+end
+
+disp(['Max occupancy: ' num2str(max_occ)])
+
+% PLOT 
+fig_W = 20 + (400*nRates);
+
+for i = expList
+    fig = getfig('',false,[fig_W, 340]); 
+    for rr = 1:nRates
+        subplot(1,nRates,rr)
+        hold on
+        imagesc(plotData(i,rr).data); hold on
+        scatter(plotData(i,rr).wells(:,1),plotData(i,rr).wells(:,2),10,'r','filled')
+        axis tight;
+        axis square;
+        % h = drawcircle('Center',[circ_X,circ_Y],'Radius',circ_r,'StripeColor',foreColor);
+        v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
+    end
+    formatFig(fig, blkbgd,[1,nRates]);
+    for rr = 1:nRates
+        subplot(1,nRates,rr)
+        set(gca,'XColor',backColor,'Ycolor',backColor,'XTick', [],'YTick', [])
+        t_str = [num2str(grouped(i).position.temp_rates(rr)) '\circC/min | ' num2str(temp) '\circC'];
+        title({grouped(i).name; t_str},'color',foreColor,'fontsize', 12)
+        
+        % set(gca,'ColorScale','log')
+
+        c = colorbar;
+        c.Label.String = 'Occupancy Probability';
+        c.Label.Color = foreColor;
+        c.Color = foreColor;
+        if autoLim
+            clim([0,max_occ]) 
+        else
+            clim(axis_limits)
+        end
+    end
+    colormap(flipud(gray))
+    % save the figure to a folder specific to that cohort?
+    save_figure(fig,[save_path grouped(i).name ' ' num2str(temp) ' deg'], fig_type,autoSave,true);
+end
+
+end
 
 
 
