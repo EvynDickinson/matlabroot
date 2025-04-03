@@ -1612,17 +1612,14 @@ for i = 1:length(loc1)
         end
 
 
-        % TODO: 4/3 update this for speed and then start testing the plate types
-        
         % write to excel the plate number
         isExcelFileOpen(xlFile);
-        ntrials = length(loc_all);
         for jj = 1:length(loc_all)
             writecell({plate_str},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.plate) num2str(loc_all(jj))]);
         end
         
 
-        writecell(repmat({plate_str}, ntrials, 1), xlFile, 'Sheet', 'Exp List', 'Range', [Alphabet(Excel.plate) num2str(loc_all)]);
+writecell(repmat({plate_str}, length(loc_all), 1), xlFile, 'Sheet', 'Exp List', 'Range', [Alphabet(Excel.plate) num2str(loc_all(1))]);
 
 
         % add to processed list

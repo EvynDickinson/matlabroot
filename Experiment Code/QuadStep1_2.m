@@ -109,7 +109,7 @@ initial_vars = [initial_vars; 'arenaData'; 'arenaIdx'; 'r'; 'wellcenters'; 'demo
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
-%% Get the number of flies in each arena %TODO
+%% Get the number of flies in each arena 
 % Number of flies: 
 nframes = 3;
 nflies = nan(1,4); 
@@ -125,7 +125,7 @@ if any(isnan(nflies))
     % manual count of flies
     fprintf('\nCount the number of flies in the picture by clicking them\n then hit ENTER\n')
     T = true;
-   while T % get the number of flies in the arena %TODO: work here for an automated fly count
+   while T % get the number of flies in the arena 
        % % find the X & Y location for SLEAP tracked points for this video:
        %  headData = squeeze(data(1).tracks(:,1,:,:)); %this is ALL points in all arenas for each frame
        %  x_loc = squeeze(headData(:,1,:));

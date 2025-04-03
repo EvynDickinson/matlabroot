@@ -51,6 +51,8 @@ Excel.facility = find(strcmpi('Facility', Excel.headers)==1);
 Excel.trialID = find(strcmpi('Trial_ID', Excel.headers)==1);
 Excel.step1 = find(strcmpi('Step 1', Excel.headers)==1);
 
+Excel.plate = find(strcmpi('Plate', Excel.headers)==1);
+
 Excel.experimenter = find(strcmpi('Experimenter', Excel.headers)==1);
 Excel.daynight = find(strcmpi('Incubator', Excel.headers)==1); 
 Excel.zeitgebertime = find(strcmpi('Zeitgeber Time', Excel.headers)==1);

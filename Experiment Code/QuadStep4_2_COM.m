@@ -562,15 +562,10 @@ n = 26; % number of spatial bins
 autoLim = false;
 axis_limits = [0, 0.01];
 
-expList = 1:2:num.exp; % take the caviar trials first
-
-% % Set Temperature
-% for temp = [15:4:35] %[17,18, 20,30,32]%16:2:35 %(17:2:25)
-
 plotData = [];
 max_occ = [];
 % GROUP DATA
-for i = expList
+for i = num.exp
     % get the 'square' units for partitioning space  (aka grid lines for subdividing space) 
     Cx = mean(grouped(i).position.well_pos.x(5,:)); %center X
     Cy = mean(grouped(i).position.well_pos.y(5,:)); %center Y
@@ -584,46 +579,38 @@ for i = expList
     circ_X = discretize(Cx, x_edge);
     circ_Y = discretize(Cy, y_edge);
 
-    % find the temp bin that corresponds to the selected temp:
-    % [~,idx] = min(abs(grouped(i).position.temp_list-temp));
-    % nRates = length(grouped(i).position.temp_rates);
-    % nflies = [];
-    % for rr = 1:nRates
-        % find x and y that are within each 'box'
-        x = data(i).data(trial).data.x_loc; % x locations for the entire experiment
-        y = data(i).data(trial).data.y_loc; % x locations for the entire experiment
-
-        % x = grouped(i).position.loc(rr,idx).x;
-        % y = grouped(i).position.loc(rr,idx).y;
+    [x_all, y_all] = deal([]);
+    for trial = 1:num.trial(i)
+        % pull all the position data for the current trial (BUT from the
+        % realigned data across arenas)
+        x = grouped(i).position.trial(trial).x;
+        y = grouped(i).position.trial(trial).y;
+        x = x(:); % reshape to vector format
+        y = y(:); % reshape to vector format
         nanLoc = isnan(x)| isnan(y);
         x(nanLoc) = [];
         y(nanLoc) = [];
-
-        xInd = discretize(x,x_edge);
-        yInd = discretize(y,y_edge);
-    
-        % find the number of flies within each spatial bin:
-        for row = 1:n
-            for col = 1:n
-                nflies(row,col) = sum(yInd==row & xInd==col);
-            end
-        end
-        % turn to prob and not direct occupancy
-        plotData(i,rr).data = nflies./sum(sum(nflies));
-        
-        max_occ = max([max_occ,max(max(plotData(i,rr).data))]);
-
-        % Find the wells within the binned space
-        % wellX = (grouped(i).position.well_pos.x(1:4,:)); 
-        % wellY = (grouped(i).position.well_pos.y(1:4,:));
-        % wellX = wellX(:);
-        % wellY = wellY(:);
-        xInd = discretize(0,x_edge);
-        yInd = discretize(0,y_edge);
-
-        plotData(i,rr).wells = [xInd,yInd];
+        x_all = [x_all; x];
+        y_all = [y_all; y];
     end
+    % find the location of flies within each bin
+    xInd = discretize(x,x_edge);
+    yInd = discretize(y,y_edge);
+    nflies = accumarray([yInd, xInd], 1, [n, n]);
+
+    % turn to prob and not direct occupancy
+    plotData(i).data = nflies./sum(sum(nflies));
+    plotData(i).rawcounts = nflies;
+    
+    max_occ = max([max_occ,max(max(plotData(i).data))]); % for later thresholding
+
+    % Find the wells within the binned space
+    xInd = discretize(0,x_edge);
+    yInd = discretize(0,y_edge);
+
+    plotData(i).wells = [xInd,yInd];
 end
+
 
 disp(['Max occupancy: ' num2str(max_occ)])
 
@@ -666,7 +653,7 @@ for i = expList
     save_figure(fig,[save_path grouped(i).name ' ' num2str(temp) ' deg'], fig_type,autoSave,true);
 end
 
-end
+% end
 
 
 
