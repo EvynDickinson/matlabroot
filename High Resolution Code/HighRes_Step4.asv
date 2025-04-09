@@ -198,8 +198,6 @@ for vid = 1:nvids-1
 end
 
 % Option to change order if a track was answered incorrectly: 
-% TODO: (optional) incorporate a video verification of the alignment for
-% the incorrectly assigned videos
 switch questdlg('Were all the tracks correctly answered?')
     case 'Yes'
     case 'No'
@@ -208,7 +206,7 @@ switch questdlg('Were all the tracks correctly answered?')
         for i = incorrect_vids
             vid_align(i) = ~vid_align(i);
         end
-        disp('Video alignments updated')
+
 end
 
 state_switch = false;
