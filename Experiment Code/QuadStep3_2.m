@@ -247,7 +247,7 @@ initial_vars{end+1} = 'temp_protocol';
 initial_vars{end+1} = 'hold_exp';
 
 % Check if this is a temp hold control and if so, which active profile to compare it to:
-hold_protocols = {'Hold27C','Hold25C', 'Hold23C', 'Hold20C','Hold17C','Hold15C'};
+hold_protocols = {'Hold35C','Hold33C','Hold30C','Hold27C','Hold25C', 'Hold23C', 'Hold20C','Hold17C','Hold15C'};
 if any(strcmpi(T.TempProtocol{1},hold_protocols))
         hold_exp = true;
         cp = getCloudPath;
@@ -338,7 +338,7 @@ for ii = 1:nfoods+1
     if ii <= nfoods
         food(ii).name = foodNames{ii};
     else 
-        food(ii).name = 'Empty';
+        food(ii).name = 'Empty'; % so the last option will always be the empty wells
     end
 end
 for trial = 1:ntrials
@@ -346,6 +346,10 @@ for trial = 1:ntrials
     % Screen out data pre/post data 
     tempPoints = getTempTurnPoints(temp_protocol);
     roi = sort([tempPoints.DownROI,tempPoints.UpROI]);
+    if isempty(roi)
+        warndlg('If this is a temp hold experiment, give it a fictive temp protocol')
+        return
+    end
     for well = 1:4
         switch inputVar
             case 'distance'
