@@ -96,7 +96,13 @@ fprintf('\nNext\n')
 %% Load arena outlines and copy data to analysis folder
 % Load the well location data 
 well_loc_file = [baseFolder folder '/' expName ' well_locations.mat'];
-load(well_loc_file);
+try load(well_loc_file);
+catch % if the location data is missing -- outline the wells here:
+    movieInfo = VideoReader([baseFolder folder '/' expName '_1.avi']); %read in video
+    demoImg = imadjust(rgb2gray(read(movieInfo,1)), [55/255,150/255]); % pull out a 
+    getArenaOutlines(demoImg, [baseFolder folder '/' expName]) % actually outline the arenas and wells
+    load(well_loc_file);
+end
 copyfile(well_loc_file, [analysisDir expName ' well_locations.mat']);
 
 % Load the well location data 
@@ -120,6 +126,7 @@ end
 movieInfo = VideoReader([baseFolder folder '/' expName '_1.avi']); %read in video
 ii = randi(size(data(1).occupancy_matrix,2),[3,1]); %random selection of frames to count fly number
 demoImg = rgb2gray(read(movieInfo,1));
+demoImg = imadjust(demoImg, [55/255,150/255]);
 if any(isnan(nflies)) 
     nflies = [];
     % manual count of flies
@@ -145,6 +152,7 @@ if any(isnan(nflies))
         fprintf('Number of flies counted \n    A     B     C     D\n    ---    ---    ---    ---\n')
         for jj = 1:nframes
             demoImg = rgb2gray(read(movieInfo,ii(jj))); %display the arena frame image
+            demoImg = imadjust(demoImg, [55/255,150/255]);
             PT(jj).frame = readPoints(demoImg);
             for arena = 1:4
                 centre = arenaData(arena).centre;
