@@ -47,7 +47,8 @@ loc = loc(ia); % restrict excel locations to those are on the selected drive
 % cancel out if there are no available options: 
 if isempty(loc)
     warndlg(['There are no files that are ready for data transfer at this point on the drive you selected.' ...
-         'Try checking that the High Res excel sheet has updated values in the storage drive and group ready columns']);
+         'Try checking that the High Res excel sheet has updated values in the storage drive and group ready columns'...
+         'aka go add Y!']);
     return
 end
 
