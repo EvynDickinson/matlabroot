@@ -605,11 +605,14 @@ switch expGroup
         colors = {'black','blue','orange', 'magenta', 'pink'};
         % ============= SILENCING EXPERIMENTS ===============
     case 'R77C10-gal4 F LRR caviar comparisons'
-         expOrder = 1:3; %
+        expOrder = 1:3; %
         colors = {'dodgerblue','Gold','magenta'};
     case 'IR25a-gal4;TM2 F LRR caviar comparisons'
         expOrder = [1,3,2];
         colors = {'darkorchid','gold', 'turquoise'};
+    case 'IR25a-gal4 F LRR caviar comparisons'
+        expOrder = [1,3,2,4,5,6]; %tm2, tm2 control, tb6b, tm6b control, kir control, test line
+        colors = {'cyan', 'dodgerblue', 'lightpink', 'deeppink', 'lightcyan', 'gold'};
 end
 
 if ~exist('colors','var')

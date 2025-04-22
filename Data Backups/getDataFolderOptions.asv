@@ -96,8 +96,8 @@ switch computerName
         serverPath = paths.chilkatServerPath;
         serverTwoPath = paths.chilkatServerTwoPath;
     case 'SLEEPINGGIANT'
-        serverPath = paths.SGServerPath;
-        serverTwoPath = paths.SGServerTwoPath;
+        serverPath = paths.EvynPCServerPath;
+        serverTwoPath = paths.EvynPCServerTwoPath;
 end 
 if exist(serverPath, 'dir') == 7
     serverDrive = true;

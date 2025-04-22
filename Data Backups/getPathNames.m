@@ -24,8 +24,10 @@ paths.denaliServerPath = 'Z:\Evyn\DATA\';
 paths.acadiaLocalPath = 'D:\Evyn Lab Data\';
 paths.EvynPCLocalPath = 'K:\DATA\';
 paths.chilkatServerPath = 'S:\Evyn\DATA\';
+paths.SGServerPath = 'S:\Evyn\DATA\';
 
 paths.EvynPCServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
 paths.acadiaServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
 paths.togiakServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
-paths.chilkatServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA';
+paths.chilkatServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
+paths.SGServerTwoPath = 'R:\Evyn\DATA\';
