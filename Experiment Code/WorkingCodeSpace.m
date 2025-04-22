@@ -1569,7 +1569,7 @@ a = diff(time);
 
 figure; plot(a)
 
-%% Quick visual check of the arena plate and named assignment 
+%% Quick visual check of the arena plate and named assignment 4/22/2025
 clear
 
 baseFolder = getDataPath(2,0);
@@ -1613,7 +1613,7 @@ for i = 1:length(loc1)
 
 
         % TODO: 4/3 update this for speed and then start testing the plate types
-        
+
         % write to excel the plate number
         isExcelFileOpen(xlFile);
         ntrials = length(loc_all);
