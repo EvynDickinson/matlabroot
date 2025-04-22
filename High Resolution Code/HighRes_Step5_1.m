@@ -164,7 +164,7 @@ clearvars('-except',initial_var{:})
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-response = questdlg('Visualize male positions too?','','Yes','No','Yes');
+response = questdlg('Visualize male positions too?','','Yes','No','No');
 
 data(M).color = Color('dodgerblue');
 data(F).color = Color('deeppink');
