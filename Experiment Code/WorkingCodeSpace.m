@@ -1590,6 +1590,7 @@ for i = 1:length(loc1)
         date_str = excelfile{loc, Excel.date};
         expName = excelfile{loc, Excel.expID};
         if any(isnan(expName))
+            processed = [processed; loc];
             continue
         end
         loc2 = strcmp(excelfile(:,Excel.date),date_str); % locations with same date
@@ -1602,34 +1603,28 @@ for i = 1:length(loc1)
         fig = figure;
         imshow(img)
         title(strrep(expName,'_',' '))
-        switch questdlg('What arena is this?', expName, 'C1 (smooth)', 'C2 (angled)','Skip', 'C1 (smooth)')
-            case 'C1 (smooth)'
-                    plate_str = '1';
-            case 'C2 (angled)'
-                    plate_str = '2';
+        switch questdlg('What arena is this?', expName, 'Plate 1 (old)', 'Plate 2 (new)','Skip', 'Plate 1 (old)')
+            case 'Plate 1 (old)'
+                    plate_str = 1;
+            case 'Plate 2 (new)'
+                    plate_str = 2;
             case {'Skip', ''}
                 return
         end
-
-
-        % TODO: 4/3 update this for speed and then start testing the plate types
+        close(fig)
         
-        % write to excel the plate number
+        % prep excel updates:
         isExcelFileOpen(xlFile);
         ntrials = length(loc_all);
-        for jj = 1:length(loc_all)
-            writecell({plate_str},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.plate) num2str(loc_all(jj))]);
-        end
-        
+        xlRange = [Alphabet(Excel.plate) num2str(loc_all(1)) ':' Alphabet(Excel.plate) num2str(loc_all(end))];
+        plateList = repmat({plate_str}, ntrials, 1);
+        writecell(plateList, xlFile, 'Sheet', 'Exp List', 'Range', xlRange); % write information to excel file
 
-        writecell(repmat({plate_str}, ntrials, 1), xlFile, 'Sheet', 'Exp List', 'Range', [Alphabet(Excel.plate) num2str(loc_all)]);
-
+        disp([date_str ' | ' xlRange ' | plate: ' num2str(plate_str) ' i: ' num2str(i)])
 
         % add to processed list
         processed = [processed; loc_all];
-
     end
-
 end
 
 
