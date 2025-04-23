@@ -358,6 +358,27 @@ else % append the dataList structure to the existing file if nothing else change
     % save([saveDir expGroup ' data.mat'], 'dataList','-append');
 end
 
+% Find plate identity for all the trials in the experiment
+% pull excel information 
+[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
+
+% extract the arena plate information for each trial: 
+for i = 1:num.exp
+    data(i).plate = nan(num.trial(i),1);
+    % find each trial in the excel file and extract the plate ID
+    T = data(i).T;
+    for trial = 1:num.trial(i)
+        date_str = T.Date{trial};
+        arena_str = T.Arena{trial};
+        exp_str = T.ExperimentID{trial};
+        loc1 = (strcmp(excelfile(:,Excel.date),date_str));
+        loc2 = (strcmp(excelfile(:,Excel.arena),arena_str));
+        loc3 = (strcmp(excelfile(:,Excel.expID),exp_str));
+        loc = (loc1 & loc2 & loc3);
+        data(i).plate(trial) = excelfile{loc, Excel.plate};
+    end
+end
+
 disp(expNames')
 
 %% ANALYSIS: organize data for each group
@@ -612,9 +633,7 @@ switch expGroup
         colors = {'darkorchid','gold', 'turquoise'};
     case 'IR25a-gal4 F LRR caviar comparisons'
         expOrder = [1,3,2,4,5,6]; %tm2, tm2 control, tb6b, tm6b control, kir control, test line
-        colors = {''}
-
-
+        colors = {'cyan', 'dodgerblue', 'lightpink', 'deeppink', 'lightcyan', 'gold'};
 end
 
 if ~exist('colors','var')
@@ -775,9 +794,9 @@ for i = 1:num.exp
 end
 
 
-%% ANALYSIS: normalize fly position within arena 
+%% ANALYSIS: normalize fly position within arena to common orientation (food location) 
 clearvars('-except',initial_vars{:})
-OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy');
+OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy'); % camera & lens change accounting
 
 for i = 1:num.exp
   % BINNED
@@ -1005,16 +1024,29 @@ end
 
 %% ANALYSIS: Calculate flies within the outer 25% of the arena ring of the region
 clearvars('-except',initial_vars{:})
-% Max Distance from Center of Arena : 29.612mm = 30mm radius
-% ArenaArea = 2827.43;
-R = 30; %mm
-innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
-dist_from_edge = (R - innerR);
+% Max Distance from Center of Arena 
+R1 = 30; %mm for plate 1
+innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
+dist_from_edge1 = (R1 - innerR1);
+maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
+
+R2 = 25.6;%mm for plate 2
+innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
+dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
+maxR2 = R2*sqrt(0.1); % radius of a circle occupying 10% of the arena
 
 % Find the percent of the flies that are in the outer ring
 for exp = 1:num.exp
     counts = []; ring_per = [];
     for trial = 1:num.trial(exp)
+        switch data(exp).plate(trial)
+            case 1 % plate one (old/OG plate) 
+                R = R1;
+                innerR = innerR1;
+            case 2 % plate two (new plate, smaller) 
+                R = R2;
+                innerR = innerR2;
+        end
         x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
         y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
         centre = data(exp).data(trial).data.centre; %distance to center of arena 
@@ -1065,6 +1097,39 @@ for exp = 1:num.exp
     grouped(exp).ring.temps = temps;
 end
 
+% Visual comparision of the fly positions over time
+skipstep = 100;
+for exp = 1:num.exp
+    r = floor(sqrt(num.trial(exp)));
+    c = ceil(num.trial(exp)/r);
+    fig = getfig('',1);
+    for trial = 1:num.trial(exp)
+        subplot(r,c,trial); hold on
+        x = grouped(i).position.trial(trial).x;
+        y = grouped(i).position.trial(trial).y;
+        X = x(1:skipstep:end,:); X = X(:);
+        Y = y(1:skipstep:end,:); Y = Y(:);
+        scatter(X,Y,1,Color('pink'),'filled')
+        % draw food location: (this is centered and aligned data to the food well at (0,0)
+        scatter(0, 0, 20,'k')
+        % draw the spatial regions: 
+       switch data(exp).plate(trial)
+        case 1 % plate one (old/OG plate) 
+            R = R1;
+            innerR = innerR1;
+        case 2 % plate two (new plate, smaller) 
+            R = R2;
+            innerR = innerR2;
+       end
+       % center of the arena... determine the location lol 
+       % half distance from the two original wells and then just subtracted from 0 on
+       % the y axis 
+       WC = data(exp).data(trial).data.wellcenters;
+       (WC(2,1)-WC(2,3))/2;
+        viscircles(
+
+
+    
 
 %% ANALYSIS: Cluster eccentricity temperature
 clearvars('-except',initial_vars{:})
@@ -1905,6 +1970,38 @@ for exp = 1:num.exp
     grouped(exp).sleep.ring.percent = ring_per; 
     grouped(exp).sleep.ring.avg = mean(ring_per,2,'omitnan');
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
