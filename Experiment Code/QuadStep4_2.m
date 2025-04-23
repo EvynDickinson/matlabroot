@@ -1130,7 +1130,9 @@ for exp = 1:num.exp
        viscircles([0,-y_offset],R*pix2mm,'Color','k') % outer expanse of arena accessiblity 
        viscircles([0,-y_offset],innerR*pix2mm,'Color','k') % inner 25% marker
 
-
+% TODO:  working here to get display images of the different spatial
+% configurations of the arena areas depending on each plate size and
+% scaling. One figure per experimental type
 
 
     
