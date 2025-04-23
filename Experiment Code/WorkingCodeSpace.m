@@ -1569,7 +1569,7 @@ a = diff(time);
 
 figure; plot(a)
 
-%% Quick visual check of the arena plate and named assignment 
+%% Quick visual check of the arena plate and named assignment 4/22/2025
 clear
 
 baseFolder = getDataPath(2,0);
@@ -1611,9 +1611,9 @@ for i = 1:length(loc1)
             case {'Skip', ''}
                 return
         end
+        
         close(fig)
         
-        % prep excel updates:
         isExcelFileOpen(xlFile);
         ntrials = length(loc_all);
         xlRange = [Alphabet(Excel.plate) num2str(loc_all(1)) ':' Alphabet(Excel.plate) num2str(loc_all(end))];
