@@ -2,6 +2,7 @@
 % high resolution experiments step 1:  
 % align the video fragments that will go into a larger video
 clear; clc;
+warning off 
 
 %% Load the data
 % Find files that can be run
