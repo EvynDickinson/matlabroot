@@ -48,8 +48,11 @@ for ramp = 1:size(rampName,2)
     
     % Start parallel pool if it's not already running
     if isempty(gcp('nocreate'))
-        % parpool(11);
-        parpool;
+        if strcmpi(getenv('COMPUTERNAME'), 'SLEEPINGGIANT')
+            parpool(22);
+        else
+            parpool;
+        end
     end
     
     %  loop for parallel processing
