@@ -1134,7 +1134,8 @@ for exp = 1:num.exp
 % configurations of the arena areas depending on each plate size and
 % scaling. One figure per experimental type
 
-
+    end
+end
     
 
 %% ANALYSIS: Cluster eccentricity temperature
