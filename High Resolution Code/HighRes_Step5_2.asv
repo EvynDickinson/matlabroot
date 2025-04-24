@@ -180,7 +180,9 @@ else
 end
 
 % Pull point locations that will be plotted
-skip = 20;
+if parameters.protocol == 'high_res_LTS_35-15'
+    skip = 20;
+    
 zoom = [-250,250];
 
 % screening = close_dist;

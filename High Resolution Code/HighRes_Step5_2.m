@@ -180,7 +180,11 @@ else
 end
 
 % Pull point locations that will be plotted
-skip = 20;
+if strcmp(parameters.protocol,'high_res_LTS_35-15')
+    skip = 100;
+else
+    skip = 20;
+end
 zoom = [-250,250];
 
 % screening = close_dist;
