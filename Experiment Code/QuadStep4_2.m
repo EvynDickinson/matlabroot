@@ -10,7 +10,7 @@
 %% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
-
+format shortG
 clear; close all; clc
 paths = getPathNames; % get the appropriate file path names
 baseFolder = getDataPath(5,0,'Select where you want to find the grouped data structures');
@@ -364,6 +364,7 @@ end
 
 % extract the arena plate information for each trial: 
 for i = 1:num.exp
+    num.trial(i) = data(i).ntrials;
     data(i).plate = nan(num.trial(i),1);
     % find each trial in the excel file and extract the plate ID
     T = data(i).T;
@@ -379,6 +380,7 @@ for i = 1:num.exp
     end
 end
 
+disp(expGroup)
 disp(expNames')
 
 %% ANALYSIS: organize data for each group
@@ -458,6 +460,9 @@ switch expGroup
     case 'Berlin LRR 25-17 food vs no food'
         expOrder = [1,2];
         colors = {'white', 'gold'};
+    case 'Berlin F LRR 25-17 caviar vs no food'
+        expOrder = [1,2];
+        colors = {'teal', 'gold'};   
     case 'Berlin S LRR 25-17 caviar vs no food'
         expOrder = [2,1];
         colors = {'white', 'gold'};
@@ -669,7 +674,6 @@ for i = 1:num.exp % FOR EACH DATA GROUP
         grouped(expOrder(i)).color = cMap(i,:);
     end
     % TIME COURSE DATA
-    num.trial(i) = data(i).ntrials;
     [time,temp,speed,distance] = deal([]);
     for trial = 1:num.trial(i)
         time = autoCat(time,data(i).data(trial).occupancy.time,false,true);
@@ -974,6 +978,7 @@ for exp = 1:num.exp
     grouped(exp).occ.all = all_occ;
     grouped(exp).occ.avg = mean(all_occ,2,'omitnan');
     grouped(exp).occ.std = std(all_occ,0,2,'omitnan');
+    grouped(exp).occ.warning = 'Do not use this data it is not adjusted for variable plate sizes';
 end
 
 %% ANALYSIS: pull binned speed
@@ -1025,11 +1030,12 @@ end
 %% ANALYSIS: Calculate flies within the outer 25% of the arena ring of the region
 clearvars('-except',initial_vars{:})
 % Max Distance from Center of Arena 
+% PLATE 1: 
 R1 = 30; %mm for plate 1
 innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
 dist_from_edge1 = (R1 - innerR1);
 maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
-
+% PLATE 2: 
 R2 = 25.6;%mm for plate 2
 innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
 dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
@@ -1098,7 +1104,7 @@ for exp = 1:num.exp
 end
 
 % Visual comparision of the fly positions over time
-skipstep = 100;
+skipstep = 100; lw = 0.5;
 for exp = 1:num.exp
     r = floor(sqrt(num.trial(exp)));
     c = ceil(num.trial(exp)/r);
@@ -1123,17 +1129,12 @@ for exp = 1:num.exp
             innerR = innerR2;
             maxR = maxR2;
        end
-       % center of the arena... determine the location lol 
+       % find the center of the arena ... determine the location for the rotated and translated arena 
        % half distance from the two original wells and then just subtracted from 0 on the y axis 
-       WC = data(exp).data(trial).data.wellcenters;
-       y_offset = (abs((WC(2,1)-WC(2,3))/2) + abs((WC(1,2)-WC(1,4))/2))/2;
-       viscircles([0,-y_offset],R*pix2mm,'Color','k') % outer expanse of arena accessiblity 
-       viscircles([0,-y_offset],innerR*pix2mm,'Color','k') % inner 25% marker
-
-% TODO:  working here to get display images of the different spatial
-% configurations of the arena areas depending on each plate size and
-% scaling. One figure per experimental type
-
+       WC = (data(exp).data(trial).data.wellcenters);
+       y_offset = mean([pdist([WC(:,1),WC(:,3)]','euclidean'), pdist([WC(:,2),WC(:,4)]','euclidean')])*0.5;
+       viscircles([0,-y_offset],R*pix2mm,'Color','k','LineWidth',lw) % outer expanse of arena accessiblity 
+       viscircles([0,-y_offset],innerR*pix2mm,'Color','k','LineWidth',lw) % inner 25% marker
     end
 end
     
