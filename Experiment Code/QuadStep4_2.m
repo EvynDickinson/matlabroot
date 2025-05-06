@@ -7,7 +7,7 @@
 % *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
 
-%% Select data groups to compare
+%% Select data groups to compare 
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
 
