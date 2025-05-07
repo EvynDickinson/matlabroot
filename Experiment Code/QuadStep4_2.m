@@ -1027,16 +1027,18 @@ for i = 1:num.exp
     grouped(i).ecent.all = ecent;
 end
 
-%% ANALYSIS: Calculate flies within the outer 25% of the arena ring of the region
+%% ANALYSIS: Calculate flies within the outer 25% of the arena ring of the region [w/ fig of spatial distributions]
 clearvars('-except',initial_vars{:})
 % Max Distance from Center of Arena 
 % PLATE 1: 
 R1 = 30; %mm for plate 1
+num.R1 = R1;
 innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
 dist_from_edge1 = (R1 - innerR1);
 maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
 % PLATE 2: 
 R2 = 25.6;%mm for plate 2
+num.R2 = R2;
 innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
 dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
 maxR2 = R2*sqrt(0.1); % radius of a circle occupying 10% of the arena
@@ -1103,41 +1105,111 @@ for exp = 1:num.exp
     grouped(exp).ring.temps = temps;
 end
 
-% Visual comparision of the fly positions over time
+% Visual comparision of the fly positions within the arena for each trial
 skipstep = 100; lw = 0.5;
 for exp = 1:num.exp
     r = floor(sqrt(num.trial(exp)));
     c = ceil(num.trial(exp)/r);
-    fig = getfig('',1);
-    for trial = 1:num.trial(exp)
-        subplot(r,c,trial); hold on
+    fig = getfig('',1); hold on
+    for trial = num.trial(exp):-1:1 %1:num.trial(exp)
+        % subplot(r,c,trial); hold on
         x = grouped(i).position.trial(trial).x;
         y = grouped(i).position.trial(trial).y;
         X = x(1:skipstep:end,:); X = X(:);
         Y = y(1:skipstep:end,:); Y = Y(:);
-        scatter(X,Y,1,Color('pink'),'filled')
-        % draw food location: (this is centered and aligned data to the food well at (0,0)
-        scatter(0, 0, 20,'k')
+        
         % draw the spatial regions: 
        switch data(exp).plate(trial)
         case 1 % plate one (old/OG plate) 
             R = R1;
             innerR = innerR1;
             maxR = maxR1;
+            kolor = Color('magenta');
+            sz = 1;
         case 2 % plate two (new plate, smaller) 
             R = R2;
             innerR = innerR2;
             maxR = maxR2;
+            kolor = Color('black');
+            sz = 2;
        end
+       scatter(X,Y,sz,kolor,'filled'); % draw 'all' the fly positions (some skipped for size constraints)
+       scatter(0, 0, 20,'k') % draw food location: (this is centered and aligned data to the food well at (0,0))
+
        % find the center of the arena ... determine the location for the rotated and translated arena 
        % half distance from the two original wells and then just subtracted from 0 on the y axis 
        WC = (data(exp).data(trial).data.wellcenters);
        y_offset = mean([pdist([WC(:,1),WC(:,3)]','euclidean'), pdist([WC(:,2),WC(:,4)]','euclidean')])*0.5;
-       viscircles([0,-y_offset],R*pix2mm,'Color','k','LineWidth',lw) % outer expanse of arena accessiblity 
-       viscircles([0,-y_offset],innerR*pix2mm,'Color','k','LineWidth',lw) % inner 25% marker
+       % 
+       % viscircles([0,-y_offset],R*pix2mm,'Color','k','LineWidth',lw); % outer expanse of arena accessiblity 
+       % viscircles([0,-y_offset],innerR*pix2mm,'Color','k','LineWidth',lw); % inner 25% marker
+
+       set(gca, 'xcolor', 'none', 'ycolor', 'none')
+       axis square equal
     end
 end
     
+
+% Can also look at the actual max distances from the center as an empirical value:
+% (using eccentricity and making a histogram but separated by plate number) 
+for exp = 1:num.exp
+    g1 = data(exp).plate==1;
+    g2 = data(exp).plate==2;
+    
+    fig = getfig('',1);
+        y = grouped(exp).ecent.all(:,g1);
+        histogram(y(:),'FaceColor',Color('magenta'))
+        yyaxis right
+        y = grouped(exp).ecent.all(:,g2);
+        histogram(y(:),'FaceColor',Color('dodgerblue'))
+        
+        formatFig(fig, blkbgd)
+        set(gca, 'ycolor', 'none')
+        yyaxis left 
+        set(gca, 'ycolor', 'none', 'box', 'off')
+        xlabel('distance from arena center (mm)')
+
+        % plot the 'elimination' lines
+        v_line(innerR1,'magenta', '--')
+        v_line(innerR2,'dodgerblue', '--')
+        title(data(exp).ExpGroup,'color', Color('grey'))
+        xlim([5,30])
+
+        save_figure(fig, [saveDir, data(exp).ExpGroup ' eccentricity by plate types'],fig_type);
+end
+
+% Compare the distance between the well centers across the two plate types since we
+% know that they are equal in real life -- is there a subtle difference in the cam
+% distance setting?
+[plate1 plate2] = deal([]);
+for exp = 1:num.exp
+    for trial = 1:num.trial(exp)
+        WC = (data(exp).data(trial).data.wellcenters);
+        inter_dist = [pdist([WC(:,1),WC(:,3)]','euclidean'), pdist([WC(:,2),WC(:,4)]','euclidean')];
+        switch data(exp).plate(trial)
+            case 1
+                plate1 = [plate1, inter_dist];
+            case 2
+                plate2 = [plate2, inter_dist];
+        end
+    end
+end
+disp(['Plate 1 mean: ' num2str(mean(plate1))])
+disp(['Plate 2 mean: ' num2str(mean(plate2))])
+
+bins = 460:5:480;
+fig = figure;
+hold on
+histogram(plate1, bins, 'facecolor', Color('magenta'))
+yyaxis right
+histogram(plate2, bins,'facecolor', Color('dodgerblue'))
+formatFig(fig, blkbgd)
+        set(gca, 'ycolor', 'none')
+        yyaxis left 
+        set(gca, 'ycolor', 'none', 'box', 'off')
+        xlabel('distance between food wells (pix)')
+save_figure(fig, [saveDir, 'dist between wells by plate type'],fig_type);
+
 
 %% ANALYSIS: Cluster eccentricity temperature
 clearvars('-except',initial_vars{:})

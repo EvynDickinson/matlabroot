@@ -1627,6 +1627,8 @@ for i = 1:length(loc1)
     end
 end
 
+%% Load 3D location data across different plates to see the spread of data...
+
 
 
 
