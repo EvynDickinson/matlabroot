@@ -1324,42 +1324,42 @@ end
 
 %% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
 
-vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
-movieInfo = VideoReader(vidpath); %read in video
-demoImg = (read(movieInfo,1));
-well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
-
-% distance between well 1 and 3
-d = [];
-well_1 = well_loc(:,1);
-well_3 = well_loc(:,3);
-d = [d;sum((well_1-well_3).^2).^0.5];
-% distance between well 2 and 4
-well_1 = well_loc(:,2);
-well_3 = well_loc(:,4);
-d = [d;sum((well_1-well_3).^2).^0.5];
-
-pixelsbetweenwells = mean(d); %pixels
-actualdistance =  36.2; %mm
-pix2mm = actualdistance/pixelsbetweenwells; % multiplier
-
-R = 36.1;
-WC = well_loc;
-x1 = WC(1,1:2:4);
-y1 = WC(2,1:2:4);
-x2 = WC(1,2:2:4);
-y2 = WC(2,2:2:4);
-[xi,yi] = polyxpoly(x1,y1,x2,y2);
-centre = [xi,yi];
-
-fig = figure;
-    imshow(demoImg); hold on
-    viscircles(centre,R/pix2mm,'color', 'w','LineWidth',0.25);
-    % find actual plate size: 
-    % roi = drawcircle; % manually add in the circle over the food well
-    % newR = roi.Radius*pix2mm;
-    newR = 33.6;
-    viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
+% vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
+% movieInfo = VideoReader(vidpath); %read in video
+% demoImg = (read(movieInfo,1));
+% well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
+% 
+% % distance between well 1 and 3
+% d = [];
+% well_1 = well_loc(:,1);
+% well_3 = well_loc(:,3);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% % distance between well 2 and 4
+% well_1 = well_loc(:,2);
+% well_3 = well_loc(:,4);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% 
+% pixelsbetweenwells = mean(d); %pixels
+% actualdistance =  36.2; %mm
+% pix2mm = actualdistance/pixelsbetweenwells; % multiplier
+% 
+% R = 36.1;
+% WC = well_loc;
+% x1 = WC(1,1:2:4);
+% y1 = WC(2,1:2:4);
+% x2 = WC(1,2:2:4);
+% y2 = WC(2,2:2:4);
+% [xi,yi] = polyxpoly(x1,y1,x2,y2);
+% centre = [xi,yi];
+% 
+% fig = figure;
+%     imshow(demoImg); hold on
+%     viscircles(centre,R/pix2mm,'color', 'w','LineWidth',0.25);
+%     % find actual plate size: 
+%     % roi = drawcircle; % manually add in the circle over the food well
+%     % newR = roi.Radius*pix2mm;
+%     newR = 33.6;
+%     viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
 
 
 %% RUN THIS TO CHECK THE FIT OF THE OUTER RING 

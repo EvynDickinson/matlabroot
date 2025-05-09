@@ -241,8 +241,7 @@ clearvars('-except',initial_vars{:})
 % R1 = 30; %mm for plate 1
 % innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
 
-kolors = {'magenta', 'dodgerblue', 'magenta', 'dodgerblue'};  
-edgekolors = {'white', 'white', 'grey', 'grey'};
+kolors = {'gold', 'gold', 'white', 'white'};  
 
 bins = 0:0.5:35;
 
@@ -268,7 +267,7 @@ subplot(1,2,1);
     set(gca, 'ycolor', 'none', 'box', 'off')
     v_line([15.6,21.6],'w',':',1) % edges of food well
     v_line(36.1,'magenta','-',1) % edges of OG arena
-    v_line(33.6,'dodgerblue','-',1) % edges of new arena
+    % v_line(33.6,'dodgerblue','-',1) % edges of new arena
 
 subplot(1,2,2);
     xlabel('dist to center (mm)')
@@ -278,13 +277,186 @@ subplot(1,2,2);
     yyaxis right
     set(gca, 'ycolor', 'none', 'box', 'off')
     v_line([15.6,21.6],'w',':',1) % edges of food well
-    v_line(36.1,'magenta','-',1) % edges of OG arena
+    % v_line(36.1,'magenta','-',1) % edges of OG arena
     v_line(33.6,'dodgerblue','-',1) % edges of new arena
 
 
+save_figure(fig, [figDir 'eccentricity histogram food vs no food'],'-png');
 
-save_figure(fig, [figDir 'eccentricity histogram comparison for plates'],'-png');
 
+%% TODO: test the distributions of the trials that have the same distribution of temp protocol trials 
+
+
+%% Determine the pixel to mm conversion from the entire population of trials: 
+
+D1 = [];
+for exp = [1,3] %plate 1
+    for trial = 1:grouped(exp).ntrials
+        well_loc = grouped(exp).data(trial).wellcenters;
+
+        % distance between well 1 and 3
+        d = [];
+        well_1 = well_loc(:,1);
+        well_3 = well_loc(:,3);
+        d = [d;sum((well_1-well_3).^2).^0.5];
+        % distance between well 2 and 4
+        well_1 = well_loc(:,2);
+        well_3 = well_loc(:,4);
+        d = [d;sum((well_1-well_3).^2).^0.5];
+        
+        pixelsbetweenwells = mean(d); %pixels
+        actualdistance =  36.2; %mm distance between the center of two wells criss-crossing the arena
+        pix2mm = pixelsbetweenwells/actualdistance; % divisor
+        D1 = [D1, pix2mm];
+    end
+end
+
+D2 = [];
+for exp = [2 4] %plate 1
+    for trial = 1:grouped(exp).ntrials
+        well_loc = grouped(exp).data(trial).wellcenters;
+
+        % distance between well 1 and 3
+        d = [];
+        well_1 = well_loc(:,1);
+        well_3 = well_loc(:,3);
+        d = [d;sum((well_1-well_3).^2).^0.5];
+        % distance between well 2 and 4
+        well_1 = well_loc(:,2);
+        well_3 = well_loc(:,4);
+        d = [d;sum((well_1-well_3).^2).^0.5];
+        
+        pixelsbetweenwells = mean(d); %pixels
+        actualdistance =  36.2; %mm distance between the center of two wells criss-crossing the arena
+        pix2mm = pixelsbetweenwells/actualdistance; % divisor
+        D2 = [D2, pix2mm];
+    end
+end
+
+% pull the date strings for the data
+numeric_dates1 = [datenum(grouped(1).T.Date, 'mm.dd.yyyy'); datenum(grouped(3).T.Date, 'mm.dd.yyyy')];
+numeric_dates2 = [datenum(grouped(2).T.Date, 'mm.dd.yyyy'); datenum(grouped(4).T.Date, 'mm.dd.yyyy')];
+
+cut_off_one = datenum('11.10.2023', 'mm.dd.yyyy');
+
+% Figures: plot the pixel to mm ratio over time and see if there is a time
+% trend or it has changed significantly at any point in time...
+
+fig = getfig('',1);
+    hold on
+    scatter(numeric_dates1,D1,30, Color('magenta'),'filled')
+    scatter(numeric_dates2,D2,30, Color('dodgerblue'),'filled')
+    
+    datetick('x', 'mm.dd.yyyy', 'keepticks');
+    xlabel('Date');
+    ylabel('pixel to mm conversion');
+    formatFig(fig,true);
+    v_line(cut_off_one,'w')
+    save_figure(fig, [figDir 'pix2mm conversion distribution timeline'],'-png');
+
+% filter and find the average value for each time period: 
+% before 11.10.23 (pre move to 100 college st)
+
+idx = numeric_dates1<=cut_off_one;
+
+conversion(1).name = 'Cedar st plate 1';
+conversion(1).cutoff = cut_off_one;
+conversion(1).values = D1(idx);
+conversion(1).pix2mm = median(conversion(1).values);
+conversion(1).color = 'pink';
+disp([conversion(1).name ' pixel to mm converion: ' num2str(conversion(1).pix2mm)])
+
+conversion(2).name = 'College st plate 1';
+conversion(2).cutoff = cut_off_one;
+conversion(2).values = D1(~idx);
+conversion(2).pix2mm = median(conversion(2).values);
+conversion(2).color = 'magenta';
+disp([conversion(2).name ' pixel to mm converion: ' num2str(conversion(2).pix2mm)])
+
+conversion(3).name = 'Cedar st plate 2';
+conversion(3).cutoff = cut_off_one;
+conversion(3).values = D2;
+conversion(3).pix2mm = median(conversion(3).values);
+conversion(3).color = 'dodgerblue';
+disp([conversion(3).name ' pixel to mm converion: ' num2str(conversion(3).pix2mm)])
+
+fig = getfig('',1,[940 900]); hold on 
+    for i = 1:3
+        histogram(conversion(i).values,'FaceColor',Color(conversion(i).color))
+        v_line(conversion(i).pix2mm,conversion(i).color,'-',2)
+    end
+    xlabel('pixel to mm conversion number')
+    formatFig(fig, true);
+    set(gca,'ycolor', 'none')
+    save_figure(fig, [figDir 'pix2mm conversion distribution histogram'],'-png');
+
+% Create a pixel to mm conversion that can be used for the forseable future
+% with low resolution data trials
+save([figDir 'pixel conversion.mat'],'conversion');
+
+
+%% Visual plate comparison of the new test numbers: 
+
+p1_path = 'S:\Evyn\DATA\Raw Data\05.07.2025\C2_hold_35_caviar_1.avi';
+p2_path = 'S:\Evyn\DATA\Raw Data\05.07.2025\C1_hold_35_caviar_1.avi';
+
+% PLATE 1: 
+movieInfo = VideoReader(p1_path); %read in video
+demoImg = (read(movieInfo,1));
+
+pix2mm = conversion(2).pix2mm;
+fig = figure;
+    imshow(demoImg); hold on
+    roi = drawcircle; % manually add in the circle over the food well
+    newR = roi.Radius/pix2mm;
+
+
+    scatter(centre(1),centre(2),15,'y', 'filled')
+    viscircles(centre,R*pix2mm,'color', 'w','LineWidth',0.25);
+    % find actual plate size: 
+  
+    newR = 33.99;
+    viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
+
+
+
+
+
+% % distance between well 1 and 3
+% d = [];
+% well_1 = well_loc(:,1);
+% well_3 = well_loc(:,3);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+% % distance between well 2 and 4
+% well_1 = well_loc(:,2);
+% well_3 = well_loc(:,4);
+% d = [d;sum((well_1-well_3).^2).^0.5];
+
+% pixelsbetweenwells = mean(d); %pixels
+% actualdistance =  36.2; %mm distance between the center of two wells criss-crossing the arena
+% pix2mm = actualdistance/pixelsbetweenwells; % multiplier
+
+% for PLATE 1: 
+% well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
+% WC = well_loc;
+% x1 = WC(1,1:2:4);
+% y1 = WC(2,1:2:4);
+% x2 = WC(1,2:2:4);
+% y2 = WC(2,2:2:4);
+% [xi,yi] = polyxpoly(x1,y1,x2,y2);
+% centre = [xi,yi];
+
+% R = 35.9; % radius of plate 1:
+pix2mm = conversion(3).pix2mm;
+fig = figure;
+    imshow(demoImg); hold on
+    scatter(centre(1),centre(2),15,'y', 'filled')
+    viscircles(centre,R*pix2mm,'color', 'w','LineWidth',0.25);
+    % find actual plate size: 
+    % roi = drawcircle; % manually add in the circle over the food well
+    % newR = roi.Radius/pix2mm;
+    newR = 33.99;
+    viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
 
 
 
