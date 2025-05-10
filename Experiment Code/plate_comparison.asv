@@ -407,18 +407,56 @@ demoImg = (read(movieInfo,1));
 pix2mm = conversion(2).pix2mm;
 fig = figure;
     imshow(demoImg); hold on
-    roi = drawcircle; % manually add in the circle over the food well
-    newR = roi.Radius/pix2mm;
+    dia = nan(1,4);
+    cen = nan(2,4);
+    for i = 1:4
+        roi = drawcircle; % manually add in the circle over the food well
+        newR = roi.Radius/pix2mm;
+        disp(['Plate 1: ' num2str(newR)])
+        scatter(roi.Center(1),roi.Center(2),15,'y', 'filled')
+        cen(:,i) = roi.Center;
+        dia(i) = newR;
+    end
 
+    disp(['arena radius = ' num2str(mean(dia))])
+    % test the playback of the arena size fit: 
+    fig = figure;
+    imshow(demoImg); hold on
+    for i = 1:4
+        R = mean(dia);
+        viscircles(cen(:,i)',R*pix2mm,'color', 'w','LineWidth',0.25);
+    end
+plate1_R = 35.2; % full reach (from manual determined value) 
 
-    scatter(centre(1),centre(2),15,'y', 'filled')
-    viscircles(centre,R*pix2mm,'color', 'w','LineWidth',0.25);
-    % find actual plate size: 
-  
-    newR = 33.99;
-    viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
+% PLATE 2: 
+movieInfo = VideoReader(p2_path); %read in video
+demoImg = (read(movieInfo,1));
 
+pix2mm = conversion(3).pix2mm;
+fig = figure;
+    imshow(demoImg); hold on
+    dia = nan(1,4);
+    cen = nan(2,4);
+    for i = 1:4
+        roi = drawcircle; % manually add in the circle over the food well
+        newR = roi.Radius/pix2mm;
+        disp(['Plate 2: ' num2str(newR)])
+        scatter(roi.Center(1),roi.Center(2),15,'y', 'filled')
+        cen(:,i) = roi.Center;
+        dia(i) = newR;
+    end
 
+    disp(['arena radius = ' num2str(mean(dia))])
+    % test the playback of the arena size fit: 
+    fig = figure;
+    imshow(demoImg); hold on
+    for i = 1:4
+        R = mean(dia);
+        viscircles(cen(:,i)',R*pix2mm,'color', 'w','LineWidth',0.25);
+    end
+
+plate2_R = 33.7; % full reach (from manual determined value) 
+    
 
 
 
@@ -458,10 +496,198 @@ fig = figure;
     newR = 33.99;
     viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
 
+%% Determine the max accessible space for each of the plates: 
+
+% since the data is already generated with potentially incorrect conversion
+% ratios, we need to recalculate the distance from the center, which we can
+% then use to extract the appropriate extreme reachable distances
+
+% 1) calculate the eccentricity of the data trials: 
+
+numeric_dates1 = [datenum(grouped(1).T.Date, 'mm.dd.yyyy'); datenum(grouped(3).T.Date, 'mm.dd.yyyy')];
+numeric_dates2 = [datenum(grouped(2).T.Date, 'mm.dd.yyyy'); datenum(grouped(4).T.Date, 'mm.dd.yyyy')];
+
+% organize data for forward compatability
+con = getConversion;
+cut_off_one = con(1).cutoff;
+
+temp = nan([20000*16*300,1]);
+
+[eccentricity(1).all,eccentricity(2).all,eccentricity(3).all] = deal(temp);
+[eccentricity(1).N,eccentricity(2).N,eccentricity(3).N] = deal(0);
+[eccentricity(1).trial,eccentricity(2).trial,eccentricity(3).trial] = deal([]);
+% ECCENTRICITY
+for exp = 1:nexp
+    
+    tic
+    idx = [datenum(grouped(exp).T.Date, 'mm.dd.yyyy')]<=cut_off_one;
+    for trial = 1:grouped(exp).ntrials
+    
+        % get the appropriate pixel to mm conversion for these trials: 
+       
+        switch exp
+            case {1,3}
+                if idx(trial)
+                    pix2mm = con(1).pix2mm;
+                    conType = 1;
+                else
+                    pix2mm = con(2).pix2mm;
+                    conType = 2;
+                end
+            case {2,4}
+                pix2mm = con(3).pix2mm;
+                conType = 3;
+        end
+
+        eccentricity(conType).trial = [eccentricity(conType).trial; exp, trial];
+
+        xi = grouped(exp).data(trial).wellcenters(1,5);
+        yi = grouped(exp).data(trial).wellcenters(2,5);
+        D = sqrt((grouped(exp).data(trial).x-xi).^2 + (grouped(exp).data(trial).y-yi).^2)./pix2mm; %distance from center of arena
+
+        i_start = eccentricity(conType).N+1;
+        D = D(:);
+        D(isnan(D)) = [];
+        i_end = i_start+length(D)-1;
+        eccentricity(conType).all(i_start:i_end) = D; 
+        eccentricity(conType).N = i_end;
+
+    end
+    toc
+end
+
+for i = 1:3
+    eccentricity(i).all(isnan(eccentricity(i).all)) = [];
+end
+
+% Now look for max eccentricities across the different arenas for each time
+% period / functional setup 
+
+% key point = the conType 1 and 2 should be the same after the appropriate
+% pix2mm conversion pulled in
+
+% Figure:  histograms of ecentricity for each plate / condition
+
+% kolors = {'magenta', 'dodgerblue'};  
+kolors = {'pink', 'magenta', 'dodgerblue'};  
+
+bins = 0:0.5:35;
+
+fig = getfig('',1); hold on
+for i = 1:3
+    histogram(eccentricity(i).all,bins,'EdgeColor','none','FaceColor',Color(kolors{i}),'FaceAlpha',0.8)
+end
+for i = 1:3
+    v_line(con(i).circle75,kolors{i}, '-', 2)
+end
+formatFig(fig, true)
+% xlim([25,35])
+xlabel('dist to center (mm)')
+ylabel('count')
+
+save_figure(fig, [figDir 'eccentricity with outer ring cutoffs'],'-png');
 
 
 
+% FIGURE: show each of the groups with their outer and inner 25% lines
+fig = getfig('',1);
+for i = 1:3
+    subplot(1,3,i); hold on
+    histogram(eccentricity(i).all,bins,'EdgeColor','none','FaceColor',Color(kolors{i}),'FaceAlpha',0.8)
+    v_line(con(i).circle75,'w', '-', 2)
+    v_line(con(i).R,'w', '-', 2)
+    xlabel('dist to center (mm)')
+end
+formatFig(fig, true, [1,3]);
+subplot(1,3,1)
+ylabel('count')
+save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated'],'-png');
 
 
 
+%% now if we go back and then compare these lines and distributions for the
+% food vs no food trials, what does that look like?
 
+
+temp = nan([20000*16*300,1]);
+for i = 1:6
+    eccentricity(i).all = deal(temp);
+    eccentricity(i).N = deal(0);
+    eccentricity(i).trial = deal([]);
+end
+
+% conTypes: 
+% 1 = plate 1, cedar st, food
+% 2 = plate 1, cedar st, no food
+% 3 = plate 1, college st, food
+% 4 = plate 1, college st, no food
+% 5 = plate 2, college st, food
+% 6 = plate 2, college st, no food
+
+% ECCENTRICITY
+for exp = 1:nexp
+    idx = [datenum(grouped(exp).T.Date, 'mm.dd.yyyy')]<=cut_off_one;
+    for trial = 1:grouped(exp).ntrials   
+        % get the appropriate pixel to mm conversion for these trials: 
+        switch exp
+            case 1 % 1 old plate, food
+                if idx(trial) % cedar st 
+                    pix2mm = con(1).pix2mm;
+                    conType = 1;
+                else % college st
+                    pix2mm = con(2).pix2mm;
+                    conType = 3;
+                end
+            case 2 % old plate, no food
+                if idx(trial) % cedar st
+                    pix2mm = con(1).pix2mm;
+                    conType = 2;
+                else % college st
+                    pix2mm = con(2).pix2mm;
+                    conType = 4;
+                end
+            case 3 % new plate, food
+                pix2mm = con(3).pix2mm;
+                conType = 5;
+            case 4  % new plate, no food
+                pix2mm = con(3).pix2mm;
+                conType = 6;
+        end
+        eccentricity(conType).trial = [eccentricity(conType).trial; exp, trial];
+        xi = grouped(exp).data(trial).wellcenters(1,5);
+        yi = grouped(exp).data(trial).wellcenters(2,5);
+        D = sqrt((grouped(exp).data(trial).x-xi).^2 + (grouped(exp).data(trial).y-yi).^2)./pix2mm; %distance from center of arena
+
+        i_start = eccentricity(conType).N+1;
+        D = D(:);
+        D(isnan(D)) = [];
+        i_end = i_start+length(D)-1;
+        eccentricity(conType).all(i_start:i_end) = D; 
+        eccentricity(conType).N = i_end;
+    end
+end
+
+% FIGURE: plot out the data to see how it matches up:
+
+bins = 0:0.5:35;
+kolors = {'pink','pink','magenta', 'magenta', 'dodgerblue', 'dodgerblue'};  
+cc = [1 1 2 2 3 3];
+
+fig = getfig('',1);
+for i = 1:6
+    subplot(2,3,i)
+    histogram(eccentricity(i).all, bins,'EdgeColor','none','FaceColor',Color(kolors{i}),'FaceAlpha',0.8)
+    v_line(con(cc(i)).circle75,'w', '-', 2)
+    v_line(con(cc(i)).R,'w', '-', 2)
+end
+formatFig(fig, true, [1,3]);
+subplot(2,3,1)
+ylabel('count')
+subplot(2,3,4)
+ylabel('count')
+for i = 4:6
+    subplot(2,3,i)
+    xlabel('mm to center')
+end
+
+save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated'],'-png');
