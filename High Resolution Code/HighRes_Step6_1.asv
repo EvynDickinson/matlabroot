@@ -162,7 +162,6 @@ formatFig(fig);
 title([groupName ' | n = ' num2str(num.trials)])
 save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type);
 
-% update for the correct temp protocol names: 
 temp_protocols = [];
 for i = 1:num.trials
     try temp_protocols{i} = fly(i).parameters.protocol;
@@ -176,12 +175,11 @@ for i = 1:num.trials
 end
 disp(temp_protocols')
 
-
 % create a new matrix to look at trial alignment times
 switch fly(1).parameters.protocol
     case 'high_res_LTS_35-15'
         idx = [1 3 5 7 9 10]; % LTS alignment points
-    case 'courtship_F_LRR_25-17' 
+    case 'high_res_F_LRR_25-17' % TODO check if this is the right name for the protocol
         idx = [1 3 5 7 8]; % F LRR alignment points (beginning of each temp region)
 end
 
@@ -275,7 +273,7 @@ data.color(2,:) = fly(1).data(2).color; % female color
 data.middlepoint = middlePoint;
 
 % TODO: adjust this for protocols that are not mirror image parallel
-switch temp_protocols{1}
+switch fly(1).parameters.protocol
     case 'high_res_LTS_35-15'
         % TODO!! 3.23.25 work on adjusting this to work for the LTS
         % protocol -- need to get the code to work dynamically for there
@@ -289,7 +287,7 @@ switch temp_protocols{1}
         [data.warming_idx_all(:,1),~,~] = find(a==1);  % start of warming
         [data.warming_idx_all(:,2),~,~] = find(a==-1); % end of warming (middlepoint)
 
-    case 'courtship_F_LRR_25-17'
+    case 'high_res_F_LRR_25-17' % TODO check if this is the right name for the protocol
         % save new indexes for plotting regions: 
         a = (diff(data.cooling));
         [data.cooling_idx_all(:,1),~,~] = find(a==1);  % start of cooling
@@ -368,15 +366,6 @@ data.tempbin = tempbin;
 disp('next:')
 
 %% Update the distance to food metrics that were incorrect before 1.23.25
-% TODO (5.11) update all the distances to use the appropriate pixel to mm conversion
-% ...but still need to find out what that is for this data structure and account for
-% it here.
-conversion = getConversion;
-
-% TODO : determine the appropriate conversion ratio for these trials... use the well
-% center selected points to calculate once (over in plate comparison)  and then add
-% that value to the getConversion function.
-
 
 for i = 1:num.trials
     % calculate distance to food (from fly head)

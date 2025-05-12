@@ -675,19 +675,121 @@ cc = [1 1 2 2 3 3];
 
 fig = getfig('',1);
 for i = 1:6
-    subplot(2,3,i)
+    subplot(3,2,i)
     histogram(eccentricity(i).all, bins,'EdgeColor','none','FaceColor',Color(kolors{i}),'FaceAlpha',0.8)
     v_line(con(cc(i)).circle75,'w', '-', 2)
     v_line(con(cc(i)).R,'w', '-', 2)
 end
-formatFig(fig, true, [1,3]);
-subplot(2,3,1)
+formatFig(fig, true, [3,2]);
+subplot(3,2,1)
 ylabel('count')
-subplot(2,3,4)
+subplot(3,2,4)
 ylabel('count')
 for i = 4:6
-    subplot(2,3,i)
+    subplot(3,2,i)
     xlabel('mm to center')
 end
 
-save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated'],'-png');
+save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated by type'],'-png');
+
+%% TEST HIGH RESOLUTION PLATE VIDEO CONVERSION NUMBERS
+% need to load data from a grouped structure in the high resolutoin courtship video
+% structures
+D = [];
+for i = 1:num.trials
+        well_loc = fly(i).well.center';
+
+        % distance between well 1 and 3
+        d = [];
+        well_1 = well_loc(:,1);
+        well_3 = well_loc(:,3);
+        d = [d;sum((well_1-well_3).^2).^0.5];
+        % distance between well 2 and 4
+        well_1 = well_loc(:,2);
+        well_3 = well_loc(:,4);
+        d = [d;sum((well_1-well_3).^2).^0.5];
+        
+        pixelsbetweenwells = mean(d); %pixels
+        actualdistance =  36.2; %mm distance between the center of two wells criss-crossing the arena
+        pix2mm = pixelsbetweenwells/actualdistance; % divisor
+        D = [D, pix2mm];
+end
+
+fig = getfig('',1);
+histogram(D,'FaceColor',Color('dodgerblue'),'FaceAlpha',0.8)
+v_line(median(D),'white','-',2)
+formatFig(fig,true);
+ylabel('count')
+xlabel('pixel to mm conversion')
+title(['High resolution plate 2 : ' num2str(median(D))], 'color', 'w')
+save_figure(fig, [figDir 'pix2mm conversion distribution histogram'],'-png');
+
+% test to see how the new alignment data works with the described plate measurements
+% from the above analyses and getConversion
+
+% use the head position of the flies to plot out the histogram of their eccentricies
+% and then overlay the cut-offs from the previous data % TODO :  working here  
+
+% % temporary save: 
+% load('K:\DATA\Courtship Videos\grouped\Berlin F LRR 25-17 caviar MF\working data.mat');
+
+% determine eccentricity of the flies in the arenas with the new pix2mm conversion
+
+eccentricity = [];
+for trial = 1:num.trials
+    x = [fly(trial).data(1).rawX(:,body.head); fly(trial).data(2).rawX(:,body.head)];
+    y = [fly(trial).data(1).rawY(:,body.head); fly(trial).data(2).rawY(:,body.head)];
+
+    xi = fly(trial).well.center(5,1);
+    yi = fly(trial).well.center(5,2);
+    D = sqrt((x-xi).^2 + (y-yi).^2)./pix2mm; %distance from center of arena
+    D(isnan(D)) = [];
+    eccentricity = [eccentricity; D];
+    disp(trial)
+end
+
+bins = 0:0.5:35;
+
+fig = getfig('',1);
+    histogram(eccentricity,bins,'FaceColor', Color('dodgerblue'), 'FaceAlpha', 0.8)
+    v_line(conversion(3).circle75,'w', '-', 2)
+    v_line(conversion(3).R,'w', '-', 2)
+    formatFig(fig, true);
+    ylabel('count')
+    xlabel('mm to center')
+    save_figure(fig, [saveDir, 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
