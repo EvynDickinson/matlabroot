@@ -516,25 +516,23 @@ temp = nan([20000*16*300,1]);
 [eccentricity(1).all,eccentricity(2).all,eccentricity(3).all] = deal(temp);
 [eccentricity(1).N,eccentricity(2).N,eccentricity(3).N] = deal(0);
 [eccentricity(1).trial,eccentricity(2).trial,eccentricity(3).trial] = deal([]);
+
 % ECCENTRICITY
 for exp = 1:nexp
-    
     tic
     idx = [datenum(grouped(exp).T.Date, 'mm.dd.yyyy')]<=cut_off_one;
     for trial = 1:grouped(exp).ntrials
-    
         % get the appropriate pixel to mm conversion for these trials: 
-       
         switch exp
-            case {1,3}
-                if idx(trial)
+            case {1,3} % plate 1 food | no food
+                if idx(trial) % old lab space (cedar st) 
                     pix2mm = con(1).pix2mm;
                     conType = 1;
-                else
+                else % new lab space (college st) 
                     pix2mm = con(2).pix2mm;
                     conType = 2;
                 end
-            case {2,4}
+            case {2,4}  % plate 2 food | no food
                 pix2mm = con(3).pix2mm;
                 conType = 3;
         end
@@ -585,6 +583,9 @@ formatFig(fig, true)
 xlabel('dist to center (mm)')
 ylabel('count')
 
+set(gca, 'YScale', 'log')
+
+
 save_figure(fig, [figDir 'eccentricity with outer ring cutoffs'],'-png');
 
 
@@ -602,6 +603,9 @@ formatFig(fig, true, [1,3]);
 subplot(1,3,1)
 ylabel('count')
 save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated'],'-png');
+
+%%  NEW: determine where the outlier points from in the 
+
 
 
 
@@ -757,7 +761,7 @@ fig = getfig('',1);
     formatFig(fig, true);
     ylabel('count')
     xlabel('mm to center')
-    save_figure(fig, [saveDir, 
+    save_figure(fig, [figDir, 'eccentricity all time points and bins'],fig_type);
 
 
 
