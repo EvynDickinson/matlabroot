@@ -829,7 +829,67 @@ fig = getfig('',1);
     save_figure(fig, [figDir, 'eccentricity all time points and bins'],fig_type);
 
 
+%% Visual arena regions
 
+% Low resolution trial example: 
+vidpath = "S:\Evyn\DATA\Raw Data\05.01.2025\C2_hold_33_caviar_1.avi";
+movieInfo = VideoReader(vidpath); %read in video
+demoImg = (read(movieInfo,1));
+well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
+conversion = getConversion;
+pix2mm = conversion(2).pix2mm; % multiplier
+R = conversion(2).R;
+x1 = well_loc(1,1:2:4);
+y1 = well_loc(2,1:2:4);
+x2 = well_loc(1,2:2:4);
+y2 = well_loc(2,2:2:4);
+[xi,yi] = polyxpoly(x1,y1,x2,y2);
+centre = [xi,yi];
+disp('select center of the food well')
+food_loc = readPoints(demoImg,1); % click on center positions of the wells in the arena
+
+% crop image into the appropriate area around it
+crop_dist = 37 * pix2mm; %mm
+fig = getfig('',1,[900,900]);
+    % a = imadjust(demoImg,[53/255,149/255]); % plate 1
+    a = imadjust(demoImg,[53/255,175/255]); % plate 2
+    imshow(a); hold on
+    xlim([centre(1)-crop_dist, centre(1)+crop_dist])
+    ylim([centre(2)-crop_dist, centre(2)+crop_dist])
+    viscircles(centre,conversion(2).R*pix2mm,'color', 'w','LineWidth',0.25);
+    viscircles(centre,conversion(2).circle75*pix2mm,'color', 'w','LineWidth',0.25);
+    viscircles(food_loc',conversion(2).circle10*pix2mm,'color', Color('gold'),'LineWidth',0.25);
+    viscircles(food_loc',conversion(2).circle7*pix2mm,'color', Color('red'),'LineWidth',0.25);
+    viscircles(food_loc',conversion(2).circle5*pix2mm,'color', Color('purple'),'LineWidth',0.25);
+
+
+
+
+
+fig = figure;
+    imshow(demoImg); hold on
+    viscircles(centre,R*pix2mm,'color', 'w','LineWidth',0.25);
+    % find actual plate size: 
+    % roi = drawcircle; % manually add in the circle over the food well
+    % newR = roi.Radius/pix2mm;
+    newR = 33.6;
+    viscircles(centre,newR*pix2mm,'color', 'w','LineWidth',0.25);
+
+
+vidpath = "S:\Evyn\DATA\Courtship Videos\02.05.2025\Berlin_courtship_F_LRR_caviar_ramp1\compiled_video_1.avi";
+movieInfo = VideoReader(vidpath); %read in video
+demoImg = (read(movieInfo,1));
+
+fig = getfig('',1,[900,900]);
+    imshow(demoImg); hold on
+    viscircles(well.center(5,:),conversion(4).R*pix2mm,'color', 'w','LineWidth',0.25);
+    viscircles(well.center(5,:),conversion(4).circle75*pix2mm,'color', 'w','LineWidth',0.25);
+    viscircles(well.food,conversion(4).circle10*pix2mm,'color', Color('gold'),'LineWidth',0.25);
+    viscircles(well.food,conversion(4).circle7*pix2mm,'color', Color('red'),'LineWidth',0.25);
+    viscircles(well.food,conversion(4).circle5*pix2mm,'color', Color('purple'),'LineWidth',0.25);
+
+
+% vidpath = "S:\Evyn\DATA\Raw Data\05.01.2025\C1_hold_33_caviar_1.avi";
 
 
 

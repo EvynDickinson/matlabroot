@@ -2054,37 +2054,42 @@ end
 
 %% VISUAL CHECK: how do the fly locations align with the plate ROIs
 
-% conversion = getConversion;
-% 
-% dX = [];
-% dY = [];
-% for exp = 1:num.exp
-%     for trial = 1:num.trial(exp)
-%         dX = [dX; data(exp).data(trial).data.x_loc(:)];
-%         dY = [dY; data(exp).data(trial).data.y_loc(:)];
-%     end
-% end
-% 
-% dX(isnan(dX)) = [];
-% dY(isnan(dY)) = [];
-% 
-% fig = getfig('',1,[800,800]);
-%     scatter(dX, dY, 1, 'w')
-%     formatFig(fig,true)
-% 
-%     % overlay outer rim circles for each trial 
-%     hold on
-%     for exp = 1:num.exp
-%         for trial = 1:num.trial(exp)
-%             center = data(exp).data(trial).data.centre;
-%             viscircles(center',conversion(2).R*pix2mm,'color', 'r','LineWidth',0.25);
-%         end
-%     end
-% 
-% % histogram to see why they are all not aligning??? 
-% 
-% 
-% 
+conversion = getConversion;
+
+dX = [];
+dY = [];
+for exp = 1:num.exp
+    for trial = 1:num.trial(exp)
+        dX = [dX; data(exp).data(trial).data.x_loc(:)];
+        dY = [dY; data(exp).data(trial).data.y_loc(:)];
+    end
+end
+
+dX(isnan(dX)) = [];
+dY(isnan(dY)) = [];
+
+fig = getfig('',1,[800,800]);
+    scatter(dX, dY, 1, 'w')
+    formatFig(fig,true)
+
+    % overlay outer rim circles for each trial 
+    for exp = 1:num.exp
+        for trial = 1:num.trial(exp)
+            center = data(exp).data(trial).data.centre;
+            
+
+
+
+
+
+    viscircles(well.center(5,:),conversion(4).R*pix2mm,'color', 'w','LineWidth',0.25);
+    viscircles(well.center(5,:),conversion(4).circle75*pix2mm,'color', 'w','LineWidth',0.25);
+    viscircles(well.food,conversion(4).circle10*pix2mm,'color', Color('gold'),'LineWidth',0.25);
+    viscircles(well.food,conversion(4).circle7*pix2mm,'color', Color('red'),'LineWidth',0.25);
+    viscircles(well.food,conversion(4).circle5*pix2mm,'color', Color('purple'),'LineWidth',0.25);
+
+
+
 
 
 

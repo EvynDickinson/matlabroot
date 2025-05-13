@@ -976,8 +976,6 @@ end
 %% ANALYSIS: Extract sleep data
 clearvars('-except',initial_var{:})
 
-% TODO: working here to go through the code 5.12
-
 bout = 5*60*parameters.FPS; %(5-min period minimum for sleep threshold)
 dummy = [];
 
@@ -985,9 +983,9 @@ dummy = [];
 for sex = 1:2
     switch sex
         case 1
-            x = m.pos(:,2,1); % male center
+            x = m.pos(:,body.center,1); % male center
         case 2
-            x = f.pos(:,2,1); % female center
+            x = f.pos(:,body.center,1); % female center
     end
     % Calculate difference between all x values
     x_diff = diff(x); 
@@ -1337,12 +1335,12 @@ end
 % Evyn (5.12.25)
 
 %% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
-
-% vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
+% vidpath = "S:\Evyn\DATA\Courtship Videos\02.05.2025\Berlin_courtship_F_LRR_caviar_ramp1\compiled_video_1.avi";
+% % vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
 % movieInfo = VideoReader(vidpath); %read in video
 % demoImg = (read(movieInfo,1));
 % well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
-% 
+
 % % distance between well 1 and 3
 % d = [];
 % well_1 = well_loc(:,1);
@@ -1374,6 +1372,23 @@ end
 %     % newR = roi.Radius/pix2mm;
 %     newR = 33.6;
 %     viscircles(centre,newR*pix2mm,'color', 'w','LineWidth',0.25);
+
+%% Visual check of the area sizes for the arena
+
+% vidpath = "S:\Evyn\DATA\Courtship Videos\02.05.2025\Berlin_courtship_F_LRR_caviar_ramp1\compiled_video_1.avi";
+% movieInfo = VideoReader(vidpath); %read in video
+% demoImg = (read(movieInfo,1));
+% 
+% fig = getfig('',1,[900,900]);
+%     imshow(demoImg); hold on
+%     viscircles(well.center(5,:),conversion(4).R*pix2mm,'color', 'w','LineWidth',0.25);
+%     viscircles(well.center(5,:),conversion(4).circle75*pix2mm,'color', 'w','LineWidth',0.25);
+%     viscircles(well.food,conversion(4).circle10*pix2mm,'color', Color('gold'),'LineWidth',0.25);
+%     viscircles(well.food,conversion(4).circle7*pix2mm,'color', Color('red'),'LineWidth',0.25);
+%     viscircles(well.food,conversion(4).circle5*pix2mm,'color', Color('purple'),'LineWidth',0.25);
+% 
+% 
+% % vidpath = "S:\Evyn\DATA\Raw Data\05.01.2025\C1_hold_33_caviar_1.avi";
 
 
 %% RUN THIS TO CHECK THE FIT OF THE OUTER RING 

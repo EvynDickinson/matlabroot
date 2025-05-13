@@ -694,7 +694,7 @@ for i = 1:num.exp
         % TODO (5.13) working here to make a centralized, reoriented data
         % set that can be compared across trial types etc. 
 
-        trial_plate = '';% HERE!!! PULL IN THE PLATE INFORMATION FROM EXCEL?
+        trial_plate = ''%  PULL IN THE 
         trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
 
         if trial_date > OG_Orientation %new camera orientation
