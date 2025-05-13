@@ -21,7 +21,7 @@ switch protocol
         param.tRate = tRate;
 
 
-    case 'courtship_F_LRR_25-17'
+    case {'courtship_F_LRR_25-17','high_res_F_LRR_25-17'}
         param.ntrans = 3;
         param.labelstr = 'click (1) the start of the ramp, (2) the bottom, and (3) the end of the ramp';
         % find the x-time value for each time period

@@ -589,7 +589,6 @@ set(gca, 'YScale', 'log')
 save_figure(fig, [figDir 'eccentricity with outer ring cutoffs'],'-png');
 
 
-
 % FIGURE: show each of the groups with their outer and inner 25% lines
 fig = getfig('',1);
 for i = 1:3
@@ -604,14 +603,59 @@ subplot(1,3,1)
 ylabel('count')
 save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated'],'-png');
 
-%%  NEW: determine where the outlier points from in the 
+%%  NEW: determine where the outlier points from the outer ring occupancy come from in the new plate food trials
+% con = getConversion;
+% 
+% % find the eccentricities for all of these trials
+% logNames = table;
+% wellD = [];
+% % allD = [];
+% exp = 3; % new plate with food (since this has the outlier distances)
+% for trial = 1:grouped(exp).ntrials
+%     pix2mm = con(3).pix2mm;
+%     wellcenters = grouped(exp).data(trial).wellcenters;
+%     xi = wellcenters(1,5);
+%     yi = wellcenters(2,5);
+%     D = sqrt((grouped(exp).data(trial).x-xi).^2 + (grouped(exp).data(trial).y-yi).^2)./pix2mm; %distance from center of arena
+%     % allD = [allD; D(:)];
+%     % log trial if the D is greater than 30mm (or the achievable outer ring
+%     % distance, obstensibly 
+%     if any(any(D>con(3).R))
+%         logNames(end+1,:) = grouped(exp).T(trial,1:4); % add file info to the log
+% 
+%         % determine distance between the wells for this trial
+%         d1 = sqrt((wellcenters(1,1) - wellcenters(1,3)).^2 + (wellcenters(2,1) - wellcenters(2,3)).^2)./pix2mm; %distance from center of arena
+%         d2 = sqrt((wellcenters(1,2) - wellcenters(1,4)).^2 + (wellcenters(2,2) - wellcenters(2,4)).^2)./pix2mm; %distance from center of arena
+%         wellD = [wellD; d1, d2];
+%     end
+%     disp(trial)
+% end
+% 
+% % histogram of the eccentricities to see why it doesn't match the earlier
+% % error...
+% bins = 0:0.5:35;
+% figure; 
+% histogram(allD,bins)
+% tempLog = find(allD>30);
+% 
+% 
+% 
+% 
+% % 
+% % [eccentricity(1).all,eccentricity(2).all,eccentricity(3).all] = deal(temp);
+% % [eccentricity(1).N,eccentricity(2).N,eccentricity(3).N] = deal(0);
+% % [eccentricity(1).trial,eccentricity(2).trial,eccentricity(3).trial] = deal([]);
+% % 
+% 
+% 
+
+
 
 
 
 
 %% now if we go back and then compare these lines and distributions for the
 % food vs no food trials, what does that look like?
-
 
 temp = nan([20000*16*300,1]);
 for i = 1:6
@@ -628,6 +672,7 @@ end
 % 5 = plate 2, college st, food
 % 6 = plate 2, college st, no food
 
+cut_off_one = con(1).cutoff;
 % ECCENTRICITY
 for exp = 1:nexp
     idx = [datenum(grouped(exp).T.Date, 'mm.dd.yyyy')]<=cut_off_one;
@@ -642,7 +687,7 @@ for exp = 1:nexp
                     pix2mm = con(2).pix2mm;
                     conType = 3;
                 end
-            case 2 % old plate, no food
+            case 3 % old plate, no food
                 if idx(trial) % cedar st
                     pix2mm = con(1).pix2mm;
                     conType = 2;
@@ -650,7 +695,7 @@ for exp = 1:nexp
                     pix2mm = con(2).pix2mm;
                     conType = 4;
                 end
-            case 3 % new plate, food
+            case 2 % new plate, food
                 pix2mm = con(3).pix2mm;
                 conType = 5;
             case 4  % new plate, no food
@@ -685,16 +730,34 @@ for i = 1:6
     v_line(con(cc(i)).R,'w', '-', 2)
 end
 formatFig(fig, true, [3,2]);
-subplot(3,2,1)
-ylabel('count')
-subplot(3,2,4)
-ylabel('count')
-for i = 4:6
+for i = 1:2:6
+    subplot(3,2,i)
+    ylabel('count')
+end
+for i = 5:6
     subplot(3,2,i)
     xlabel('mm to center')
 end
 
+% figDir = '/Users/evyndickinson/Documents/Jeanne Lab/DATA/Grouped Data Structures/plate comparisons/';
+
 save_figure(fig, [figDir 'eccentricity with outer ring cutoffs separated by type'],'-png');
+
+%% QUICK FIG FOR COMP WITH HIGH RES EXPERIMENTS
+% figure of plate two high res experiments distribution to make sure it all
+% aligns 
+
+fig = getfig('',1);
+i = 5; % new plate, with food 
+histogram(eccentricity(i).all, bins,'EdgeColor','none','FaceColor',Color('dodgerblue'),'FaceAlpha',0.8)
+v_line(con(cc(i)).circle75,'w', '-', 2)
+v_line(con(cc(i)).R,'w', '-', 2)
+formatFig(fig, true);
+xlabel('distance to center (mm)')
+ylabel('count')
+
+save_figure(fig, [figDir, 'new plate with food eccentricity histogram.png'])
+
 
 %% TEST HIGH RESOLUTION PLATE VIDEO CONVERSION NUMBERS
 % need to load data from a grouped structure in the high resolutoin courtship video

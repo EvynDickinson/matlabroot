@@ -14,46 +14,47 @@ end
 
 processed_path = [baseDir 'post-5.1 data.mat'];
 if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, load that?'))
-            curr_baseFolder = baseFolder;
-            curr_baseDir = baseDir;
-            load(processed_path)
-            baseFolder = curr_baseFolder;
-            baseDir = curr_baseDir;
-            disp('Data loaded!')
-            clearvars('-except',initial_var{:})
+    curr_baseFolder = baseFolder;
+    curr_baseDir = baseDir;
+    load(processed_path)
+    baseFolder = curr_baseFolder;
+    baseDir = curr_baseDir;
+    disp('Data loaded!')
+    clearvars('-except',initial_var{:})
 else
     if strcmp('Yes', questdlg('Run basic analysis now?'))
-            load([baseDir, 'basic data.mat']) % load the parameters and temp table
-            disp('data loaded')
-            tic 
-            % Experiment parameters
-            nvids = parameters.nVids; % number of videos
-            fps = parameters.FPS;
-            time = T.time;
-            blkbnd = true;
-            fig_type = '-png';
-            [foreColor,backColor] = formattingColors(blkbnd); % get background colors
-            pix2mm = 0.0289; % calculated on the new back setup 11/7/24
-            
-            % Create variable to store body points
-            body = [];
-            for i = 1:length(parameters.node_names)
-                body.(parameters.node_names{i}) = i;
-            end
-            
-            M = 1; % male fly index number
-            F = 2; % female fly index number
-            
-            % Initial variables
-            initial_var = who; % who = all variables created so far
-            initial_var{end+1} = 'initial_var';
-            initial_var{end+1} = 'well';
-            initial_var{end+1} = 'path';
-            
-            disp_fig = false; % display baseline figures?
-            initial_var{end+1} = 'disp_fig';
-            toc
-            disp('Data loaded, continuing evaluation')
+        load([baseDir, 'basic data.mat']) % load the parameters and temp table
+        disp('data loaded')
+        tic 
+        % Experiment parameters
+        nvids = parameters.nVids; % number of videos
+        fps = parameters.FPS;
+        time = T.time;
+        blkbnd = true;
+        fig_type = '-png';
+        [foreColor,backColor] = formattingColors(blkbnd); % get background colors
+        conversion = getConversion; 
+        pix2mm = conversion(4).pix2mm; %updates 5.12.25
+        
+        % Create variable to store body points
+        body = [];
+        for i = 1:length(parameters.node_names)
+            body.(parameters.node_names{i}) = i;
+        end
+        
+        M = 1; % male fly index number
+        F = 2; % female fly index number
+        
+        % Initial variables
+        initial_var = who; % who = all variables created so far
+        initial_var{end+1} = 'initial_var';
+        initial_var{end+1} = 'well';
+        initial_var{end+1} = 'path';
+        
+        disp_fig = false; % display baseline figures?
+        initial_var{end+1} = 'disp_fig';
+        toc
+        disp('Data loaded, continuing evaluation')
     end
 end
 
@@ -61,21 +62,22 @@ end
 clearvars('-except',initial_var{:})
 
 % Inter-fly-distance from the fly's center point
-x1 = m.pos(:,2,1); % x location for male center
-y1 = m.pos(:,2,2);
-x2 = f.pos(:,2,1);
-y2 = f.pos(:,2,2);
+x1 = m.pos(:,body.center,1); % x location for male center
+y1 = m.pos(:,body.center,2);
+x2 = f.pos(:,body.center,1);
+y2 = f.pos(:,body.center,2);
 % calculate interfly distance
-IFD = (sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm;
+IFD = (sqrt((x1-x2).^2 + (y1-y2).^2))./pix2mm;
 % add interfly distance to the data table
 T.IFD = IFD; 
 
-% Fly speed
+% Fly speed (position one ahead-current position/time)
 speed = [];
-D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2)).*pix2mm; % male speed
+D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2))./pix2mm; % male speed
 m.speed = [0;(D./(1/fps))];
-D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2)).*pix2mm; % female speed
+D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2))./pix2mm; % female speed
 f.speed = [0; (D./(1/fps))];
+
 
 %% ANALYSIS: Calculate M and F wing angles
 clearvars('-except',initial_var{:})
@@ -87,13 +89,13 @@ for sex = 1:2
     for w = 1:2
         switch w 
             case 1
-                P1 = [data(sex).x(:,4),data(sex).y(:,4)]; % left
+                P1 = [data(sex).x(:,body.right_wing),data(sex).y(:,body.right_wing)]; % 
             case 2
-                P1 = [data(sex).x(:,5),data(sex).y(:,5)]; % right
+                P1 = [data(sex).x(:,body.left_wing),data(sex).y(:,body.left_wing)]; % right
         end
         
-        P2 = [data(sex).x(:,2),data(sex).y(:,2)]; % center
-        P3 = [data(sex).x(:,3),data(sex).y(:,3)]; % abdomen
+        P2 = [data(sex).x(:,body.center),data(sex).y(:,body.center)]; % center
+        P3 = [data(sex).x(:,body.abdomen),data(sex).y(:,body.abdomen)]; % abdomen
         
         % 1: Calculate vectors from P2 to P1 and from P2 to P3
         v1 = P1 - P2;  % Nx2 matrix, vector from P2 to P1 for each time step
@@ -130,13 +132,12 @@ clearvars('-except',initial_var{:})
 
 x = 1;
 y = 2;
-head = 1;
-center = 2;
+
 % positions of M and F head and center
-P1 = [m.pos(:,center,x),m.pos(:,center,y)]; % male center
-P2 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
-P3 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
-P4 = [f.pos(:,head,x),f.pos(:,head,y)]; % female head
+P1 = [m.pos(:,body.center,x),m.pos(:,body.center,y)]; % male center
+P2 = [m.pos(:,body.head,x),m.pos(:,body.head,y)]; % male head
+P3 = [f.pos(:,body.center,x),f.pos(:,body.center,y)]; % female center
+P4 = [f.pos(:,body.head,x),f.pos(:,body.head,y)]; % female head
 
 % 1: Calculate body vectors
 v1 = P1 - P2;  % Nx2 matrix, vector for male body vector
@@ -207,7 +208,7 @@ test = theta<90; % when is male less than 90 deg from female
 % ------------------------- 3) Establish likely and unlikely courtship positions ------------------------- 
 
 % Determine fly body length (~2.5mm)
-BL = 2.5/pix2mm; % in pixels
+BL = 2.5*pix2mm; % in pixels
 
 % Body position location rules
 r.a = mX(:,body.center) >= 0; % everything to right of y axis
@@ -349,7 +350,12 @@ switch response
 
     % 4.1) Demo selected angles in male positions relative to female fly
         zoom = [-250,250];
-        skip = 20;
+        % adjust skip size based on total number of points
+        displayNum = 500; 
+        if sum(test)<displayNum
+            displayNum = sum(test);
+        end
+        plotLoc = randi(sum(test), [displayNum,1]);
         
         fig = getfig('Random selection of all male positions relative to female',1,[1075 871]);
         hold on
@@ -358,14 +364,14 @@ switch response
         x = mX(test,[body.head,body.center]);
         y = mY(test,[body.head,body.center]);
         % only plot every [skip value] points to reduce volume
-        x = x(1:skip:end,:);
-        y = y(1:skip:end,:);
+        x = x(plotLoc,:);
+        y = y(plotLoc,:);
         plot(x',y','color',data(M).color)
         scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
         
         % plot female coordiates for head, body, and abdomen
-        x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
-        y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+        x = fX(plotLoc,[body.head,body.center,body.abdomen]);
+        y = fY(plotLoc,[body.head,body.center,body.abdomen]);
         plot(x',y','color',data(F).color, 'LineWidth', 2)
         
         % format figure
@@ -383,9 +389,8 @@ switch response
 
         % 4.2) Visualize likely and unlikely courtship positions 
         zoom = [-250,250];
-        
-        % pull point locations that will be plotted
         skip = 20;
+
         
         likelyidx = likelyidx(1:skip:end);
         unlikelyidx = unlikelyidx(1:skip:end);
@@ -436,7 +441,7 @@ switch response
         formatFig(fig,blkbnd);
         rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
         
-        save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png');
+        save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png',0,1,'-r100');
 
     case 'No'
         return
@@ -470,8 +475,6 @@ if ~exist(well_file, 'file')
     uiwait(h)    
     save_figure(fig,[figDir 'well outlines'],'-pdf',0,1, '-r100');
 
-    well.R = mean(well.radius)*pix2mm;
-
     % select the well with the food
     fig = getfig('');
         imshow(img); hold on
@@ -483,7 +486,7 @@ if ~exist(well_file, 'file')
         [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});      % get a point
         % find the well with the selected data point
         % distance between each well center and the selected point
-        [~, index] = min((sqrt((xi-well.center(:,1)).^2 + (yi-well.center(:,2)).^2)).*pix2mm);
+        [~, index] = min((sqrt((xi-well.center(:,1)).^2 + (yi-well.center(:,2)).^2))./pix2mm);
         
         % plot the selected point
         scatter(xi,yi,60,"white",'filled')
@@ -506,8 +509,11 @@ if ~exist(well_file, 'file')
 else
     load(well_file,'well')
     disp('Loaded prior well locations')
+    % load('/Users/evyndickinson/Documents/Jeanne Lab/Courtship Videos/Trial Data/01.14.2025_Berlin_courtship_F_LRR_caviar_ramp1/well locations.mat','well');
 end
-     
+
+well.R = 2.5; % this is a fixed value based on the arena size 
+
 % Center of the arena
 WC = well.center';
 N = [];
@@ -519,26 +525,24 @@ y2 = WC(2,2:2:4);
 well.center(5,:) = [xi,yi];
 
 % calculate distance to food (from fly head)
-x1 = m.pos(:,1,1); % x location for male center
-y1 = m.pos(:,1,2);
-x2 = f.pos(:,1,1);
-y2 = f.pos(:,1,2);
+x1 = m.pos(:,body.head,1); % x location for male center
+y1 = m.pos(:,body.head,2);
+x2 = f.pos(:,body.head,1);
+y2 = f.pos(:,body.head,2);
 c1 = well.center(1);
 c2 = well.center(2);
 
-m.dist2food = (sqrt((x1-c1).^2 + (y1-c2).^2)).*pix2mm;
-f.dist2food = (sqrt((x2-c1).^2 + (y2-c2).^2)).*pix2mm;
+m.dist2food = (sqrt((x1-c1).^2 + (y1-c2).^2))./pix2mm;
+f.dist2food = (sqrt((x2-c1).^2 + (y2-c2).^2))./pix2mm;
 T.dist2food = [m.dist2food, f.dist2food];
 
 %% ANALYSIS: Determine fly occupancy in ring, quadrant, food circle  
 clearvars('-except',initial_var{:})
 
-% Max Distance from Center of Arena : 29.612mm = 30mm radius
-% ArenaArea = 2827.43;
-R = 25.6;%30; %mm
-innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
-dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
-maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
+% Max Distance from Center of Arena
+R = conversion(4).R; % outer distance limits
+innerR = conversion(4).circle75; % radius of a circle occupying 75% of the arena
+maxR = conversion(4).circle10; % radius of a circle occupying 10% of the arena
 
 % find distance from center for each fly center point: 
 xi = well.center(5,1);
@@ -550,7 +554,7 @@ for sex = 1:2
     y_loc = data(sex).rawY(:,body.center); % y position of the fly
     
     %distance from center of arena
-    D = sqrt(((x_loc-xi).^2 + (y_loc-yi).^2)).*pix2mm; 
+    D = sqrt(((x_loc-xi).^2 + (y_loc-yi).^2))./pix2mm; 
     data(sex).eccentricity = D;
 
     % outter ring occupancy
@@ -594,7 +598,7 @@ for sex = 1:2
     
     % 10% Food Circle
     D = sqrt(((x_loc-foodWell(1)).^2 + (y_loc-foodWell(2)).^2)); % distance from center of food well
-    D = D.*pix2mm;
+    D = D./pix2mm;
     data(sex).foodcircle = D<=maxR ; % flies within 10% circle around the food
 
 end
@@ -677,6 +681,7 @@ if ~exist(temp_file, 'file')
     end
 else
     load(temp_file,'tRate')
+    % load('/Users/evyndickinson/Documents/Jeanne Lab/Courtship Videos/Trial Data/01.14.2025_Berlin_courtship_F_LRR_caviar_ramp1/temp regions.mat','tRate');
     disp('loaded temperature regions')
 end
 
@@ -763,12 +768,11 @@ clearvars('-except',initial_var{:})
 
 x = 1;
 y = 2;
-head = 1;
-center = 2;
+
 % positions of M head and F head and center
-P1 = [m.pos(:,head,x),m.pos(:,head,y)]; % male head
-P2 = [f.pos(:,center,x),f.pos(:,center,y)]; % female center
-P3 = [f.pos(:,head,x),f.pos(:,head,y)]; % female head
+P1 = [m.pos(:,body.head,x),m.pos(:,body.head,y)]; % male head
+P2 = [f.pos(:,body.center,x),f.pos(:,body.center,y)]; % female center
+P3 = [f.pos(:,body.head,x),f.pos(:,body.head,y)]; % female head
 
 % 1) Calculate body vectors
 v1 = P3 - P1;  % Nx2 matrix, vector for female head to male head
@@ -855,19 +859,19 @@ T.chase_all = chase; % NO time limit
 clearvars('-except',initial_var{:})
 
 % Distance between male head and female
-x1 = m.pos(:,1,1); % x location for male head
-y1 = m.pos(:,1,2);
-x2 = f.pos(:,2,1); % x location for female center
-y2 = f.pos(:,2,2);
+x1 = m.pos(:,body.head,1); % x location for male head
+y1 = m.pos(:,body.head,2);
+x2 = f.pos(:,body.center,1); % x location for female center
+y2 = f.pos(:,body.center,2);
 % Calculate male head - female center distance
-d = ((sqrt((x1-x2).^2 + (y1-y2).^2)).*pix2mm);
+d = ((sqrt((x1-x2).^2 + (y1-y2).^2))./pix2mm);
 head_dist = d <= 3; % mm
 y = nan(size(head_dist));
 y(head_dist) = 1;
 
 % (for fun) how much time did the male fly spend really close to the female fly?
 percent_time_within_3mm = (sum(head_dist)/length(time))*100;
-disp(['Male spend ' num2str(percent_time_within_3mm) '% of experiment close to female'])
+disp(['The male fly spent ' num2str(percent_time_within_3mm) '% of the experiment close to the female'])
 
 % position.all_likely
 
@@ -971,6 +975,8 @@ end
 
 %% ANALYSIS: Extract sleep data
 clearvars('-except',initial_var{:})
+
+% TODO: working here to go through the code 5.12
 
 bout = 5*60*parameters.FPS; %(5-min period minimum for sleep threshold)
 dummy = [];
@@ -1312,7 +1318,7 @@ clearvars('-except',initial_var{:})
 
 switch questdlg('Save processed data?')
     case 'Yes'
-        save([baseDir 'post-5.1 data.mat'],'-v7.3')
+        save([baseDir 'post-5.1.1 data.mat'],'-v7.3')
         disp('Saved data file')
     case 'No'
         return
@@ -1320,7 +1326,15 @@ switch questdlg('Save processed data?')
         return
 end
 
+% NOTE: 5.12.25 
+% this code has been updated to include the new distance measures for the
+% plate size and thus moving forward, data will be saved as
+% 'post-5.1.1.mat' rather than just 'post-5.1.mat' data. Do not use data
+% from the original set, as it has an incorrect distance scaling factor. 
 
+% TODO : rerun all the current high_res data files and update them for the
+% correct distance measures. Add in a delete the old file function as well.
+% Evyn (5.12.25)
 
 %% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
 
@@ -1354,12 +1368,12 @@ end
 % 
 % fig = figure;
 %     imshow(demoImg); hold on
-%     viscircles(centre,R/pix2mm,'color', 'w','LineWidth',0.25);
+%     viscircles(centre,R*pix2mm,'color', 'w','LineWidth',0.25);
 %     % find actual plate size: 
 %     % roi = drawcircle; % manually add in the circle over the food well
-%     % newR = roi.Radius*pix2mm;
+%     % newR = roi.Radius/pix2mm;
 %     newR = 33.6;
-%     viscircles(centre,newR/pix2mm,'color', 'w','LineWidth',0.25);
+%     viscircles(centre,newR*pix2mm,'color', 'w','LineWidth',0.25);
 
 
 %% RUN THIS TO CHECK THE FIT OF THE OUTER RING 
@@ -1374,26 +1388,26 @@ end
 % demoImg = (read(movieInfo,1));
 % 
 % % ArenaArea = 2827.43;
-R =  25.6; % (full arena edge: 29.5)   %functional distance they can reach in the circle
-innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
-dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
-maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
-
-centre = well.center(5,:);
-foodWell = well.center(well.food_idx,:);
-figure; imshow(demoImg);
-    viscircles(centre,R/pix2mm,'color', foreColor,'LineWidth',0.25);
-    viscircles(centre,innerR/pix2mm,'color', foreColor,'LineWidth',0.25);
-    viscircles(foodWell,maxR/pix2mm,'color', foreColor,'LineWidth',0.25);
-    hold on
-% plot all the position points within this experiment: 
-
-x = data(M).rawX(:,body.head);
-y = data(M).rawY(:,body.head);
-scatter(x,y,1,'b','filled')
-x = data(F).rawX(:,body.head);
-y = data(F).rawY(:,body.head);
-scatter(x,y,1,'m','filled')
+% R =  25.6; % (full arena edge: 29.5)   %functional distance they can reach in the circle
+% innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
+% dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
+% maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
+% 
+% centre = well.center(5,:);
+% foodWell = well.center(well.food_idx,:);
+% figure; imshow(demoImg);
+%     viscircles(centre,R*pix2mm,'color', foreColor,'LineWidth',0.25);
+%     viscircles(centre,innerR/pix2mm,'color', foreColor,'LineWidth',0.25);
+%     viscircles(foodWell,maxR/pix2mm,'color', foreColor,'LineWidth',0.25);
+%     hold on
+% % plot all the position points within this experiment: 
+% 
+% x = data(M).rawX(:,body.head);
+% y = data(M).rawY(:,body.head);
+% scatter(x,y,1,'b','filled')
+% x = data(F).rawX(:,body.head);
+% y = data(F).rawY(:,body.head);
+% scatter(x,y,1,'m','filled')
 
 
 

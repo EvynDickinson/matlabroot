@@ -36,6 +36,14 @@ if nargin<6
     fig_quality = '-r300';
 end
 
+if ismac && nargin<6
+    fig_quality = '-r100'; %this massively increases the image saving time
+end
+
+
+
+
+
 % Save figure:
 if autoSave==true
     export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');

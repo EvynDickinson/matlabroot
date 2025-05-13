@@ -131,14 +131,31 @@ figDir = createFolder([groupDir 'Figures/']);
 initial_var{end+1} = 'groupDir';
 initial_var{end+1} = 'figDir';
 initial_var{end+1} = 'groupName';
+initial_var{end+1} = 'conversion';
+
+conversion = getConversion; % this pulls in the standard pix2mm values for trials
 
 fig_type = '-png';
 initial_var{end+1} = 'fig_type';
 
 clearvars('-except',initial_var{:})
 
+%% Update the data structures to have appropriate distances for the arena 
+% Fixes any old data that uses incorrect distance measurments from faulty
+% pix2mm conversion AS OF May 12, 2025 ESD
+
+% TODO  : 5.12.25
+% check if there is a 'plate update' flag for a given trial ... if not, it
+% will process the data and replace the current distance related
+% information with the distance updated information 
+
+
 % figDir = '/Users/evyndickinson/Desktop/Berlin LTS caviar/';
-% save([figDir 'GroupData.mat'])
+% % save([figDir 'GroupData.mat'])
+
+% baseDir = '/Users/evyndickinson/Documents/Jeanne Lab/Courtship Videos/';
+% baseFolder  = [baseDir 'grouped/Berlin F LRR 25-17 caviar MF/'];
+% figDir = [baseFolder 'Figures/'];
 
 %% Find the temperature alignment across trials...
 % TODO -- slow down the figure progression so that you can see all of them
@@ -181,7 +198,7 @@ disp(temp_protocols')
 switch fly(1).parameters.protocol
     case 'high_res_LTS_35-15'
         idx = [1 3 5 7 9 10]; % LTS alignment points
-    case 'courtship_F_LRR_25-17' 
+    case {'courtship_F_LRR_25-17','high_res_F_LRR_25-17'}
         idx = [1 3 5 7 8]; % F LRR alignment points (beginning of each temp region)
 end
 
