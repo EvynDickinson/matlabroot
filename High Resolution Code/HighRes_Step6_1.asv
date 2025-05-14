@@ -78,7 +78,7 @@ else
     fly = struct;
     fill_idx = 1;
     for i = 1:length(fileIdx)
-        try dummy = load([baseFolder selectedFiles{i} '/post-5.1 data.mat']);
+        try dummy = load([baseFolder selectedFiles{i} '/post-5.1.1 data.mat']);
             fly(fill_idx).name = selectedFiles{i};
             for ii = 1:length(field_list)
                 fly(fill_idx).(field_list{ii}) = dummy.(field_list{ii});
@@ -144,7 +144,7 @@ clearvars('-except',initial_var{:})
 % Fixes any old data that uses incorrect distance measurments from faulty
 % pix2mm conversion AS OF May 12, 2025 ESD
 
-% TODO  : 5.12.2
+% TODO  : 5.12.25
 % check if there is a 'plate update' flag for a given trial ... if not, it
 % will process the data and replace the current distance related
 % information with the distance updated information 
@@ -198,7 +198,7 @@ disp(temp_protocols')
 switch fly(1).parameters.protocol
     case 'high_res_LTS_35-15'
         idx = [1 3 5 7 9 10]; % LTS alignment points
-    case 'courtship_F_LRR_25-17' 
+    case {'courtship_F_LRR_25-17','high_res_F_LRR_25-17'}
         idx = [1 3 5 7 8]; % F LRR alignment points (beginning of each temp region)
 end
 
@@ -385,15 +385,9 @@ data.tempbin = tempbin;
 disp('next:')
 
 %% Update the distance to food metrics that were incorrect before 1.23.25
-% TODO (5.11) update all the distances to use the appropriate pixel to mm conversion
-% ...but still need to find out what that is for this data structure and account for
-% it here.
-conversion = getConversion;
 
-% TODO : determine the appropriate conversion ratio for these trials... use the well
-% center selected points to calculate once (over in plate comparison)  and then add
-% that value to the getConversion function.
-
+% conversion = getConversion;
+pix2mm = conversion(4).pix2mm;
 
 for i = 1:num.trials
     % calculate distance to food (from fly head)
@@ -404,9 +398,9 @@ for i = 1:num.trials
     c1 = fly(i).well.food(1); % food well center
     c2 = fly(i).well.food(2); % food well center
     
-    M_dist  = (sqrt((x1-c1).^2 + (y1-c2).^2)).*fly(i).pix2mm;
-    F_dist = (sqrt((x2-c1).^2 + (y2-c2).^2)).*fly(i).pix2mm;
-
+    M_dist  = (sqrt((x1-c1).^2 + (y1-c2).^2))./fly(i).pix2mm;
+    F_dist = (sqrt((x2-c1).^2 + (y2-c2).^2))./fly(i).pix2mm;
+   
     data.dist2food(:,M,i) = M_dist;
     data.dist2food(:,F,i) = F_dist;
 
@@ -418,37 +412,34 @@ end
 
 disp('updated distance to food data structures')
 
-%% Update the outer rim occupancy that were incorrect before 1.23.25
-% TODO (1/28) give a demo image of the ring size for each area on an image still
-% ArenaArea = 2827.43;
-R = 25; %mm -- this is from looking at the traces of where the flies are able to go in the arena
-innerR = R*sqrt(3/4); % (old: radius of the inner 50% occupancy space R*sqrt(1/2))
-maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
+%% Create new comparisons of distances for the group
 
-
-for i = 1:num.trials
-    % % find distance from center for each fly center point: 
-    % xi = fly(i).well.center(5,1);
-    % yi = fly(i).well.center(5,2);
-    % % eccentricity, outer ring occupancy of the flies
-    % xm = fly(i).m.pos(:,body.center,1);
-    % ym = fly(i).m.pos(:,body.center,2);
-    % xf = fly(i).f.pos(:,body.center,1);
-    % yf = fly(i).f.pos(:,body.center,2);
-    % % distance from center of arena
-    % Dm = sqrt(((xm-xi).^2 + (ym-yi).^2)).*fly(i).pix2mm; 
-    % Df = sqrt(((xf-xi).^2 + (yf-yi).^2)).*fly(i).pix2mm; 
-    for sex = 1:2
-        D = fly(i).data(sex).eccentricity;
-        % outer ring occupancy
-        data.OutterRing(:,sex,i) = D>=innerR; % find the locations that are greater than the inner 75%
-        fly(i).data(sex).OutterRing = D>=innerR; % find the locations that are greater than the inner 75%
-    end
-end
-
-disp('updated outer ring to food data structures')
-
-% TODO: need to update the behavior matrix now with these... redo and add
+% % TODO (1/28) give a demo image of the ring size for each area on an image still
+% innerR = conversion(4).circle75;
+% 
+% for i = 1:num.trials
+%     % % find distance from center for each fly center point: 
+%     % xi = fly(i).well.center(5,1);
+%     % yi = fly(i).well.center(5,2);
+%     % % eccentricity, outer ring occupancy of the flies
+%     % xm = fly(i).m.pos(:,body.center,1);
+%     % ym = fly(i).m.pos(:,body.center,2);
+%     % xf = fly(i).f.pos(:,body.center,1);
+%     % yf = fly(i).f.pos(:,body.center,2);
+%     % % distance from center of arena
+%     % Dm = sqrt(((xm-xi).^2 + (ym-yi).^2)).*fly(i).pix2mm; 
+%     % Df = sqrt(((xf-xi).^2 + (yf-yi).^2)).*fly(i).pix2mm; 
+%     for sex = 1:2
+%         D = fly(i).data(sex).eccentricity;
+%         % outer ring occupancy
+%         % data.OutterRing(:,sex,i) = D>=innerR; % find the locations that are greater than the inner 75%
+%         fly(i).data(sex).OutterRing = D>=innerR; % find the locations that are greater than the inner 75%
+%     end
+% end
+% 
+% disp('updated outer ring to food data structures')
+% 
+% % TODO: need to update the behavior matrix now with these... redo and add
 % this to 5.1 and reprocess the data on that front...
 
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea

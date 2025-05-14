@@ -41,6 +41,19 @@ for i = 1:4
 end
 
 
+% cut_off_one = datenum('11.10.2023', 'mm.dd.yyyy');
+
+% switch data(exp).plate(trial)
+%         case 1 % plate one (old/OG plate) 
+%             if datenum(data(exp).T.Date{trial}, 'mm.dd.yyyy') < conversion(1).cutoff
+%                 conType = 1;
+%             else conType = 2;
+%             end
+%         case 2 % plate two (new plate, smaller) 
+%             conType = 3;
+% end
+% R = conversion(conType).R;
+% innerR = conversion(conType).circle75;
 
 
 

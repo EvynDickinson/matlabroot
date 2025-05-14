@@ -1,62 +1,65 @@
 
+function runBatch_HighRes_Step5_1(newbaseDir)
 
-%% LOAD data
-clear; clc;
-path = getDataPath(6,0);
-baseFolder = [path,'Trial Data/'];
-trialDir = selectFolder(baseFolder); 
-baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+% baseDir = [baseFolder, trials_list{this_trial} '/']; % full folder directory for that trial
 
-figDir = [baseDir,'Figures/']; 
+figDir = [newbaseDir,'Figures/']; 
 if ~exist(figDir, 'dir')
     mkdir(figDir)
 end
 
-processed_path = [baseDir 'post-5.1 data.mat'];
-if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, load that?'))
-    curr_baseFolder = baseFolder;
-    curr_baseDir = baseDir;
+processed_path = [newbaseDir 'post-5.1 data.mat'];
+
+if isfile(processed_path)
+    % curr_baseFolder = baseFolder;
+    % curr_baseDir = baseDir;
+
     load(processed_path)
-    baseFolder = curr_baseFolder;
-    baseDir = curr_baseDir;
+
+    % baseFolder = curr_baseFolder;
+    % baseDir = curr_baseDir;
     disp('Data loaded!')
-    clearvars('-except',initial_var{:})
+    conversion = getConversion; 
+    pix2mm = conversion(4).pix2mm; %updates 5.12.25
+
 else
-    if strcmp('Yes', questdlg('Run basic analysis now?'))
-        load([baseDir, 'basic data.mat']) % load the parameters and temp table
-        disp('data loaded')
-        tic 
-        % Experiment parameters
-        nvids = parameters.nVids; % number of videos
-        fps = parameters.FPS;
-        time = T.time;
-        blkbnd = true;
-        fig_type = '-png';
-        [foreColor,backColor] = formattingColors(blkbnd); % get background colors
-        conversion = getConversion; 
-        pix2mm = conversion(4).pix2mm; %updates 5.12.25
-        
-        % Create variable to store body points
-        body = [];
-        for i = 1:length(parameters.node_names)
-            body.(parameters.node_names{i}) = i;
-        end
-        
-        M = 1; % male fly index number
-        F = 2; % female fly index number
-        
-        % Initial variables
-        initial_var = who; % who = all variables created so far
-        initial_var{end+1} = 'initial_var';
-        initial_var{end+1} = 'well';
-        initial_var{end+1} = 'path';
-        
-        disp_fig = false; % display baseline figures?
-        initial_var{end+1} = 'disp_fig';
-        toc
-        disp('Data loaded, continuing evaluation')
+    load([newbaseDir, 'basic data.mat']) % load the parameters and temp table
+    disp('data loaded')
+
+    % Experiment parameters
+    nvids = parameters.nVids; % number of videos
+    fps = parameters.FPS;
+    time = T.time;
+    blkbnd = true;
+    fig_type = '-png';
+    [foreColor,backColor] = formattingColors(blkbnd); % get background colors
+    conversion = getConversion; 
+    pix2mm = conversion(4).pix2mm; %updates 5.12.25
+
+    % Create variable to store body points
+    body = [];
+    for i = 1:length(parameters.node_names)
+        body.(parameters.node_names{i}) = i;
     end
+
+    M = 1; % male fly index number
+    F = 2; % female fly index number
+
+    % Initial variables
+    initial_var = who; % who = all variables created so far
+    initial_var{end+1} = 'initial_var';
+    initial_var{end+1} = 'well';
+    initial_var{end+1} = 'path';
+    initial_var{end+1} = 'path';
+
+    disp_fig = false; % display baseline figures?
+    initial_var{end+1} = 'baseDir';
+
+    disp('Data loaded, continuing evaluation')
 end
+
+baseDir = newbaseDir;
+clearvars('-except',initial_var{:})
 
 %% ANALYSIS: Extract calculated variables
 clearvars('-except',initial_var{:})
@@ -165,7 +168,7 @@ clearvars('-except',initial_var{:})
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-response = questdlg('Visualize male positions too?','','Yes','No','No');
+% response = questdlg('Visualize male positions too?','','Yes','No','No');
 
 data(M).color = Color('dodgerblue');
 data(F).color = Color('deeppink');
@@ -345,107 +348,107 @@ initial_var{end+1} = 'position';
 
 % ------------------------------------------ 4) Visualizations ------------------------------------------ 
 
-switch response
-    case 'Yes'
-
-    % 4.1) Demo selected angles in male positions relative to female fly
-        zoom = [-250,250];
-        % adjust skip size based on total number of points
-        displayNum = 500; 
-        if sum(test)<displayNum
-            displayNum = sum(test);
-        end
-        plotLoc = randi(sum(test), [displayNum,1]);
-        
-        fig = getfig('Random selection of all male positions relative to female',1,[1075 871]);
-        hold on
-        
-        % plot male coordinates for head and body within test constraints
-        x = mX(test,[body.head,body.center]);
-        y = mY(test,[body.head,body.center]);
-        % only plot every [skip value] points to reduce volume
-        x = x(plotLoc,:);
-        y = y(plotLoc,:);
-        plot(x',y','color',data(M).color)
-        scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
-        
-        % plot female coordiates for head, body, and abdomen
-        x = fX(plotLoc,[body.head,body.center,body.abdomen]);
-        y = fY(plotLoc,[body.head,body.center,body.abdomen]);
-        plot(x',y','color',data(F).color, 'LineWidth', 2)
-        
-        % format figure
-        axis  equal square
-        h_line(0,'gray',':',2)
-        v_line(0,'grey',':',2)
-        xlim(zoom)
-        ylim(zoom)
-        formatFig(fig,blkbnd);
-        set(gca,'XColor','none','YColor','none')
-        
-        save_figure(fig,[figDir ' all male fly body positions relative to female'],'-png');    
-
-        %---------------------------------------------------------------------------------------------------------
-
-        % 4.2) Visualize likely and unlikely courtship positions 
-        zoom = [-250,250];
-        skip = 20;
-
-        
-        likelyidx = likelyidx(1:skip:end);
-        unlikelyidx = unlikelyidx(1:skip:end);
-        allidx = [likelyidx; unlikelyidx];
-        
-        fig = getfig('Likely and unlikely courtship positions',1,[1075 871]);
-        hold on
-        
-        % % plot all fly positions unlikely courtship male fly body positions
-        % kolor = Color('grey');
-        % x = mX(allidx,[body.head,body.center]);
-        % y = mY(allidx,[body.head,body.center]);
-        % plot(x',y','color',kolor)
-        % scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-        % % axis equal square
-        % formatFig(fig,blkbnd)
-        % set(gca,'XColor','none','YColor','none')
-        
-        % plot the unlikely courtship male fly body positions
-        kolor = Color('red');
-        x = mX(unlikelyidx,[body.head,body.center]);
-        y = mY(unlikelyidx,[body.head,body.center]);
-        plot(x',y','color',kolor)
-        scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-        
-        % plot the likely courtship male fly body positions
-        kolor = Color('limegreen');
-        x = mX(likelyidx,[body.head,body.center]);
-        y = mY(likelyidx,[body.head,body.center]);
-        plot(x',y','color',kolor)
-        scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-        
-        % plot female head, center, and abdoment
-        x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
-        y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
-        plot(x',y','color',foreColor, 'LineWidth', 2)
-        % xlim([-2000,1500]); ylim([-2000,2000])
-        
-        % format figure
-        axis  equal square
-        h_line(0,'gray',':',2)
-        v_line(0,'grey',':',2)
-        xlim(zoom)
-        ylim(zoom)
-        formatFig(fig,blkbnd);
-        set(gca,'XColor','none','YColor','none')
-        
-        formatFig(fig,blkbnd);
-        rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
-        
-        save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png',0,1,'-r100');
-
-    case 'No'
-        return
-end
+% switch response
+%     case 'Yes'
+% 
+%     % 4.1) Demo selected angles in male positions relative to female fly
+%         zoom = [-250,250];
+%         % adjust skip size based on total number of points
+%         displayNum = 500; 
+%         if sum(test)<displayNum
+%             displayNum = sum(test);
+%         end
+%         plotLoc = randi(sum(test), [displayNum,1]);
+% 
+%         fig = getfig('Random selection of all male positions relative to female',1,[1075 871]);
+%         hold on
+% 
+%         % plot male coordinates for head and body within test constraints
+%         x = mX(test,[body.head,body.center]);
+%         y = mY(test,[body.head,body.center]);
+%         % only plot every [skip value] points to reduce volume
+%         x = x(plotLoc,:);
+%         y = y(plotLoc,:);
+%         plot(x',y','color',data(M).color)
+%         scatter(x(:,1),y(:,1),15,data(M).color,"filled","^") % arrow head on male
+% 
+%         % plot female coordiates for head, body, and abdomen
+%         x = fX(plotLoc,[body.head,body.center,body.abdomen]);
+%         y = fY(plotLoc,[body.head,body.center,body.abdomen]);
+%         plot(x',y','color',data(F).color, 'LineWidth', 2)
+% 
+%         % format figure
+%         axis  equal square
+%         h_line(0,'gray',':',2)
+%         v_line(0,'grey',':',2)
+%         xlim(zoom)
+%         ylim(zoom)
+%         formatFig(fig,blkbnd);
+%         set(gca,'XColor','none','YColor','none')
+% 
+%         save_figure(fig,[figDir ' all male fly body positions relative to female'],'-png');    
+% 
+%         %---------------------------------------------------------------------------------------------------------
+% 
+%         % 4.2) Visualize likely and unlikely courtship positions 
+%         zoom = [-250,250];
+%         skip = 20;
+% 
+% 
+%         likelyidx = likelyidx(1:skip:end);
+%         unlikelyidx = unlikelyidx(1:skip:end);
+%         allidx = [likelyidx; unlikelyidx];
+% 
+%         fig = getfig('Likely and unlikely courtship positions',1,[1075 871]);
+%         hold on
+% 
+%         % % plot all fly positions unlikely courtship male fly body positions
+%         % kolor = Color('grey');
+%         % x = mX(allidx,[body.head,body.center]);
+%         % y = mY(allidx,[body.head,body.center]);
+%         % plot(x',y','color',kolor)
+%         % scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+%         % % axis equal square
+%         % formatFig(fig,blkbnd)
+%         % set(gca,'XColor','none','YColor','none')
+% 
+%         % plot the unlikely courtship male fly body positions
+%         kolor = Color('red');
+%         x = mX(unlikelyidx,[body.head,body.center]);
+%         y = mY(unlikelyidx,[body.head,body.center]);
+%         plot(x',y','color',kolor)
+%         scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% 
+%         % plot the likely courtship male fly body positions
+%         kolor = Color('limegreen');
+%         x = mX(likelyidx,[body.head,body.center]);
+%         y = mY(likelyidx,[body.head,body.center]);
+%         plot(x',y','color',kolor)
+%         scatter(x(:,1),y(:,1),15,kolor,"filled","^")
+% 
+%         % plot female head, center, and abdoment
+%         x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
+%         y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+%         plot(x',y','color',foreColor, 'LineWidth', 2)
+%         % xlim([-2000,1500]); ylim([-2000,2000])
+% 
+%         % format figure
+%         axis  equal square
+%         h_line(0,'gray',':',2)
+%         v_line(0,'grey',':',2)
+%         xlim(zoom)
+%         ylim(zoom)
+%         formatFig(fig,blkbnd);
+%         set(gca,'XColor','none','YColor','none')
+% 
+%         formatFig(fig,blkbnd);
+%         rectangle('Position',[zoom(1),zoom(1) sum(abs(zoom)) sum(abs(zoom))],'edgecolor',foreColor,'linewidth', 1)
+% 
+%         save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png',0,1,'-r100');
+% 
+%     case 'No'
+%         return
+% end
 
 %% ANALYSIS: Identify food well and calulate distance to food
 
@@ -453,7 +456,9 @@ end
 well_file = [baseDir 'well locations.mat'];
 if ~exist(well_file, 'file')    
     % pull up picture to find food well
-    vidpath = [path, parameters.date, '/', parameters.videoName, '/compiled_video_1.avi'];
+    disp(['Select any video for ' baseDir])
+    [file, newPath] = uigetfile('*.avi');
+    vidpath = [newPath, file];
     % vidpath = '/Volumes/OnTheGoData/Courtship Videos/09.26.2024/Berlin_courtship_F_LRR_caviar_ramp/compiled_video_1.avi';
     movieInfo = VideoReader(vidpath); %read in video
     demoImg = (read(movieInfo,T.vidFrame(1)));
@@ -540,6 +545,7 @@ T.dist2food = [m.dist2food, f.dist2food];
 clearvars('-except',initial_var{:})
 
 % Max Distance from Center of Arena
+conversion = getConversion;
 R = conversion(4).R; % outer distance limits
 innerR = conversion(4).circle75; % radius of a circle occupying 75% of the arena
 maxR = conversion(4).circle10; % radius of a circle occupying 10% of the arena
@@ -605,8 +611,8 @@ end
 
 % Fly on the food: 
 T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
-disp('Flies on food: M & F')
-sum(T.FlyOnFood)
+% disp('Flies on food: M & F')
+% sum(T.FlyOnFood)
 
 %% ANALYSIS: Determine temperature bins and directions
 % TODO (2/26) update this to work for temp holds and trials that don't have
@@ -616,20 +622,25 @@ clearvars('-except',initial_var{:})
 % Check if there is a paratameter protocol: 
 try disp(parameters.protocol)
 catch
-    h = warndlg('no temperature protocol found -- please manually select an option:');
-    uiwait(h);
-    [excelfile, Excel, xlFile] = load_HighResExperiments;
-    tempProtocolList = unique(excelfile(2:end,Excel.protocol));
-    startIdx = find(strcmp(tempProtocolList,'courtship_F_LRR_25-17'));
-    idx = listdlg('PromptString','Select temp protocol for this trial', 'SelectionMode', 'single', 'InitialValue',startIdx,...
-        'ListString',tempProtocolList,'ListSize',[200 200]);
-    if isempty(idx)
-        return
-    end
-    parameters.protocol = tempProtocolList{idx};
+        if contains(parameters.expID,'F_LRR')
+            parameters.protocol =  'courtship_F_LRR_25-17';
+        else 
+            h = warndlg('no temperature protocol found -- please manually select an option:');
+            uiwait(h);
+            [excelfile, Excel, xlFile] = load_HighResExperiments;
+            tempProtocolList = unique(excelfile(2:end,Excel.protocol));
+            startIdx = find(strcmp(tempProtocolList,'courtship_F_LRR_25-17'));
+            idx = listdlg('PromptString','Select temp protocol for this trial', 'SelectionMode', 'single', 'InitialValue',startIdx,...
+                'ListString',tempProtocolList,'ListSize',[200 200]);
+            if isempty(idx)
+                return
+            end
+            parameters.protocol = tempProtocolList{idx};
+        end
 end
-tp = getTempParamsHighRes(parameters.protocol);
 
+tp = getTempParamsHighRes(parameters.protocol);
+% TODO: 3/30 work on getting this to function with diff temp protocols
 initial_var{end+1} = 'tRate';
 temp_file = [baseDir 'temp regions.mat'];
 if ~exist(temp_file, 'file') 
@@ -848,6 +859,7 @@ T.court_chase = mt; % time restriction 2 seconds
 T.chase_all = chase; % NO time limit
 
 %% ANALYSIS: Circling behavior
+% TODO: add some visualization image for the periods of circling
 % M head within 3mm? [head_dist]
 % M facing female [position.likely]
 % M velocity constant within 1sec [const_var]
@@ -1021,11 +1033,11 @@ f.sleep = dummy(2).sleep;
 
 g = find(m.sleep);
 h = find(f.sleep);
-if isempty(g) && isempty(h)
-    disp('no male or female sleep found')
-else
-    return
-end
+% if isempty(g) && isempty(h)
+%     disp('no male or female sleep found')
+% else
+%     return
+% end
 
 %% ANALYSIS: Behavior probability map
 clearvars('-except',initial_var{:})
@@ -1041,7 +1053,7 @@ time_buff = 10; % number of frames that can be 'skipped' before the state is con
 
 for sex = 1:2 % male and female
    
-    tic
+    % tic
     % Initialize behavior states
     behavior = nan(ntime, 4);
     behavior(T.FlyOnFood(:, sex), 1) = 1;
@@ -1142,7 +1154,7 @@ for sex = 1:2 % male and female
     data(sex).states.behavior = behavior;
     data(sex).states.transitions = transitions;
     data(sex).states.transition_list = transition_list;
-    toc
+    % toc
 end
 
 % % How long to each behavior state after each temp change and what order?
@@ -1237,75 +1249,76 @@ clearvars('-except',initial_var{:})
 sexes = {'male', 'female'};
 nstates = data(1).states.nstates;
 b_list = strrep(data(1).states.b_list,'_',' ');
-fig = getfig('',1,[ 937 406]);
-for sex = 1:2
-    subplot(1,2,sex)
-    bar(1:nstates, sum(~isnan(data(sex).states.behavior)),'FaceColor',data(sex).color)
-    set(gca, "XTickLabel", b_list)
-    xlabel('behavior state')
-    ylabel('full trial count')
-end
-formatFig(fig,false,[1,2]);
-save_figure(fig,[figDir 'Behavior state bar graph full ramp  M and F'],fig_type);
 
-% time course of the behavior states
-fig = getfig('',1,[ 937 406]);
-for sex = 1:2
-    subplot(1,2,sex);
-    hold on
-    % h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+% fig = getfig('',1,[ 937 406]);
+% for sex = 1:2
+%     subplot(1,2,sex)
+%     bar(1:nstates, sum(~isnan(data(sex).states.behavior)),'FaceColor',data(sex).color)
+%     set(gca, "XTickLabel", b_list)
+%     xlabel('behavior state')
+%     ylabel('full trial count')
+% end
+% formatFig(fig,false,[1,2]);
+% save_figure(fig,[figDir 'Behavior state bar graph full ramp  M and F'],fig_type);
 
-    for i = 1:4
-        y = data(sex).states.behavior(:,i);
-        scatter(time, y, 35, data(sex).color, 'filled')
-    end
-    xlabel('time (min)')
-    ylabel('behavior state')
-    ylim([0.5,nstates+0.5])
-    set(gca, "YTick",1:nstates, 'YTickLabel',  b_list, 'ydir', 'reverse')
-end
-formatFig(fig,false, [1,2]);
-save_figure(fig,[figDir 'Behavior state timecourse M and F'],fig_type);
+% % time course of the behavior states
+% fig = getfig('',1,[ 937 406]);
+% for sex = 1:2
+%     subplot(1,2,sex);
+%     hold on
+%     % h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+% 
+%     for i = 1:4
+%         y = data(sex).states.behavior(:,i);
+%         scatter(time, y, 35, data(sex).color, 'filled')
+%     end
+%     xlabel('time (min)')
+%     ylabel('behavior state')
+%     ylim([0.5,nstates+0.5])
+%     set(gca, "YTick",1:nstates, 'YTickLabel',  b_list, 'ydir', 'reverse')
+% end
+% formatFig(fig,false, [1,2]);
+% save_figure(fig,[figDir 'Behavior state timecourse M and F'],fig_type);
 
-% FIGURE: transition matrix heatmap of the states
-fig = getfig('',1);
-for sex = 1:2
-    subplot(1,2,sex);
-    heatmap(data(sex).states.transitions)
-    xlabel('State 2')
-    ylabel('State 1')
-    set(gca, 'XDisplayLabels',b_list,'YDisplayLabels',b_list)
-    title(sexes{sex})
-end
-save_figure(fig,[figDir 'Behavior state transitions heatmap M and F'],fig_type);
+% % FIGURE: transition matrix heatmap of the states
+% fig = getfig('',1);
+% for sex = 1:2
+%     subplot(1,2,sex);
+%     heatmap(data(sex).states.transitions)
+%     xlabel('State 2')
+%     ylabel('State 1')
+%     set(gca, 'XDisplayLabels',b_list,'YDisplayLabels',b_list)
+%     title(sexes{sex})
+% end
+% save_figure(fig,[figDir 'Behavior state transitions heatmap M and F'],fig_type);
 
-% Figures: Histogram of the different state transitions & total count of the behaviors (~time)
-fig = getfig('',1,[1064 473]);
-for sex = 1:2
-    subplot(1,2,sex)
-    bin_edges = min(data(sex).states.ST.transition)-1:max(data(sex).states.ST.transition)+1;
-    histogram(data(sex).states.ST.transition,bin_edges,'FaceColor',data(sex).color)
-    xlabel('transition')
-    ylabel('count (#)')
-end
-fig = formatFig(fig,false,[1,2]);
-save_figure(fig,[figDir 'Behavior state transitions histogram M and F'],fig_type);
+% % Figures: Histogram of the different state transitions & total count of the behaviors (~time)
+% fig = getfig('',1,[1064 473]);
+% for sex = 1:2
+%     subplot(1,2,sex)
+%     bin_edges = min(data(sex).states.ST.transition)-1:max(data(sex).states.ST.transition)+1;
+%     histogram(data(sex).states.ST.transition,bin_edges,'FaceColor',data(sex).color)
+%     xlabel('transition')
+%     ylabel('count (#)')
+% end
+% fig = formatFig(fig,false,[1,2]);
+% save_figure(fig,[figDir 'Behavior state transitions histogram M and F'],fig_type);
 
-% Figure:  pie chart of different behaviors across the full experiment
-fig = getfig('',1);
-for sex = 1:2
-    subplot(1,2,sex)
-    y = data(sex).states.beh;
-    x = sum(isnan(y));
-    for i = 1:data(sex).states.nstates
-        x = [x, sum(y==i)];
-    end
-    xplode = true(size(x));
-    xplode(1) = false; % do not explode out the unknown states/positions
-    pie(x,xplode)
-    title({sexes{sex}; '   '})
-end
-save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type);
+% % Figure:  pie chart of different behaviors across the full experiment
+% fig = getfig('',1);
+% for sex = 1:2
+%     subplot(1,2,sex)
+%     y = data(sex).states.beh;
+%     x = sum(isnan(y));
+%     for i = 1:data(sex).states.nstates
+%         x = [x, sum(y==i)];
+%     end
+%     xplode = true(size(x));
+%     xplode(1) = false; % do not explode out the unknown states/positions
+%     pie(x,xplode)
+%     title({sexes{sex}; '   '})
+% end
+% save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type);
 
 % when (if) does each state arise in each temp regime? At what temp is the
 % behavior observed?
@@ -1313,15 +1326,17 @@ save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type
 %%  Save the 'analyzed' data package:
 clearvars('-except',initial_var{:})
 
-switch questdlg('Save processed data?')
-    case 'Yes'
-        save([baseDir 'post-5.1.1 data.mat'],'-v7.3')
-        disp('Saved data file')
-    case 'No'
-        return
-    case 'Cancel'
-        return
-end
+% switch questdlg('Save processed data?')
+%     case 'Yes'
+disp('made it to the save section...')
+save([baseDir 'post-5.1.1 data.mat'],'-v7.3')
+disp('Saved data file')
+disp('    ')
+%     case 'No'
+%         return
+%     case 'Cancel'
+%         return
+% end
 
 % NOTE: 5.12.25 
 % this code has been updated to include the new distance measures for the
@@ -1425,7 +1440,7 @@ end
 
 
 
-
+end
 
 
 
