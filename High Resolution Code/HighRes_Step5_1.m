@@ -443,8 +443,8 @@ switch response
         
         save_figure(fig,[figDir 'likely and unlikely male body pos. relative to female'],'-png',0,1,'-r100');
 
-    case 'No'
-        return
+    % case 'No'
+    %     return
 end
 
 %% ANALYSIS: Identify food well and calulate distance to food

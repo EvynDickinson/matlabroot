@@ -575,7 +575,6 @@ set(gca, 'xcolor', 'none')
 
 
 %% Courtship Index: 
-% TODO: update this to work with the current data...
 clearvars('-except',initial_var{:})
 % when and where is the concentration of courtship over experimental time?
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
@@ -583,7 +582,6 @@ clearvars('-except',initial_var{:})
 % compile the data: 
 [pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
 for i = 1:num.trials
-    sex = 1;
     % for sex = 1:2
         x = fly(i).time;
         y = fly(i).T.CI;
