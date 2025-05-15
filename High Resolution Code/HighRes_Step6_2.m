@@ -915,23 +915,94 @@ save_figure(fig, [figDir 'temp regime binned frequency of ' data_type],fig_type)
 
 %% TODO: Singly fly number of trips to food during each temperature region & duration of that 'visit'
 
+%% FIGURE: rasterplot of frequency of courtship-like events over the timecourse
 
 
+% bin by time?
+
+% look at the total number for each group...
+
+% bin by 1 minute increments
+
+fps = fly(1).fps;
+binWidth = 1; % seconds
+
+binedges = 1:binWidth*fps:size(data.time,1);
+pD = [];
+[pD.wingext, pD.chase, pD.circling, pD.CI, pD.temp,pD.time] = deal(nan(length(binedges)-1,1));
+for i = 1:length(binedges)-1
+    roi = binedges(i):binedges(i+1);
+    pD.wingext(i) = sum(sum(data.wing_ext_all(roi,:),'omitnan'),'omitnan');
+    pD.chase(i) = sum(sum(data.chase_all(roi,:),'omitnan'),'omitnan');
+    pD.circling(i) = sum(sum(data.circling_all(roi,:),'omitnan'),'omitnan');
+    pD.CI(i) = sum(sum(data.CI(roi,:),'omitnan'),'omitnan');
+    pD.temp(i) = mean(data.temp(roi),'omitnan');
+    pD.time(i) = mean(data.time(roi),'omitnan');
+end
+% turn these into rates
+params = {'chase', 'circling', 'wingext'};
+sSpan = 10;
+for i = 1:length(params)
+    pD.(params{i}) = (pD.(params{i})./binWidth)./num.trials;
+    pD.(params{i}) = smooth(pD.(params{i}),sSpan,'moving');
+end
 
 
+r = 7;
+c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:3;
+sb(3).idx = 4:5;
+sb(4).idx = 6:7;
+
+LW = 1;
+params = {'temp', 'chase', 'circling', 'wingext'};
+
+fig = getfig('',1,[665 680]);
+for i = 1:length(params)
+    subplot(r,c,sb(i).idx)
+    plot(pD.time, pD.(params{i}),'color', Color('black'),'linewidth', LW)
+    ylabel([params{i} ' (hz)'])
+end
+formatFig(fig, blkbgd,[r c],sb);
+for i = 1:length(params)-1
+    subplot(r,c,sb(i).idx)
+    set(gca,'xcolor','none')
+end
+save_figure(fig, [figDir 'courstship measures over time'],'-pdf');
 
 
+% Temp region summaries:
+tROI = [1,989; 990 1959; 1960 2934; 2935 3839]; % hold, cooling, warming, hold
+figure; 
+plot(pD.temp)
+v_line(tROI)
+
+PD = [];
+for t = 1:4 % hold, cooling, warming, hold
+    for i = 2:4 % params other than temp
+        PD(t,i-1) = sum(pD.(params{i})(tROI(t,1):tROI(t,2)),'omitnan')./(tROI(t,2)-tROI(t,1));
+    end
+end
 
 
+cData = [Color('grey'); Color('dodgerblue'); Color('red'); Color('grey')];
+n = 3;
+fig = getfig('',1); 
+for i = 1:n
+    subplot(1,n,i)
+    h = bar(PD(:,i));
+    h.FaceColor = 'flat';
+    h.CData = cData;
 
-
-
-
-
-
-
-
-
+    ylabel([params{i+1} ' (hz)'])
+end
+formatFig(fig,blkbgd,[1,n])
+for i = 1:n
+    subplot(1,n,i)
+    set(gca, 'xcolor', 'none')
+end
+save_figure(fig, [figDir 'courstship measures avg over temp region'],'-pdf');
 
 
 

@@ -414,8 +414,9 @@ disp('updated distance to food data structures')
 
 %% Create new comparisons of distances for the group
 
-% TODO (1/28) give a demo image of the ring size for each area on an image still
-
+% % TODO (1/28) give a demo image of the ring size for each area on an image still
+% innerR = conversion(4).circle75;
+% 
 % for i = 1:num.trials
 %     % % find distance from center for each fly center point: 
 %     % xi = fly(i).well.center(5,1);
@@ -431,14 +432,14 @@ disp('updated distance to food data structures')
 %     for sex = 1:2
 %         D = fly(i).data(sex).eccentricity;
 %         % outer ring occupancy
-%         data.OutterRing(:,sex,i) = D>=innerR; % find the locations that are greater than the inner 75%
+%         % data.OutterRing(:,sex,i) = D>=innerR; % find the locations that are greater than the inner 75%
 %         fly(i).data(sex).OutterRing = D>=innerR; % find the locations that are greater than the inner 75%
 %     end
 % end
 % 
 % disp('updated outer ring to food data structures')
-
-% TODO: need to update the behavior matrix now with these... redo and add
+% 
+% % TODO: need to update the behavior matrix now with these... redo and add
 % this to 5.1 and reprocess the data on that front...
 
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
