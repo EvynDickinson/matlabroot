@@ -925,7 +925,7 @@ save_figure(fig, [figDir 'temp regime binned frequency of ' data_type],fig_type)
 % bin by 1 minute increments
 
 fps = fly(1).fps;
-binWidth = 2; % seconds
+binWidth = 1; % seconds
 
 binedges = 1:binWidth*fps:size(data.time,1);
 pD = [];
@@ -941,86 +941,186 @@ for i = 1:length(binedges)-1
 end
 % turn these into rates
 params = {'chase', 'circling', 'wingext'};
+sSpan = 10;
 for i = 1:length(params)
     pD.(params{i}) = (pD.(params{i})./binWidth)./num.trials;
+    pD.(params{i}) = smooth(pD.(params{i}),sSpan,'moving');
 end
 
 
-r = 4;
+r = 7;
 c = 1;
 sb(1).idx = 1;
-sb(2).idx = 2;
-sb(3).idx = 3:4;
-LW = 1;
+sb(2).idx = 2:3;
+sb(3).idx = 4:5;
+sb(4).idx = 6:7;
 
-fig = getfig('',1);
-subplot(r,c,sb(1).idx)
-plot(pD.time, pD.temp,'color', Color('black'),'linewidth', LW)
-
-subplot(r,c,sb(2).idx)
-plot(pD.time, pD.CI,'color', Color('black'),'linewidth', LW)
-
-subplot(r,c,sb(3).idx)
-hold on
-plot(pD.time, pD.chase,'color', Color('black'),'linewidth', LW)
-plot(pD.time, pD.circling,'color', Color('magenta'),'linewidth', LW)
-plot(pD.time, pD.wingext,'color', Color('teal'),'linewidth', LW)
-
-formatFig(fig, blkbgd,[r c],sb);
-
-
-r = 4;
-c = 1;
 LW = 1;
 params = {'temp', 'chase', 'circling', 'wingext'};
 
-fig = getfig('',1);
+fig = getfig('',1,[665 680]);
 for i = 1:length(params)
-    subplot(r,c,i)
+    subplot(r,c,sb(i).idx)
     plot(pD.time, pD.(params{i}),'color', Color('black'),'linewidth', LW)
-    ylabel([params{i} ' Hz')
+    ylabel([params{i} ' (hz)'])
 end
-formatFig(fig, blkbgd,[r c]);
+formatFig(fig, blkbgd,[r c],sb);
 for i = 1:length(params)-1
-    subplot(r,c,i)
+    subplot(r,c,sb(i).idx)
     set(gca,'xcolor','none')
 end
-save_figure(fig, [figDir 'courstship measures over time'],'-pdf')
+save_figure(fig, [figDir 'courstship measures over time'],'-pdf');
 
 
 % Temp region summaries:
 tROI = [1,989; 990 1959; 1960 2934; 2935 3839]; % hold, cooling, warming, hold
+figure; 
+plot(pD.temp)
+v_line(tROI)
+
 PD = [];
 for t = 1:4 % hold, cooling, warming, hold
-    for i = 2:5 % params other than temp
-        % PD.(params{i})(t) = sum(pD.(params{i})(tROI(t,1):tROI(t,2)),'omitnan');
-        PD(t,i-1) = sum(pD.(params{i})(tROI(t,1):tROI(t,2)),'omitnan');
+    for i = 2:4 % params other than temp
+        PD(t,i-1) = sum(pD.(params{i})(tROI(t,1):tROI(t,2)),'omitnan')./(tROI(t,2)-tROI(t,1));
     end
 end
 
 
 cData = [Color('grey'); Color('dodgerblue'); Color('red'); Color('grey')];
-
+n = 3;
 fig = getfig('',1); 
-for i = 1:4
-    subplot(1,4,i)
+for i = 1:n
+    subplot(1,n,i)
     h = bar(PD(:,i));
     h.FaceColor = 'flat';
     h.CData = cData;
 
-    title(params{i+1})
+    ylabel([params{i+1} ' (hz)'])
 end
-formatFig(fig,blkbgd,[1,4])
-for i = 1:4
-    subplot(1,4,i)
+formatFig(fig,blkbgd,[1,n])
+for i = 1:n
+    subplot(1,n,i)
     set(gca, 'xcolor', 'none')
 end
+save_figure(fig, [figDir 'courstship measures avg over temp region'],'-pdf');
 
 
+%% Trial by trial comparision of the different courtship measures 
+clearvars('-except',initial_var{:})
+
+% bin by 1 minute increments
+
+fps = fly(1).fps;
+binWidth = 1; % seconds
+
+binedges = 1:binWidth*fps:size(data.time,1);
+pD = [];
+[pD.wingext, pD.chase, pD.circling, pD.CI] = deal(nan(length(binedges)-1,num.trials));
+[pD.temp,pD.time] = deal(nan(length(binedges)-1,1));
+
+for i = 1:length(binedges)-1
+    roi = binedges(i):binedges(i+1);
+    pD.wingext(i,:) = (sum(data.wing_ext_all(roi,:),1,'omitnan'));
+    pD.chase(i,:) = (sum(data.chase_all(roi,:),1,'omitnan'));
+    pD.circling(i,:) = (sum(data.circling_all(roi,:),1,'omitnan'));
+    pD.CI(i,:) = (sum(data.CI(roi,:),1,'omitnan'));
+    pD.temp(i) = mean(mean(data.temp(roi),'omitnan'));
+    pD.time(i) = mean(mean(data.time(roi),'omitnan'));
+end
+% turn these into rates
+params = {'chase', 'circling', 'wingext'};
+sSpan = 10;
+for i = 1:length(params)
+    pD.(params{i}) = (pD.(params{i})./binWidth)./num.trials;
+    % pD.(params{i}) = smooth(pD.(params{i}),sSpan,'moving');
+end
+
+% Temp region summaries:
+tROI = [1,989; 990 1959; 1960 2934; 2935 3839]; % hold, cooling, warming, hold
+figure; 
+plot(pD.temp)
+v_line(tROI)
+
+% Bin the data for each of the temp epochs
+PD = [];
+for t = 1:4 % hold, cooling, warming, hold
+    for i = 1:3 % params other than temp
+        PD(t,1:num.trials,i) = sum(pD.(params{i})(tROI(t,1):tROI(t,2),:),'omitnan')./(tROI(t,2)-tROI(t,1));
+    end
+end
+
+% FIGURE: visualize courtship measures for each of the trials
+r = 1;
+c = 3;
+sz = 30;
+kolor = {'grey', 'dodgerblue', 'red', 'grey'};
+
+fig = getfig('', 1);
+    for i = 1:c
+        subplot(r,c,i); hold on
+        for t = 1:4
+            x = t*ones(1,num.trials);
+            y = PD(t,:,i);
+            scatter(x,y,sz, Color(kolor{t}),'filled','XJitter','density')
+            y_avg = mean(y,'omitnan');
+            plot([t-0.3,t+0.3],[y_avg, y_avg],'color', Color(kolor{t}),'linewidth', 2)
+        end
+        title(params{i})
+    end
+    formatFig(fig, blkbgd,[r,c]);
+    for i = 1:c
+        subplot(r,c,i); hold on
+        set(gca, 'xcolor', 'none')
+    end
+
+gNames = [ones(num.trials,1),2*ones(num.trials,1),3*ones(num.trials,1),4*ones(num.trials,1)];
+% STATS:
+[datastats.all, datastats.id] = deal([]);
+for i = 1:c
+    inputData = squeeze(PD(:,:,i)');
+    [~,~,stats] = anova1(inputData,'off');
+    alpha = 0.05; %significance level
+    [c,~,~,~] = multcompare(stats,alpha,'off');
+
+    y = range([grouped(i).increasing.all;grouped(i).decreasing.all],1);
+    datastats.all = autoCat(datastats.all,y,false);
+    datastats.id = autoCat(datastats.id,repmat(i,[1,num.trial(i)]),false);
+end
+
+% determine which groups differ from each other
+[~,~,stats] = anova1(datastats.all,datastats.id,'off');
+alpha = 0.05; %significance level
+[c,~,~,~] = multcompare(stats,alpha,'off');
+% bonferonni multiple comparisons correction
+m = size(c,1); %number of hypotheses
+sigThreshold = alpha/m;
+%find p-values that fall under the threshold
+significantHypotheses = c(:,6)<=sigThreshold;
+fprintf('\n\nTemp-driven position range statistics\n\n')
+[Group1,Group2,P_Value] = deal([]);
+idx = 0;
+for i = 1:length(significantHypotheses)
+    if significantHypotheses(i)
+        idx = idx+1;
+        Group1{idx,1} = expNames{c(i,1)};
+        Group2{idx,1} = expNames{c(i,2)};
+        P_Value(idx,1) = c(i,6);
+    end
+end
+sig_comp = table(Group1,Group2,P_Value);
+disp(sig_comp)
 
 
-
-
+% add significance stars to the figure:
+if plotSig
+    y_pos = rangeLine(fig,1);
+    subplot(r,c,3); hold on
+    for ii = 1:num.exp
+        if h(ii)
+            scatter(ii,y_pos,100,foreColor,'*')
+        end
+    end
+end
 
 
 

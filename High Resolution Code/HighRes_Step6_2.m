@@ -1005,9 +1005,85 @@ end
 save_figure(fig, [figDir 'courstship measures avg over temp region'],'-pdf');
 
 
+%% Trial by trial comparision of the different courtship measures 
+clearvars('-except',initial_var{:})
 
+% bin by 1 minute increments
 
+fps = fly(1).fps;
+binWidth = 1; % seconds
 
+binedges = 1:binWidth*fps:size(data.time,1);
+pD = [];
+[pD.wingext, pD.chase, pD.circling, pD.CI] = deal(nan(length(binedges)-1,num.trials));
+[pD.temp,pD.time] = deal(nan(length(binedges)-1,1));
+
+for i = 1:length(binedges)-1
+    roi = binedges(i):binedges(i+1);
+    pD.wingext(i,:) = (sum(data.wing_ext_all(roi,:),1,'omitnan'));
+    pD.chase(i,:) = (sum(data.chase_all(roi,:),1,'omitnan'));
+    pD.circling(i,:) = (sum(data.circling_all(roi,:),1,'omitnan'));
+    pD.CI(i,:) = (sum(data.CI(roi,:),1,'omitnan'));
+    pD.temp(i) = mean(mean(data.temp(roi),'omitnan'));
+    pD.time(i) = mean(mean(data.time(roi),'omitnan'));
+end
+% turn these into rates
+params = {'chase', 'circling', 'wingext'};
+sSpan = 10;
+for i = 1:length(params)
+    pD.(params{i}) = (pD.(params{i})./binWidth)./num.trials;
+    % pD.(params{i}) = smooth(pD.(params{i}),sSpan,'moving');
+end
+
+% Temp region summaries:
+tROI = [1,989; 990 1959; 1960 2934; 2935 3839]; % hold, cooling, warming, hold
+figure; 
+plot(pD.temp)
+v_line(tROI)
+
+% Bin the data for each of the temp epochs
+PD = [];
+for t = 1:4 % hold, cooling, warming, hold
+    for i = 1:3 % params other than temp
+        PD(t,1:num.trials,i) = sum(pD.(params{i})(tROI(t,1):tROI(t,2),:),'omitnan')./(tROI(t,2)-tROI(t,1));
+    end
+end
+
+% FIGURE: visualize courtship measures for each of the trials
+r = 1;
+c = 3;
+sz = 30;
+kolor = {'grey', 'dodgerblue', 'red', 'grey'};
+
+fig = getfig('', 1);
+    for i = 1:c
+        subplot(r,c,i); hold on
+        for t = 1:4
+            x = t*ones(1,num.trials);
+            y = PD(t,:,i);
+            scatter(x,y,sz, Color(kolor{t}),'filled','XJitter','density')
+            y_avg = mean(y,'omitnan');
+            plot([t-0.3,t+0.3],[y_avg, y_avg],'color', Color(kolor{t}),'linewidth', 2)
+        end
+        title(params{i})
+    end
+    formatFig(fig, blkbgd,[r,c]);
+    for i = 1:c
+        subplot(r,c,i); hold on
+        set(gca, 'xcolor', 'none')
+    end
+
+gNames = [ones(num.trials,1),2*ones(num.trials,1),3*ones(num.trials,1),4*ones(num.trials,1)];
+% STATS:
+stats = [];
+for i = 1:c
+    inputData = squeeze(PD(:,:,i)');
+    [~,~,stats(i).s] = anova1(inputData);
+    alpha = 0.05; %significance level
+    [stats(i).c,~,~,~] = multcompare(stats(i).s,alpha,'off');
+end
+
+% so far not 
 
 
 
