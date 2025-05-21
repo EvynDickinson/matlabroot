@@ -63,10 +63,11 @@ for trial = 1:length(fileIdx)
             pix2mm = conversion(con_type).pix2mm;
             radii = conversion(con_type).circle10 * pix2mm;
             result = runBatch_step1_updates(filePath, plate,pix2mm,con_type,radii);
-            
-            % update excel file:
-            isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
-            writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
+            if result
+                % update excel file:
+                isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
+                writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
+            end
         elseif exist(filePath,'file')==2
             %  update the written text in the excel file to show it's been processed
             % update excel file:
