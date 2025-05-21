@@ -1,0 +1,81 @@
+
+% Load a batch of trials that have been processed and reprocess the spatial data 
+% to include the updated distance metrics 
+
+
+%% 
+% 1)  load the data
+
+% 2) pull the appropriate conversion type
+
+% 3) update :
+% -- pix2mm value
+% -- radii
+% -- arenaData.dist2well
+% -- arenaData.dist2well_err
+% -- arenaData.occ_N
+% -- arenaData.occ_P
+
+% 4) Add:
+% -- arenaData.con_type
+% -- arenaData.pix2mm
+% -- arenaData.plate
+
+% 5) resave the data with new name: 
+
+%% Select number of trials to run: 
+clear 
+clc
+baseFolder = getDataPath(2,0); % select raw data from a user defined location
+[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
+loc1 = cellfun(@isnan,excelfile(2:end,Excel.uStep1)); % not yet reprocessed step 1
+loc2 = cellfun(@ischar,excelfile(2:end,Excel.tracked));
+
+loc = loc1 & loc2;
+rownums = find(loc)+1;
+if isempty(rownums)
+    warndlg('No available experiments') 
+    return
+end
+
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID]); 
+FileNames = join(eligible_files);
+fileIdx = listdlg('ListString', FileNames,'ListSize',[250,450]);   
+if isempty(fileIdx) % abort if there are no files selected (e.g. cancel button or esc pressed)
+    return
+end 
+
+% for each trial selected...
+for trial = 1:length(fileIdx)
+        % has data for this one already been processed?
+        folder = eligible_files{fileIdx(trial),1};
+        expName = eligible_files{fileIdx(trial),3};
+        arena = eligible_files{fileIdx(trial),2};
+
+        XLrow = find(strcmp(excelfile(:,Excel.date),folder) & ...
+                              strcmp(excelfile(:,Excel.expID),expName) & ...
+                              strcmp(excelfile(:,Excel.arena),arena));
+
+        filePath = [baseFolder folder '/analysis/' excelfile{XLrow,Excel.expID} ' preformed data v2.mat'];
+        if ~exist(filePath,'file') % if this hasn't been run yet ...
+            plate = excelfile{XLrow,Excel.plate};
+            [conversion, con_type] = getConversion(folder, plate, 1); 
+            pix2mm = conversion(con_type).pix2mm;
+            radii = conversion(con_type).circle10 * pix2mm;
+            result = runBatch_step1_updates(filePath, plate,pix2mm,con_type,radii);
+            
+            % update excel file:
+            isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
+            writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
+        elseif exist(filePath,'file')==2
+            %  update the written text in the excel file to show it's been processed
+            % update excel file:
+            isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
+            writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
+        end
+    disp([num2str(trial) ' / ' num2str(length(fileIdx))])
+end
+
+
+
+

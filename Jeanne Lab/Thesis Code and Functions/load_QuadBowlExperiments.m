@@ -56,6 +56,11 @@ Excel.plate = find(strcmpi('Plate', Excel.headers)==1);
 Excel.experimenter = find(strcmpi('Experimenter', Excel.headers)==1);
 Excel.daynight = find(strcmpi('Incubator', Excel.headers)==1); 
 Excel.zeitgebertime = find(strcmpi('Zeitgeber Time', Excel.headers)==1);
+
+% temporary columns
+Excel.uStep1 = find(strcmpi('uStep1', Excel.headers)==1); % updates for step 1
+Excel.uStep2 = find(strcmpi('uStep2', Excel.headers)==1); % updates for step 2
+
 end
 
 

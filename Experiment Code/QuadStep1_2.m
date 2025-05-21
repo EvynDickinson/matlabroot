@@ -34,6 +34,7 @@ switch questdlg('Use Excel sheet to select experiment?')
         %get base folder pathway
         baseFolder = getDataPath(2,0);
         folder = selectFolder(baseFolder);
+        folder = folder{:};
         % [baseFolder, folder] = getCloudPath(2);  %old version
 %         % Select the complete experiments to process
         list_dirs = dir([baseFolder folder, '/*dataMat.mat']); %only matlab files
@@ -322,7 +323,7 @@ for arena = 1:4
     % Pull variables:
     X = T.X;
     Y = T.Y;
-    centre = arenaData(arena).centre;
+    centre = arenaData(arena).centre; % arena center for each of the four arenas
     c1 = centre(1);
     c2 = centre(2);
     
@@ -330,9 +331,9 @@ for arena = 1:4
     loc = sqrt((X-c1).^2 + (Y-c2).^2)<=r; % tracked points within circle
     X(~loc) = nan;
     Y(~loc) = nan;
-    flyNum = sum(loc,2); % how many points tracked
+    flyNum = sum(loc,2); % how many points are found within that arena = number of flies
 
-    % Save into data structure: TODO - this does nothing?? 
+    % Save into data structure: 
     data(vid).x_loc = X;
     data(vid).y_loc = Y;
 
@@ -372,7 +373,7 @@ for arena = 1:4
     
 end
 
-% save the sata to appropriate structures:
+% save the data to appropriate structures:
 try 
     T.flyCount = flyCount;
     T.flyCount_A = flyCount_A;
@@ -484,7 +485,7 @@ for arena = 1:4
             % Add title with temperature
             title([strrep(expName,'_',' ') ' ' folder ' | Temperature: ' num2str(T.temperature(frame))],...
                 'color', 'w')
-        export_fig(fig, save_loc, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+        export_fig(fig, save_loc, '-pdf', '-nocrop', '-r100' , '-painters', '-rgb','-append');
         close(fig)
     end
 end
@@ -496,7 +497,7 @@ sb(1).idx = 4; %A
 sb(2).idx = 1; %B
 sb(3).idx = 5; %C
 sb(4).idx = 2; %D
-sb(5).idx = [3,6];
+sb(5).idx = [3,6]; % grouped fly count histogram
 
 fig = figure; set(fig, 'pos', [99 200 895 635])
     for arena = 1:4
@@ -546,8 +547,21 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 clearvars('-except',initial_vars{:})
 
 %% Find number of flies within each well sphere & fly distance to wells
-pix2mm = 12.8; %conversion from pixels to mm for these videos
-radii = 165; %well surround regions
+% THIS SECTION WOULD NEED TO BE RERUN FOR ALL TRIALS
+
+% V2_UPDATE (5.21.25)
+% find the plate for this trial: 
+plate = excelfile{XLrow(1),Excel.plate};
+[conversion, con_type] = getConversion(folder, plate, 1); 
+for arena = 1:4 
+    arenaData(arena).plate = plate;
+    arenaData(arena).con_type = con_type;
+    arenaData(arena).pix2mm = conversion(con_type).pix2mm;
+end
+
+pix2mm = conversion(con_type).pix2mm;
+radii = conversion(con_type).circle10 * pix2mm;
+% radii = 165; % PREVIOUS VERSION
 for arena = 1:4
     % Pull fly coordinate position data for this arena 
     X = T.(['x' arenaIdx{arena}]);
@@ -567,7 +581,7 @@ for arena = 1:4
         
         % Find points within arena:
         loc = dist2well<=radii; % tracked points within circle
-        N = sum(loc,2); % how many points tracked
+        N = sum(loc,2); % how many points tracked within that circle
         
         % store data
         arenaData(arena).dist2well(:,well) = mean(dist2well./pix2mm,2,'omitnan');
@@ -659,6 +673,12 @@ clearvars('-except',initial_vars{:})
 save([analysisDir expName ' preformed data'],'-v7.3')
 disp('Formatted data saved')
 disp('Done')
+
+
+
+
+
+
 
 
 %% 
