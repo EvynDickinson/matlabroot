@@ -10,7 +10,7 @@ function [conversion, con_type] = getConversion(exp_date, plate, exp_type)
 % pull the numbers and date standards for the experimental plates
 % and their sizes etc 
 
-date_switch = datetime('11.10.2023', 'InputFormat', 'MM.dd.yyyy');
+date_switch = datetime('10.20.2023', 'InputFormat', 'MM.dd.yyyy');
 
 i = 1; 
 conversion(i).name = 'Cedar st plate 1';
