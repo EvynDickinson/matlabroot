@@ -672,7 +672,7 @@ for arena = 1:nArenas
     AD = addvars(AD,arenaData(arena).occ_N,'NewVariableNames','occ_N');
     AD = addvars(AD,arenaData(arena).occupancy.eccentricity,'NewVariableNames','eccentricity');
     AD = addvars(AD,[arenaData(arena).occupancy.movement;nan],'NewVariableNames','movement');
-    AD = addvars(AD,[arenaData(arena).occupancy.IFD',arenaData(arena).occupancy.IFD_err'],...
+    AD = addvars(AD,[arenaData(arena).occupancy.IFD,arenaData(arena).occupancy.IFD_err],...
         'NewVariableNames','IFD');
     AD = addvars(AD,arenaData(arena).occupancy.dist2wells,'NewVariableNames','dist2wells');  
     if arenaData(arena).foodwell>0

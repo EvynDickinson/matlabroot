@@ -13,7 +13,7 @@ facility = 'college';
 loc = cellfun(@isnan,excelfile(2:end,Excel.uStep1)); % REVERT BACK TO 'step1'
 loc = ~loc;
 rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.uStep2]);
 loc1 = cellfun(@isnan,eligible_files(:,4));
 c = cellfun(@string,eligible_files);
 c(loc1,4) = ' ';
@@ -27,7 +27,7 @@ end
 List.date = eligible_files(fileIdx,1);
 List.expID = eligible_files(fileIdx,3); 
 List.arena = eligible_files(fileIdx,2); 
-finishedFiles = []; 
+% finishedFiles = []; 
 
 % Select data location: 
 disp('Select folder for the data processed in Step 1')
@@ -38,7 +38,7 @@ disp('Select single trial data location:')
 outputFolder = getDataPath(1,0,'Select the SAVE TO trial location'); 
  
 % ===============================================================================
-for ii = 2:length(fileIdx)
+for ii = 1:length(fileIdx)
     tic
     trial_ID = [List.date{ii} '_' List.expID{ii} '_' List.arena{ii}];
 
@@ -46,15 +46,28 @@ for ii = 2:length(fileIdx)
     analysisDir = [baseFolder List.date{ii} '/Analysis/'];
     inputPath = [analysisDir List.expID{ii} ' preformed data v2.mat']; 
     
-    if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
-        results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder,analysisDir); % Run the basic figures
-        results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder, analysisDir); % Run the speed figures
+    % if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
+    
+    % Run the basic figures
+    curr_file = [outputFolder trial_ID '/' List.expID{ii} List.arena{ii} ' timecourse data v2.mat'];
+    if ~(exist(curr_file,'file')==2)% quick check that the file doesn't already exist: 
+        results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder,analysisDir); 
+    else 
+        results = 'Saved Data';
     end
+    % Run the speed figures
+    curr_file = [outputFolder trial_ID '/' List.expID{ii} ' speed data v2.mat'];
+    if ~(exist(curr_file,'file')==2) % quick check for speed file
+        results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder, analysisDir); 
+        else 
+        results2 = 'Saved Data';
+    end
+    % end
 
     % Process sleep data: (this runs for each trial separately)
     results3 = runQuadStep2_2_sleep([outputFolder trial_ID '/'], List.arena{ii}, List.expID{ii});
 
-    finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
+    % finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
     XLrow = rownums(fileIdx(ii));
     if excelWrite == true
         if strcmpi(results, 'Saved Data')
@@ -63,14 +76,15 @@ for ii = 2:length(fileIdx)
             writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.uStep2) num2str(XLrow)]); % REVERT BACK TO 'processed'
         end
     end
-    
-    % Calculate and write circadian start time value for experiments
-    expStart = excelfile{XLrow,Excel.starttime};
-    incubator = excelfile{XLrow,Excel.daynight}; %day or night incubator
-    time_string = getCircadianTime(expStart, incubator, List.date{ii});
-    % write zeitgeber time into the excel sheet
-    isExcelFileOpen(XL);
-    writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
+
+    % % Bring this back after the current batch processing 5.22.25
+    % % Calculate and write circadian start time value for experiments
+    % expStart = excelfile{XLrow,Excel.starttime};
+    % incubator = excelfile{XLrow,Excel.daynight}; %day or night incubator
+    % time_string = getCircadianTime(expStart, incubator, List.date{ii});
+    % % write zeitgeber time into the excel sheet
+    % isExcelFileOpen(XL);
+    % writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
 
     toc
     disp(['Finished ' FileNames(fileIdx(ii))])         

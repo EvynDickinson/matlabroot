@@ -19,6 +19,7 @@ paths.fixedDriveLocations  = {'ACADIA','EVYNPC'}; % computer names that have per
 paths.acadiaServerPath = 'S:\Evyn\DATA\';
 paths.togiakServerPath = 'S:\Evyn\DATA\';
 paths.EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\DATA\';
+% paths.EvynPCServerPath = 'S:\Evyn\DATA\';
 paths.EvynMacServerPath = '/Volumes/shared/Evyn/DATA/';
 paths.denaliServerPath = 'Z:\Evyn\DATA\';
 paths.acadiaLocalPath = 'D:\Evyn Lab Data\';
