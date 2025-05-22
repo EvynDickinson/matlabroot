@@ -47,33 +47,39 @@ end
 
 % for each trial selected...
 for trial = 1:length(fileIdx)
-        % has data for this one already been processed?
-        folder = eligible_files{fileIdx(trial),1};
-        expName = eligible_files{fileIdx(trial),3};
-        arena = eligible_files{fileIdx(trial),2};
+    % has data for this one already been processed?
+    folder = eligible_files{fileIdx(trial),1};
+    expName = eligible_files{fileIdx(trial),3};
+    arena = eligible_files{fileIdx(trial),2};
 
-        XLrow = find(strcmp(excelfile(:,Excel.date),folder) & ...
-                              strcmp(excelfile(:,Excel.expID),expName) & ...
-                              strcmp(excelfile(:,Excel.arena),arena));
+    XLrow = find(strcmp(excelfile(:,Excel.date),folder) & ...
+                          strcmp(excelfile(:,Excel.expID),expName) & ...
+                          strcmp(excelfile(:,Excel.arena),arena));
 
-        filePath = [baseFolder folder '/analysis/' excelfile{XLrow,Excel.expID} ' preformed data v2.mat'];
-        if ~exist(filePath,'file') % if this hasn't been run yet ...
-            plate = excelfile{XLrow,Excel.plate};
-            [conversion, con_type] = getConversion(folder, plate, 1); 
-            pix2mm = conversion(con_type).pix2mm;
-            radii = conversion(con_type).circle10 * pix2mm;
-            result = runBatch_step1_updates(filePath, plate,pix2mm,con_type,radii);
-            if result
-                % update excel file:
-                isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
-                writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
-            end
-        elseif exist(filePath,'file')==2
-            %  update the written text in the excel file to show it's been processed
+    filePath = [baseFolder folder '/analysis/' excelfile{XLrow,Excel.expID} ' preformed data v2.mat'];
+    % % Delete the misdone v2 file ... but could use this to delete the original version in the end as well
+    % if isfile(filePath)
+    %     delete(filePath);
+    %     disp('deleted')
+    % end
+
+    if ~exist(filePath,'file') % if this hasn't been run yet ...
+        plate = excelfile{XLrow,Excel.plate};
+        [conversion, con_type] = getConversion(folder, plate, 1); 
+        pix2mm = conversion(con_type).pix2mm;
+        radii = conversion(con_type).circle10 * pix2mm;
+        result = runBatch_step1_updates(filePath, plate,pix2mm,con_type,radii);
+        if result
             % update excel file:
             isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
             writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
         end
+    elseif exist(filePath,'file')==2
+        %  update the written text in the excel file to show it's been processed
+        % update excel file:
+        isExcelFileOpen(xlFile); % check that file details can be written to spreadsheet
+        writecell({'Y'},xlFile,'Sheet','Exp List','Range', [Alphabet(Excel.uStep1) num2str(XLrow)]);
+    end
     disp([num2str(trial) ' / ' num2str(length(fileIdx))])
 end
 
