@@ -41,8 +41,8 @@ outputFolder = getDataPath(1,0,'Select the SAVE TO trial location');
 for ii = 1:length(fileIdx)
     trial_ID = [List.date{ii} '_' List.expID{ii} '_' List.arena{ii}];
 
-    % Proccess basic and speed data  
-    inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data.mat']; 
+    % Proccess basic and speed data
+    inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data v2.mat']; 
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
         results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder); % Run the basic figures
         results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder); % Run the speed figures

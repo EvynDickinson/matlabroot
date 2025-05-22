@@ -1,7 +1,7 @@
 
 
 
-function result = runBatch_step1_updates(filePath, plate,pix2mm,con_type,radii)
+function result = runBatch_step1_updates(filePath, plate,new_pix2mm,con_type,radii)
         tic 
         try load([filePath(1:end-7) '.mat'])
         catch 
@@ -9,6 +9,7 @@ function result = runBatch_step1_updates(filePath, plate,pix2mm,con_type,radii)
             return
         end
         disp(['Loaded ' folder ' ' expName])
+        pix2mm = new_pix2mm; % overwrite the size variable 
 
         % V2_UPDATE (5.21.25)
         for arena = 1:4 

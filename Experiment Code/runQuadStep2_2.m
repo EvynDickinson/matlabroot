@@ -5,7 +5,6 @@ function results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputPath)
 %
 % ES Dickinson
 
-
 %% LOAD DATA
 % Load in the selected data file: 
 warning off
