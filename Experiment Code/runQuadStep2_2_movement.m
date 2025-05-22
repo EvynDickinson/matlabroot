@@ -1,5 +1,5 @@
 
-function results = runQuadStep2_2_movement(inputPath, autoSave, essentialfigs,outputPath)
+function results = runQuadStep2_2_movement(inputPath, autoSave, essentialfigs,outputPath,new_analysisDir)
 
 % inputPath = 'G:\My Drive\Jeanne Lab\DATA\06.28.2022\analysis\half processed data.mat';
 % essentialfigs = true; % only run the essential figures automatically
@@ -10,14 +10,15 @@ load(inputPath);
 
 disp(['Starting figures for ' folder ' ' expName])
 
-% pull the current base data pathway for the raw data
-components = strsplit(inputPath,{'\','/'}); % split the pathway into the component parts
-baseFolder = [];
-for i = 1:length(components)-1
-    baseFolder = [baseFolder components{i} '/'];
-end
-clear components i
-analysisDir = [baseFolder]; %just for preformed data (halfway point save)
+% % pull the current base data pathway for the raw data
+% components = strsplit(inputPath,{'\','/'}); % split the pathway into the component parts
+% baseFolder = [];
+% for i = 1:length(components)-1
+%     baseFolder = [baseFolder components{i} '/'];
+% end
+% clear components i
+% analysisDir = baseFolder; %just for preformed data (halfway point save)
+analysisDir = new_analysisDir; %just for preformed data (halfway point save)
 nArenas = 4;
 initial_vars{end+1} = 'nArenas';
 initial_vars{end+1} = 'figDir';
@@ -75,18 +76,22 @@ for vid = 1:nvids
         trackROI(vid,arena).tracks = [];
     end
     
+    allX = squeeze(data(vid).tracks(:,1,1,:));
+    allY = squeeze(data(vid).tracks(:,1,2,:));
+
     for fly = flynums    
-        plotData = squeeze(data(vid).tracks(:,1,:,fly));    
         % APPLY 4 CONDITIONS FOR POINT BEING CONTINOUS WITH PREVIOUS FRAME
+        nanLoc = isnan(allX(:,fly));
         % 0) tracked point
-        nanLoc = isnan(plotData(:,1));
         % 1) arena identity?
-        X = data(vid).tracks(:,1,1,fly);
-        Y = data(vid).tracks(:,1,2,fly);
+        X = allX(:,fly);
+        Y = allY(:,fly);
         % Find points within arena:
         arenaLoc = false(nframes,4);
         for arena = 1:4
-            arenaLoc(:,arena) = sqrt((X-arenaData(arena).centre(1)).^2 + (Y-arenaData(arena).centre(2)).^2)<=r; 
+            dX = (X-arenaData(arena).centre(1)); %vectorize for faster processing
+            dY = (Y-arenaData(arena).centre(2));
+            arenaLoc(:,arena) = hypot(dX,dY) <= r;
         end
         % 2) previous frame is a tracked point
         lastPoint = [true; ~nanLoc(1:end-1)];
@@ -151,7 +156,6 @@ for vid = 1:nvids
         trackROI(vid,arena).ntrackedlines = ntrackedlines;
     end
         
-
     % Make a speed array
     for arena = 1:4
         X = squeeze(trackROI(vid,arena).tracks(:,1,:));
@@ -163,7 +167,7 @@ for vid = 1:nvids
         % calculate speed: 
         dX = diff(X,1,1);
         dY = diff(Y,1,1);
-        speed = sqrt(dX.^2 + dY.^2);
+        speed = hypot(dX,dY);
         speed = (speed./pix2mm)*FPS;
         trackROI(vid,arena).speed = speed;
         
@@ -280,31 +284,33 @@ clearvars('-except',initial_vars{:})
 
 
 %% FIGURE: speed summary figure
-sSpan = 180;
-row = 5;
-col = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:5;
-
-fig = figure; set(fig, 'pos', [1941 145 998 601])
-    subplot(row, col, sb(1).idx)
-    plot(occupancy.time, occupancy.temp,'color', 'w', 'LineWidth',1)
-    ylabel('\circC')
-    subplot(row, col, sb(2).idx)
-    hold on
-    for arena = 1:4
-       try
-           plot(occupancy.time, smooth(speed(arena).avg(1:end-1),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
-       catch
-           plot(occupancy.time, smooth(speed(arena).avg,sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
-       end
-    end
-    xlabel('time (min)')
-    ylabel('speed (mm/s)')
-formatFig(fig, true,[row,col],sb);
-
-save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave,true,'-r80');
-clearvars('-except',initial_vars{:})
+if ~essentialfigs % NEW 5.22.25
+    sSpan = 180;
+    row = 5;
+    col = 1;
+    sb(1).idx = 1;
+    sb(2).idx = 2:5;
+    
+    fig = figure; set(fig, 'pos', [1941 145 998 601])
+        subplot(row, col, sb(1).idx)
+        plot(occupancy.time, occupancy.temp,'color', 'w', 'LineWidth',1)
+        ylabel('\circC')
+        subplot(row, col, sb(2).idx)
+        hold on
+        for arena = 1:4
+           try
+               plot(occupancy.time, smooth(speed(arena).avg(1:end-1),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+           catch
+               plot(occupancy.time, smooth(speed(arena).avg,sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+           end
+        end
+        xlabel('time (min)')
+        ylabel('speed (mm/s)')
+    formatFig(fig, true,[row,col],sb);
+    
+    save_figure(fig, [analysisDir expName ' avg speed over time all arenas'], '-png', autoSave,true,'-r80');
+    clearvars('-except',initial_vars{:})
+end
 
 %% FIGURE: speed histogram
 if essentialfigs == false
@@ -388,14 +394,14 @@ end
 %% SAVE: data stored in each subfolder for arenas
 
 % Save group data into combo folder: 
-save([baseFolder expName ' speed data.mat'],'speed', 'trackROI');
+save([analysisDir expName ' speed data v2.mat'],'speed', 'trackROI');
 
 % Save into each group folder:
 SPEED = speed;
 for arena = 1:nArenas
     speed = SPEED(arena);
     speedTracks = trackROI(:,arena);
-    save([arenaData(arena).figDir expName ' speed data.mat'],'speed', 'speedTracks');
+    save([arenaData(arena).figDir expName ' speed data v2.mat'],'speed', 'speedTracks');
 end
 
 results = 'Saved Data';

@@ -10,7 +10,7 @@ facility = 'college';
 
 % load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
-loc = cellfun(@isnan,excelfile(2:end,Excel.step1));
+loc = cellfun(@isnan,excelfile(2:end,Excel.uStep1)); % REVERT BACK TO 'step1'
 loc = ~loc;
 rownums = find(loc)+1; 
 eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
@@ -38,17 +38,20 @@ disp('Select single trial data location:')
 outputFolder = getDataPath(1,0,'Select the SAVE TO trial location'); 
  
 % ===============================================================================
-for ii = 1:length(fileIdx)
+for ii = 2:length(fileIdx)
+    tic
     trial_ID = [List.date{ii} '_' List.expID{ii} '_' List.arena{ii}];
 
     % Proccess basic and speed data
-    inputPath = [baseFolder List.date{ii} '/Analysis/' List.expID{ii} ' preformed data v2.mat']; 
+    analysisDir = [baseFolder List.date{ii} '/Analysis/'];
+    inputPath = [analysisDir List.expID{ii} ' preformed data v2.mat']; 
+    
     if ~any(strcmp(finishedFiles,[List.date{ii} ' ' List.expID{ii}]))
-        results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder); % Run the basic figures
-        results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder); % Run the speed figures
+        results = runQuadStep2_2(inputPath,autoSave,essentialfigs,outputFolder,analysisDir); % Run the basic figures
+        results2 = runQuadStep2_2_movement(inputPath,autoSave,essentialfigs,outputFolder, analysisDir); % Run the speed figures
     end
 
-    % Process sleep data:
+    % Process sleep data: (this runs for each trial separately)
     results3 = runQuadStep2_2_sleep([outputFolder trial_ID '/'], List.arena{ii}, List.expID{ii});
 
     finishedFiles{ii} = [List.date{ii} ' ' List.expID{ii}];
@@ -57,7 +60,7 @@ for ii = 1:length(fileIdx)
         if strcmpi(results, 'Saved Data')
             % write processed 'Y' into the excel sheet
             isExcelFileOpen(XL);
-            writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]);
+            writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.uStep2) num2str(XLrow)]); % REVERT BACK TO 'processed'
         end
     end
     
@@ -69,8 +72,8 @@ for ii = 1:length(fileIdx)
     isExcelFileOpen(XL);
     writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
 
-    % 
-disp(['Finished ' FileNames(fileIdx(ii))])         
+    toc
+    disp(['Finished ' FileNames(fileIdx(ii))])         
 end
 % ===============================================================================
 

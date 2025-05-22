@@ -17,7 +17,7 @@ for i = 1:length(components)-1
     baseFolder = [baseFolder components{i} '/'];
 end
 clear components i
-analysisDir = [baseFolder folder '/analysis/']; %just for preformed data (halfway point save)
+analysisDir = baseFolder; %just for preformed data (halfway point save)
 nArenas = 4;
 initial_vars{end+1} = 'nArenas';
 initial_vars{end+1} = 'figDir';
@@ -34,6 +34,131 @@ end
 
 initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace','FPS','essentialfigs', 'autoSave'];
 FPS = expData.parameters.FPS;
+
+
+%%  Testing segmentation
+clearvars('-except',initial_vars{:})
+close all
+
+trackROI = struct;
+
+vars = {'speed','speedAvg','speedErr'};
+nvars = numel(vars);
+
+parfor vid = 1:nvids
+    tempTrackROI = struct;
+
+    if isempty(data(vid).tracks)
+        vidLength = length(data(vid).tempLog);
+        MT = nan(vidLength,1);
+        for arena = 1:4
+            tempTrackROI(arena).start = [];
+            tempTrackROI(arena).stop = [];
+            tempTrackROI(arena).tracks = [];
+            tempTrackROI(arena).ntrackedlines = zeros(vidLength,1);
+            for i = 1:nvars
+                tempTrackROI(arena).(vars{i}) = MT;
+            end
+        end
+        trackROI(vid,:) = tempTrackROI;
+        continue
+    end
+
+    ntracks = size(data(vid).tracks,4);
+    flynums = 1:ntracks;
+    nframes = size(data(vid).tempLog,2);
+
+    for arena = 1:4
+        tempTrackROI(arena).tracks = [];
+    end
+
+    allX = squeeze(data(vid).tracks(:,1,1,:));
+    allY = squeeze(data(vid).tracks(:,1,2,:));
+
+    for fly = flynums
+        nanLoc = isnan(allX(:,fly));
+        X = allX(:,fly);
+        Y = allY(:,fly);
+
+        arenaLoc = false(nframes,4);
+        for arena = 1:4
+            dX = X - arenaData(arena).centre(1);
+            dY = Y - arenaData(arena).centre(2);
+            arenaLoc(:,arena) = hypot(dX,dY) <= r;
+        end
+
+        lastPoint = [true; ~nanLoc(1:end-1)];
+        secondPoint = [true; true; ~nanLoc(1:end-2)];
+
+        lastArena = false(nframes,4);
+        for arena = 1:4
+            lastArena(:,arena) = [true; arenaLoc(1:end-1,arena)];
+        end
+
+        for arena = 1:4
+            validLoc = ~nanLoc & arenaLoc(:,arena) & lastPoint & lastArena(:,arena) & secondPoint;
+            if validLoc(1) && ~validLoc(2)
+                validLoc(1) = false;
+            end
+
+            startIdx = find(diff(validLoc)==1);
+            stopIdx = find(diff(validLoc)==-1);
+            if validLoc(1)
+                startIdx = [1; startIdx];
+            end
+            if validLoc(end)
+                stopIdx = [stopIdx; nframes];
+            end
+
+            % only proceed with valid matched segments
+            validSegs = (length(startIdx) == length(stopIdx)) && all(startIdx < stopIdx);
+
+            if validSegs
+                for tt = 1:length(startIdx)
+                    MT = nan(nframes,2);
+                    roi = startIdx(tt):stopIdx(tt);
+                    MT(roi,:) = [X(roi), Y(roi)];
+                    tempTrackROI(arena).tracks(:,:,end+1) = MT;
+                end
+            end
+
+            tempTrackROI(arena).start = startIdx;
+            tempTrackROI(arena).stop = stopIdx;
+        end
+    end
+
+    for arena = 1:4
+        ntrackedlines = sum(~isnan(squeeze(tempTrackROI(arena).tracks(:,1,:))),2);
+        tempTrackROI(arena).ntrackedlines = ntrackedlines;
+
+        X = squeeze(tempTrackROI(arena).tracks(:,1,:));
+        Y = squeeze(tempTrackROI(arena).tracks(:,2,:));
+
+        loc = sum(X,1,'omitnan') == 0;
+        X(:,loc) = [];
+        Y(:,loc) = [];
+
+        dX = diff(X,1,1);
+        dY = diff(Y,1,1);
+        speed = hypot(dX,dY);
+        speed = (speed ./ pix2mm) * FPS;
+        tempTrackROI(arena).speed = speed;
+
+        speedAvg = mean(speed,2,'omitnan');
+        speedErr = std(speed,0,2,'omitnan');
+
+        tempTrackROI(arena).speedAvg = [speedAvg; nan];
+        tempTrackROI(arena).speedErr = [speedErr; nan];
+    end
+
+    trackROI(vid,:) = tempTrackROI;
+    
+end
+
+initial_vars{end+1} = 'trackROI';
+clearvars('-except',initial_vars{:})
+close all
+
 
 %% ANALYSIS: Segment data into functional tracks 
 clearvars('-except',initial_vars{:})
@@ -75,18 +200,22 @@ for vid = 1:nvids
         trackROI(vid,arena).tracks = [];
     end
     
+    allX = squeeze(data(vid).tracks(:,1,1,:));
+    allY = squeeze(data(vid).tracks(:,1,2,:));
+
     for fly = flynums    
-        plotData = squeeze(data(vid).tracks(:,1,:,fly));    
         % APPLY 4 CONDITIONS FOR POINT BEING CONTINOUS WITH PREVIOUS FRAME
+        nanLoc = isnan(allX(:,fly));
         % 0) tracked point
-        nanLoc = isnan(plotData(:,1));
         % 1) arena identity?
-        X = data(vid).tracks(:,1,1,fly);
-        Y = data(vid).tracks(:,1,2,fly);
+        X = allX(:,fly);
+        Y = allY(:,fly);
         % Find points within arena:
         arenaLoc = false(nframes,4);
         for arena = 1:4
-            arenaLoc(:,arena) = sqrt((X-arenaData(arena).centre(1)).^2 + (Y-arenaData(arena).centre(2)).^2)<=r; 
+            dX = (X-arenaData(arena).centre(1)); %vectorize for faster processing
+            dY = (Y-arenaData(arena).centre(2));
+            arenaLoc(:,arena) = hypot(dX,dY) <= r;
         end
         % 2) previous frame is a tracked point
         lastPoint = [true; ~nanLoc(1:end-1)];
@@ -151,7 +280,6 @@ for vid = 1:nvids
         trackROI(vid,arena).ntrackedlines = ntrackedlines;
     end
         
-
     % Make a speed array
     for arena = 1:4
         X = squeeze(trackROI(vid,arena).tracks(:,1,:));
@@ -388,7 +516,7 @@ end
 %% SAVE: data stored in each subfolder for arenas
 
 % Save group data into combo folder: 
-save([baseFolder folder '/analysis/' expName ' speed data.mat'],'speed', 'trackROI');
+save([baseFolder expName ' speed data.mat'],'speed', 'trackROI');
 
 % Save into each group folder:
 SPEED = speed;

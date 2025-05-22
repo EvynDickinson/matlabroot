@@ -2,18 +2,17 @@
 function results = runQuadStep2_2_sleep(trialPath,arena, expName)
 
 % check if data already exists before remaking it: 
-sleep_file = [trialPath expName ' sleeping data.mat'];  
+sleep_file = [trialPath expName ' sleeping data v2.mat'];  
 if isfile(sleep_file)
-    disp(['Skipping ' trialPath expName ' sleep data exists'])
+    disp(['Skipping ' trialPath expName ' sleep data v2 exists'])
     results = true;
     return
 end
 
 % load data processed from quadstep2_2
-load([trialPath expName arena ' timecourse data.mat'])
+load([trialPath expName arena ' timecourse data v2.mat'])
 
 % clearvars('-except',initial_vars{:})
-pix2mm = 12.8; %conversion from pixels to mm for these videos
 nbins = 50;
 
 % Create sleep data for unprocessed files (trial by trial)
@@ -30,9 +29,6 @@ sleepData = struct;
 %preallocate for speed and space
 trial_length = size(data.T,1);
 
-[N, frameCount] = deal(nan(nbins,nbins,trial_length));
-sleepingCount = zeros(trial_length,1);
-
 % Set axis limits for the selected arena
 x = data.centre(1);
 y = data.centre(2);
@@ -47,13 +43,30 @@ yedge = linspace(ylimit(1),ylimit(2),nbins+1);
 % pull the fly locations during the trial
 x_loc = data.x_loc;
 y_loc = data.y_loc;
-for frame = 1:trial_length
-    X = x_loc(frame,:); X(isnan(X)) = [];
-    Y = y_loc(frame,:); Y(isnan(Y)) = [];
-    N(:,:,frame) = histcounts2(X,Y,xedge,yedge);
-end
+
+% Testing faster method: 
+% Get all frame indices for each fly
+[frameIdx, flyIdx] = find(~isnan(x_loc));
+X = x_loc(sub2ind(size(x_loc), frameIdx, flyIdx));
+Y = y_loc(sub2ind(size(y_loc), frameIdx, flyIdx));
+
+% Bin each point
+[~,~,xBin] = histcounts(X, xedge);
+[~,~,yBin] = histcounts(Y, yedge);
+
+% Remove out-of-bound bins
+valid = xBin > 0 & yBin > 0;
+xBin = xBin(valid); 
+yBin = yBin(valid); 
+frameIdx = frameIdx(valid);
+
+% Use accumarray to build N
+binLinearIdx = sub2ind([nbins nbins trial_length], xBin, yBin, frameIdx);
+N = accumarray(binLinearIdx, 1, [nbins*nbins*trial_length 1]);
+N = reshape(N, [nbins, nbins, trial_length]);
 
 % find grid space that have continuous occupation for more than min_duration
+frameCount = (nan(nbins,nbins,trial_length));
 frameCount(:,:,1) = N(:,:,1);
 for frame = 2:trial_length
     currFrame = N(:,:,frame); % current frame locations
@@ -66,7 +79,6 @@ for frame = 2:trial_length
 end
 
 % ---- Vectorize the data (find the flies that are sleeping....) -----
-
 % create empty matrixes for the x and y positions of the sleeping flies
 sleeping = struct;
 [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data.nflies));
@@ -75,7 +87,6 @@ sleeping.sleepNum = zeros(trial_length,1);
 
 c1 = data.wellcenters(1,expData.parameters.foodLoc);
 c2 = data.wellcenters(2,expData.parameters.foodLoc);
-
 
 % assign data by frame
 for frame = 1:trial_length
@@ -97,7 +108,9 @@ for frame = 1:trial_length
         sleeping.X(frame,1:sleepNum) = x_position;
         sleeping.Y(frame,1:sleepNum) = y_position;
         % distance to food...
-        temp_dist = sqrt((x_position-c1).^2 + (y_position-c2).^2)./pix2mm;
+        dX = (x_position-c1);
+        dY = (y_position-c2);
+        temp_dist = hypot(dX,dY)./data.pix2mm;
         sleeping.all_distance(frame,1:sleepNum) = temp_dist;
         % average distance:
         sleeping.dist_avg(frame) = mean(temp_dist);
