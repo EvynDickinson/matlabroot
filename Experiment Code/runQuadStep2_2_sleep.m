@@ -80,6 +80,16 @@ end
 
 % ---- Vectorize the data (find the flies that are sleeping....) -----
 % create empty matrixes for the x and y positions of the sleeping flies
+
+% add a catch here if there is not data for the number of flies??
+if isnan(data.nflies) || data.nflies<=0
+    [excelfile, Excel, XL] = load_QuadBowlExperiments;
+    xlRow = find(strcmp(expName,excelfile(:,Excel.expID)) & ...
+        strcmp(expData.parameters.date,excelfile(:,Excel.date)) & ...
+        strcmp(arena,excelfile(:,Excel.arena)));
+    data.nflies = excelfile{xlRow,Excel.numflies};
+end
+
 sleeping = struct;
 [sleeping.X, sleeping.Y, sleeping.all_distance] = deal(nan(trial_length,data.nflies));
 sleeping.sleepNum = zeros(trial_length,1);
