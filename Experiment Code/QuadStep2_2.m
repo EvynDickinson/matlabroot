@@ -3,8 +3,7 @@
  
 %% -------- Find the files that haven't been analyized yet and run them -------------
 clear; close all; clc
-autoSave = true; 
-essentialfigs = true;   
+autoSave = true; essentialfigs = true;   
 excelWrite = true;
 facility = 'college';
 

@@ -23,7 +23,6 @@ sSpan = 5*fly(1).fps; %  5 second smoothing
 % save_figure(fig, [figDir 'test fly distance to food all trials'],fig_type)
 
 % Plot the average distance to food across the trials: 
-
 fig = getfig('',1); 
 subplot()
 hold on
