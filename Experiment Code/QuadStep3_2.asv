@@ -737,7 +737,7 @@ for trial = 1:ntrials
     TR.rateIdx = rateIdx;
     TR.rates = T_rates;
     TR.data = plotData;
-    TR.dataNames = {'temp', 'change in time', 'distance from food', 'rate of temp change', 'rate bin index'};
+    TR.dataNames = {''}
 
     % Temperature range and bin size formatting
     t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
@@ -1443,7 +1443,7 @@ if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
 clearvars('-except',vars{:})
 
 if questdlg('Save processed data?')
-    save([figDir ExpGroup ' post 3.2 data.mat'],'-v7.3')
+    save([figDir ExpGroup ' post 3.1 data.mat'],'-v7.3')
 end
 fprintf('Data saved\n')
 

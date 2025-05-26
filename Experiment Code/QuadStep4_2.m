@@ -129,7 +129,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             for i = 1:num.exp
 
                 % get field list for loading data:
-                dummy = load([structFolder expNames{i} '/' expNames{i} ' post 3.1 data.mat']);
+                dummy = load([structFolder expNames{i} '/' expNames{i} ' post 3.2 data.mat']);
                 
                 %field not present in dummy, so add blank
                 if i > 1
@@ -200,7 +200,7 @@ for i = 1:size(dataList, 2)
         end
     % Load or reload existing datasets
         if any([dataList(i).rebuild, dataList(i).extradata])
-            disp([exp_name ' needs to be rebuilt from Step 3.1'])
+            disp([exp_name ' needs to be rebuilt from Step 3.2'])
             switch questdlg(['"' exp_name ''' is not up-to-date in this structure. Continue anyway?'])
                 case 'No'
                         disp('Check for other rebuilds in the structure')
@@ -214,7 +214,7 @@ for i = 1:size(dataList, 2)
             disp(['Updating data for ' exp_name])
             UpdatedFlag = true;
             loc = find(strcmp(exp_name,{data(:).ExpGroup})); 
-            dummy = load([structFolder exp_name '/' exp_name ' post 3.1 data.mat']);
+            dummy = load([structFolder exp_name '/' exp_name ' post 3.2 data.mat']);
              
             % check for structure alignment and potential mis-matches:
              if ~isfield(dummy,'hold_exp') % 1/24/24 compatability for hold temperature experiments
@@ -377,6 +377,8 @@ for i = 1:num.exp
         loc3 = (strcmp(excelfile(:,Excel.expID),exp_str));
         loc = (loc1 & loc2 & loc3);
         data(i).plate(trial) = excelfile{loc, Excel.plate};
+        [~, con_type] = getConversion(date_str, data(i).plate(trial),1);
+        data(i).con_type(trial) = con_type;
     end
 end
 
@@ -922,15 +924,15 @@ for i = 1:num.exp
         end
       end
     end
-    grouped(i).position.trial(trial).x = x_data;
-    grouped(i).position.trial(trial).y = y_data;
+    grouped(i).position.trial(trial).x = x_data; % this is the full x data for each trial reoriented! 
+    grouped(i).position.trial(trial).y = y_data; % this is the full y data for each trial reoriented! 
   end
   
   % save trial data into broad structure
   grouped(i).position.loc = loc_mat;
   grouped(i).position.temp_rates = temp_rates;
-  grouped(i).position.temp_list = temp_list;
-  grouped(i).position.well_pos = wellXY;
+  grouped(i).position.temp_list = temp_list; %
+  grouped(i).position.well_pos = wellXY; %position of the wells in the newly oriented arena
 end
 
 %% ANALYSIS: calculate group occupancy
@@ -979,7 +981,7 @@ for exp = 1:num.exp
     grouped(exp).occ.all = all_occ;
     grouped(exp).occ.avg = mean(all_occ,2,'omitnan');
     grouped(exp).occ.std = std(all_occ,0,2,'omitnan');
-    grouped(exp).occ.warning = 'Do not use this data it is not adjusted for variable plate sizes';
+    grouped(exp).occ.warning = '10% ring : this has been adjusted for each plate size 5.25.25';
 end
 
 %% ANALYSIS: pull binned speed
@@ -1032,42 +1034,36 @@ end
 clearvars('-except',initial_vars{:})
 conversion = getConversion;  
 
-% Max Distance from Center of Arena 
-% PLATE 1: 
-R1 = 30; %mm for plate 1
-num.R1 = R1;
-innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
-dist_from_edge1 = (R1 - innerR1);
-maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
-% PLATE 2: 
-R2 = 25.6;%mm for plate 2
-num.R2 = R2;
-innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
-dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
-maxR2 = R2*sqrt(0.1); % radius of a circle occupying 10% of the arena
+% % Max Distance from Center of Arena 
+% % PLATE 1: 
+% R1 = 30; %mm for plate 1
+% num.R1 = R1;
+% innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
+% dist_from_edge1 = (R1 - innerR1);
+% maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
+% % PLATE 2: 
+% R2 = 25.6;%mm for plate 2
+% num.R2 = R2;
+% innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
+% dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
+% maxR2 = R2*sqrt(0.1); % radius of a circle occupying 10% of the arena
 
 % Find the percent of the flies that are in the outer ring
 for exp = 1:num.exp
     counts = []; ring_per = [];
     for trial = 1:num.trial(exp)
-        switch data(exp).plate(trial)
-            case 1 % plate one (old/OG plate) 
-                if datenum(data(exp).T.Date{trial}, 'mm.dd.yyyy') < conversion(1).cutoff
-                    conType = 1;
-                else conType = 2;
-                end
-            case 2 % plate two (new plate, smaller) 
-                conType = 3;
-        end
-        R = conversion(conType).R;
-        innerR = conversion(conType).circle75;
+        conType = data(exp).con_type(trial); % flag for the specif plate and experiment type
+        R = conversion(conType).R; %outer reaches of the arena 
+        innerR = conversion(conType).circle75; % inner limits of a 25% outer ring line
 
         x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
         y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
         centre = data(exp).data(trial).data.centre; %distance to center of arena 
-        D = sqrt(((x-centre(1)).^2 + (y-centre(2)).^2)); %distance from center of arena
-        D = D./conversion(conType).pix2mm;
-        loc = D<=R & D>=innerR; % find the locations that are between edge and inner R
+        dX = (x-centre(1)); % x-difference from center
+        dY = (y-centre(2)); % y-difference from center
+        D = hypot(dX,dY);  % distance from center of arena
+        D = D./conversion(conType).pix2mm; % in mm distance to center of the arena 
+        loc = D<=R & D>=innerR; % find the locations that are between edge (R) and inner R
         ringCount = sum(loc,2);
         counts = autoCat(counts, ringCount, false); %count #flies in the outer ring
         ring_per = autoCat(ring_per,(ringCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
@@ -1115,49 +1111,41 @@ end
 % Visual comparision of the fly positions within the arena for each trial
 skipstep = 100; lw = 0.5;
 for exp = 1:num.exp
-     r = floor(sqrt(num.trial(exp)));
+    r = floor(sqrt(num.trial(exp)));
     c = ceil(num.trial(exp)/r);
-    fig = getfig('',1); hold on
+    fig = getfig(grouped(exp).name,1); hold on
     for trial = num.trial(exp):-1:1 %1:num.trial(exp)
-        % subplot(r,c,trial); hold on
-        x = grouped(i).position.trial(trial).x;
-        y = grouped(i).position.trial(trial).y;
+        subplot(r,c,trial); hold on
+        x = grouped(exp).position.trial(trial).x;
+        y = grouped(exp).position.trial(trial).y;
         X = x(1:skipstep:end,:); X = X(:);
         Y = y(1:skipstep:end,:); Y = Y(:);
-        
-        switch data(exp).plate(trial)
-                case 1 % plate one (old/OG plate) 
-                    if datenum(data(exp).T.Date{trial}, 'mm.dd.yyyy') < conversion(1).cutoff
-                        conType = 1;
-                    else conType = 2;
-                    end
-                    kolor = Color('yellow');
-                    sz = 1;
-                case 2 % plate two (new plate, smaller) 
-                    conType = 3;
-                    kolor = Color('magenta');
-                    sz = 2;
+        conType = data(exp).con_type(trial);
+        switch conType
+            case {1,2} % old plate
+                kolor = Color('yellow');
+                sz = 1;
+            case 3 % new plate
+                kolor = Color('magenta');
+                sz = 2;
         end
-        R = conversion(conType).R;
-        innerR = conversion(conType).circle75;
-        maxR  = conversion(conType).circle10;
-
-       scatter(X,Y,sz,kolor,'filled'); % draw 'all' the fly positions (some skipped for size constraints)
-       scatter(0, 0, 20,Color('gold')) % draw food location: (this is centered and aligned data to the food well at (0,0)       
+        R = conversion(conType).R*conversion(conType).pix2mm; % outer limits of the arena radius for comparison
+        innerR = conversion(conType).circle75*conversion(conType).pix2mm;
+        scatter(X,Y,sz,kolor,'filled'); % draw 'all' the fly positions (some skipped for size constraints)
+        scatter(0, 0, 20,Color('gold')) % draw food location: (this is centered and aligned data to the food well at (0,0)       
+        cX = grouped(exp).position.well_pos.x(5,trial);
+        cY = grouped(exp).position.well_pos.y(5,trial);
+        axis square equal
+        viscircles([cX, cY],R,'Color','white','LineWidth',lw); % outer expanse of arena accessiblity 
+        viscircles([cX, cY],innerR,'Color','white','LineWidth',lw); % outer expanse of arena accessiblity 
+        formatFig(fig,blkbgd, [r,c]);
+        for i = 1:num.trial(exp)
+            subplot(r,c,i)
+            set(gca, 'xcolor', 'none', 'ycolor', 'none')
+        end
     end
-    % group formating
-    % find the center of the arena ... determine the location for the rotated and translated arena 
-    % half distance from the two original wells and then just subtracted from 0 on the y axis 
-    % WC = (data(exp).data(trial).data.wellcenters);
-    % y_offset = mean([pdist([WC(:,1),WC(:,3)]','euclidean'), pdist([WC(:,2),WC(:,4)]','euclidean')])*0.5;
-    cX = mean(grouped(exp).position.well_pos.x(5,:),'omitnan');
-    cY = mean(grouped(exp).position.well_pos.y(5,:),'omitnan');
-    formatFig(fig, true);
-    set(gca, 'xcolor', 'none', 'ycolor', 'none')
-    axis square equal
-    viscircles([cX, cY],conversion(1).R*conversion(1).pix2mm,'Color','yellow','LineWidth',lw); % outer expanse of arena accessiblity 
-    viscircles([cX, cY],conversion(2).R*conversion(2).pix2mm,'Color','magenta','LineWidth',lw); % outer expanse of arena accessiblity 
-    title(grouped(exp).name,'color', 'w')
+    figDir = createFolder([saveDir 'Figures/']);
+    save_figure(fig, [figDir, grouped(exp).name ' fly spatial distribution across trials'],fig_type);
 end
 
 
@@ -1383,7 +1371,8 @@ for exp = 1:num.exp
         center = data(exp).data(trial).data.centre;
         x_loc = data(exp).data(trial).data.x_loc;
         y_loc = data(exp).data(trial).data.y_loc;
-        r = data(exp).data(trial).data.r;
+        conType = data(exp).con_type(trial);
+        r = conversion(conType).R*conversion(conType).pix2mm; % outer limits of reachable space
         foodWell = data(exp).T.foodLoc(trial);
 
         % Adjust the X and Y coordinates relative to the new center
@@ -1396,6 +1385,110 @@ for exp = 1:num.exp
         % Define quadrant masks based on the new center
         Q = [];
         Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
+        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
+        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
+        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+        
+        % Determine the well locations (which determine quadrant assignment):
+        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
+        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
+        
+        idx_loc = false(1,4);
+        % Find the food quadrant (find location with the food well coordinates included)
+        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % top
+        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
+        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
+        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
+        quad_loc = find(idx_loc);
+
+        fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
+        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+        nflies = data(exp).T.NumFlies(trial);
+        y = (sum(foodQuad,2)./nflies).*100;
+        quad_occ = autoCat(quad_occ, y,false);
+
+        %  A = quad_occ;
+        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
+        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
+        % 
+        % figure; hold on
+        % plot(A,'color', Color('red'));
+        % plot(C,'color', 'k')
+        % yyaxis right 
+        % plot(B, 'color', 'y')
+        % R = corrcoef(A,B);
+        % disp(['Distance: ' num2str(R(2))])
+        %  R = corrcoef(A,C);
+        % disp(['ROI: ' num2str(R(2))])
+    
+    end
+
+    % save the data to a larger structure
+    grouped(exp).quadrant.all = quad_occ;
+    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
+end
+          
+% Pool the data for heating and cooling together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    all_quad = [];
+    
+    % Update the averages for the classic temperature bins 
+    for t = 1:nTemp
+        % cooling frames for this temp
+        c_frames = locs(cIdx,t).frames;
+        h_frames = locs(hIdx,t).frames;
+        if all(isnan(c_frames)) || all(isnan(h_frames))
+            continue
+        end
+        raw_c(t,:) = mean(grouped(exp).quadrant.all(c_frames,:),1,'omitnan');
+        raw_h(t,:) = mean(grouped(exp).quadrant.all(h_frames,:),1,'omitnan');
+    end
+
+    % find the avg and err and save to group structure
+    grouped(exp).quadrant.increasing.raw = raw_h;
+    grouped(exp).quadrant.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).quadrant.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).quadrant.decreasing.raw = raw_c;
+    grouped(exp).quadrant.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).quadrant.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).quadrant.temps = temps;
+end
+
+%% ANALYSIS: Inner Food quadrant occupation TODO 5.26.25
+clearvars('-except',initial_vars{:})
+
+for exp = 1:num.exp
+    quad_occ = [];
+    for trial = 1:num.trial(exp)
+        center = data(exp).data(trial).data.centre;
+        x_loc = data(exp).data(trial).data.x_loc;
+        y_loc = data(exp).data(trial).data.y_loc;
+        conType = data(exp).con_type(trial);
+        r = conversion(conType).R*conversion(conType).pix2mm; % outer limits of reachable space
+        foodWell = data(exp).T.foodLoc(trial);
+
+        % Adjust the X and Y coordinates relative to the new center
+        adjustedX = x_loc - center(1);
+        adjustedY = y_loc - center(2);
+        
+        % Initialize matrix to hold quadrant classification (same size as input matrices)
+        quadrantMatrix = zeros(size(x_loc));
+        
+        % Define quadrant masks based on the new center & excluding flies
+        % that are in the outer ring:
+        % TODO 5.26.25 - update this to find the occupancy of the inner
+        % circle then just the flies in the inner quadrants and the ratio
+        % of the whole arena but then also for just the inner region
+        Q = [];
+        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX) & ;  % Top
         Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
         Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
         Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right

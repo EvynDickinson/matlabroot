@@ -1,6 +1,6 @@
 
 function [conversion, con_type] = getConversion(exp_date, plate, exp_type)
-% [conversion, con_type] = getConversion(exp_date, plate)
+% [conversion, con_type] = getConversion(exp_date, plate, exp_type)
 % ex: exp_date = 'MM.DD.YYYY'
 % plate is 1 or 2 for old vs new plate
 % exp_type: 1 = low res, 2 = high res

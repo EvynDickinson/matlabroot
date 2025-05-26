@@ -19,7 +19,7 @@ function [rebuildFlag, addFlag, extradataFlag] = matchDataStructure(StructureNam
 
 % 1) Does the flielist in the structure folder match the 3.1 processed data file?
     T_truth = load([structFolder StructureName '/fileList.mat'],'T'); %loads 'T' which is the most up-to-date flieList
-    Tpost3_1 = load([structFolder StructureName '/' StructureName ' post 3.1 data.mat'],'T');
+    Tpost3_1 = load([structFolder StructureName '/' StructureName ' post 3.2 data.mat'],'T');
     % Find rows unique to the grouped data or single data
     missingDataFiles = setdiff(T_truth.T(:,C_sel), Tpost3_1.T(:,C_sel), 'rows'); % files missing from the grouped data
     extraDataFiles = setdiff(Tpost3_1.T(:,C_sel), T_truth.T(:,C_sel), 'rows');   % extra files in the grouped but not single data list
