@@ -1371,9 +1371,8 @@ for exp = 1:num.exp
         center = data(exp).data(trial).data.centre;
         x_loc = data(exp).data(trial).data.x_loc;
         y_loc = data(exp).data(trial).data.y_loc;
-        conType = data(exp).
-        r = 
-        r = data(exp).data(trial).data.r;
+        conType = data(exp).con_type(trial);
+        r = conversion(conType).R*conversion(conType).pix2mm; % outer limits of reachable space
         foodWell = data(exp).T.foodLoc(trial);
 
         % Adjust the X and Y coordinates relative to the new center
@@ -1467,12 +1466,21 @@ end
 clearvars('-except',initial_vars{:})
 
 for exp = 1:num.exp
+    % Initialize variables 
     quad_occ = [];
+    IQloc = [];
+    for i = 1:5
+        IQocc(i).fullPercent = [];
+        IQocc(i).innerPercent = [];
+    end
+
+    % find locations of flies within each region of the arena
     for trial = 1:num.trial(exp)
         center = data(exp).data(trial).data.centre;
         x_loc = data(exp).data(trial).data.x_loc;
         y_loc = data(exp).data(trial).data.y_loc;
-        r = data(exp).data(trial).data.r;
+        conType = data(exp).con_type(trial);
+        r = conversion(conType).R*conversion(conType).pix2mm; % outer limits of reachable space
         foodWell = data(exp).T.foodLoc(trial);
 
         % Adjust the X and Y coordinates relative to the new center
@@ -1482,14 +1490,29 @@ for exp = 1:num.exp
         % Initialize matrix to hold quadrant classification (same size as input matrices)
         quadrantMatrix = zeros(size(x_loc));
         
-        % Define quadrant masks based on the new center
+        % Define quadrant masks based on the new center & excluding flies
+        % that are in the outer ring:
+
+        % TODO 5.26.25 - update this to find the occupancy of the inner
+        % circle then just the flies in the inner quadrants and the ratio
+        % of the whole arena but then also for just the inner region
+
+        % Make a mask of the outer ring so that all flies included are only in the inner 75% ring 
+        D = hypot(adjustedX, adjustedY); % center in the adjusted arena is just 0, so dX is just the x value
+        innerR = conversion(conType).circle75*conversion(conType).pix2mm;
+        innerQuad = D<=innerR;
+
+        % masks for each of the different quadrants
         Q = [];
-        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX);  % Top
-        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX); % Bottom
-        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX);  % Left
-        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX);   % Right
+        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX) & innerQuad;  % Top
+        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX) & innerQuad; % Bottom
+        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX) & innerQuad;  % Left
+        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX) & innerQuad;   % Right
+
+        % sum of total flies in the inner quadrant for each time point for this trial
+        nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
         
-        % Determine the well locations (which determine quadrant assignment):
+        % Determine the well locations in new axis space (which determine quadrant assignment):
         adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
         adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
         
@@ -1499,18 +1522,46 @@ for exp = 1:num.exp
         idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % right
         idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % bottom
         idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % left
-        quad_loc = find(idx_loc);
+        quad_loc = find(idx_loc); % this is the quadrant with the food
 
         fly_loc = ~isnan(x_loc); %gives logical for all fly positions in the position matrix
-        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in food quad
+        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in the inner food quad
+        y = (sum(foodQuad,2)./nTotalInnerROI).*100; % divide by the total number of flies in the inner region
+        quad_occ = autoCat(quad_occ, y, false); % so we can have a measure for all the flies
+        
+        % Save a logical index here of which flies are in each of the
+        % regions for later decision heirarchy? or only do this for the
+        % high-res experiments...?
+        
+        % opposition Matrix: orientation of the quadrants such that loc 1
+        % is the food quad and then it goes quad right, opposite food quad,
+        % and then quad left of the food quad
+        switch quad_loc
+            case 1 
+                opLoc = [1,4,3,2];
+            case 2
+                opLoc = [2,1,4,3];
+            case 3
+                opLoc = [3,2,1,4];
+            case 4
+                opLoc = [4,3,2,1];
+        end
         nflies = data(exp).T.NumFlies(trial);
-        y = (sum(foodQuad,2)./nflies).*100;
-        quad_occ = autoCat(quad_occ, y,false);
+        for i = 1:4 %(for each inner quadrant)
+            idx = opLoc(i); % which assigned region this will go to
+            raw = sum(Q(i).Mask & fly_loc,2); % fly count in the inner region quadrant
+            dummy = raw./nTotalInnerROI.*100; % normalize to just the inner region occupancy
+            IQocc(i).innerPercent = autoCat(IQocc(i).innerPercent, dummy, false);
+            dummy = raw./nflies.*100; % normalize to the full arena occupancy 
+            IQocc(i).fullPercent = autoCat(IQocc(i).fullPercent, dummy, false);
+        end
+        % outer ring numbers
+        dummy = nTotalInnerROI./nflies.*100;
+        IQocc(5).fullPercent = autoCat(IQocc(i).fullPercent, dummy, false);
 
         %  A = quad_occ;
         %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
         %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
-        % 
         % figure; hold on
         % plot(A,'color', Color('red'));
         % plot(C,'color', 'k')
@@ -1520,15 +1571,38 @@ for exp = 1:num.exp
         % disp(['Distance: ' num2str(R(2))])
         %  R = corrcoef(A,C);
         % disp(['ROI: ' num2str(R(2))])
-    
     end
 
-    % save the data to a larger structure
-    grouped(exp).quadrant.all = quad_occ;
-    grouped(exp).quadrant.avg = mean(quad_occ,2,'omitnan');
-    grouped(exp).quadrant.std = std(quad_occ,0,2,'omitnan');
+    % save the data to the larger structure
+    grouped(exp).innerQuad.all = quad_occ;
+    grouped(exp).innerQuad.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).innerQuad.std = std(quad_occ,0,2,'omitnan');
+    
+    % save inner quad location names and structure
+    IQocc(1).name = 'food quad';
+    IQocc(2).name = 'right adjacent quad';
+    IQocc(3).name = 'opposite quad';
+    IQocc(4).name = 'left adjacent quad';
+    IQocc(5).name = 'outer ring';
+    grouped(exp).IQocc = IQocc;
 end
           
+% demo figure:
+
+exp = 1;
+kolor = {'gold', 'grey', 'white', 'grey', 'lime'};
+fig = getfig('',1);
+hold on 
+x = grouped(exp).time;
+for i = 1:5
+    y = mean(grouped(exp).IQocc(i).fullPercent,2,'omitnan');
+    plot(x,y,'color', Color(kolor{i}))
+end
+formatFig(fig,true);
+legend({grouped(exp).IQocc(:).name},'')
+
+
+
 % Pool the data for heating and cooling together: 
 for exp = 1:num.exp
     temps = grouped(exp).position.temp_list; % pre-binned temperatures
