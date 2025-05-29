@@ -1031,186 +1031,186 @@ for i = 1:num.exp
 end
 
 %% ANALYSIS: Calculate flies within the outer 25% of the arena ring of the region [w/ fig of spatial distributions]
-clearvars('-except',initial_vars{:})
-conversion = getConversion;  
-
-% % Max Distance from Center of Arena 
-% % PLATE 1: 
-% R1 = 30; %mm for plate 1
-% num.R1 = R1;
-% innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
-% dist_from_edge1 = (R1 - innerR1);
-% maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
-% % PLATE 2: 
-% R2 = 25.6;%mm for plate 2
-% num.R2 = R2;
-% innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
-% dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
-% maxR2 = R2*sqrt(0.1); % radius of a circle occupying 10% of the arena
-
-% Find the percent of the flies that are in the outer ring
-for exp = 1:num.exp
-    counts = []; ring_per = [];
-    for trial = 1:num.trial(exp)
-        conType = data(exp).con_type(trial); % flag for the specif plate and experiment type
-        R = conversion(conType).R; %outer reaches of the arena 
-        innerR = conversion(conType).circle75; % inner limits of a 25% outer ring line
-
-        x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
-        y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
-        centre = data(exp).data(trial).data.centre; %distance to center of arena 
-        dX = (x-centre(1)); % x-difference from center
-        dY = (y-centre(2)); % y-difference from center
-        D = hypot(dX,dY);  % distance from center of arena
-        D = D./conversion(conType).pix2mm; % in mm distance to center of the arena 
-        loc = D<=R & D>=innerR; % find the locations that are between edge (R) and inner R
-        ringCount = sum(loc,2);
-        counts = autoCat(counts, ringCount, false); %count #flies in the outer ring
-        ring_per = autoCat(ring_per,(ringCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
-    end
-    % pool the data
-    grouped(exp).ring.counts = counts;
-    grouped(exp).ring.all = ring_per;
-    grouped(exp).ring.percent = ring_per; 
-    grouped(exp).ring.avg = mean(ring_per,2,'omitnan');
-end
-
-% Pull the data together: 
-for exp = 1:num.exp
-    temps = grouped(exp).position.temp_list; % pre-binned temperatures
-    nTemp = length(temps);
-    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
-    cIdx = find(rates<0); %cooling index
-    hIdx = find(rates>0); %heating index
-    locs = grouped(exp).position.loc;
-    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
-    all_ring = [];
-    
-    % Update the averages for the classic temperature bins 
-    for t = 1:nTemp
-        % cooling frames for this temp
-        c_frames = locs(cIdx,t).frames;
-        h_frames = locs(hIdx,t).frames;
-        if all(isnan(c_frames)) || all(isnan(h_frames))
-            continue
-        end
-        raw_c(t,:) = mean(grouped(exp).ring.percent(c_frames,:),1,'omitnan');
-        raw_h(t,:) = mean(grouped(exp).ring.percent(h_frames,:),1,'omitnan');
-    end
-
-    % find the avg and err and save to group structure
-    grouped(exp).ring.increasing.raw = raw_h;
-    grouped(exp).ring.increasing.avg = mean(raw_h, 2, 'omitnan');
-    grouped(exp).ring.increasing.err = std(raw_h, 0, 2, 'omitnan');
-    grouped(exp).ring.decreasing.raw = raw_c;
-    grouped(exp).ring.decreasing.avg = mean(raw_c, 2, 'omitnan');
-    grouped(exp).ring.decreasing.err = std(raw_c, 0, 2, 'omitnan');
-    grouped(exp).ring.temps = temps;
-end
-
-% Visual comparision of the fly positions within the arena for each trial
-skipstep = 100; lw = 0.5;
-for exp = 1:num.exp
-    r = floor(sqrt(num.trial(exp)));
-    c = ceil(num.trial(exp)/r);
-    fig = getfig(grouped(exp).name,1); hold on
-    for trial = num.trial(exp):-1:1 %1:num.trial(exp)
-        subplot(r,c,trial); hold on
-        x = grouped(exp).position.trial(trial).x;
-        y = grouped(exp).position.trial(trial).y;
-        X = x(1:skipstep:end,:); X = X(:);
-        Y = y(1:skipstep:end,:); Y = Y(:);
-        conType = data(exp).con_type(trial);
-        switch conType
-            case {1,2} % old plate
-                kolor = Color('yellow');
-                sz = 1;
-            case 3 % new plate
-                kolor = Color('magenta');
-                sz = 2;
-        end
-        R = conversion(conType).R*conversion(conType).pix2mm; % outer limits of the arena radius for comparison
-        innerR = conversion(conType).circle75*conversion(conType).pix2mm;
-        scatter(X,Y,sz,kolor,'filled'); % draw 'all' the fly positions (some skipped for size constraints)
-        scatter(0, 0, 20,Color('gold')) % draw food location: (this is centered and aligned data to the food well at (0,0)       
-        cX = grouped(exp).position.well_pos.x(5,trial);
-        cY = grouped(exp).position.well_pos.y(5,trial);
-        axis square equal
-        viscircles([cX, cY],R,'Color','white','LineWidth',lw); % outer expanse of arena accessiblity 
-        viscircles([cX, cY],innerR,'Color','white','LineWidth',lw); % outer expanse of arena accessiblity 
-        formatFig(fig,blkbgd, [r,c]);
-        for i = 1:num.trial(exp)
-            subplot(r,c,i)
-            set(gca, 'xcolor', 'none', 'ycolor', 'none')
-        end
-    end
-    figDir = createFolder([saveDir 'Figures/']);
-    save_figure(fig, [figDir, grouped(exp).name ' fly spatial distribution across trials'],fig_type);
-end
-
-
-% % % This wil work if we have already accounted for the subtle differences in the
-% % distance measures due to the differences in the plate and lense configurations over
-% % time
-% % Can also look at the actual max distances from the center as an empirical value:
-% % (using eccentricity and making a histogram but separated by plate number) 
+% clearvars('-except',initial_vars{:})
+% conversion = getConversion;  
+% 
+% % % Max Distance from Center of Arena 
+% % % PLATE 1: 
+% % R1 = 30; %mm for plate 1
+% % num.R1 = R1;
+% % innerR1 = R1*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
+% % dist_from_edge1 = (R1 - innerR1);
+% % maxR1 = R1*sqrt(0.1); % radius of a circle occupying 10% of the arena
+% % % PLATE 2: 
+% % R2 = 25.6;%mm for plate 2
+% % num.R2 = R2;
+% % innerR2 = R2*sqrt(3/4); % radius of the inner 25% occupancy space R*sqrt(1/2)
+% % dist_from_edge2 = (R2 - innerR2); % distance acceptable for start of outer 25%
+% % maxR2 = R2*sqrt(0.1); % radius of a circle occupying 10% of the arena
+% 
+% % Find the percent of the flies that are in the outer ring
 % for exp = 1:num.exp
-%     g1 = data(exp).plate==1;
-%     g2 = data(exp).plate==2;
-% 
-%     fig = getfig('',1);
-%         y = grouped(exp).ecent.all(:,g1);
-%         histogram(y(:),'FaceColor',Color('magenta'))
-%         yyaxis right
-%         y = grouped(exp).ecent.all(:,g2);
-%         histogram(y(:),'FaceColor',Color('dodgerblue'))
-% 
-%         formatFig(fig, blkbgd)
-%         set(gca, 'ycolor', 'none')
-%         yyaxis left 
-%         set(gca, 'ycolor', 'none', 'box', 'off')
-%         xlabel('distance from arena center (mm)')
-% 
-%         % plot the 'elimination' lines
-%         v_line(innerR1,'magenta', '--')
-%         v_line(innerR2,'dodgerblue', '--')
-%         title(data(exp).ExpGroup,'color', Color('grey'))
-%         xlim([5,30])
-% 
-%         save_figure(fig, [saveDir, data(exp).ExpGroup ' eccentricity by plate types'],fig_type);
-% end
-
-% % Compare the distance between the well centers across the two plate types since we
-% % know that they are equal in real life -- is there a subtle difference in the cam
-% % distance setting?
-% [plate1 plate2] = deal([]);
-% for exp = 1:num.exp
+%     counts = []; ring_per = [];
 %     for trial = 1:num.trial(exp)
-%         WC = (data(exp).data(trial).data.wellcenters);
-%         inter_dist = [pdist([WC(:,1),WC(:,3)]','euclidean'), pdist([WC(:,2),WC(:,4)]','euclidean')];
-%         switch data(exp).plate(trial)
-%             case 1
-%                 plate1 = [plate1, inter_dist];
-%             case 2
-%                 plate2 = [plate2, inter_dist];
+%         conType = data(exp).con_type(trial); % flag for the specif plate and experiment type
+%         R = conversion(conType).R; %outer reaches of the arena 
+%         innerR = conversion(conType).circle75; % inner limits of a 25% outer ring line
+% 
+%         x = data(exp).data(trial).data.x_loc; % x locations for the entire experiment
+%         y = data(exp).data(trial).data.y_loc; % x locations for the entire experiment
+%         centre = data(exp).data(trial).data.centre; %distance to center of arena 
+%         dX = (x-centre(1)); % x-difference from center
+%         dY = (y-centre(2)); % y-difference from center
+%         D = hypot(dX,dY);  % distance from center of arena
+%         D = D./conversion(conType).pix2mm; % in mm distance to center of the arena 
+%         loc = D<=R & D>=innerR; % find the locations that are between edge (R) and inner R
+%         ringCount = sum(loc,2);
+%         counts = autoCat(counts, ringCount, false); %count #flies in the outer ring
+%         ring_per = autoCat(ring_per,(ringCount./data(exp).T.NumFlies(trial)).*100,false); % convert to percent & combine
+%     end
+%     % pool the data
+%     grouped(exp).ring.counts = counts;
+%     grouped(exp).ring.all = ring_per;
+%     grouped(exp).ring.percent = ring_per; 
+%     grouped(exp).ring.avg = mean(ring_per,2,'omitnan');
+% end
+% 
+% % Pull the data together: 
+% for exp = 1:num.exp
+%     temps = grouped(exp).position.temp_list; % pre-binned temperatures
+%     nTemp = length(temps);
+%     rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+%     cIdx = find(rates<0); %cooling index
+%     hIdx = find(rates>0); %heating index
+%     locs = grouped(exp).position.loc;
+%     [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+%     all_ring = [];
+% 
+%     % Update the averages for the classic temperature bins 
+%     for t = 1:nTemp
+%         % cooling frames for this temp
+%         c_frames = locs(cIdx,t).frames;
+%         h_frames = locs(hIdx,t).frames;
+%         if all(isnan(c_frames)) || all(isnan(h_frames))
+%             continue
+%         end
+%         raw_c(t,:) = mean(grouped(exp).ring.percent(c_frames,:),1,'omitnan');
+%         raw_h(t,:) = mean(grouped(exp).ring.percent(h_frames,:),1,'omitnan');
+%     end
+% 
+%     % find the avg and err and save to group structure
+%     grouped(exp).ring.increasing.raw = raw_h;
+%     grouped(exp).ring.increasing.avg = mean(raw_h, 2, 'omitnan');
+%     grouped(exp).ring.increasing.err = std(raw_h, 0, 2, 'omitnan');
+%     grouped(exp).ring.decreasing.raw = raw_c;
+%     grouped(exp).ring.decreasing.avg = mean(raw_c, 2, 'omitnan');
+%     grouped(exp).ring.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+%     grouped(exp).ring.temps = temps;
+% end
+% 
+% % Visual comparision of the fly positions within the arena for each trial
+% skipstep = 100; lw = 0.5;
+% for exp = 1:num.exp
+%     r = floor(sqrt(num.trial(exp)));
+%     c = ceil(num.trial(exp)/r);
+%     fig = getfig(grouped(exp).name,1); hold on
+%     for trial = num.trial(exp):-1:1 %1:num.trial(exp)
+%         subplot(r,c,trial); hold on
+%         x = grouped(exp).position.trial(trial).x;
+%         y = grouped(exp).position.trial(trial).y;
+%         X = x(1:skipstep:end,:); X = X(:);
+%         Y = y(1:skipstep:end,:); Y = Y(:);
+%         conType = data(exp).con_type(trial);
+%         switch conType
+%             case {1,2} % old plate
+%                 kolor = Color('yellow');
+%                 sz = 1;
+%             case 3 % new plate
+%                 kolor = Color('magenta');
+%                 sz = 2;
+%         end
+%         R = conversion(conType).R*conversion(conType).pix2mm; % outer limits of the arena radius for comparison
+%         innerR = conversion(conType).circle75*conversion(conType).pix2mm;
+%         scatter(X,Y,sz,kolor,'filled'); % draw 'all' the fly positions (some skipped for size constraints)
+%         scatter(0, 0, 20,Color('gold')) % draw food location: (this is centered and aligned data to the food well at (0,0)       
+%         cX = grouped(exp).position.well_pos.x(5,trial);
+%         cY = grouped(exp).position.well_pos.y(5,trial);
+%         axis square equal
+%         viscircles([cX, cY],R,'Color','white','LineWidth',lw); % outer expanse of arena accessiblity 
+%         viscircles([cX, cY],innerR,'Color','white','LineWidth',lw); % outer expanse of arena accessiblity 
+%         formatFig(fig,blkbgd, [r,c]);
+%         for i = 1:num.trial(exp)
+%             subplot(r,c,i)
+%             set(gca, 'xcolor', 'none', 'ycolor', 'none')
 %         end
 %     end
+%     figDir = createFolder([saveDir 'Figures/']);
+%     save_figure(fig, [figDir, grouped(exp).name ' fly spatial distribution across trials'],fig_type);
 % end
-% disp(['Plate 1 mean: ' num2str(mean(plate1))])
-% disp(['Plate 2 mean: ' num2str(mean(plate2))])
 % 
-% bins = 460:5:480;
-% fig = figure;
-% hold on
-% histogram(plate1, bins, 'facecolor', Color('magenta'))
-% yyaxis right
-% histogram(plate2, bins,'facecolor', Color('dodgerblue'))
-% formatFig(fig, blkbgd)
-%         set(gca, 'ycolor', 'none')
-%         yyaxis left 
-%         set(gca, 'ycolor', 'none', 'box', 'off')
-%         xlabel('distance between food wells (pix)')
-% save_figure(fig, [saveDir, 'dist between wells by plate type'],fig_type);
+% 
+% % % % This wil work if we have already accounted for the subtle differences in the
+% % % distance measures due to the differences in the plate and lense configurations over
+% % % time
+% % % Can also look at the actual max distances from the center as an empirical value:
+% % % (using eccentricity and making a histogram but separated by plate number) 
+% % for exp = 1:num.exp
+% %     g1 = data(exp).plate==1;
+% %     g2 = data(exp).plate==2;
+% % 
+% %     fig = getfig('',1);
+% %         y = grouped(exp).ecent.all(:,g1);
+% %         histogram(y(:),'FaceColor',Color('magenta'))
+% %         yyaxis right
+% %         y = grouped(exp).ecent.all(:,g2);
+% %         histogram(y(:),'FaceColor',Color('dodgerblue'))
+% % 
+% %         formatFig(fig, blkbgd)
+% %         set(gca, 'ycolor', 'none')
+% %         yyaxis left 
+% %         set(gca, 'ycolor', 'none', 'box', 'off')
+% %         xlabel('distance from arena center (mm)')
+% % 
+% %         % plot the 'elimination' lines
+% %         v_line(innerR1,'magenta', '--')
+% %         v_line(innerR2,'dodgerblue', '--')
+% %         title(data(exp).ExpGroup,'color', Color('grey'))
+% %         xlim([5,30])
+% % 
+% %         save_figure(fig, [saveDir, data(exp).ExpGroup ' eccentricity by plate types'],fig_type);
+% % end
+% 
+% % % Compare the distance between the well centers across the two plate types since we
+% % % know that they are equal in real life -- is there a subtle difference in the cam
+% % % distance setting?
+% % [plate1 plate2] = deal([]);
+% % for exp = 1:num.exp
+% %     for trial = 1:num.trial(exp)
+% %         WC = (data(exp).data(trial).data.wellcenters);
+% %         inter_dist = [pdist([WC(:,1),WC(:,3)]','euclidean'), pdist([WC(:,2),WC(:,4)]','euclidean')];
+% %         switch data(exp).plate(trial)
+% %             case 1
+% %                 plate1 = [plate1, inter_dist];
+% %             case 2
+% %                 plate2 = [plate2, inter_dist];
+% %         end
+% %     end
+% % end
+% % disp(['Plate 1 mean: ' num2str(mean(plate1))])
+% % disp(['Plate 2 mean: ' num2str(mean(plate2))])
+% % 
+% % bins = 460:5:480;
+% % fig = figure;
+% % hold on
+% % histogram(plate1, bins, 'facecolor', Color('magenta'))
+% % yyaxis right
+% % histogram(plate2, bins,'facecolor', Color('dodgerblue'))
+% % formatFig(fig, blkbgd)
+% %         set(gca, 'ycolor', 'none')
+% %         yyaxis left 
+% %         set(gca, 'ycolor', 'none', 'box', 'off')
+% %         xlabel('distance between food wells (pix)')
+% % save_figure(fig, [saveDir, 'dist between wells by plate type'],fig_type);
 
 
 %% ANALYSIS: Cluster eccentricity temperature
@@ -1361,6 +1361,479 @@ for i = 1:num.exp
     end
 end
 
+%% ANALYSIS: Create logical masks for all the regions in the arena for each trial
+clearvars('-except',initial_vars{:})
+% Add a new structure that contains the masks for each of the regions of
+% interest for the flies in this experiment which can be used to filter
+% other properties later on...like speed in the outer ring etc.
+
+% Initialize empty mask structure:
+initial_vars{end+1} = 'ROImask';
+initial_vars{end+1} = 'quadOrder';
+ROImask = struct; 
+fields = {'all','ring', 'inner75'}; 
+food_fields = {'fullquad','innerquad','quadring','circle10','circle7','circle5'};
+quadOrder = {'food','right','opp','left'};
+for exp = 1:num.exp
+    for trial = 1:num.trial(exp)
+        % universal regions:
+        for i = 1:length(fields)
+            ROImask(exp).(fields{i})(trial).m = [];
+        end
+        % quadrant regions:
+        for i = 1:length(food_fields)
+            for q = 1:4
+                ROImask(exp).(food_fields{i}).(quadOrder{q})(trial).m = [];
+            end
+        end
+    end
+end
+
+for exp = 1:num.exp
+    % find locations of flies within each region of the arena
+    for trial = 1:num.trial(exp)
+        % pull parameters for this trial:
+        center = data(exp).data(trial).data.centre;
+        x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
+        y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
+        ct = data(exp).con_type(trial); % experiment lens configuration
+        pix2mm = conversion(ct).pix2mm;
+        R = conversion(ct).R;
+        circle75 = conversion(ct).circle75; % defines the distance to the inside edge of the outer ring
+        circle10 = conversion(ct).circle10;
+        circle7 = conversion(ct).circle7;
+        circle5 = conversion(ct).circle5;
+        foodWell = data(exp).T.foodLoc(trial);
+
+        % Adjust the X and Y coordinates relative to new center of (0,0)
+        adjustedX = x_loc - center(1); 
+        adjustedY = y_loc - center(2);
+
+        % Pull distance measures:  
+        D = hypot(adjustedX, adjustedY)./pix2mm; % distance to center in mm
+
+        % Define base location logicals
+        fly_loc = ~isnan(x_loc) & (D <= R); % data points that are valid flies
+        innerQuad = (D < circle75) & fly_loc; %logical of all points that have a fly within the inner circle
+        adjustedX(~fly_loc) = nan;
+        adjustedY(~fly_loc) = nan;
+        Q = findQuadLocation(adjustedX,adjustedY);
+
+        % sum of total flies in the three large regions
+        nTotal = sum(fly_loc,2); % total across time
+        nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
+        nTotalOuterROI = nTotal-nTotalInnerROI; % this gives the bottom of the 'outer distribution' fraction
+        ROImask(exp).all(trial).nflies = nTotal;
+        ROImask(exp).ring(trial).nflies = nTotalOuterROI;
+        ROImask(exp).inner75(trial).nflies = nTotalInnerROI;
+
+        % ------- Find the flies in the outer ring and inner region -------
+        % Define quadrant masks based on the new center & excluding flies that are in the outer ring:
+        % food_fields = {'circle10','circle7','circle5'};
+        ROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
+        ROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
+        ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
+
+        % Find the food quadrant (find location with the food well coordinates included)
+        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
+        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2); 
+        well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
+        quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
+
+        % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
+        % then it goes quad right, opposite food quad, and finally quad left of the food quad
+        switch quad_loc 
+            case 1
+                opLoc = [1 4 3 2]; 
+            case 2
+                opLoc = [2 1 4 3];
+            case 3
+                opLoc = [3 2 1 4];
+            case 4
+                opLoc = [4 3 2 1];
+        end
+
+        % Find the quadrant that each well belongs to
+        well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
+        well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
+        well_quads = findQuadLocation(well_opt_x,well_opt_y);
+
+        for i = 1:4 % for quadrant type (food, R, opp, L)
+            idx = opLoc(i); % rearrange order based on trial food location
+            well_idx = find(well_quads(idx).Mask);
+            % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
+            ROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
+            ROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
+            ROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
+
+            % well circle related distances
+            dX = adjustedX - well_opt_x(well_idx);% well_idx
+            dY = adjustedY - well_opt_y(well_idx);% well_idx
+            well_D = hypot(dX,dY)./pix2mm;
+            ROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
+            ROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
+            ROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+        end
+    end
+end
+
+%% FIGURE: Visual demonstration of all the arena regions....
+if strcmp('Yes', questdlg('Show demo image of arena regions of interest?'))
+    clearvars('-except',initial_vars{:})
+    exp = 2;
+    trial = 1;
+    r = 4;
+    c = 7;
+    k = Color('Dodgerblue');
+    s = 1;
+    ct = data(exp).con_type(trial);
+    R = conversion(ct).R*conversion(ct).pix2mm;
+    center = data(exp).data(trial).data.centre;
+    n = 28;
+    
+    % regions: 
+    roi = false([size(ROImask(exp).all(trial).m),n]);
+    roi(:,:,1) = true(size(ROImask(exp).all(trial).m)); % all
+    roi(:,:,8) = ROImask(exp).all(trial).m; % all screened
+    roi(:,:,15) = ROImask(exp).ring(trial).m; % ring
+    roi(:,:,22) = ROImask(exp).inner75(trial).m; % ring
+    regionList = {'fullquad', 'innerquad','quadring', 'circle10','circle7','circle5'};
+    for t = 2:length(regionList)+1
+        q = 1;
+        for i = t:7:n
+            roi(:,:,i) = ROImask(exp).(regionList{t-1}).(quadOrder{q})(trial).m;
+            q = q+1;
+        end
+    end
+    
+    fig = getfig;
+    x = data(exp).data(trial).data.x_loc;
+    y = data(exp).data(trial).data.y_loc;
+    FW = data(exp).data(trial).data.wellcenters(:,data(exp).T.foodLoc(trial));
+    % ALL points no filter
+    for i = 1:n
+        subplot(r,c,i); hold on
+        scatter(x(roi(:,:,i)),y(roi(:,:,i)),s,k,'filled')
+        viscircles(center',R,'color','w');
+        scatter(FW(1),FW(2),30,'w')
+    end
+    formatFig(fig,true,[r,c]);
+    for i = 1:n
+        subplot(r,c,i)
+        set(gca,'xcolor', 'none', 'ycolor','none');
+        axis square equal
+    end
+    save_figure(fig, [saveDir 'Figures/ROI outlines'],'-png');
+end
+
+%% TODO: working here: ANALYSIS: Find occupancy in the different regions 
+clearvars('-except',initial_vars{:})
+
+for exp = 1:num.exp
+    [ring.all,inner75.all] = deal([]);
+
+    for trial = 1:num.trial(exp)
+        nFull = ROImask(exp).all(trial).nflies;
+        nInner = ROImask(exp).inner75(trial).nflies;
+        nRing = ROImask(exp).ring(trial).nflies;
+
+        % ring & inner -- each get compared to the full arena compliment:
+        n = getPercentFlies(ROImask(exp).ring(trial).m,nFull);
+        ring.all = autoCat(ring.all,n,false);
+
+        n = getPercentFlies(ROImask(exp).inner75(trial).m,nFull);
+        inner75.all = autoCat(inner75.all,n,false);
+        
+
+        % fig = figure; hold on
+        %     plot(inner75.all,'color', Color('teal'))
+        %     plot(ring.all,'color', Color('gold'))
+        %     plot(inner75.all + ring.all,'color', Color('white'))
+        %     formatFig(fig,true);
+        %     ylabel('% flies')
+        %     legend({'inner', 'ring','total'},'textcolor', 'w','box', 'off');
+        %     set(gca, 'xcolor', 'none')
+        %     ylim([0,100])
+
+
+
+        % TODO 5.29 working here on updating the structures to have the
+        % appropriate percentages of occupancy etc 
+    end
+end
+        
+
+
+
+
+
+    % Initialize variables 
+    quad_occ = [];
+    IQloc = struct;
+    [IQocc(i).fullPercent, IQocc(i).innerPercent] = deal([]);
+
+    % find locations of flies within each region of the arena
+    for trial = 1:num.trial(exp)
+        center = data(exp).data(trial).data.centre;
+        x_loc = data(exp).data(trial).data.x_loc;
+        y_loc = data(exp).data(trial).data.y_loc;
+        conType = data(exp).con_type(trial);
+        r = conversion(conType).R*conversion(conType).pix2mm; % outer limits of reachable space
+        foodWell = data(exp).T.foodLoc(trial);
+
+        % Adjust the X and Y coordinates relative to the new center
+        adjustedX = x_loc - center(1);
+        adjustedY = y_loc - center(2);
+        
+        % Define quadrant masks based on the new center & excluding flies
+        % that are in the outer ring:
+        D = hypot(adjustedX, adjustedY); % center in the adjusted arena is just 0, so dX is just the x value
+        innerR = conversion(conType).circle75*conversion(conType).pix2mm;
+        innerQuad = D<innerR; %logical of all points that have a fly within the inner circle
+        withinouterLims = D<conversion(conType).R*conversion(conType).pix2mm;
+
+        % find logical indx for all flies in each of the different quadrants
+        Q = struct;
+        Q(1).Mask = (adjustedY > adjustedX) & (adjustedY <= -adjustedX) & innerQuad;  % left
+        Q(2).Mask = (adjustedY <= adjustedX) & (adjustedY <= -adjustedX) & innerQuad; % top
+        Q(3).Mask = (adjustedY <= adjustedX) & (adjustedY > -adjustedX) & innerQuad;  % right
+        Q(4).Mask = (adjustedY > adjustedX) & (adjustedY > -adjustedX) & innerQuad;   % bottom
+        Q(5).Mask = ~innerQuad &  withinouterLims;
+
+
+        % sum of total flies in the inner quadrant for each time point for this trial
+        nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
+        
+        % Determine the well locations in new axis space (which determine quadrant assignment):
+        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1);
+        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2);
+        
+        % Find the food quadrant (find location with the food well coordinates included)
+        idx_loc = false(1,4);
+        idx_loc(1) = (adjusted_wy > adjusted_wx) & (adjusted_wy <= -adjusted_wx);  % left
+        idx_loc(2) = (adjusted_wy <= adjusted_wx) & (adjusted_wy <= -adjusted_wx); % top
+        idx_loc(3) = (adjusted_wy <= adjusted_wx) & (adjusted_wy > -adjusted_wx);  % right
+        idx_loc(4) = (adjusted_wy > adjusted_wx) & (adjusted_wy > -adjusted_wx);   % bottom
+        quad_loc = find(idx_loc); % quadrant idx that has food
+        
+        % Find the flies that are in the inner food quadrant
+        fly_loc = ~isnan(x_loc) & withinouterLims; % data points that are valid flies
+        foodQuad = Q(quad_loc).Mask & fly_loc; % flies in the inner food quad
+        y = (sum(foodQuad,2)./nTotalInnerROI).*100; % divide by the total number of flies in the inner region
+        quad_occ = autoCat(quad_occ, y, false); % so we can have a measure for all the flies
+        
+        % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
+        % then it goes quad right, opposite food quad, and finally quad left of the food quad
+        switch quad_loc
+            case 1
+                opLoc = [1 4 3 2]; 
+            case 2
+                opLoc = [2 1 4 3];
+            case 3
+                opLoc = [3 2 1 4];
+            case 4
+                opLoc = [4 3 2 1];
+        end
+        nflies = sum(fly_loc,2); %data(exp).T.NumFlies(trial);
+        for i = 1:4 % for each inner quadrant
+            idx = opLoc(i); % which assigned region this will go to
+            raw = sum(Q(idx).Mask & fly_loc,2); % fly count in the inner region quadrant
+            dummy = (raw./nTotalInnerROI).*100; % normalize to just the inner region occupancy
+            IQocc(i).innerPercent = autoCat(IQocc(i).innerPercent, dummy, false);
+            dummy = (raw./nflies).*100; % normalize to the full arena occupancy 
+            IQocc(i).fullPercent = autoCat(IQocc(i).fullPercent, dummy, false);
+        end
+        % outer ring numbers
+        raw = sum(Q(5).Mask & fly_loc,2); % fly count in the inner region quadrant
+        dummy = (raw./nflies).*100;
+        IQocc(5).fullPercent = autoCat(IQocc(5).fullPercent, dummy, false);
+        IQocc(1).foodArena(trial) = quad_loc;
+
+        % % Test images of fly locations to see if they make sense...
+        % r = 1; c = 5;
+        % fig = getfig('',1,[1450 352]);
+        % for i = 1:5
+        %     subplot(r,c,i);
+        %     hold on
+        %     scatter(adjustedX, adjustedY,10,'w','filled')
+        %     plotX = adjustedX(Q(i).Mask);
+        %     plotY = adjustedY(Q(i).Mask);
+        %     scatter(plotX, plotY,10,'r','filled')
+        %     % viscircles([0,0],innerR,'color', 'r')% show arena limits etc
+        %     viscircles([0,0],conversion(conType).R*conversion(conType).pix2mm,'color',Color('dodgerblue'));% show arena limits etc 
+        %     % plot the food location: 
+        %     scatter(adjusted_wx,adjusted_wy,50,'k','filled')
+        %     axis equal square;
+        % end
+        % formatFig(fig, true, [r c]);
+        % regionList = {'left', 'bottom','right', 'top','ring'};
+        % for i = 1:5
+        %     subplot(r,c,i);
+        %     set(gca,'xcolor', 'none', 'ycolor', 'none')
+        %     title(regionList{i},'color', 'w')
+        % end
+        % save_figure(fig, [saveDir 'Figures/arena outlines exp ' num2str(exp) ' trial ' num2str(trial)],'-png',true);
+
+        %  A = quad_occ;
+        %  B = data(exp).data(trial).data.occupancy.dist2wells(:,foodWell);
+        %  C = data(exp).data(trial).data.occupancy.occ(:,foodWell)*100;
+        % figure; hold on
+        % plot(A,'color', Color('red'));
+        % plot(C,'color', 'k')
+        % yyaxis right 
+        % plot(B, 'color', 'y')
+        % R = corrcoef(A,B);
+        % disp(['Distance: ' num2str(R(2))])
+        %  R = corrcoef(A,C);
+        % disp(['ROI: ' num2str(R(2))])
+    end
+
+    % save the data to the larger structure
+    grouped(exp).innerQuad.all = quad_occ;
+    grouped(exp).innerQuad.avg = mean(quad_occ,2,'omitnan');
+    grouped(exp).innerQuad.std = std(quad_occ,0,2,'omitnan');
+    grouped(exp).innerQuad.info = {'food quadrant occupancy excluding the outer ring region and only considering % flies from the inner region'};
+    
+    % save inner quad location names and structure
+    IQocc(1).name = 'food quad';
+    IQocc(2).name = 'right adjacent quad';
+    IQocc(3).name = 'opposite quad';
+    IQocc(4).name = 'left adjacent quad';
+    IQocc(5).name = 'outer ring';
+    grouped(exp).IQocc = IQocc;
+    grouped(exp).IQocc(1).fullPercent_info = {'full outer ring and each of the inner 4 quadrants all total to 100% of the fly occupancy'};
+    grouped(exp).IQocc(1).innerPercent_info = {['inner 4 quadrants all total to 100% of the fly occupancy based on the total number of ' ...
+        'flies that are occupying the inner region (this explicitly excludes flie in the outer ring']};
+% end
+
+          
+% % demo figure:
+% exp = 2;
+% kolor = {'gold', 'grey', 'white', 'grey', 'purple'};
+% fig = getfig('',1);
+% 
+% hold on 
+% x = grouped(exp).time;
+% for i = 1:5
+%     y = mean(grouped(exp).IQocc(i).fullPercent,2,'omitnan');
+%     plot(x,y,'color', Color(kolor{i}))
+% end
+% formatFig(fig,true);
+% xlabel('time (min)')
+% ylabel('region occupancy (%)')
+% legend({grouped(exp).IQocc(:).name},'textcolor','w','box', 'off')
+% xlim([0,700])
+% save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly region occupancy over time'],'-png');
+% 
+% fig = getfig('',1,[1450 189]);
+% hold on 
+% x = grouped(exp).time;
+% y = grouped(exp).temp;
+% plot(x,y,'color', 'w','linewidth', 3)
+% formatFig(fig,true);
+% xlabel('time (min)')
+% ylabel('\circC')
+% xlim([0,700])
+% save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' temp over time'],'-png');
+% 
+% % demo that the 'totals' all add up to ~100% 
+% fig = getfig('',1);
+% hold on 
+% y = [];
+% for i = 1:5
+%     y(:,i) = mean(grouped(exp).IQocc(i).fullPercent,2,'omitnan');
+% end
+% plot(x, sum(y,2))
+
+% Pool the data for heating and cooling together: 
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+    % initialize empty structures for the variables
+    [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+    [rawC_in, rawH_in, rawC_all, rawH_all] = deal(struct);
+    [rawC_in(1:4).raw, rawH_in(1:4).raw, rawC_all(1:5).raw, rawH_all(1:5).raw] = deal(nan(nTemp,num.trial(exp)));
+
+    % Update the averages for the preset temperature bins 
+    for t = 1:nTemp
+        % frame indexes for this temp bin
+        c_frames = locs(cIdx,t).frames; % cooling frames
+        h_frames = locs(hIdx,t).frames; % heating frames
+        if all(isnan(c_frames)) || all(isnan(h_frames)) % if no cooling or heating for this temp bin
+            continue
+        end
+        % food inner quadrant trial avgs
+        raw_c(t,:) = mean(grouped(exp).innerQuad.all(c_frames,:),1,'omitnan'); 
+        raw_h(t,:) = mean(grouped(exp).innerQuad.all(h_frames,:),1,'omitnan');
+
+        
+        for i = 1:5 % for each of the regions
+            % all regions quadrant trial avgs
+            rawC_all(i).raw(t,:) = mean(grouped(exp).IQocc(i).fullPercent(c_frames,:),1,'omitnan'); 
+            rawH_all(i).raw(t,:) = mean(grouped(exp).IQocc(i).fullPercent(h_frames,:),1,'omitnan');   
+
+            % all inner quadrant trial avgs
+            if i == 5 % these only have 4 regions
+                continue
+            else
+                rawC_in(i).raw(t,:) = mean(grouped(exp).IQocc(i).innerPercent(c_frames,:),1,'omitnan'); 
+                rawH_in(i).raw(t,:) = mean(grouped(exp).IQocc(i).innerPercent(h_frames,:),1,'omitnan');
+            end
+        end
+    end
+
+    % Pull the group avg and err etc.
+    for i = 1:5 % for each of the regions
+        % all regions quadrant trial avgs
+        rawC_all(i).avg = mean(rawC_all(i).raw,2,'omitnan'); 
+        rawC_all(i).err = std(rawC_all(i).raw,0,2,'omitnan');
+        rawH_all(i).avg = mean(rawH_all(i).raw,2,'omitnan'); 
+        rawH_all(i).err = std(rawH_all(i).raw,0,2,'omitnan'); 
+
+        grouped(exp).IQocc(i).full.decreasing = rawC_all(i);
+        grouped(exp).IQocc(i).full.increasing = rawH_all(i); 
+        grouped(exp).IQocc(i).full.temps = temps;
+
+        % all inner quadrant trial avgs
+        if i == 5 % these only have 4 regions
+            continue
+        else
+            rawC_in(i).avg = mean(rawC_in(i).raw,2,'omitnan');
+            rawC_in(i).err = std(rawC_in(i).raw,0,2,'omitnan');
+            rawH_in(i).avg = mean(rawC_in(i).raw,2,'omitnan');
+            rawH_in(i).err = std(rawC_in(i).raw,0,2,'omitnan');
+            grouped(exp).IQocc(i).inner.decreasing = rawC_in(i);
+            grouped(exp).IQocc(i).inner.increasing = rawH_in(i);
+            grouped(exp).IQocc(i).inner.temps = temps;
+        end
+    end
+    
+    % find the avg and err and save to group structure
+    grouped(exp).innerQuad.increasing.raw = raw_h;
+    grouped(exp).innerQuad.increasing.avg = mean(raw_h, 2, 'omitnan');
+    grouped(exp).innerQuad.increasing.err = std(raw_h, 0, 2, 'omitnan');
+    grouped(exp).innerQuad.decreasing.raw = raw_c;
+    grouped(exp).innerQuad.decreasing.avg = mean(raw_c, 2, 'omitnan');
+    grouped(exp).innerQuad.decreasing.err = std(raw_c, 0, 2, 'omitnan');
+    grouped(exp).innerQuad.temps = temps;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %% ANALYSIS: Food quadrant occupation
 clearvars('-except',initial_vars{:})
@@ -1462,193 +1935,11 @@ for exp = 1:num.exp
     grouped(exp).quadrant.temps = temps;
 end
 
-
-%% ANALYSIS: Create logical masks for all the regions in the arena for each trial
-clearvars('-except',initial_vars{:})
-% Add a new structure that contains the masks for each of the regions of
-% interest for the flies in this experiment which can be used to filter
-% other properties later on...like speed in the outer ring etc.
-
-% Initialize empty mask structure:
-initial_vars{end+1} = 'ROImask';
-ROImask = struct; 
-fields = {'all','ring', 'inner75'}; 
-food_fields = {'fullquad','innerquad','quadring','circle10','circle7','circle5'};
-quadOrder = {'food','right','opp','left'};
-for exp = 1:num.exp
-    for trial = 1:num.trial(exp)
-        % universal regions:
-        for i = 1:length(fields)
-            ROImask(exp).(fields{i})(trial).m = [];
-        end
-        % quadrant regions:
-        for i = 1:length(food_fields)
-            for q = 1:4
-                ROImask(exp).(food_fields{i}).(quadOrder{q})(trial).m = [];
-            end
-        end
-    end
-end
-
-for exp = 1:num.exp
-    % find locations of flies within each region of the arena
-    for trial = 1:num.trial(exp)
-        % pull parameters for this trial:
-        center = data(exp).data(trial).data.centre;
-        x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
-        y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
-        ct = data(exp).con_type(trial); % experiment lens configuration
-        pix2mm = conversion(ct).pix2mm;
-        R = conversion(ct).R;
-        circle75 = conversion(ct).circle75; % defines the distance to the inside edge of the outer ring
-        circle10 = conversion(ct).circle10;
-        circle7 = conversion(ct).circle7;
-        circle5 = conversion(ct).circle5;
-        foodWell = data(exp).T.foodLoc(trial);
-
-        % Adjust the X and Y coordinates relative to new center of (0,0)
-        adjustedX = x_loc - center(1); 
-        adjustedY = y_loc - center(2);
-
-        % Pull distance measures:  
-        D = hypot(adjustedX, adjustedY)./pix2mm; % distance to center in mm
-
-        % Define base location logicals
-        fly_loc = ~isnan(x_loc) & (D <= R); % data points that are valid flies
-        innerQuad = (D < circle75) & fly_loc; %logical of all points that have a fly within the inner circle
-        adjustedX(~fly_loc) = nan;
-        adjustedY(~fly_loc) = nan;
-        Q = findQuadLocation(adjustedX,adjustedY);
-
-        % sum of total flies in the three large regions
-        nTotal = sum(fly_loc);
-        nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
-        nTotalOuterROI = nTotal-nTotalInnerROI; % this gives the bottom of the 'outer distribution' fraction
-        ROImask(exp).all(trial).nflies = nTotal;
-        ROImask(exp).ring(trial).nflies = nTotalOuterROI;
-        ROImask(exp).inner75(trial).nflies = nTotalInnerROI;
-
-        % ------- Find the flies in the outer ring and inner region -------
-        % Define quadrant masks based on the new center & excluding flies that are in the outer ring:
-        % food_fields = {'circle10','circle7','circle5'};
-        ROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
-        ROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
-        ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
-
-        % Find the food quadrant (find location with the food well coordinates included)
-        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
-        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2); 
-        well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
-        quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
-
-        % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
-        % then it goes quad right, opposite food quad, and finally quad left of the food quad
-        switch quad_loc 
-            case 1
-                opLoc = [1 4 3 2]; 
-            case 2
-                opLoc = [2 1 4 3];
-            case 3
-                opLoc = [3 2 1 4];
-            case 4
-                opLoc = [4 3 2 1];
-        end
-
-        % Find the quadrant that each well belongs to
-        well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
-        well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
-        well_quads = findQuadLocation(well_opt_x,well_opt_y);
-        well_quad_loc = [];
-        for i = 1:4
-            well_quad_loc(i) = find(well_quads(i).Mask);
-        end       
-        
-        for i = 1:4 % for quadrant type (food, R, opp, L)
-            idx = opLoc(i); % rearrange order based on trial food location
-            well_idx = find(well_quad_loc==idx); %index of the well that falls into this quadrant of interest
-            ROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
-            ROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; %quadrant inside inner circle
-            ROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
-            
-            % well circle related distances
-            dX = adjustedX - well_opt_x(well_idx);
-            dY = adjustedY - well_opt_y(well_idx);
-            well_D = hypot(dX,dY)./pix2mm;
-            ROImask(exp).circle10.(quadOrder{i})(trial).m = well_D <= circle10; % within 10% area of well
-            ROImask(exp).circle7.(quadOrder{i})(trial).m = well_D <= circle7; % within 7% area of well
-            ROImask(exp).circle5.(quadOrder{i})(trial).m = well_D <= circle5; % within 5% area of well
-        end
-    end
-end
-
-%%  Visual demonstration of all the arena regions....
-clearvars('-except',initial_vars{:})
-exp = 1;
-trial = 1;
-r = 4;
-c = 7;
-k = Color('Dodgerblue');
-s = 10;
-ct = data(exp).con_type(trial);
-R = conversion(ct).R*conversion(ct).pix2mm;
-center = data(exp).data(trial).data.centre;
-n = 28;
-quadOrder = {'food','right','opp','left'};
-
-% regions: 
-roi = false([size(ROImask(exp).all(trial).m),n]);
-roi(:,:,1) = true(size(ROImask(exp).all(trial).m)); % all
-roi(:,:,8) = ROImask(exp).all(trial).m; % all screened
-roi(:,:,15) = ROImask(exp).ring(trial).m; % ring
-roi(:,:,22) = ROImask(exp).inner75(trial).m; % ring
-regionList = {'fullquad', 'innerquad','quadring', 'circle10','circle7','circle5'};
-for t = 2:length(regionList)+1
-    q = 1;
-    for i = t:7:n
-        roi(:,:,i) = ROImask(exp).(regionList{t-1})(trial).(quadOrder{q}).m;
-        q = q+1;
-    end
-end
-
-fig = getfig;
-x = data(exp).data(trial).data.x_loc;
-y = data(exp).data(trial).data.y_loc;
-% ALL points no filter
-for i = 1:n
-    subplot(r,c,i); hold on
-    scatter(x(roi(:,:,i)),y(roi(:,:,i)),s,k,'filled')
-    viscircles(center',R,'color','w');
-end
-formatFig(fig,true,[r,c]);
-for i = 1:n
-    subplot(r,c,i)
-    set(gca,'xcolor', 'none', 'ycolor','none');
-    axis square equal
-end
-save_figure(fig, [saveDir 'Figures/ROI outlines'],'-png');
-
-
-
-
-
 %% ANALYSIS: Inner Food quadrant occupation 
 clearvars('-except',initial_vars{:})
 % Add a new structure that contains the masks for each of the regions of
 % interest for the flies in this experiment which can be used to filter
 % other properties later on...like speed in the outer ring etc.
-
-% Initialize empty mask structure:
-initial_vars{end+1} = 'ROImask';
-ROImask = struct; 
-fields = {'fullquad', 'innerquad', 'ring', 'circle10', 'circle7','circle5'};
-for exp = 1:num.exp
-    for i = 1:length(fields)
-        for trial = 1:num.trial(exp)
-            ROImask(exp).(fields{i})(trial).m = [];
-        end
-    end
-end
-
 
 for exp = 1:num.exp
     % Initialize variables 
