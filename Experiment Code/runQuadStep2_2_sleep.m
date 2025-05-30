@@ -83,7 +83,7 @@ end
 
 % add a catch here if there is not data for the number of flies??
 if isnan(data.nflies) || data.nflies<=0
-    [excelfile, Excel, XL] = load_QuadBowlExperiments;
+    [excelfile, Excel, ~] = load_QuadBowlExperiments;
     xlRow = find(strcmp(expName,excelfile(:,Excel.expID)) & ...
         strcmp(expData.parameters.date,excelfile(:,Excel.date)) & ...
         strcmp(arena,excelfile(:,Excel.arena)));
