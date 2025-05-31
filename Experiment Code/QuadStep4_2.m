@@ -2174,15 +2174,10 @@ end
 % end
 
 
-%% Sleeping analysis -- find the locations of the sleeping flies and create a sleep mask
+%% SLEEPING analysis -- find the locations of the sleeping flies and create a sleep mask
 clearvars('-except',initial_vars{:})
-
-% TODO: WORKING HERE TO SET UP THE SLEEP MASKS!! 
-
-
 % Initialize empty sleep mask structure:
-initial_vars{end+1} = 'ROImask';
-initial_vars{end+1} = 'quadOrder';
+initial_vars{end+1} = 'sROImask';
 sROImask = struct;  
 
 % Initialize empty mask structure:
@@ -2241,16 +2236,16 @@ for exp = 1:num.exp
         nTotal = sum(fly_loc,2); % total across time
         nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
         nTotalOuterROI = nTotal-nTotalInnerROI; % this gives the bottom of the 'outer distribution' fraction
-        ROImask(exp).all(trial).nflies = nTotal;
-        ROImask(exp).ring(trial).nflies = nTotalOuterROI;
-        ROImask(exp).inner75(trial).nflies = nTotalInnerROI;
+        sROImask(exp).all(trial).nflies = nTotal;
+        sROImask(exp).ring(trial).nflies = nTotalOuterROI;
+        sROImask(exp).inner75(trial).nflies = nTotalInnerROI;
 
         % ------- Find the flies in the outer ring and inner region -------
         % Define quadrant masks based on the new center & excluding flies that are in the outer ring:
         % food_fields = {'circle10','circle7','circle5'};
-        ROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
-        ROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
-        ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
+        sROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
+        sROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
+        sROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
 
         % Find the food quadrant (find location with the food well coordinates included)
         adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
@@ -2280,31 +2275,26 @@ for exp = 1:num.exp
             idx = opLoc(i); % rearrange order based on trial food location
             well_idx = find(well_quads(idx).Mask);
             % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
-            ROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
-            ROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
-            ROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
+            sROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
+            sROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
+            sROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
 
             % well circle related distances
             dX = adjustedX - well_opt_x(well_idx);% well_idx
             dY = adjustedY - well_opt_y(well_idx);% well_idx
             well_D = hypot(dX,dY)./pix2mm;
-            ROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
-            ROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
-            ROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+            sROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
+            sROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
+            sROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
         end
     end
 end
 
 
-%% ANALYSIS: Find fly sleeping locations within the regions of interest 
+%% SLEEP ANALYSIS: Find fly sleeping locations within the regions of interest 
 clearvars('-except',initial_vars{:})
 
-
-% center = data(exp).data(trial).data.centre;
-% % find sleeping locations in the arena:
-% x_loc = sleep(exp).trial(trial).X;
-% y_loc = sleep(exp).trial(trial).Y;
-
+% TODO 5.31.25: WORKING HERE TO SET UP THE SLEEP MASKS!! 
 regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
 
 for exp = 1:num.exp
@@ -2324,13 +2314,13 @@ for exp = 1:num.exp
     
     % Fill structures with all the trials processed data
     for trial = 1:num.trial(exp)
-        % locations of flies that are sleeping in this trial:
-        sleepLoc = sleep(exp).trial(trial).sleepLoc;
-
-        % number of flies that are sleeping total..
-        nFull = sum(sleepLoc,2);
-        nInner = sum(sleepLoc & ROImask(exp).inner75(trial).m,2);
-        nRing = sum(sleepLoc & ROImask(exp).ring(trial).m,2);
+        % % locations of flies that are sleeping in this trial:
+        % sleepLoc = sleep(exp).trial(trial).sleepLoc;
+        % 
+        % % number of flies that are sleeping total..
+        % nFull = sum(sleepLoc,2);
+        % nInner = sum(sleepLoc & ROImask(exp).inner75(trial).m,2);
+        % nRing = sum(sleepLoc & ROImask(exp).ring(trial).m,2);
     
         test = ROImask(exp).inner75(trial).m;
         % ring & inner -- each get compared to the full arena compliment:

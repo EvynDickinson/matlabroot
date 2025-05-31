@@ -798,6 +798,7 @@ for i = 1:num.exp
     end
 end
 
+conversion = getConversion;
 
 %% ANALYSIS: normalize fly position within arena to common orientation (food location) 
 clearvars('-except',initial_vars{:})
@@ -1256,112 +1257,7 @@ for i = 1:num.exp
 end
 
 
-%% ANALYSIS: Event aligned signals  -- food occupancy
-clearvars('-except',initial_vars{:})
-data_types = {'occ', 'dist', 'speed', 'ring'};
-
-% account for any temperature hold groups
-fictive_proto = false;
-if any([data(:).hold_exp])
-     result = questdlg(['There are temperature hold experiments, '...
-         'do you want to assign them a fictive temperature protocol for '...
-         'temperature event aligned comparisons?']);
-    if strcmp(result, 'Yes') % offer a selection from the other trials within the grouping
-        protocol_options = unique({data(:).temp_protocol});
-        idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[175, 150]);
-        fictive_protocol = protocol_options{idx};
-        fictive_proto = true;
-    end
-end
-
-for i = 1:num.exp
-    if fictive_proto && data(i).hold_exp
-        grouped(i).aligned.temp_protocol = fictive_protocol;
-        grouped(i).fictivetemp = fictive_protocol;
-    else
-        grouped(i).aligned.temp_protocol = data(i).temp_protocol;
-        grouped(i).fictivetemp = data(i).temp_protocol;
-    end
-    tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
-
-    sectIDX = false(1,3);
-    sections = {'decreasing', 'increasing', 'holding'};
-    if tp.nDown >= 1
-       sectIDX(1) = true;
-    end
-    if tp.nUp >= 1
-        sectIDX(2) = true;
-    end
-    if tp.nHold >= 1
-        sectIDX(3) = true;
-    end
-    % if tp.nHold>0 % account for protocols with no holding period
-    %     sections = {'decreasing','increasing','holding'};
-    % else
-    %     sections = {'decreasing','increasing'};
-    % end
-    for ss = 1:3
-        if ~sectIDX(ss) % skip groups that don't have a section
-            continue
-        end
-        switch sections{ss}
-            case 'increasing'
-                tpBin = 'up';
-                nrr = tp.nUp;
-            case 'decreasing'
-                tpBin = 'down';
-                nrr = tp.nDown;
-            case 'holding'
-                tpBin = 'hold';
-                nrr = tp.nHold;
-        end
-        [speed, occ,dist,ring,temperature] = deal([]);
-        duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); %get shortest ramp period
-        time = 1:duration;
-        time = time./(tp.fps*60);
-        for rr = 1:nrr % for each ramp...
-            % ROI and temperaure:
-            ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
-            temperature(:,rr) = grouped(i).temp(ROI);
-            % food occupancy:
-            occ(:,:,rr) = grouped(i).occ.all(ROI,:).*100;
-            % distance to food: 
-            dist(:,:,rr) = grouped(i).dist.all(ROI,:);
-            % speed
-            speed(:,:,rr) = grouped(i).speed.all(ROI,:);
-            % ring occupancy
-            ring(:,:,rr) = grouped(i).ring.percent(ROI,:);
-        end
-        % loop through all the data types to extract
-        for type = 1:length(data_types)
-            switch data_types{type}
-                case 'dist' % DISTANCE: 
-                    y_all = dist;
-                case 'occ' % FOOD OCCUPANCY
-                    y_all = occ;
-                case 'speed' % SPEED
-                    y_all = speed;
-                case 'ring' % RING OCCUPANCY
-                    y_all = ring;
-            end
-            % calculate the cross-ramp means and normalization
-            y = mean(y_all,3);        
-            y_norm = y_all-mean(y_all(1:10,:,:),'omitnan'); %normalize to zero distance
-            y_norm = mean(y_norm,3); %this is now the avg over the different temp ramps within a trial
-            % add to the grouped data
-            grouped(i).aligned.(sections{ss}).(data_types{type}).all = y; 
-            grouped(i).aligned.(sections{ss}).(data_types{type}).mean = mean(y,2,'omitnan');
-            grouped(i).aligned.(sections{ss}).(data_types{type}).std = std(y,0,2,'omitnan');
-            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.all = y_norm; 
-            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.mean = mean(y_norm,2,'omitnan');
-            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.std = std(y_norm,0,2,'omitnan');
-            grouped(i).aligned.(sections{ss}).temp = mean(temperature,2,'omitnan');
-            grouped(i).aligned.(sections{ss}).time = time;
-        end
-    end
-end
-
-%% ANALYSIS: Create logical masks for all the regions in the arena for each trial
+%% ANALYSIS: Create ROImasks -- logical masks for all the regions in the arena for each trial
 clearvars('-except',initial_vars{:})
 % Add a new structure that contains the masks for each of the regions of
 % interest for the flies in this experiment which can be used to filter
@@ -2278,8 +2174,11 @@ end
 % end
 
 
-%% Sleeping analysis -- find the locations of the sleeping flies and create a sleep mask
+%% SLEEPING analysis -- find the locations of the sleeping flies and create a sleep mask
 clearvars('-except',initial_vars{:})
+
+% TODO: WORKING HERE TO SET UP THE SLEEP MASKS!! 
+
 
 % Initialize empty sleep mask structure:
 initial_vars{end+1} = 'ROImask';
@@ -2342,16 +2241,16 @@ for exp = 1:num.exp
         nTotal = sum(fly_loc,2); % total across time
         nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
         nTotalOuterROI = nTotal-nTotalInnerROI; % this gives the bottom of the 'outer distribution' fraction
-        ROImask(exp).all(trial).nflies = nTotal;
-        ROImask(exp).ring(trial).nflies = nTotalOuterROI;
-        ROImask(exp).inner75(trial).nflies = nTotalInnerROI;
+        sROImask(exp).all(trial).nflies = nTotal;
+        sROImask(exp).ring(trial).nflies = nTotalOuterROI;
+        sROImask(exp).inner75(trial).nflies = nTotalInnerROI;
 
         % ------- Find the flies in the outer ring and inner region -------
         % Define quadrant masks based on the new center & excluding flies that are in the outer ring:
         % food_fields = {'circle10','circle7','circle5'};
-        ROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
-        ROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
-        ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
+        sROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
+        sROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
+        sROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
 
         % Find the food quadrant (find location with the food well coordinates included)
         adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
@@ -2381,30 +2280,24 @@ for exp = 1:num.exp
             idx = opLoc(i); % rearrange order based on trial food location
             well_idx = find(well_quads(idx).Mask);
             % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
-            ROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
-            ROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
-            ROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
+            sROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
+            sROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
+            sROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
 
             % well circle related distances
             dX = adjustedX - well_opt_x(well_idx);% well_idx
             dY = adjustedY - well_opt_y(well_idx);% well_idx
             well_D = hypot(dX,dY)./pix2mm;
-            ROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
-            ROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
-            ROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+            sROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
+            sROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
+            sROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
         end
     end
 end
 
 
-%% ANALYSIS: Find fly sleeping locations within the regions of interest 
+%% SLEEP ANALYSIS: Find fly sleeping locations within the regions of interest 
 clearvars('-except',initial_vars{:})
-
-
-% center = data(exp).data(trial).data.centre;
-% % find sleeping locations in the arena:
-% x_loc = sleep(exp).trial(trial).X;
-% y_loc = sleep(exp).trial(trial).Y;
 
 regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
 
@@ -2626,6 +2519,114 @@ for exp = 1:num.exp
                         grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
                 end
             end
+        end
+    end
+end
+
+
+%% ANALYSIS: Event aligned signals  -- food occupancy
+% TODO: update this to work with the new occupancy structure format!
+% 5.30.25
+clearvars('-except',initial_vars{:})
+data_types = {'occ', 'dist', 'speed', 'ring'};
+
+% account for any temperature hold groups
+fictive_proto = false;
+if any([data(:).hold_exp])
+     result = questdlg(['There are temperature hold experiments, '...
+         'do you want to assign them a fictive temperature protocol for '...
+         'temperature event aligned comparisons?']);
+    if strcmp(result, 'Yes') % offer a selection from the other trials within the grouping
+        protocol_options = unique({data(:).temp_protocol});
+        idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[175, 150]);
+        fictive_protocol = protocol_options{idx};
+        fictive_proto = true;
+    end
+end
+
+for i = 1:num.exp
+    if fictive_proto && data(i).hold_exp
+        grouped(i).aligned.temp_protocol = fictive_protocol;
+        grouped(i).fictivetemp = fictive_protocol;
+    else
+        grouped(i).aligned.temp_protocol = data(i).temp_protocol;
+        grouped(i).fictivetemp = data(i).temp_protocol;
+    end
+    tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
+
+    sectIDX = false(1,3);
+    sections = {'decreasing', 'increasing', 'holding'};
+    if tp.nDown >= 1
+       sectIDX(1) = true;
+    end
+    if tp.nUp >= 1
+        sectIDX(2) = true;
+    end
+    if tp.nHold >= 1
+        sectIDX(3) = true;
+    end
+    % if tp.nHold>0 % account for protocols with no holding period
+    %     sections = {'decreasing','increasing','holding'};
+    % else
+    %     sections = {'decreasing','increasing'};
+    % end
+    for ss = 1:3
+        if ~sectIDX(ss) % skip groups that don't have a section
+            continue
+        end
+        switch sections{ss}
+            case 'increasing'
+                tpBin = 'up';
+                nrr = tp.nUp;
+            case 'decreasing'
+                tpBin = 'down';
+                nrr = tp.nDown;
+            case 'holding'
+                tpBin = 'hold';
+                nrr = tp.nHold;
+        end
+        [speed, occ,dist,ring,temperature] = deal([]);
+        duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); %get shortest ramp period
+        time = 1:duration;
+        time = time./(tp.fps*60);
+        for rr = 1:nrr % for each ramp...
+            % ROI and temperaure:
+            ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
+            temperature(:,rr) = grouped(i).temp(ROI);
+            % food occupancy:
+            occ(:,:,rr) = grouped(i).occ.all(ROI,:).*100;
+            % distance to food: 
+            dist(:,:,rr) = grouped(i).dist.all(ROI,:);
+            % speed
+            speed(:,:,rr) = grouped(i).speed.all(ROI,:);
+            % ring occupancy
+            ring(:,:,rr) = grouped(i).ring.percent(ROI,:);
+        end
+        % loop through all the data types to extract
+        for type = 1:length(data_types)
+            switch data_types{type}
+                case 'dist' % DISTANCE: 
+                    y_all = dist;
+                case 'occ' % FOOD OCCUPANCY
+                    y_all = occ;
+                case 'speed' % SPEED
+                    y_all = speed;
+                case 'ring' % RING OCCUPANCY
+                    y_all = ring;
+            end
+            % calculate the cross-ramp means and normalization
+            y = mean(y_all,3);        
+            y_norm = y_all-mean(y_all(1:10,:,:),'omitnan'); %normalize to zero distance
+            y_norm = mean(y_norm,3); %this is now the avg over the different temp ramps within a trial
+            % add to the grouped data
+            grouped(i).aligned.(sections{ss}).(data_types{type}).all = y; 
+            grouped(i).aligned.(sections{ss}).(data_types{type}).mean = mean(y,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).std = std(y,0,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.all = y_norm; 
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.mean = mean(y_norm,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).(data_types{type}).norm.std = std(y_norm,0,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).temp = mean(temperature,2,'omitnan');
+            grouped(i).aligned.(sections{ss}).time = time;
         end
     end
 end
