@@ -2176,13 +2176,8 @@ end
 
 %% SLEEPING analysis -- find the locations of the sleeping flies and create a sleep mask
 clearvars('-except',initial_vars{:})
-
-% TODO: WORKING HERE TO SET UP THE SLEEP MASKS!! 
-
-
 % Initialize empty sleep mask structure:
-initial_vars{end+1} = 'ROImask';
-initial_vars{end+1} = 'quadOrder';
+initial_vars{end+1} = 'sROImask';
 sROImask = struct;  
 
 % Initialize empty mask structure:
@@ -2296,47 +2291,85 @@ for exp = 1:num.exp
 end
 
 
-%% SLEEP ANALYSIS: Find fly sleeping locations within the regions of interest 
+%% SLEEP ANALYSIS: Find fly sleeping locations within the regions of interest (takes about 20 seconds)
 clearvars('-except',initial_vars{:})
 
 regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+groupType = {'allflies','sleepflies', 'withinROI'};
 
+disp('Processing sleep locations...')
+tic
 for exp = 1:num.exp
     % initialize empty variables
-    [ring.all,inner75.all] = deal([]);
+    [ring.allflies.all,ring.sleepflies.all, ring.withinROI.all] = deal([]);
+    [inner75.allflies.all,inner75.sleepflies.all, inner75.withinROI.all] = deal([]);
+    [fullarena.allflies.all,fullarena.sleepflies.all] = deal([]);
+
     region = struct;
     for rr = 1:length(regionList)
         for q = 1:4 % each of the quadrants
-            region(rr).(quadOrder{q}).all = [];
-            region(rr).(quadOrder{q}).all_info = {'percent relative to all the flies in the whole arena'};
+            region(rr).(quadOrder{q}).allflies.all = [];
+            region(rr).(quadOrder{q}).allflies.all_info = {['percent of sleeping flies in the region relative ...' ...
+                                        'to all the flies (not just sleeping flies) in the whole arena']};
+            region(rr).(quadOrder{q}).sleepflies.all = [];
+            region(rr).(quadOrder{q}).sleepflies.all_info = {'in region percent of the total flies that are sleeping'};
+            region(rr).(quadOrder{q}).withinROI.all = [];
+            region(rr).(quadOrder{q}).withinROI.all_info = {'in region sleep percent of the total flies in that region'};
             if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
-                region(rr).(quadOrder{q}).partial = [];
-                region(rr).(quadOrder{q}).partial_info = {'percent relative to only the flies in the four quadrants of this space'};
+                region(rr).(quadOrder{q}).allflies.partial = [];
+                region(rr).(quadOrder{q}).allflies.partial_info = {'percent relative to only the total flies in the four quadrants of this space'};
+                region(rr).(quadOrder{q}).sleepflies.partial = [];
+                region(rr).(quadOrder{q}).sleepflies.partial_info = {'percent relative to only the sleeping flies in the four quadrants of this space'};
             end
         end
     end
     
     % Fill structures with all the trials processed data
     for trial = 1:num.trial(exp)
-        % locations of flies that are sleeping in this trial:
-        sleepLoc = sleep(exp).trial(trial).sleepLoc;
+        % % locations of flies that are sleeping in this trial:
 
-        % number of flies that are sleeping total..
-        nFull = sum(sleepLoc,2);
-        nInner = sum(sleepLoc & ROImask(exp).inner75(trial).m,2);
-        nRing = sum(sleepLoc & ROImask(exp).ring(trial).m,2);
+        % Total numbers within each type of group: (denomenators) 
+        nFull = ROImask(exp).all(trial).nflies;
+        nInner = ROImask(exp).inner75(trial).nflies;
+        nRing = ROImask(exp).ring(trial).nflies;
+        snFull = sROImask(exp).all(trial).nflies; % s for sleeping
+        snInner = sROImask(exp).inner75(trial).nflies;
+        snRing = sROImask(exp).ring(trial).nflies;
+
+        % sleeping fly percentages in the arena as a whole: 
+        temp = sROImask(exp).all(trial).m;
+        n = getPercentFlies(temp,nFull);  %total sleeping out of all flies 
+        fullarena.allflies.all = autoCat(fullarena.allflies.all,n,false);
+        n = getPercentFlies(temp,snFull); % total sleeping out of sleeping (should be 100 here...)
+        fullarena.sleepflies.all = autoCat(fullarena.sleepflies.all,n,false);
     
-        test = ROImask(exp).inner75(trial).m;
-        % ring & inner -- each get compared to the full arena compliment:
-        n = getPercentFlies(sleepLoc & ROImask(exp).ring(trial).m,nFull);
-        ring.all = autoCat(ring.all,n,false);
+        % sleeping fly percentages in the outer ring 
+        temp = sROImask(exp).ring(trial).m; %logical indx of flies sleeping in the outer ring
+        n = getPercentFlies(temp,nFull);
+        ring.allflies.all = autoCat(ring.allflies.all,n,false);
+        n = getPercentFlies(temp,snFull);
+        ring.sleepflies.all = autoCat(ring.sleepflies.all,n,false);
+        n = getPercentFlies(temp,nRing);
+        ring.withinROI.all = autoCat(ring.withinROI.all,n,false);
 
-        n = getPercentFlies(ROImask(exp).inner75(trial).m,nFull);
-        inner75.all = autoCat(inner75.all,n,false);
+        % sleeping flies in the inner circle
+        temp = sROImask(exp).inner75(trial).m;
+        n = getPercentFlies(temp,nFull);
+        inner75.allflies.all = autoCat(inner75.allflies.all,n,false);
+        n = getPercentFlies(temp,snFull);
+        inner75.sleepflies.all = autoCat(inner75.sleepflies.all,n,false);
+        n = getPercentFlies(temp,nInner);
+        inner75.withinROI.all = autoCat(inner75.withinROI.all,n,false);
 
-        % fig = figure; hold on
-        %     plot(inner75.all,'color', Color('teal'))
-        %     plot(ring.all,'color', Color('gold'))
+        % fig = figure; set(fig,'windowstyle', 'docked'); hold on
+        % y = mean(inner75.sleepflies.all,2,'omitnan');
+        % plot(y)
+        % y = mean(ring.sleepflies.all,2,'omitnan');
+        % plot(y)
+
+        % fig = figure; set(fig,'windowstyle', 'docked');hold on
+        %     plot(inner75.allflies.all,'color', Color('teal'))
+        %     plot(ring.allflies.all,'color', Color('gold'))
         %     plot(inner75.all + ring.all,'color', Color('white'))
         %     formatFig(fig,true);
         %     ylabel('% flies')
@@ -2347,43 +2380,67 @@ for exp = 1:num.exp
         % for each of the quadrant-related regions:
         for rr = 1:length(regionList)
             for q = 1:4 % each of the quadrants
-                temp = ROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m;
-                n = getPercentFlies(temp,nFull);
-                region(rr).(quadOrder{q}).all = autoCat(region(rr).(quadOrder{q}).all,n,false);
+                temp = sROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m;
+                for g = 1:3 % for each percentage type (e.g. all flies, within sleeping flies or within the region
+                    switch g
+                        case 1 % all flies
+                            n = getPercentFlies(temp,nFull);
+                        case 2 % within sleeping flies
+                            n = getPercentFlies(temp,snFull);
+                        case 3 % within the flies of that region
+                            nArea = sum(ROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m,2);
+                            n = getPercentFlies(temp,nArea);
+                    end
+                    
+                    region(rr).(quadOrder{q}).(groupType{g}).all = autoCat(region(rr).(quadOrder{q}).(groupType{g}).all,n,false);
+                end
                 if strcmp(regionList{rr},'innerquad')
                     n = getPercentFlies(temp,nInner);
-                    region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+                    region(rr).(quadOrder{q}).allflies.partial = autoCat(region(rr).(quadOrder{q}).allflies.partial,n,false);
+                    n = getPercentFlies(temp,snInner);
+                    region(rr).(quadOrder{q}).sleepflies.partial = autoCat(region(rr).(quadOrder{q}).sleepflies.partial,n,false);
                 elseif strcmp(regionList{rr},'quadring')
                     n = getPercentFlies(temp,nRing);
-                    region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+                    region(rr).(quadOrder{q}).allflies.partial = autoCat(region(rr).(quadOrder{q}).allflies.partial,n,false);
+                    n = getPercentFlies(temp,snRing);
+                    region(rr).(quadOrder{q}).sleepflies.partial = autoCat(region(rr).(quadOrder{q}).sleepflies.partial,n,false);
                 end
             end
         end
     end
 
     % Pull out the averages and errors across the trials: 
-    ring.avg = mean(ring.all,2,'omitnan');
-    ring.std = std(ring.all,0,2,'omitnan');
-    inner75.avg = mean(inner75.all,2,'omitnan');
-    inner75.std = std(inner75.all,0,2,'omitnan');
+    for g = 1:3
+        ring.(groupType{g}).avg = mean(ring.(groupType{g}).all,2,'omitnan');
+        ring.(groupType{g}).std = std(ring.(groupType{g}).all,0,2,'omitnan');
+        inner75.(groupType{g}).avg = mean(inner75.(groupType{g}).all,2,'omitnan');
+        inner75.(groupType{g}).std = std(inner75.(groupType{g}).all,0,2,'omitnan');
+    end
     for rr = 1:length(regionList)
         for q = 1:4 % each of the quadrants
-            region(rr).(quadOrder{q}).avg = mean(region(rr).(quadOrder{q}).all,2,'omitnan');
-            region(rr).(quadOrder{q}).std = std(region(rr).(quadOrder{q}).all,0,2,'omitnan');
+            for g = 1:3
+                region(rr).(quadOrder{q}).(groupType{g}).avg = mean(region(rr).(quadOrder{q}).(groupType{g}).all,2,'omitnan');
+                region(rr).(quadOrder{q}).(groupType{g}).std = std(region(rr).(quadOrder{q}).(groupType{g}).all,0,2,'omitnan');
+            end
             if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
-                region(rr).(quadOrder{q}).partial_avg = mean(region(rr).(quadOrder{q}).partial,2,'omitnan');
-                region(rr).(quadOrder{q}).parital_std = std(region(rr).(quadOrder{q}).partial,0,2,'omitnan');
+                region(rr).(quadOrder{q}).allflies.partial_avg = mean(region(rr).(quadOrder{q}).allflies.partial,2,'omitnan');
+                region(rr).(quadOrder{q}).allflies.parital_std = std(region(rr).(quadOrder{q}).allflies.partial,0,2,'omitnan');
+                region(rr).(quadOrder{q}).sleepflies.partial_avg = mean(region(rr).(quadOrder{q}).sleepflies.partial,2,'omitnan');
+                region(rr).(quadOrder{q}).sleepflies.parital_std = std(region(rr).(quadOrder{q}).sleepflies.partial,0,2,'omitnan');
             end
         end
     end   
     
     % Assign the data to the grouped structure
-    grouped(exp).ring = ring;
-    grouped(exp).inner75 = inner75;
+    grouped(exp).sleep.ring = ring;
+    grouped(exp).sleep.inner75 = inner75;
+    grouped(exp).sleep.fullarena = fullarena;
     for rr = 1:length(regionList)
-        grouped(exp).(regionList{rr}) = region(rr);
+        grouped(exp).sleep.(regionList{rr}) = region(rr);
     end
 end
+toc
+disp('...done')
 
 % % TODO 5.30.25: demo figure (to be moved to 4.2 something else...)
 % r = 4;
@@ -2421,10 +2478,9 @@ end
 % legend(quadOrder, 'textcolor', 'w', 'box', 'off');
 % save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
 
-
 % Pool the data for heating and cooling together across the
 % different regions for temp-tuning curve comparisons 
-all_regions = [regionList, 'ring', 'inner75'];
+all_regions = [regionList, 'ring', 'inner75', 'fullarena'];
 for exp = 1:num.exp
     temps = grouped(exp).position.temp_list; % pre-binned temperatures
     nTemp = length(temps);
@@ -2434,8 +2490,9 @@ for exp = 1:num.exp
     locs = grouped(exp).position.loc;
 
     for rr = 1:length(all_regions) % each type of region (e.g. outer ring, food circle etc)
+      for g = 1:3
         switch all_regions{rr}
-            case {'ring','inner75'}
+            case {'ring','inner75','fullarena'}
                 nQ = 1; % quadrant number...
                 nP = 1; % partial region percentages to check
             case {'innerquad','quadring'}
@@ -2447,11 +2504,19 @@ for exp = 1:num.exp
         end
         for p = 1:nP % for the number of full or partial percentages to compare
             for q = 1:nQ % each of the quadrants
+                % skip within region for the partial regino percentages
+                if p==2 && g==3
+                    continue
+                end
+                % skip within ROI for full arena (this doesn't exist)
+                if g==3 && strcmp('fullarena',  all_regions{rr})
+                    continue
+                end
                 % pull data for the right quadrant (if there are quadrants)
                 if nQ>1
-                    baseY = grouped(exp).(all_regions{rr}).(quadOrder{q});
+                    baseY = grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g});
                 else 
-                    baseY = grouped(exp).(all_regions{rr});
+                    baseY = grouped(exp).sleep.(all_regions{rr}).(groupType{g});
                 end
                 % pull the right type of data to run
                 if p==1
@@ -2459,10 +2524,9 @@ for exp = 1:num.exp
                 else
                     y = baseY.partial;
                 end
+                
                 % initialize empty structures for the variables
                 [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
-                % [rawC_in, rawH_in, rawC_all, rawH_all] = deal(struct);
-                % [rawC_in(1:4).raw, rawH_in(1:4).raw, rawC_all(1:5).raw, rawH_all(1:5).raw] = deal(nan(nTemp,num.trial(exp)));
 
                 % Update the averages for the preset temperature bins 
                 for t = 1:nTemp
@@ -2482,44 +2546,44 @@ for exp = 1:num.exp
                 c_avg = mean(raw_c, 2, 'omitnan');
                 c_err = std(raw_c, 0, 2, 'omitnan');
 
-
                 switch all_regions{rr}
-                    case {'ring','inner75'}    
-                        grouped(exp).(all_regions{rr}).increasing.raw = raw_h;
-                        grouped(exp).(all_regions{rr}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).decreasing.raw = raw_c;
-                        grouped(exp).(all_regions{rr}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).temps = temps;
+                    case {'ring','inner75','fullarena'}    
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).increasing.raw = raw_h;
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).decreasing.raw = raw_c;
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(groupType{g}).temps = temps;
                     case {'fullquad','innerquad','quadring'}
                         if p == 1
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.raw = raw_h;
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.raw = raw_c;
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).temps = temps;
                         else
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_raw = raw_h;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_avg = mean(raw_h, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_std = std(raw_h, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_raw = raw_c;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_avg = mean(raw_c, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_std = std(raw_c, 0, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.p_raw = raw_h;
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.p_avg = mean(raw_h, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.p_std = std(raw_h, 0, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.p_raw = raw_c;
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.p_avg = mean(raw_c, 2, 'omitnan');
+                            grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.p_std = std(raw_c, 0, 2, 'omitnan');
                         end
                     case {'circle10','circle7','circle5'}
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.raw = raw_h;
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.raw = raw_c;
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                        grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g}).temps = temps;
                 end
             end
         end
+      end
     end
 end
 
@@ -2585,8 +2649,8 @@ for i = 1:num.exp
                 tpBin = 'hold';
                 nrr = tp.nHold;
         end
-        [speed, occ,dist,ring,temperature] = deal([]);
-        duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); %get shortest ramp period
+        [speed, occ, dist, ring, temperature] = deal([]);
+        duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); % get shortest ramp period
         time = 1:duration;
         time = time./(tp.fps*60);
         for rr = 1:nrr % for each ramp...
@@ -2600,7 +2664,7 @@ for i = 1:num.exp
             % speed
             speed(:,:,rr) = grouped(i).speed.all(ROI,:);
             % ring occupancy
-            ring(:,:,rr) = grouped(i).ring.percent(ROI,:);
+            ring(:,:,rr) = grouped(i).ring.all(ROI,:);
         end
         % loop through all the data types to extract
         for type = 1:length(data_types)
