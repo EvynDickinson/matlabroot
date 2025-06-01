@@ -74,7 +74,6 @@ for ii = 1:length(y_value)
     % put the line on the graph
     plot(x, [yval, yval], 'color', RGB, 'linestyle', linetype, 'linewidth', LW)
 end  
-
      
 % return hold status
 if g == 0

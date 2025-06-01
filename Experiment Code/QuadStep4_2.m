@@ -385,6 +385,9 @@ end
 disp(expGroup)
 disp(expNames')
 
+figDir = createFolder([saveDir, 'Figures/']);
+initial_vars{end+1} = 'figDir';
+
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
 fig_type = '-png'; 

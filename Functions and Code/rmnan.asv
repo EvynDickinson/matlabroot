@@ -51,7 +51,7 @@ end
 
 yA = A(~nanLoc);
 
-if nargin > 1 
+if nargin > 1 && ~bidirectional
     if isvector(B)
         yB = B(~nanLoc);
     elseif isvector(A)
@@ -64,8 +64,6 @@ if nargin > 1
         error('If A is not a vector, B must be a vector or dim must be specified properly.');
     end
 else
-    yB = [];
+    yB = B(~nanLoc);
 end
-
-
 end
