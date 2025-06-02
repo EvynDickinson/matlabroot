@@ -670,15 +670,9 @@ for arena = 1:4
 end
 
 clearvars('-except',initial_vars{:})
-save([analysisDir expName ' preformed data'],'-v7.3')
+save([analysisDir expName ' preformed data v2'],'-v7.3')
 disp('Formatted data saved')
 disp('Done')
-
-
-
-
-
-
 
 
 %% 
