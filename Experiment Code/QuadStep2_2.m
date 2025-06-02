@@ -9,10 +9,10 @@ facility = 'college';
 
 % load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
-loc = cellfun(@isnan,excelfile(2:end,Excel.uStep1)); % REVERT BACK TO 'step1'
+loc = cellfun(@isnan,excelfile(2:end,Excel.Step1)); % REVERT BACK TO 'step1'
 loc = ~loc;
 rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.uStep2]);
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.Step2]);
 loc1 = cellfun(@isnan,eligible_files(:,4));
 c = cellfun(@string,eligible_files);
 c(loc1,4) = ' ';
