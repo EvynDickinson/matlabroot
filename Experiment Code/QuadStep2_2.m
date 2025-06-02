@@ -9,10 +9,10 @@ facility = 'college';
 
 % load excel file:
 [excelfile, Excel, XL] = load_QuadBowlExperiments;
-loc = cellfun(@isnan,excelfile(2:end,Excel.uStep1)); % REVERT BACK TO 'step1'
-loc = ~loc;
+loc = cellfun(@isnan,excelfile(2:end,Excel.step1)); % REVERT BACK TO 'step1'
+loc = ~loc; % select only locations that have been processed through step 1 already
 rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.uStep2]);
+eligible_files = excelfile([false;loc],[Excel.date, Excel.arena, Excel.expID, Excel.processed]);
 loc1 = cellfun(@isnan,eligible_files(:,4));
 c = cellfun(@string,eligible_files);
 c(loc1,4) = ' ';
@@ -72,18 +72,18 @@ for ii = 1:length(fileIdx)
         if strcmpi(results, 'Saved Data')
             % write processed 'Y' into the excel sheet
             isExcelFileOpen(XL);
-            writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.uStep2) num2str(XLrow)]); % REVERT BACK TO 'processed'
+            writecell({'Y'},XL,'Sheet','Exp List','Range',[Alphabet(Excel.processed) num2str(XLrow)]); 
         end
     end
 
     % % Bring this back after the current batch processing 5.22.25
-    % % Calculate and write circadian start time value for experiments
-    % expStart = excelfile{XLrow,Excel.starttime};
-    % incubator = excelfile{XLrow,Excel.daynight}; %day or night incubator
-    % time_string = getCircadianTime(expStart, incubator, List.date{ii});
-    % % write zeitgeber time into the excel sheet
-    % isExcelFileOpen(XL);
-    % writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
+    % Calculate and write circadian start time value for experiments
+    expStart = excelfile{XLrow,Excel.starttime};
+    incubator = excelfile{XLrow,Excel.daynight}; %day or night incubator
+    time_string = getCircadianTime(expStart, incubator, List.date{ii});
+    % write zeitgeber time into the excel sheet
+    isExcelFileOpen(XL);
+    writecell({time_string},XL,'Sheet','Exp List','Range',[Alphabet(Excel.zeitgebertime) num2str(XLrow)]);
 
     toc
     disp(['Finished ' FileNames(fileIdx(ii))])         
