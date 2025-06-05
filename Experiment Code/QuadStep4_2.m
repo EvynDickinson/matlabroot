@@ -402,7 +402,7 @@ grouped = struct;
 switch expGroup
     case 'Berlin LTS 15-35 caviar vs empty'
         expOrder = 1:2;
-        colors = {'Gray', 'DodgerBlue'};
+        colors = {'DodgerBlue', 'Gray'};
      case 'Berlin F Hold vs LRR 25-17 caviar'
         expOrder = [4, 1:3, 5];
         colors = {'DeepSkyBlue','DimGrey','Gray','DarkGrey','Gainsboro'};

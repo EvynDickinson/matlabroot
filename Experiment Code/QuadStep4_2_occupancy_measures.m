@@ -94,11 +94,55 @@ for exp = 1:num.exp
 end
 
 
-%% testing 
+%% Temperature-tuning curves for the different parameters: 
 
-[yA,yB] = rmnan(A,B,dim,bidirectional)
+params = {'innerquad', 'circle7','ring'};
+[~,~,foreColor] = formattingColors(blkbgd,true); %get background colors
 
+r = 1; 
+c = 3;
+FA = 0.5;
+lw = 1.5;
 
+fig = getfig('', 1);
+for exp = 1:num.exp
+    for i = 1:length(params)
+        switch params{i}
+            case 'innerquad'
+                base = grouped(exp).innerquad.food;
+                null_line = 18.75;
+            case 'circle7'
+                base = grouped(exp).circle7.food;
+                null_line = 7;
+            case 'ring'
+                base = grouped(exp).ring;
+                null_line = 25;
+        end
+
+        subplot(r,c,i); hold on
+        kolor = grouped(exp).color;
+            % warming
+            y = base.increasing.avg;
+            y_err = base.increasing.std./sqrt(num.trial(exp));
+            x = base.temps;
+            plot_error_fills(true, x,y,y_err,kolor,fig_type,FA);
+            plot(x,y,'color', kolor,'linestyle', '-','linewidth', lw);
+            % cooling
+            y = base.decreasing.avg;
+            y_err = base.decreasing.std./sqrt(num.trial(exp));
+            x = base.temps;
+            plot_error_fills(true, x,y,y_err,kolor,fig_type,FA);
+            plot(x,y,'color', kolor,'linestyle', '--','linewidth', lw);
+            
+            % formatting
+            ylabel([params{i} ' occupancy (%)'])
+            xlabel('temp (\circC)')
+            h_line(null_line, foreColor);
+    end
+end
+formatFig(fig, blkbgd,[r c]);
+
+save_figure(fig,[figDir, 'innerquad circle7 and ring occ temp curves'],fig_type);
 
 
 %% 
