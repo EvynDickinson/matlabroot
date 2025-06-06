@@ -21,15 +21,16 @@ imshowpair(Img1, Img2,'montage'); title('Paint weathering')
 
 save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', '-png');
 
-%% change genotype
+%% change food type
 parameters.ArenaA.well_1 = 'Caviar';
 parameters.ArenaB.well_1 = 'Caviar';
 
-%% change food
+%% change genotype
 parameters.ArenaA.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
 parameters.ArenaB.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
 parameters.ArenaC.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
 parameters.ArenaD.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
+
 %% change sex
 parameters.ArenaA.sex = 'Mixed';
 parameters.ArenaB.sex = 'Mixed';
