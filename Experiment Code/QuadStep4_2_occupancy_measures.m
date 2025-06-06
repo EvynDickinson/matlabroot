@@ -146,50 +146,73 @@ save_figure(fig,[figDir, 'innerquad circle7 and ring occ temp curves'],fig_type)
 
 
 %% 
-clearvars('-except',initial_vars{:})
-plot_err = true;
+% clearvars('-except',initial_vars{:})
+% plot_err = true;
+% 
+% r = 4;
+% c = 1;
+% sb(1).idx = 1;
+% sb(2).idx = 2:4;
+% lw = 2;
+% kolor = {'gold', 'grey', 'white', 'grey'};
+% x_lim = [0,700];
+% 
+% fig = getfig('',1);
+% set(fig, 'windowstyle', 'docked');
+% subplot(r,c,sb(1).idx);
+%     x = grouped(exp).time;
+%     plot(x,grouped(exp).temp,'color','w', 'linewidth',lw)
+%     ylabel('(\circC)')
+%     xlim(x_lim)
+% subplot(r,c,sb(2).idx)
+%     y_all = [];
+%     hold on
+%     for q = 1:4
+%         y = smooth(grouped(exp).quadring.(quadOrder{q}).partial_avg,180,'moving');
+%         plot(x,y,'color',Color(kolor{q}),'linewidth', lw)
+%         y_all = [y_all, y];
+%     end
+%     plot(x, sum(y_all,2),'color', 'r')
+%     xlim(x_lim)
+%     ylabel('quad ring occupancy (%)')
+%     xlabel('time (min)')
+%     ylim([0, 100])
+% formatFig(fig,true,[r,c],sb);
+% subplot(r,c,sb(1).idx);
+% set(gca,'xcolor', 'none');
+% subplot(r,c,sb(2).idx);
+% legend(quadOrder, 'textcolor', 'w', 'box', 'off');
+% save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
 
-r = 4;
-c = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:4;
-lw = 2;
-kolor = {'gold', 'grey', 'white', 'grey'};
-x_lim = [0,700];
+%% Drop origin:
 
-fig = getfig('',1);
-set(fig, 'windowstyle', 'docked');
-subplot(r,c,sb(1).idx);
-    x = grouped(exp).time;
-    plot(x,grouped(exp).temp,'color','w', 'linewidth',lw)
-    ylabel('(\circC)')
-    xlim(x_lim)
-subplot(r,c,sb(2).idx)
-    y_all = [];
-    hold on
-    for q = 1:4
-        y = smooth(grouped(exp).quadring.(quadOrder{q}).partial_avg,180,'moving');
-        plot(x,y,'color',Color(kolor{q}),'linewidth', lw)
-        y_all = [y_all, y];
-    end
-    plot(x, sum(y_all,2),'color', 'r')
-    xlim(x_lim)
-    ylabel('quad ring occupancy (%)')
-    xlabel('time (min)')
-    ylim([0, 100])
-formatFig(fig,true,[r,c],sb);
-subplot(r,c,sb(1).idx);
-set(gca,'xcolor', 'none');
-subplot(r,c,sb(2).idx);
-legend(quadOrder, 'textcolor', 'w', 'box', 'off');
-save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
+sSpan = 360;
+
+[r,c] = deal(ceil(sqrt(num.trial(exp))));
+y = (grouped(exp).dist.all);
+
+fig = getfig('',1); 
+for i = 1:num.trial(exp)
+    subplot(r,c,i)
+    y1 = y(:,i);
+    y1 = smooth(y1,sSpan,'moving');
+    y1 = smooth(y1,sSpan,'moving');
+    plot(y1,'color', 'w')
+    yyaxis right
+    plot(grouped(exp).temp,'color', Color('gold'))
+end
+formatFig(fig, blkbgd,[r c]);
+for i = 1:num.trial(exp)
+subplot(r, c, i)
+    yyaxis left
+    ylabel('dist')
+    set(gca,'ycolor', 'w','xcolor', 'w')
+    yyaxis right
+    set(gca,'ycolor', 'none')
+end
 
 
-
-
-
-
-
+%% 
 
 
 
