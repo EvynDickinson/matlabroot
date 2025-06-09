@@ -24,6 +24,8 @@ save_figure(f, 'E:\My Drive\Jeanne Lab\DATA\Analysis\Paint weathering example', 
 %% change food type
 parameters.ArenaA.well_1 = 'Caviar';
 parameters.ArenaB.well_1 = 'Caviar';
+parameters.ArenaC.well_1 = 'Caviar';
+parameters.ArenaD.well_1 = 'Caviar';
 
 %% change genotype
 parameters.ArenaA.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';

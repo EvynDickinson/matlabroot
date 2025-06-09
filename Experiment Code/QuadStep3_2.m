@@ -246,19 +246,35 @@ initial_vars{end+1} = 'temp_protocol';
 initial_vars{end+1} = 'hold_exp';
 
 % Check if this is a temp hold control and if so, which active profile to compare it to:
-hold_protocols = {'Hold35C','Hold33C','Hold30C','Hold27C','Hold25C', 'Hold23C', 'Hold20C','Hold17C','Hold15C'};
-if any(strcmpi(T.TempProtocol{1},hold_protocols))
-        hold_exp = true;
-        cp = getCloudPath;
-        xlFile = [cp(1:end-5) 'Quad Bowl Experiments.xlsx'];
-        [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols'); 
-        protocolList = excelfile(:,1);
-        idx = listdlg('PromptString', {'Select temp protocol for timecourse comparison'}, 'ListString', protocolList,'ListSize', [250, 400]);
-        temp_protocol = protocolList{idx};
-else 
-    temp_protocol = T.TempProtocol{1};
-    hold_exp = false;
+for trial = 1:ntrials
+        tP = getTempTurnPoints(temp_protocol);
+        if tP.holdexp 
+            cp = getCloudPath;
+            xlFile = [cp(1:end-5) 'Quad Bowl Experiments.xlsx'];
+            [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols'); 
+            protocolList = excelfile(:,1);
+            idx = listdlg('PromptString', {'Select temp protocol for timecourse comparison'}, 'ListString', protocolList,'ListSize', [250, 400]);
+            temp_protocol = protocolList{idx};
+            break
+        else
+            temp_protocol = T.TempProtocol{1};
+            hold_exp = false;
+        end
 end
+% hold_protocols = {'Hold35C','Hold33C','Hold30C','Hold27C','Hold25C', 'Hold23C', 'Hold20C','Hold17C','Hold15C'...
+%     'survival_curve_40C','survival_curve_35C','survival_curve_15C','survival_curve_10C','survival_curve_5C'};
+% if any(strcmpi(T.TempProtocol{1},hold_protocols))
+%         hold_exp = true;
+%         cp = getCloudPath;
+%         xlFile = [cp(1:end-5) 'Quad Bowl Experiments.xlsx'];
+%         [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols'); 
+%         protocolList = excelfile(:,1);
+%         idx = listdlg('PromptString', {'Select temp protocol for timecourse comparison'}, 'ListString', protocolList,'ListSize', [250, 400]);
+%         temp_protocol = protocolList{idx};
+% else 
+%     temp_protocol = T.TempProtocol{1};
+%     hold_exp = false;
+% end
 
 % Generate the idealized fictive temperature protocol for the selected temperature protocol *if LRR only*:
 if hold_exp
