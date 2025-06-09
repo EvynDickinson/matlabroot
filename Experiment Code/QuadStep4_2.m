@@ -1379,7 +1379,7 @@ end
 %% FIGURE: Visual demonstration of all the arena regions....
 if strcmp('Yes', questdlg('Show demo image of arena regions of interest?'))
     clearvars('-except',initial_vars{:})
-    exp = 2;
+    exp = 1;
     trial = 1;
     r = 4;
     c = 7;

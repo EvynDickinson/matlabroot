@@ -247,7 +247,7 @@ initial_vars{end+1} = 'hold_exp';
 
 % Check if this is a temp hold control and if so, which active profile to compare it to:
 for trial = 1:ntrials
-        tP = getTempTurnPoints(temp_protocol);
+        tP = getTempTurnPoints(T.TempProtocol{trial});
         if tP.holdexp 
             cp = getCloudPath;
             xlFile = [cp(1:end-5) 'Quad Bowl Experiments.xlsx'];
@@ -255,9 +255,10 @@ for trial = 1:ntrials
             protocolList = excelfile(:,1);
             idx = listdlg('PromptString', {'Select temp protocol for timecourse comparison'}, 'ListString', protocolList,'ListSize', [250, 400]);
             temp_protocol = protocolList{idx};
+            hold_exp = true;
             break
         else
-            temp_protocol = T.TempProtocol{1};
+            temp_protocol = T.TempProtocol{trial};
             hold_exp = false;
         end
 end
