@@ -13,7 +13,9 @@ xlFile = [baseFolder 'Survival Quad Bowl Counts.xlsx'];
 Excel.headers = excelfile(1,:); % xltitles
 
 Excel.trialID = find(strcmpi('Trial ID',Excel.headers) == 1);
-Excel.protocol = find(strcmpi('Temp protocol', Excel.headers)==1);
+Excel.date = find(strcmpi('Date', Excel.headers)==1);
+Excel.genotype = find(strcmpi('Genotype',Excel.headers) == 1);
+Excel.expID = find(strcmpi('Exp ID', Excel.headers)==1);
 Excel.numflies = find(strcmpi('Num',Excel.headers) == 1);
 Excel.arena = find(strcmpi('Arena',Excel.headers) == 1);
 Excel.videos = excelfile(1, 5:45);
