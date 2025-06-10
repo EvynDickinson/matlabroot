@@ -1,0 +1,53 @@
+
+function [excelfile, Excel, xlFile] = load_SurvivalQuadCounts
+
+
+basePath = getCloudPath;
+baseFolder = basePath(1:end-5); % path to just the '/jeanne lab/' folder
+
+xlFile = [baseFolder 'Survival Quad Bowl Counts.xlsx'];
+
+%load excel sheet data
+[~,~,excelfile] = xlsread(xlFile,'Death counts');
+
+% Excel column for the headers:
+Excel.headers = excelfile(1,:); %xltitles
+
+Excel.trialID = find(strcmpi('Trial ID',Excel.headers) == 1);
+Excel.protocol = find(strcmpi('Temp protocol', Excel.headers)==1);
+Excel.numflies = find(strcmpi('Num',Excel.headers) == 1);
+Excel.arena = find(strcmpi('Arena',Excel.headers) == 1);
+Excel.videos = find(strcmpi('1', Excel.headers)==1);
+Excel.trialID = find(strcmpi('6', Excel.headers)==1);
+Excel.starttime = find(strcmpi('12', Excel.headers)==1);
+Excel.zeitgebertime = find(strcmpi('18', Excel.headers)==1);
+Excel.compiledvid = find(strcmpi('24', Excel.headers)==1);
+Excel.tracked = find(strcmpi('30', Excel.headers)==1);
+Excel.proofed = find(strcmpi('36', Excel.headers)==1);
+Excel.basicfigs = find(strcmpi('42', Excel.headers)==1);
+Excel.processed = find(strcmpi('48',Excel.headers) == 1);
+Excel.structure = find(strcmpi('54', Excel.headers)==1);
+Excel.structurenum = find(strcmpi('60',Excel.headers) == 1);
+Excel.sex = find(strcmpi('66', Excel.headers)==1);
+Excel.starved_hours = find(strcmpi('72', Excel.headers)==1);
+Excel.daynight = find(strcmpi('78', Excel.headers)==1); 
+Excel.numflies = find(strcmpi('84',Excel.headers) == 1);
+Excel.groupready = find(strcmpi('90',Excel.headers) == 1);
+Excel.processed_data_on_server = find(strcmpi('96',Excel.headers) == 1);
+Excel.storagedrive = find(strcmpi('Storage Drive',Excel.headers) == 1);
+
+Excel.well_1 = find(strcmpi('Well 1', Excel.headers)==1);
+Excel.well_2 = find(strcmpi('Well 2', Excel.headers)==1);
+Excel.well_3 = find(strcmpi('Well 3', Excel.headers)==1);
+Excel.well_4 = find(strcmpi('Well 4', Excel.headers)==1);
+
+Excel.ramplength = find(strcmpi('Ramp Length',Excel.headers) == 1);
+Excel.ramps = find(strcmpi('Ramps',Excel.headers) == 1);
+Excel.ITI = find(strcmpi('ITI',Excel.headers) == 1);
+Excel.fragmentlength = find(strcmpi('Fragment Length',Excel.headers) == 1);
+Excel.FPS = find(strcmpi('FPS',Excel.headers) == 1);
+Excel.backUp = find(strcmpi('Backed Up',Excel.headers) == 1);
+Excel.facility = find(strcmpi('Facility', Excel.headers)==1);
+Excel.ramp = find(strcmpi('Ramp', Excel.headers)==1);
+
+end
