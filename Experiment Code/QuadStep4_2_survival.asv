@@ -21,9 +21,10 @@ loc = ~loc;
 rownums = find(loc)+1; 
 eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.arena, Excel.counted]);
 FileNames = format_eligible_files(eligible_files);
+temptype = unique(excelfile(2:end,5));
 
 % Select files 
-fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select trial to process');
+fileIdx = listdlg('ListString', temptype,'ListSize',[350,450],'promptstring', 'Select temp protocol to process');
 if isempty(fileIdx)
     disp('No trials selected')
     return
@@ -34,8 +35,17 @@ dateDir = eligible_files(fileIdx(1),1);
 trialDir = eligible_files(fileIdx(1),2); 
 baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
 
-data = [];
-nfiles = length(fileIdx);
+tempprotocol = temptype{fileIdx};
+temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 
-for i = 1:nfiles
-    data = excelfile(i)
+data = cell2mat([excelfile(temptrials,8:end-2)]);
+timestmp = cell2mat([excelfile(1,8:end-2)]); % make dynamic for different lengths of exps
+avgdeath = mean(data);
+
+figure;
+plot(timestmp,avgdeath)
+ylim[0,20]
+
+
+
+
