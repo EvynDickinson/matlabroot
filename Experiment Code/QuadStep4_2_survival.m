@@ -12,6 +12,8 @@ plot(y)
 clear; clc;
 baseFolder = getDataPath(2,0);
 
+blkbnd = true;
+
 % Load excel file
 [excelfile, Excel, xlFile] = load_SurvivalQuadCounts;
 
@@ -38,13 +40,19 @@ baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
 tempprotocol = temptype{fileIdx};
 temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 
-data = cell2mat([excelfile(temptrials,8:end-2)]);
-timestmp = cell2mat([excelfile(1,8:end-2)]); % make dynamic for different lengths of exps
+data = cell2mat([excelfile(temptrials,11:end)]);
+timestmp = cell2mat([excelfile(1,11:end)]); % make dynamic for different lengths of exps
+time = timestmp*10;
 avgdeath = mean(data);
 
-figure;
-plot(timestmp,avgdeath)
+fig = getfig;
+plot(time,data,'linewidth',2)
+
+formatFig(fig, blkbnd);
 ylim([0 20])
+xlabel('Time (min)')
+ylabel('Number of dead flies')
+
 
 
 
