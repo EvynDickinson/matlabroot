@@ -93,7 +93,10 @@ switch run_ans
         
         for trial = 1:ntrials
             % single trial folder:
-            
+            % if trial==3
+            %      return
+            % end
+            % 
             trial_ID = [dates{trial} '_' expID{trial} '_' arenas{trial}];
             filePath = [rawDataFolder trial_ID '/'];
             % filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];

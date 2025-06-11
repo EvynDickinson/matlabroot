@@ -42,11 +42,12 @@ parameters.ArenaD.sex = 'Mixed';
 %% get base folder pathway
 % baseFolder = getCloudPath;
 let = {'A' 'B' 'C' 'D'};
-for i = 1:2
-    parameters.(['Arena' let{i}]).well_4 = 'Caviar';
-    % parameters.(['Arena' let{i}]).well_2 = 'German';
+for i = 1:4
+    for well = 1:4
+        parameters.(['Arena' let{i}]).(['well_' num2str(well)]) = 'Empty';
+    end
 end
-clear let i
+clear let i well
 
 %% Fix the temp log information being added...
 clear
@@ -1304,50 +1305,50 @@ e.MarkerSize = 10;
 
 %% 
 
-% Create a figure and axes
-f = figure; 
-imshow(read(movieInfo,ii(jj)));
-
-% Display an image or plot something
-% For demonstration, let's just use a blank axis
-axis(ax, [0 10 0 10]);
-
-% Enable interactive addition of points
-% The 'PositionConstraintFcn' can be used to restrict movement.
-h = drawpoint('Color','r', 'Selectable', true);
-
-% Example to keep the point within bounds
-% Uncomment the following line to see how it works
-% h.PositionConstraintFcn = makeConstrainToRectFcn('impoint',get(gca,'XLim'),get(gca,'YLim'));
-
-% ------------------------------------------------------------- 
-% Initial point coordinates
-x = 5;
-y = 5;
-
-% Plot the point
-hPoint = plot(x, y, 'o', 'MarkerSize', 8, 'MarkerFaceColor', 'b');
-
-% Enable dragging functionality
-set(hPoint, 'ButtonDownFcn', @(src, event) startDragFcn(src, ax));
-set(gcf, 'WindowButtonUpFcn', @stopDragFcn);
-
-% Dragging function
-function startDragFcn(src, ax)
-    set(gcf, 'WindowButtonMotionFcn', @(fig, event) draggingFcn(fig, src, ax));
-end
-
-% Function to execute while dragging
-function draggingFcn(fig, src, ax)
-    pt = ax.CurrentPoint;
-    src.XData = pt(1,1);
-    src.YData = pt(1,2);
-end
-
-% Stop dragging
-function stopDragFcn(fig, event)
-    set(fig, 'WindowButtonMotionFcn', '');
-end
+% % Create a figure and axes
+% f = figure; 
+% imshow(read(movieInfo,ii(jj)));
+% 
+% % Display an image or plot something
+% % For demonstration, let's just use a blank axis
+% axis(ax, [0 10 0 10]);
+% 
+% % Enable interactive addition of points
+% % The 'PositionConstraintFcn' can be used to restrict movement.
+% h = drawpoint('Color','r', 'Selectable', true);
+% 
+% % Example to keep the point within bounds
+% % Uncomment the following line to see how it works
+% % h.PositionConstraintFcn = makeConstrainToRectFcn('impoint',get(gca,'XLim'),get(gca,'YLim'));
+% 
+% % ------------------------------------------------------------- 
+% % Initial point coordinates
+% x = 5;
+% y = 5;
+% 
+% % Plot the point
+% hPoint = plot(x, y, 'o', 'MarkerSize', 8, 'MarkerFaceColor', 'b');
+% 
+% % Enable dragging functionality
+% set(hPoint, 'ButtonDownFcn', @(src, event) startDragFcn(src, ax));
+% set(gcf, 'WindowButtonUpFcn', @stopDragFcn);
+% 
+% % Dragging function
+% function startDragFcn(src, ax)
+%     set(gcf, 'WindowButtonMotionFcn', @(fig, event) draggingFcn(fig, src, ax));
+% end
+% 
+% % Function to execute while dragging
+% function draggingFcn(fig, src, ax)
+%     pt = ax.CurrentPoint;
+%     src.XData = pt(1,1);
+%     src.YData = pt(1,2);
+% end
+% 
+% % Stop dragging
+% function stopDragFcn(fig, event)
+%     set(fig, 'WindowButtonMotionFcn', '');
+% end
 
 
 %% Mac testing
@@ -1491,7 +1492,7 @@ end
 % or look for regular files in the main folder (*file#.mat)
 % print out a list of files that still have the raw files that need to be
 % deleted -- add this as a column to the excel file
-clear; close all; clc
+% clear; close all; clc
 
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
