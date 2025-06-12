@@ -10,9 +10,10 @@ plot(y)
 
 %% Load data
 clear; clc;
-baseFolder = getDataPath(2,0);
+% baseFolder = getDataPath(2,2);
 
 blkbnd = true;
+fig_type = '-png';
 
 % Load excel file
 [excelfile, Excel, xlFile] = load_SurvivalQuadCounts;
@@ -21,9 +22,9 @@ blkbnd = true;
 loc = cellfun(@isnan,excelfile(2:end,Excel.counted));
 loc = ~loc;
 rownums = find(loc)+1; 
-eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.arena, Excel.counted]);
-FileNames = format_eligible_files(eligible_files);
-temptype = unique(excelfile(2:end,5));
+eligible_files = excelfile([false;loc],[Excel.date, Excel.protocol, Excel.arena, Excel.counted]);
+% FileNames = format_eligible_files(eligible_files);
+temptype = unique(eligible_files(:,2));
 
 % Select files 
 fileIdx = listdlg('ListString', temptype,'ListSize',[350,450],'promptstring', 'Select temp protocol to process');
@@ -37,7 +38,21 @@ end
 % trialDir = eligible_files(fileIdx(1),2); 
 % baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
 
-% Pull the protocol name and trials under the selected temp protocol
+% Path data structures folder
+baseFolder = getDataPath(5,2);
+pathNames = getPathNames;
+ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
+ExpGroup = ExpGroup{:};
+% If survival curves folder isn't made yet, make it
+figDir = [baseFolder pathNames.grouped_trials ExpGroup '/'];
+c = [figDir 'Survival curve figures'];
+if ~exist(c,'dir')
+    mkdir(c)
+end
+figDir = [figDir 'Survival curve figures']; 
+
+
+%% Pull the protocol name and trials under the selected temp protocol
 tempprotocol = temptype{fileIdx};
 temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 
@@ -47,7 +62,7 @@ switch tempprotocol
         columns = 11:51;
         k =  'tomato';
     case 'survival_curve_5C'
-        columns = [11:13,15,17,19,23,28,33,38,43,48,53,58];
+        columns = [11:13,15,17,19,21,23,26,28,31,33,36,38,41,43,46,48,51,53,56,58];
         k = 'dodgerblue';
 end
 
@@ -58,7 +73,7 @@ timestmp = cell2mat([excelfile(1,columns)]);
 time = timestmp*10;
 
 
-% Plot number of dead flies overtime
+%% Plot number of dead flies overtime
 fig = getfig;
     plot(time,data.avg,'linewidth',3,'color',Color(k))
 formatFig(fig, blkbnd);
@@ -66,8 +81,9 @@ formatFig(fig, blkbnd);
     set(gca,"YTick", 0:3:20, 'FontSize', 20)
     xlabel('Time (min)')
     ylabel('Number of dead flies')
+save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
 
-% Plot number of alive flies overtime
+%% Plot number of alive flies overtime
 numflies = cell2mat([excelfile(temptrials,10)]);
 aliveflies = numflies - cell2mat([excelfile(temptrials,11:51)]);
 % perc_alive = (aliveflies/numflies)*100;
