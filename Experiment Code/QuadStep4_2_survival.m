@@ -45,8 +45,10 @@ temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 switch tempprotocol
     case 'survival_curve_40C'
         columns = 11:51;
+        k =  'tomato';
     case 'survival_curve_5C'
         columns = [11:13,15,17,19,23,28,33,38,43,48,53,58];
+        k = 'dodgerblue';
 end
 
 data = [];
@@ -58,9 +60,10 @@ time = timestmp*10;
 
 % Plot number of dead flies overtime
 fig = getfig;
-    plot(time,data.avg,'linewidth',2)
+    plot(time,data.avg,'linewidth',3,'color',Color(k))
 formatFig(fig, blkbnd);
-    ylim([0 20])
+    ylim([0 15])
+    set(gca,"YTick", 0:3:20, 'FontSize', 20)
     xlabel('Time (min)')
     ylabel('Number of dead flies')
 

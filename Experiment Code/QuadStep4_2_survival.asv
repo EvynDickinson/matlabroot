@@ -32,19 +32,23 @@ if isempty(fileIdx)
     return
 end
 
-% Establish date, trial, and base directories
-dateDir = eligible_files(fileIdx(1),1);
-trialDir = eligible_files(fileIdx(1),2); 
-baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
+% % Establish date, trial, and base directories
+% dateDir = eligible_files(fileIdx(1),1);
+% trialDir = eligible_files(fileIdx(1),2); 
+% baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
 
+% Pull the protocol name and trials under the selected temp protocol
 tempprotocol = temptype{fileIdx};
 temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 
+% Which columns in excel file to plot based on each temp protocol
 switch tempprotocol
     case 'survival_curve_40C'
         columns = 11:51;
+        k =  '#D95319';
     case 'survival_curve_5C'
         columns = [11:13,15,17,19,23,28,33,38,43,48,53,58];
+        k = '#4DBEEE';
 end
 
 data = [];
@@ -54,14 +58,12 @@ timestmp = cell2mat([excelfile(1,columns)]);
 time = timestmp*10;
 
 
-
-
-
 % Plot number of dead flies overtime
 fig = getfig;
-    plot(time,data.avg,'linewidth',2)
+    plot(time,data.avg,'linewidth',2,'color',Color('dodgerblue'))
 formatFig(fig, blkbnd);
-    ylim([0 20])
+    ylim([0 15])
+    set(gca,"YTick", 0:3:20, 'FontSize', 20)
     xlabel('Time (min)')
     ylabel('Number of dead flies')
 
