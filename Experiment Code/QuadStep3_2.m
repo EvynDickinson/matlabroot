@@ -6,6 +6,17 @@
 %% LOAD: multiple trials that are grouped into a structure
 clear; warning off
 run_ans = questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No');
+
+% Run everything without stopping with default values?
+switch questdlg('Would you like to autoprocess the data?','','Yes','No','Cancel','Yes')
+    case 'Yes'
+        autoRun = true;
+    case 'No'
+        autoRun = false;
+    case {'Cancel',''}
+        return
+end
+
 switch run_ans
     case 'Yes'
         % baseFolder = getCloudPath;
@@ -130,22 +141,15 @@ switch run_ans
         return
 end
 
-% Run everything without stopping with default values?
-switch questdlg('Would you like to autoprocess the data?','','Yes','No','Cancel','Yes')
-    case 'Yes'
-        autoRun = true;
-    case 'No'
-        autoRun = false;
-    case {'Cancel',''}
-        return
-end
-
-
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'FPS','autoRun'};
 clearvars('-except',initial_vars{:})
-if questdlg('Save loaded data?')
+if autoRun
     save([figDir ExpGroup ' raw.mat'],'-v7.3')
+else
+    if questdlg('Save loaded data?')
+        save([figDir ExpGroup ' raw.mat'],'-v7.3')
+    end
 end
 fprintf('Data loaded\n')
 disp('next section')
