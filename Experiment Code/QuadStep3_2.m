@@ -129,10 +129,20 @@ switch run_ans
     case 'Cancel'
         return
 end
-% Pull and reorganize data within the structure:
+
+% Run everything without stopping with default values?
+switch questdlg('Would you like to autoprocess the data?','','Yes','No','Cancel','Yes')
+    case 'Yes'
+        autoRun = true;
+    case 'No'
+        autoRun = false;
+    case {'Cancel',''}
+        return
+end
+
 
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
-                'initial_vars', 'folder', 'ntrials', 'FPS'};
+                'initial_vars', 'folder', 'ntrials', 'FPS','autoRun'};
 clearvars('-except',initial_vars{:})
 if questdlg('Save loaded data?')
     save([figDir ExpGroup ' raw.mat'],'-v7.3')
@@ -223,7 +233,7 @@ fig = figure; set(fig, 'position', [107 595 1150 235]); hold on
           ['N = ' num2str(ntrials)]})
     formatFig(fig, true);
     %    save_figure(fig, [figDir 'temperature alignment'], '-pdf');
-save_figure(fig, [figDir 'temperature alignment'], '-png',0,1,'-r100');
+save_figure(fig, [figDir 'temperature alignment'], '-png',autoRun,1,'-r100');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
@@ -327,13 +337,18 @@ xlabel('Temp (\circC)')
 title({'Location from food sources by temperature';...
       ['N = ' num2str(ntrials)]})
 formatFig(fig, true);
-save_figure(fig, [figDir ExpGroup ' all temp vs distance' temp_name], '-png',0,1,'-r100');
+save_figure(fig, [figDir ExpGroup ' all temp vs distance' temp_name], '-png',autoRun,1,'-r100');
 
 clearvars('-except',initial_vars{:})
 fprintf('Next\n')
 
 %% FIGURE: Average distance | occupancy vs temp across trials:
-inputVar =  questdlg('Which data type to compare?','','distance','occupation probability','Cancel','distance');
+
+if autoRun
+    inputVar = 'distance';
+else
+    inputVar =  questdlg('Which data type to compare?','','distance','occupation probability','Cancel','distance');
+end
 
 food = struct;
 switch inputVar
@@ -386,8 +401,13 @@ for trial = 1:ntrials
 end 
 
 % Temperature range and bin size formatting
-[threshHigh, threshLow] = getTempThresholds(temp_protocol); 
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
+[threshHigh, threshLow] = getTempThresholds(temp_protocol,autoRun); 
+if autoRun
+    binSpace = 1; 
+elseif ~autoRun
+    binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'})));
+end
+
 t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
 if t_roi(end)<ceil(threshHigh)
     t_roi(end+1) = ceil(threshHigh) + binSpace;
@@ -443,7 +463,7 @@ legend(leg_str,'textcolor', 'w', 'location', L_loc, 'box', 'off','fontsize',12)
 set(gca,'ydir',y_dir)
 
 if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
-save_figure(fig, [figDir 'Temp vs ' inputVar ' bin size ' num2str(binSpace) temp_name], '-png');
+save_figure(fig, [figDir 'Temp vs ' inputVar ' bin size ' num2str(binSpace) temp_name], '-png',autoRun);
 clearvars('-except',initial_vars{:})
 
 % % POSTER CODE:
@@ -483,7 +503,12 @@ clearvars('-except',initial_vars{:})
 %% FIGURE: Average movement | cluserting | eccentricity 
 % vs temp across trials:
 strlist = {'movement','clustering','eccentricity'};
-idx =  listdlg('PromptString', 'Which data type to compare?','ListString',strlist,'ListSize',[160, 200]);
+if autoRun
+    idx =  1;
+else
+    idx =  listdlg('PromptString', 'Which data type to compare?','ListString',strlist,'ListSize',[160, 200]);
+end
+
 if isempty(idx)
     return
 else 
@@ -529,8 +554,12 @@ for trial = 1:ntrials
 end 
 
 % Temperature range and bin size formatting
-[threshHigh, threshLow] = getTempThresholds(temp_protocol);
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'}))); 
+[threshHigh, threshLow] = getTempThresholds(temp_protocol, autoRun);
+if autoRun
+    binSpace = 1; 
+else
+    binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'})));
+end
 t_roi = floor(threshLow):binSpace:ceil(threshHigh); 
 if t_roi(end)<ceil(threshHigh)
     t_roi(end+1) = ceil(threshHigh) + binSpace;
@@ -549,34 +578,27 @@ end
 
 
 % FIGURE: plot the avg. temp vs. distance data
-kolor = Color('Teal');
+kolor = Color('Dodgerblue');
 
 fig = getfig('',1,[675 692]);
-hold on
-x = t_roi(1:end-1);
-y = food.avg(1:end-1); % y = y./pix2mm;
-y_err = food.err(1:end-1); %y_err = y_err./pix2mm;
-
-
-fill_data = error_fill(x,y, y_err);
-h = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-set(h, 'facealpha', 0.3)
-plot(x, y, 'Color', kolor, 'LineWidth', 2)
-plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
-plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
-
-
-%Labels:
-% xlim([7,20])
-xlabel('temperature (\circC)')
-ylabel(ylab)
-title(strrep(ExpGroup,'_',' '))
-formatFig(fig,true);
-ax = gca;
-set(ax, 'FontSize', 18)
+    hold on
+    x = t_roi(1:end-1);
+    y = food.avg(1:end-1); % y = y./pix2mm;
+    y_err = food.err(1:end-1); %y_err = y_err./pix2mm;
+    plot_error_fills(true, x,y,y_err,kolor, '-png');
+    plot(x, y, 'Color', kolor, 'LineWidth', 2)
+    plot(x, y+y_err, 'Color', kolor, 'LineWidth', 0.25)
+    plot(x, y-y_err, 'Color', kolor, 'LineWidth', 0.25)
+    % labels
+    xlabel('temperature (\circC)')
+    ylabel(ylab)
+    title(strrep(ExpGroup,'_',' '))
+    formatFig(fig,true);
+    ax = gca;
+    set(ax, 'FontSize', 18)
 
 if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
-save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace) temp_name], '-png',0,1,'-r150');
+save_figure(fig, [figDir ExpGroup ' temp vs ' inputVar ' bin size ' num2str(binSpace) temp_name], '-png',autoRun,1,'-r150');
 clearvars('-except',initial_vars{:})
 
 % 
@@ -615,16 +637,16 @@ for trial = 1:ntrials
 end
 binedges = 0:0.2:10;
 fig = figure; hold on
-h = histogram(mv,binedges);
-h.FaceColor = Color('teal');
-h.FaceAlpha = 1;
-h.EdgeColor = 'w';
-xlabel('Movement speed (~mm/s)')
-ylabel('Count')
-formatFig(fig,true);
-set(gca, 'fontsize', 20)
+    h = histogram(mv,binedges);
+    h.FaceColor = Color('dodgerblue');
+    h.FaceAlpha = 1;
+    h.EdgeColor = 'w';
+    xlabel('Movement speed (~mm/s)')
+    ylabel('Count')
+    formatFig(fig,true);
+    set(gca, 'fontsize', 20)
 
-save_figure(fig, [figDir 'Movement histogram'], '-png',0,1,'-r100');
+save_figure(fig, [figDir 'Movement histogram'], '-png',autoRun,1,'-r100');
 clearvars('-except',initial_vars{:})
 
 %% ANALYSIS: Get temp rate information from all trials
@@ -635,8 +657,12 @@ clearvars('-except',initial_vars{:})
 clearvars('-except',initial_vars{:})
 
 G = struct;
-[threshHigh, threshLow] = getTempThresholds(temp_protocol);
-binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'0.5'}))); 
+[threshHigh, threshLow] = getTempThresholds(temp_protocol,autoRun);
+if autoRun
+    binSpace = 0.5;
+else
+    binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'0.5'}))); 
+end
 vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace','G', 'vars'];
 
 % Get the temp rate, temp, and distance from food
@@ -822,7 +848,11 @@ disp('next section')
 %% FIGURE: Temp hysteresis - distance to food | movement 
 clearvars('-except',vars{:}) 
 if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
-dataType =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
+if autoRun
+    dataType = 'distance';
+else
+    dataType =  questdlg('Which data type to compare?','','distance','movement','Cancel','distance');
+end
 
 switch dataType
     case 'distance'
@@ -903,7 +933,7 @@ fig = getfig('',1,[983 417]);
         set(gca, 'colormap', flip(cmap))
     end
 
-save_figure(fig, [figDir 'Temp_rate ' dataType ' heatmap' temp_name], '-png');
+save_figure(fig, [figDir 'Temp_rate ' dataType ' heatmap' temp_name], '-png',autoRun);
 
 % % POSTER CODE
 % % ========= HeatMap of dT/dt vs T =============
@@ -995,7 +1025,7 @@ formatFig(fig, true);
 legend(str,'textcolor', 'w', 'location',L_loc, 'box', 'off')
 set(gca,'fontsize', 14)
 %Save figure
-save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_name], '-png');
+save_figure(fig, [figDir 'temp_rate ' dataType ' all rates demo' temp_name], '-png',autoRun);
 % 
 
 % 
@@ -1455,15 +1485,18 @@ fig = figure; set(fig, 'pos',[36 77 1082 625]);
     xlabel('Time (min)')
 
 if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
-    save_figure(fig, [figDir 'temp protocols time course single trial' temp_name], '-png');
+    save_figure(fig, [figDir 'temp protocols time course single trial' temp_name], '-png',autoRun);
 
 % TODO: plot the temp distance relationship across multiple genotypes...?
 
 %% Save Processed Data 
 clearvars('-except',vars{:})
-
-if questdlg('Save processed data?')
+if autoRun
     save([figDir ExpGroup ' post 3.2 data.mat'],'-v7.3')
+else
+    if questdlg('Save processed data?')
+        save([figDir ExpGroup ' post 3.2 data.mat'],'-v7.3')
+    end
 end
 fprintf('Data saved\n')
 

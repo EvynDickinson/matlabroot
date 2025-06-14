@@ -40,7 +40,7 @@ if ~(z(2)==1 && z(1)>1)
 end
 
 % remove nans so that the error fill will plot
-loc = isnan(x) | isnan(y) |isnan(y_err);
+loc = isnan(x) | isnan(y) | isnan(y_err);
 x(loc) = [];
 y(loc) = [];
 y_err(loc) = [];

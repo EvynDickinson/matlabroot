@@ -1,5 +1,5 @@
 
-function [threshHigh, threshLow] = getTempThresholds(tempProtocols)
+function [threshHigh, threshLow] = getTempThresholds(tempProtocols,autoSelect)
 % [threshHigh, threshLow] = getTempThresholds(tempProtocols);
 %
 % Returns temperature thresholds from a list
@@ -10,7 +10,11 @@ function [threshHigh, threshLow] = getTempThresholds(tempProtocols)
 
 
 tempList = {'auto','(8-20)', '(6-25)', '(6-26)', '(7-23)', '(7-26)','(7-35)','(5-30)','(10-35)','(10-23)','Other'};
-UserChoice = tempList{listdlg('ListString', tempList,'ListSize', [100, 180],'SelectionMode','single')};
+if nargin>1 && autoSelect
+    UserChoice = 'auto';
+else
+    UserChoice = tempList{listdlg('ListString', tempList,'ListSize', [100, 180],'SelectionMode','single')};
+end
 
 switch UserChoice
     case '(8-20)'
