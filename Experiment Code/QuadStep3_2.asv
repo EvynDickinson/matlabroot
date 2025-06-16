@@ -6,6 +6,17 @@
 %% LOAD: multiple trials that are grouped into a structure
 clear; warning off
 run_ans = questdlg('Use excel named structure?','','Yes','No', 'Cancel', 'No');
+
+% Run everything without stopping with default values?
+switch questdlg('Would you like to autoprocess the data?','','Yes','No','Cancel','Yes')
+    case 'Yes'
+        autoRun = true;
+    case 'No'
+        autoRun = false;
+    case {'Cancel',''}
+        return
+end
+
 switch run_ans
     case 'Yes'
         % baseFolder = getCloudPath;
@@ -130,22 +141,15 @@ switch run_ans
         return
 end
 
-% Run everything without stopping with default values?
-switch questdlg('Would you like to autoprocess the data?','','Yes','No','Cancel','Yes')
-    case 'Yes'
-        autoRun = true;
-    case 'No'
-        autoRun = false;
-    case {'Cancel',''}
-        return
-end
-
-
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
                 'initial_vars', 'folder', 'ntrials', 'FPS','autoRun'};
 clearvars('-except',initial_vars{:})
-if questdlg('Save loaded data?')
+if autoRun
     save([figDir ExpGroup ' raw.mat'],'-v7.3')
+else
+    if questdlg('Save loaded data?')
+        save([figDir ExpGroup ' raw.mat'],'-v7.3')
+    end
 end
 fprintf('Data loaded\n')
 disp('next section')
@@ -401,10 +405,10 @@ for trial = 1:ntrials
 end 
 
 % Temperature range and bin size formatting
-[threshHigh, threshLow] = getTempThresholds(temp_protocol); 
+[threshHigh, threshLow] = getTempThresholds(temp_protocol,autoRun); 
 if autoRun
     binSpace = 1; 
-else
+elseif ~autoRun
     binSpace = str2double(cell2mat(inputdlg('Bin size for temperature?','',[1,35],{'1'})));
 end
 
@@ -554,7 +558,7 @@ for trial = 1:ntrials
 end 
 
 % Temperature range and bin size formatting
-[threshHigh, threshLow] = getTempThresholds(temp_protocol);
+[threshHigh, threshLow] = getTempThresholds(temp_protocol, autoRun);
 if autoRun
     binSpace = 1; 
 else
@@ -578,7 +582,7 @@ end
 
 
 % FIGURE: plot the avg. temp vs. distance data
-kolor = Color('Teal');
+kolor = Color('Dodgerblue');
 
 fig = getfig('',1,[675 692]);
     hold on
@@ -637,14 +641,14 @@ for trial = 1:ntrials
 end
 binedges = 0:0.2:10;
 fig = figure; hold on
-h = histogram(mv,binedges);
-h.FaceColor = Color('teal');
-h.FaceAlpha = 1;
-h.EdgeColor = 'w';
-xlabel('Movement speed (~mm/s)')
-ylabel('Count')
-formatFig(fig,true);
-set(gca, 'fontsize', 20)
+    h = histogram(mv,binedges);
+    h.FaceColor = Color('dodgerblue');
+    h.FaceAlpha = 1;
+    h.EdgeColor = 'w';
+    xlabel('Movement speed (~mm/s)')
+    ylabel('Count')
+    formatFig(fig,true);
+    set(gca, 'fontsize', 20)
 
 save_figure(fig, [figDir 'Movement histogram'], '-png',autoRun,1,'-r100');
 clearvars('-except',initial_vars{:})
@@ -657,7 +661,7 @@ clearvars('-except',initial_vars{:})
 clearvars('-except',initial_vars{:})
 
 G = struct;
-[threshHigh, threshLow] = getTempThresholds(temp_protocol);
+[threshHigh, threshLow] = getTempThresholds(temp_protocol,autoRun);
 if autoRun
     binSpace = 0.5;
 else

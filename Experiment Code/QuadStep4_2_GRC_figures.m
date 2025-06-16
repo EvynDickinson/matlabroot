@@ -307,8 +307,8 @@ fig = getfig('',false,[fig_W, 340]);
     end
 % save the figure to a folder specific to that cohort?
 save_figure(fig,[save_path '2D spatial distribution all experiments'], fig_type);
-save([save_path '2D spatial distribution.mat'],'plotData', 'circ_r', ...
-    'circ_Y','circ_X', )
+% save([save_path '2D spatial distribution.mat'],'plotData', 'circ_r', ...
+%     'circ_Y','circ_X', )
 
 MaxOcc = 0.046287;
 
@@ -466,7 +466,7 @@ MaxOcc = 0.046287;
 % end
 % 
 
-%% Sleep by location for different hold trials
+%% Sleep by location for different hold trials TODO UPDATE TO NEW STRUCTURE FORMAT
 clearvars('-except',initial_vars{:})
 
 [foreColor,backColor] = formattingColors(blkbgd);
@@ -522,6 +522,217 @@ end
 
 save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-png',true,false);
 save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-pdf',true,true);
+
+%% FIGURE: occupancy of inner and outer regions over time and temp: 
+
+%% FIGURE: Time Course for single parameter -- select your metric
+% TODO add flies on food to this section
+clearvars('-except',initial_vars{:})
+
+plot_err = true;
+autoLim = true;
+xlim_auto = true; % change the time range for the x axis
+time_limits = [0,900]; % time limits if manual control over x-axis range
+nMax =  num.exp; 
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(true);
+
+switch questdlg('Plot error?','','True','False', 'Cancel','True')
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
+if isempty(title_str)
+    return
+end
+fig_dir = [saveDir, dir_end];
+% set figure folder
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+% set up figure aligments
+r = 5; %rows
+c = 3; %columns
+sb(1).idx = [1,2]; %temp timecourse
+sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
+sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
+
+LW = 0.75;
+sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = num.exp:-1:1
+    x = grouped(i).time;
+    kolor = grouped(i).color;
+
+    %temp
+    subplot(r,c,sb(1).idx); hold on
+        y = grouped(i).temp;
+        plot(x,y,'LineWidth',2,'Color',kolor)
+
+   % selected parameter time course
+    subplot(r,c,sb(2).idx); hold on
+        switch dType
+            case 1 % single trial lines
+                for trial = 1:num.trial(i)
+                    if ext
+                        y = smooth(grouped(i).(pName).food.all(:,trial),sSpan, 'moving')*scaler;
+                    else
+                        y = smooth(grouped(i).(pName).all(:,trial),sSpan, 'moving')*scaler;
+                    end
+                    plot(x,y,'LineWidth',LW,'Color',kolor)
+                end
+            case {2, 3} % avg line
+                if ext 
+                    y = smooth(grouped(i).(pName).food.avg,sSpan, 'moving')*scaler;
+                else
+                    y = smooth(grouped(i).(pName).avg,sSpan, 'moving')*scaler;
+                end
+                plot(x,y,'LineWidth',LW,'Color',kolor)
+        end
+
+    %temp vs dependent variable tuning curve
+    subplot(r,c,sb(3).idx); hold on
+    
+     switch dType
+         case 1 % single trial lines
+            for trial = 1:num.trial(i)
+                if strcmp(pName, 'dist')
+                    x = grouped(i).(pName).distavgbytemp(:,1);
+                    rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
+                else
+                    if ext % subregions
+                        x = grouped(i).(pName).food.temps;
+                        rawY = [grouped(i).(pName).food.increasing.raw(:,trial),grouped(i).(pName).food.decreasing.raw(:,trial)];
+                    else
+                        x = grouped(i).(pName).temps;
+                        rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
+                    end
+                end
+                y = mean(rawY,2,'omitnan')*scaler;
+                plot(x,y,'color',kolor,'linewidth',1.25)
+            end
+
+         case 2 % avg lines (combined heating and cooling)
+            if strcmp(pName, 'dist')
+                x = grouped(i).(pName).distavgbytemp(:,1);
+                rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
+            else
+                if ext 
+                    x = grouped(i).(pName).food.temps;
+                    rawY = [grouped(i).(pName).food.increasing.raw,grouped(i).(pName).food.decreasing.raw];
+                else
+                    x = grouped(i).(pName).temps;
+                    rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
+                end
+            end
+            y = mean(rawY,2,'omitnan')*scaler;
+            y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+            plot(x,y,'color',kolor,'linewidth',1.25)
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+
+         case 3 % separated heating and cooling
+            if strcmp(pName, 'dist')
+                x = grouped(i).(pName).distavgbytemp(:,1);
+                YC = grouped(i).decreasing.all;
+                YH = grouped(i).increasing.all;
+            else
+                if ext 
+                    x = grouped(i).(pName).food.temps;
+                    YC = grouped(i).(pName).food.decreasing.raw;
+                    YH = grouped(i).(pName).food.increasing.raw;
+                else
+                     x = grouped(i).(pName).temps;
+                    YC = grouped(i).(pName).decreasing.raw;
+                    YH = grouped(i).(pName).increasing.raw;
+                end
+            end
+            % cooling
+            y = mean(YC,2,'omitnan')*scaler;
+            y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
+            % heating
+            y = mean(YH,2,'omitnan')*scaler;
+            y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
+     end
+     dataString{i} = grouped(i).name;
+end
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c],sb);
+
+% indeendent measure over time
+subplot(r,c,sb(2).idx)
+ylabel(y_lab)
+xlabel('time (min)')
+set(gca,'ydir',y_dir)
+xlims = xlim;
+
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",'none')
+xlim(xlims)
+
+% temp-distance relationship
+subplot(r,c,sb(3).idx)
+ylabel(y_lab)
+xlabel('temp (\circC)')
+% if ~autoLim
+%     ylim(dt_lim)
+% end
+h_line(nullD,'grey',':',2) %36.2
+set(gca,'ydir',y_dir)
+
+if ~xlim_auto
+    subplot(r,c,sb(1).idx)
+    set(gca, 'xlim', time_limits)
+    subplot(r,c,sb(2).idx)
+    set(gca, 'xlim', time_limits)
+    % ylim([0,100])
+    % ylim([20,100])
+end
+
+% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
+
+% save figure
+save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

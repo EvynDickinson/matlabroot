@@ -215,8 +215,7 @@ plot_err = true;
 autoLim = true;
 xlim_auto = true; % change the time range for the x axis
 time_limits = [0,900]; % time limits if manual control over x-axis range
-nMax =  num.exp;%
-[~,backColor] = formattingColors(blkbgd); %get background colors
+nMax =  num.exp; 
 
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(true);
@@ -333,7 +332,7 @@ formatFig(fig,blkbgd,[r,c],sb);
 % temp
 subplot(r,c,sb(1).idx)
 ylabel('\circC')
-set(gca,"XColor",backColor)
+set(gca,"XColor",'none')
 
 % distance
 subplot(r,c,sb(2).idx)

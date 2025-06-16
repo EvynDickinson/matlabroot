@@ -217,7 +217,7 @@ end
 
 %% 2D spatial histograms of arena locations....
 
-%% 
+
 
 
 

@@ -406,6 +406,9 @@ switch expGroup
      case 'Berlin LTS 15-35 plate 1 vs plate 2'
         expOrder = 1:4;
         colors = {'Tomato', 'Dodgerblue', 'Peachpuff', 'Powderblue'};  
+    case 'Berlin LTS 15-35 intact vs no antenna no food'
+        expOrder = 1:2;
+        colors = {'dodgerblue', 'peachpuff'};
 end
 
 if ~exist('colors','var')
@@ -1074,8 +1077,15 @@ for exp = 1:num.exp
         % Pull distance measures:  
         D = hypot(adjustedX, adjustedY)./pix2mm; % distance to center in mm
 
+        % add screen here for regions in the temp protocol that are to be excluded:
+        tp = getTempTurnPoints(data(exp).T.TempProtocol{trial});
+        all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
+        loc = false(size(x_loc));
+        loc(all_points,:) = true;
+
         % Define base location logicals
-        fly_loc = ~isnan(x_loc) & (D <= R); % data points that are valid flies
+        fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
+
         innerQuad = (D < circle75) & fly_loc; %logical of all points that have a fly within the inner circle
         adjustedX(~fly_loc) = nan;
         adjustedY(~fly_loc) = nan;
@@ -1140,7 +1150,7 @@ for exp = 1:num.exp
 end
 
 %% FIGURE: Visual demonstration of all the arena regions....
-if strcmp('Yes', questdlg('Show demo image of arena regions of interest?'))
+if strcmp('Yes', questdlg('Show demo image of arena regions of interest?','','Yes', 'No','Cance', 'No'))
     clearvars('-except',initial_vars{:})
     exp = 1;
     trial = 1;
@@ -1988,8 +1998,14 @@ for exp = 1:num.exp
         % Pull distance measures:  
         D = hypot(adjustedX, adjustedY)./pix2mm; % distance to center in mm
 
+         % add screen here for regions in the temp protocol that are to be excluded:
+        tp = getTempTurnPoints(data(exp).T.TempProtocol{trial});
+        all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
+        loc = false(size(x_loc));
+        loc(all_points,:) = true;
+
         % Define base location logicals
-        fly_loc = ~isnan(x_loc) & (D <= R); % data points that are valid flies
+        fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
         innerQuad = (D < circle75) & fly_loc; %logical of all points that have a fly within the inner circle
         adjustedX(~fly_loc) = nan;
         adjustedY(~fly_loc) = nan;
