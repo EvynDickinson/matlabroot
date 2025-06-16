@@ -65,7 +65,6 @@ ax.FontSize = 18;
 save_figure(fig,[saveDir 'static vs dynamic distance to food warm cool separated'],fig_type);
 
 %% FIGURE: distance from food collapsed across heating/cooling
-  
 buff_1 = 0.25;
 buff_2 = 0.5;
 sz = 60;

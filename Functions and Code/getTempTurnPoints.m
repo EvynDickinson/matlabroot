@@ -76,7 +76,7 @@ switch TempProtocolString
         tempPoints.nRates = 1; 
         tempPoints.rates = 0; 
         tempPoints.threshLow = 22;
-        tempPoints.threshHigh = 24;;  
+        tempPoints.threshHigh = 24;
         tempPoints.holdexp = true;
     case 'Hold20C'
         tempPoints.hold = [1000 159935];
