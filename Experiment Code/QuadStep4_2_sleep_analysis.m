@@ -563,6 +563,8 @@ end
 formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx);
 set(gca,'xcolor',backColor) 
+subplot(r,c,sb(2).idx)
+legend(expNames,'box','off')
 
 save_figure(fig,[saveDir 'Sleep\' expGroup ' sleep timecourse'],fig_type);
 
@@ -2578,7 +2580,6 @@ LW = 2;
 
 % expList = 1:num.exp;
 expList = expOrder;
-
 
 fig = getfig('',1,[1064 837]);
 groupNames = []; h = []; p = [];
