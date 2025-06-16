@@ -1,4 +1,6 @@
 
+
+
 %% Comparisons of food region measures: quadrants vs circles vs distances
 clearvars('-except',initial_vars{:})
 plot_err = true;
@@ -185,6 +187,7 @@ save_figure(fig,[figDir, 'innerquad circle7 and ring occ temp curves'],fig_type)
 % save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
 
 %% Drop origin:
+exp = 2;
 
 sSpan = 360;
 
@@ -212,8 +215,14 @@ subplot(r, c, i)
 end
 
 
-%% 
+%% 2D spatial histograms of arena locations....
 
+
+
+
+
+    
+    
 
 
 

@@ -1,0 +1,63 @@
+
+
+%% Occupancy 'null' distribution for no food trials
+clearvars('-except',initial_vars{:})
+
+% link each data set to it's 'null' data set: (make this more involved and
+% automated later -- gui driven, maybe?)
+
+null_pair = [1,2]; % first idx is the test trial and the second is the null for each row
+
+% Plot out the quadrant data:
+
+np = 2; %null-pair idx
+exp = 1; % active trial
+% find the quads with the highest and lowest occupancy over the course of
+% the experiment:
+
+sSpan = 180;
+
+dummy = [];
+plotData = [];
+for i = 1:4
+    a = grouped(np).fullquad.(quadOrder{i}).all;
+    dummy(i,:) = sum(a,1,'omitnan');
+    plotData(:,:,i) = a;
+end
+% find min and max occupancy quadrants: 
+[~, lowerIDX] = min(dummy);
+[~, upperIDX] = max(dummy);
+
+[minOcc,maxOcc] = deal([]);
+for i = 1:num.trial(np)
+    minOcc(:,i) = squeeze(plotData(:,i,lowerIDX(i)));
+    maxOcc(:,i) = squeeze(plotData(:,i,upperIDX(i)));
+end
+
+
+fig = getfig('',1); 
+    hold on
+    % plot the null distribution data
+    y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
+    y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
+    kolor = grouped(np).color;
+    time = grouped(np).time;
+    y1 = smooth(mean(minOcc,2),sSpan, 'moving');
+    y2 = smooth(mean(maxOcc,2),sSpan, 'moving');
+    plot_error_fills(true, time, y_avg,y_err,kolor,fig_type,0.5);
+    % plot(time,y1,'color',kolor)
+    % plot(time,y2,'color',kolor)
+    % plot the paired food trial on top:
+    x = grouped(exp).time;
+    kolor = grouped(exp).color;
+    y = grouped(exp).fullquad.food.avg;
+    y_err = grouped(exp).fullquad.food.std./sqrt(num.trial(exp));
+    plot_error_fills(true, x, y, y_err, kolor, fig_type);
+    plot(x,y,'color',kolor,'linewidth', 1)
+    % formatting
+    xlabel('time (min)')
+    ylabel('food quadrant occupancy (%)')
+    xlim([0 700])
+    formatFig(fig,false);
+    
+save_figure(fig,[figDir, 'full quad occ over time'],fig_type);

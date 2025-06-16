@@ -2461,10 +2461,7 @@ end
 disp('All finished')
 
 %% Food vs no food control trial information....
-% TODO: 6.15 : update this to somehow account for the control vs food
-% trials to have some kind of paired indicator value...
-
-
+% TODO: 6.15 
 % dummy = [];
 % plotData = [];
 % for i = 1:4

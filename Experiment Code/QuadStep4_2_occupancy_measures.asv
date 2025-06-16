@@ -1,4 +1,6 @@
 
+
+
 %% Comparisons of food region measures: quadrants vs circles vs distances
 clearvars('-except',initial_vars{:})
 plot_err = true;
@@ -185,8 +187,9 @@ save_figure(fig,[figDir, 'innerquad circle7 and ring occ temp curves'],fig_type)
 % save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
 
 %% Drop origin:
+exp = 2;
 
-sSpan = 180;
+sSpan = 360;
 
 [r,c] = deal(ceil(sqrt(num.trial(exp))));
 y = (grouped(exp).dist.all);
@@ -201,14 +204,72 @@ for i = 1:num.trial(exp)
     yyaxis right
     plot(grouped(exp).temp,'color', Color('gold'))
 end
-formatfig(fig, blkbgd,[r c]);
+formatFig(fig, blkbgd,[r c]);
 for i = 1:num.trial(exp)
 subplot(r, c, i)
+    yyaxis left
+    ylabel('dist')
+    set(gca,'ycolor', 'w','xcolor', 'w')
+    yyaxis right
+    set(gca,'ycolor', 'none')
+end
 
 
+%% 2D spatial histograms of arena locations....
 
-%% 
 
+%% Occupancy 'null' distribution for no food trials
+clearvars('-except',initial_vars{:})
+
+% link each data set to it's 'null' data set: (make this more involved and
+% automated later -- gui driven, maybe?)
+
+null_pair = [1,2]; % first idx is the test trial and the second is the null for each row
+
+% Plot out the quadrant data:
+
+np = 2; %null-pair idx
+% find the quads with the highest and lowest occupancy over the course of
+% the experiment:
+
+sSpan = 180;
+
+dummy = [];
+plotData = [];
+for i = 1:4
+    a = grouped(np).fullquad.(quadOrder{i}).all;
+    dummy(i,:) = sum(a,1,'omitnan');
+    plotData(:,:,i) = a;
+end
+% find min and max occupancy quadrants: 
+[~, lowerIDX] = min(dummy);
+[~, upperIDX] = max(dummy);
+
+[minOcc,maxOcc] = deal([]);
+for i = 1:num.trial(np)
+    minOcc(:,i) = squeeze(plotData(:,i,lowerIDX(i)));
+    maxOcc(:,i) = squeeze(plotData(:,i,upperIDX(i)));
+end
+
+y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
+y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
+
+
+fig = getfig('',1);
+    hold on
+    kolor = grouped(np).color;
+    time = grouped(np).time;
+    y1 = smooth(mean(minOcc,2),sSpan, 'moving');
+    y2 = smooth(mean(maxOcc,2),sSpan, 'moving');
+    plot_error_fills(true, time, y_avg,y_err,kolor,fig_type);
+    plot(time,y1,'color',kolor)
+    plot(time,y2,'color',kolor)
+
+    % plot the paired food trial on top: 
+    
+
+    
+    
 
 
 
