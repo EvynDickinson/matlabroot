@@ -151,7 +151,7 @@ for i = 1:num.exp
 end
 % run the ancova test
 [~,~,~,stats] = aoctool(temp,occ,exp);
-%run the multicomparison to look at differences in slope
+% run the multicomparison to look at differences in slope
 c = multcompare(stats,"Estimate", "slope","CriticalValueType","bonferroni","Display","on");
 % display the statistical differences: 
 thresh = 0.05;

@@ -307,8 +307,8 @@ fig = getfig('',false,[fig_W, 340]);
     end
 % save the figure to a folder specific to that cohort?
 save_figure(fig,[save_path '2D spatial distribution all experiments'], fig_type);
-save([save_path '2D spatial distribution.mat'],'plotData', 'circ_r', ...
-    'circ_Y','circ_X', )
+% save([save_path '2D spatial distribution.mat'],'plotData', 'circ_r', ...
+%     'circ_Y','circ_X', )
 
 MaxOcc = 0.046287;
 
@@ -672,16 +672,20 @@ end
 
 % FORMATING AND LABELS
 formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx)
-ylabel('\circC')
-set(gca,"XColor",'none')
 
-% distance
+% indeendent measure over time
 subplot(r,c,sb(2).idx)
 ylabel(y_lab)
 xlabel('time (min)')
 set(gca,'ydir',y_dir)
+xlims = xlim;
+
+% temp
+subplot(r,c,sb(1).idx)
+ylabel('\circC')
+set(gca,"XColor",'none')
+xlim(xlims)
+
 % temp-distance relationship
 subplot(r,c,sb(3).idx)
 ylabel(y_lab)
@@ -705,6 +709,170 @@ end
 
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
+
+
+
+
+%% FIGURE: Scatter plot for specific time points that can be selected from a selected independent variable...
+% TODO add flies on food to this section
+clearvars('-except',initial_vars{:})
+
+plot_err = true;
+autoLim = true;
+xlim_auto = true; % change the time range for the x axis
+time_limits = [0,900]; % time limits if manual control over x-axis range
+nMax =  num.exp; 
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+
+% TODO: option for equal spacing or temp-dependent spacing
+
+tempList = [15 25 35];
+
+fig_dir = [saveDir, dir_end];
+% set figure folder
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+figWidth = 150 + (100*length(tempList));
+sz = 35;
+buff = 0.5;
+tempStep = 2; % gap between diff temp conditions
+expStep = 1; % gap between different experiments within the same temp cluster
+foreColor = formattingColors(blkbgd);
+
+
+
+fig = getfig('',1,[figWidth, 420]);
+    [tempLabel, tempMark, stats, group1, group2] = deal([]);
+
+    x_idx = 0;
+    hold on 
+    for temp = 1:length(tempList)
+        for exp = 1:num.exp
+            kolor = grouped(exp).color;
+            targetTemp = tempList(temp);
+             if ext % subregions
+                all_temps = grouped(exp).(pName).food.temps;
+                [~, tIDX]  = min(abs(targetTemp-all_temps));
+                x = all_temps(tIDX); % this is the actual temp that the data corresponds to
+                rawY = [grouped(exp).(pName).food.increasing.raw(tIDX,:);grouped(exp).(pName).food.decreasing.raw(tIDX,:)];
+            else
+                all_temps = grouped(exp).(pName).temps;
+                [~, tIDX]  = min(abs(targetTemp-all_temps));
+                x = all_temps(tIDX); % this is the actual temp that the data corresponds to
+                rawY = [grouped(exp).(pName).increasing.raw(tIDX,:);grouped(exp).(pName).decreasing.raw(tIDX,:)];
+            end
+            Y = mean(rawY,1,'omitnan');
+            Y_avg = mean(Y,'omitnan');
+            Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
+              
+            % plot the data: 
+            X = x_idx*ones([1,num.trial(exp)]);
+            a = scatter(X,Y,sz,kolor,'filled', 'XJitter','density');
+            plot([x_idx-buff,x_idx+buff],[Y_avg, Y_avg], 'color', foreColor, 'linewidth',2)
+
+            % update plotting location tracking
+            tempLabel = [tempLabel, x]; % keep track of the ACTUAL temp value at this location
+            tempMark = [tempMark, x_idx]; % the plot location for the data
+            x_idx = x_idx+expStep;
+
+            stats = [stats; Y'];
+            group1 = [group1; x*ones(size(Y'))];
+            group2 = [group2; exp*ones(size(Y'))];
+
+        end
+        if temp < length(tempList)
+            x_idx = x_idx+tempStep;
+        end
+    end
+
+% formatting
+formatFig(fig,blkbgd);
+xlim([-tempStep,x_idx+1])
+set(gca, 'XTick',tempMark,'xticklabel',cellstr(string(tempLabel)))
+xlabel('temp (\circ)')
+ylabel(y_lab)
+
+% Multiway ANOVA
+[p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
+multcompare(stats_out, 'Dimension', 1)  % for temp
+multcompare(stats_out, 'Dimension', 2)  % for exp group
+
+groupA1B1 = data(group1 == 1 & group2 == 1);
+groupA2B2 = data(group1 == 2 & group2 == 2);
+[h,p] = ttest2(groupA1B1, groupA2B2);
+
+
+
+% statistics for each temp pairing
+for ii = 1:length(tempList)
+    [~,p(ii)] = ttest(SD.c_occ(:,ii), SD.w_occ(:,ii));
+    group_name{ii} = SD.name{ii};
+    % %multicompare
+    % mlt = autoCat(mlt, plotY',false);
+    % id = autoCat(id,ii*ones(length(plotY),1),false);
+end
+%Bonferonni correction:
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+h = p<=p_limit;
+disp('Differences between selected temp region in ring occupancy:')
+stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+disp(stats_tbl)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

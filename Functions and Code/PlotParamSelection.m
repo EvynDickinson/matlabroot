@@ -122,14 +122,14 @@ switch title_str
     %     y_lab = [title_str ' (%)'];
     %     nullD = 25;
     %     scaler = 1;
-    case 'Speed'
+    case 'speed'
         pName = 'speed';
         ext = false;
         y_dir = 'normal';
         y_lab = [title_str ' (mm/s)'];
         nullD = nan;
         scaler = 1;
-    case 'Sleep'
+    case 'sleep'
         pName = 'sleep';
         ext = false;
         y_dir = 'normal';
