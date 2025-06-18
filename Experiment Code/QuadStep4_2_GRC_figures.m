@@ -39,8 +39,6 @@ end
     y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
     y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
 
-
-
 fig = getfig('',1); 
     hold on
     % plot the null distribution data
@@ -79,7 +77,7 @@ autoSave = true;
 
 n = 26; % number of spatial bins
 autoLim = false;
-axis_limits = [0, 2];
+axis_limits = [0, 1.5];
 start_time = 60; % when to start counting the behavior
 duration_time = 60*4.5; % duration of time to include in the position summary
 
@@ -137,7 +135,6 @@ for exp = 1:length(temp_list) % could also do this as auto find of the avg temp 
    disp(exp) 
 end
 
-
 disp(['Max occupancy: ' num2str(max_occ)])
 
 square_unit = mean(diff(x_edge)); % pixel size for one bin
@@ -146,11 +143,11 @@ circ_X = discretize(Cx, x_edge);
 circ_Y = discretize(Cy, y_edge);
 
 % PLOT 
-r = 1;
+r = 2;
 c = num.exp;
-fig_W = 20 + (400*c);
+fig_W = 20 + (400*c); % set this to match sizing for trials with heating and cooling....
 
-fig = getfig('',false,[fig_W, 340]); 
+fig = getfig('',false,[fig_W, 340*2]); 
     for i = expList
         subplot(r,c,i)
         hold on
@@ -184,7 +181,222 @@ fig = getfig('',false,[fig_W, 340]);
 % save the figure to a folder specific to that cohort?
 save_figure(fig,[save_path '2D spatial distribution all experiments'], fig_type);
 
-MaxOcc = 0.046287;
+% Save matrix occupancy data so that it can be compared to other trial
+% types in the future more easily: 
+for i = 1:length(temp_list)
+    plotData(i).name = ['static ' num2str(temp_list(i)) 'C'];
+end
+save([save_path '2D occupancy matrix.mat'],'plotData');
+
+%% FIGURE: DYNAMIC caviar trials -- plot heatmap of fly position within arena
+clearvars('-except',initial_vars{:})
+save_path = createFolder([saveDir 'COM/']);
+autoSave = true;
+
+foreColor = formattingColors(blkbgd);
+
+n = 26; % number of spatial bins
+autoLim = false;
+axis_limits = [0, 1.5];
+
+% Parameters: 
+expList = 1:num.exp;
+temp_list = [15 17 20 25 27 33 35]; % temps that we have temp hold data for...\
+nTemps = length(temp_list);
+plotData = struct;
+max_occ = [];
+
+% find the time point index: 
+for exp = 1:num.exp % could also do this as auto find of the avg temp for the trial...
+    % find the center of the arena for this exp type
+    Cx = mean(grouped(exp).position.well_pos.x(5,:)); %center X
+    Cy = mean(grouped(exp).position.well_pos.y(5,:)); %center Y
+
+    nflies = nan([n,n,num.trial(exp)]); % initialize the variable as zeros
+    plotData(exp).wells = nan([2,num.trial(exp)]);
+    for temp = 1:nTemps
+        
+        % find the temp bin that corresponds to the selected temp:
+        [~,idx] = min(abs(grouped(exp).position.temp_list-temp_list(temp))); % temp bin
+        nRates = length(grouped(exp).position.temp_rates);
+        
+        for rr = 1:nRates   
+            nflies = nan([n n num.trial(exp)]); 
+            for trial = 1:num.trial(exp)
+                    con_type = data(exp).con_type(trial);
+                    % check if it matches plate 1 
+                    if ~any(con_type==[1 2]) 
+                        continue
+                    end
+                    % pull the trial specific data:
+                    r = conversion(con_type).R*conversion(con_type).pix2mm; % pixel radius of this arena    
+                    x = grouped(exp).position.loc(rr,idx).data(trial).pos(:,1); % x positions of the flies
+                    y = grouped(exp).position.loc(rr,idx).data(trial).pos(:,2); % x positions of the flies
+
+                    % find the edges of the spatial bins 
+                    x_edge = linspace(Cx-r,Cx+r,n);
+                    y_edge = linspace(Cy-r,Cy+r,n);
+                    % find which fly locations go to which spatial bin
+                    nanLoc = isnan(x)| isnan(y);
+                    x(nanLoc) = [];
+                    y(nanLoc) = []; % this also reorganizes the data as a vector
+                    xInd = discretize(x,x_edge);
+                    yInd = discretize(y,y_edge);
+        
+                    % find the number of flies within each spatial bin:
+                    for row = 1:n
+                        for col = 1:n
+                            nflies(row,col,trial) = sum(yInd==row & xInd==col);
+                        end
+                    end
+                
+                xInd = discretize(0,x_edge);
+                yInd = discretize(0,y_edge);
+                plotData(exp).wells(:,trial) = [xInd,yInd];
+            end
+
+            % find the occupancy across all the trials for this experiment group
+            tot_flies = sum(nflies,3,'omitnan');
+            tot_flies = (tot_flies./sum(sum(tot_flies))*100);
+        
+            plotData(exp).occ(rr,temp).n = tot_flies;
+            max_occ = max([max_occ,max(max(plotData(exp).occ(rr,temp).n))]);
+        end
+    end
+    disp(exp)
+end
+
+disp(['Max occupancy: ' num2str(max_occ) '%'])
+
+square_unit = mean(diff(x_edge)); % pixel size for one bin
+circ_r = (conversion(1).R*conversion(1).pix2mm)/square_unit; % arena radius in bin size
+circ_X = discretize(Cx, x_edge);
+circ_Y = discretize(Cy, y_edge);
+
+% PLOT 
+for exp = 1:num.exp
+    nRates = length(grouped(exp).position.temp_rates);
+    r = 2;
+    c = nTemps;
+    fig_W = 20 + (400*c);
+    
+    fig = getfig('',false,[fig_W, (340*2)]); 
+    i = 1;
+    for rr = 1:nRates
+        for temp = 1:nTemps
+            subplot(r,c,i)
+            hold on
+            imagesc(plotData(exp).occ(rr,temp).n); 
+            hold on
+            wellX = median(plotData(exp).wells(1,:),'omitnan');
+            wellY = median(plotData(exp).wells(2,:),'omitnan');
+            scatter(wellX, wellY,10,'r','filled')
+            title([num2str(temp_list(temp)) '\circC @ ' num2str(grouped(exp).position.temp_rates(rr)) '\circC/min'],'color', foreColor)
+            axis tight square
+            % axis square;
+            v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
+            i = i+1; % update the subplot location
+        end
+    end
+    % FORMATTING: 
+    formatFig(fig, blkbgd,[r,c]);
+    for i = 1: nTemps*nRates
+        subplot(r,c,i)
+        set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
+        C = colorbar;
+        C.Label.String = 'Occupancy Probability';
+        C.Label.Color = foreColor;
+        C.Color = foreColor;
+        if autoLim
+            clim([0,max_occ])
+        else
+            clim(axis_limits)
+        end  
+        colormap(flipud(gray))
+    end
+    % save the figure to a folder specific to that cohort?
+    save_figure(fig,[save_path '2D spatial distribution ' grouped(exp).name], fig_type);
+
+end
+
+% Save matrix occupancy data so that it can be compared to other trial
+% types in the future more easily: 
+for exp = 1:num.exp
+    for rr = 1:nRates
+        for temp = 1:nTemps
+            plotData(exp).occ(rr,temp).name = [num2str(temp_list(temp)) 'C at ' num2str(grouped(exp).position.temp_rates(rr)) 'C/min'];
+        end
+    end
+end
+save([save_path '2D occupancy matrix.mat'],'plotData');
+
+%% HARD CODED STATIC VS DYNAMIC 2D SPATIAL DATA COMPARISON
+% load in the static temp hold 2D occupancy data so that we can compare
+% across the two conditions more directly....
+
+% currently hard coded but can be automated later TODO 
+StaticOcc = load("S:\Evyn\DATA\Grouped Data Structures\Berlin Temp Holds Caviar\COM\2D occupancy matrix.mat");
+
+
+% compare for each temp between static and dynamic temps:
+diffMat = struct;
+exp = 1;
+for rr = 1:nRates
+    for temp = 1:nTemps
+        m = plotData(exp).occ(rr,temp).n-StaticOcc.plotData(temp).data;
+        diffMat(rr,temp).n = m;
+    end
+end
+
+r = 2;
+c = nTemps;
+fig_W = 20 + (400*c);
+
+fig = getfig('',false,[fig_W, (340*2)]); 
+i = 1;
+for rr = 1:nRates
+    for temp = 1:nTemps
+        subplot(r,c,i)
+        hold on
+        imagesc(diffMat(rr,temp).n); 
+        hold on
+        wellX = median(plotData(exp).wells(1,:),'omitnan');
+        wellY = median(plotData(exp).wells(2,:),'omitnan');
+        scatter(wellX, wellY,10,'r','filled')
+        title([num2str(temp_list(temp)) '\circC @ ' num2str(grouped(exp).position.temp_rates(rr)) '\circC/min'],'color', foreColor)
+        axis tight square
+        % axis square;
+        v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
+        i = i+1; % update the subplot location
+    end
+end
+
+
+% Create custom colormap for positive and negative change between static and dynamic trials
+n = 256;  % number of colors
+z0 = -2; z1 = 0; z2 = 1; % color axis limits...
+% Number of colors below and above zero
+n_neg = round(n * abs(z0) / (z2 - z0));
+n_pos = n - n_neg;
+cmap_neg = [linspace(0,1,n_neg)', linspace(0,1,n_neg)', ones(n_neg,1)];% Blue to white (for negative)
+cmap_pos = [ones(n_pos,1), linspace(1,0,n_pos)', linspace(1,0,n_pos)'];% White to red (for positive)
+% Combined color map
+cmap = [cmap_neg; cmap_pos];
+
+% FORMATTING: 
+formatFig(fig, blkbgd,[r,c]);
+for i = 1: nTemps*nRates
+    subplot(r,c,i)
+    set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
+    C = colorbar;
+    C.Label.String = '\Delta Occupancy';
+    C.Label.Color = foreColor;
+    C.Color = foreColor;
+    clim([z0, z2])
+    colormap(cmap)
+end
+% save the figure to a folder specific to that cohort?
+save_figure(fig,[save_path '2D spatial distribution difference static vs dynamic ' grouped(exp).name], fig_type);
 
 
 %% TODO: Make a structure for the caviar trial of this so they can be compared and then find the difference between them
@@ -321,27 +533,23 @@ MaxOcc = 0.046287;
 % save_path = createFolder([saveDir 'COM/']);
 % autoSave = true;
 % 
-% [foreColor] = formattingColors(blkbgd);
+% foreColor = formattingColors(blkbgd);
 % 
 % % Find the occupancy for each bin:
-% 
-% 
-% 
 % n = 26; % number of spatial bins
 % autoLim = false;
-% axis_limits = [0, 0.01];
+% axis_limits = [0, 2];
 % 
 % % Parameters: 
 % expList = 1:num.exp;
 % temp_list = [15 17 20 25 27 33 35]; % temps that we have temp hold data for...
-% temp_match_proto = 'Large_temp_sweep_15_35'; % this is where we want to match the time points for the experiment
-% 
-% % Find the time points that correspond to the desired temp period
-% tp = getTempTurnPoints(temp_match_proto);
-% temp_path = getCloudPath;
-% temp_path = temp_path(1:end-5);
-% temp = load([temp_path 'LTS 15-35 temp data.mat']); % pull in the fictive temp region information (and berlin caviar LTS data)
-% LTS = temp.LTS_temp; clear temp
+% % 
+% % % Find the time points that correspond to the desired temp period
+% % tp = getTempTurnPoints(temp_match_proto);
+% % temp_path = getCloudPath;
+% % temp_path = temp_path(1:end-5);
+% % temp = load([temp_path 'LTS 15-35 temp data.mat']); % pull in the fictive temp region information (and berlin caviar LTS data)
+% % LTS = temp.LTS_temp; clear temp
 % 
 % % heating and cooling separated for each desired temp bin
 % % find the time index locations for the periods where the behavior should
@@ -349,7 +557,7 @@ MaxOcc = 0.046287;
 % 
 % % grouped(exp).position.loc(rate, tempbin).data(trial).pos  
 % 
-% find the time point index: 
+% % find the time point index: 
 % plotData2 = struct;
 % max_occ2 = [];
 % for tt = 1:length(temp_list) % could also do this as auto find of the avg temp for the trial...
@@ -404,7 +612,7 @@ MaxOcc = 0.046287;
 %     end
 %     disp(exp)
 % end
-
+% 
 % disp(['Max occupancy: ' num2str(max_occ)])
 % 
 % % PLOT 
@@ -464,7 +672,7 @@ MaxOcc = 0.046287;
 %     end
 %     plot(data(i).data(trial).occupancy.time,data(i).data(trial).data.occupancy.temp)
 % end
-% 
+
 
 %% Sleep by location for different hold trials TODO UPDATE TO NEW STRUCTURE FORMAT
 clearvars('-except',initial_vars{:})
@@ -824,6 +1032,14 @@ h = p<=p_limit;
 disp('Differences between selected temp region in ring occupancy:')
 stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
 disp(stats_tbl)
+
+%% FIGURE: (STATIC TRIALS) scatter plot of static temp holds to show the occupancy within different regions
+clearvars('-except',initial_vars{:})
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+
+
 
 
 

@@ -1082,6 +1082,9 @@ for exp = 1:num.exp
         all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
         loc = false(size(x_loc));
         loc(all_points,:) = true;
+        if tp.holdexp
+            loc = true(size(x_loc));
+        end
 
         % Define base location logicals
         fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
@@ -1514,11 +1517,6 @@ end
 
 %% ANALYSIS: Generate and save the sleep quanitification
 clearvars('-except',initial_vars{:})
-if ~strcmp(questdlg('Do you want to load sleep data now?'),'Yes')
-     disp('Data fully loaded and processed')
-    return
-end
-
 paths = getPathNames;
 nbins = 50;
 
@@ -1946,7 +1944,6 @@ end
 %     grouped(exp).sleep.ring.avg = mean(ring_per,2,'omitnan');
 % end
 
-
 %% SLEEPING analysis -- find the locations of the sleeping flies and create a sleep mask
 clearvars('-except',initial_vars{:})
 % Initialize empty sleep mask structure:
@@ -2003,6 +2000,9 @@ for exp = 1:num.exp
         all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
         loc = false(size(x_loc));
         loc(all_points,:) = true;
+        if tp.holdexp
+            loc = true(size(x_loc));
+        end
 
         % Define base location logicals
         fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
