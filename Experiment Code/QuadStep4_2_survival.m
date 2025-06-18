@@ -50,6 +50,7 @@ if ~exist(c,'dir')
     mkdir(c)
 end
 figDir = [figDir 'Survival curve figures']; 
+disp('data loaded')
 
 
 %% Pull the protocol name and trials under the selected temp protocol
@@ -59,6 +60,9 @@ temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 % Which columns in excel file to plot based on each temp protocol
 switch tempprotocol
     case 'survival_curve_40C'
+        columns = 11:51;
+        k =  'tomato';
+    case 'survival_curve_35C'
         columns = 11:51;
         k =  'tomato';
     case 'survival_curve_5C'
