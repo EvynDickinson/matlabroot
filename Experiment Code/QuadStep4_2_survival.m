@@ -12,8 +12,8 @@ plot(y)
 clear; clc;
 % baseFolder = getDataPath(2,2);
 
-blkbnd = true;
-fig_type = '-png';
+blkbnd = false;
+fig_type = '-pdf';
 
 % Load excel file
 [excelfile, Excel, xlFile] = load_SurvivalQuadCounts;
@@ -113,8 +113,6 @@ formatFig(fig, blkbnd);
     ylabel('Percentage of incapaciated flies')
 
 save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
-
-
 
 %% Plot number of alive flies overtime
 numflies = cell2mat([excelfile(temptrials,10)]);
