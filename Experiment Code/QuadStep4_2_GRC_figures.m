@@ -693,8 +693,6 @@ tempStep = 2; % gap between diff temp conditions
 expStep = 1; % gap between different experiments within the same temp cluster
 foreColor = formattingColors(blkbgd);
 
-
-
 fig = getfig('',1,[figWidth, 420]);
     [tempLabel, tempMark, stats, group1, group2] = deal([]);
 
@@ -764,79 +762,272 @@ groupA2B2 = stats(group1 == 15 & group2 == 2);
 
 [results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
 
-
-
-%% FIGURE: (STATIC TRIALS) scatter plot of static temp holds to show the occupancy within different regions
-clearvars('-except',initial_vars{:})
-
-% Select the type of information to plot: 
-[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
-
-%% 
-
 %% LTS food vs no food: temp tuning curves for plotting separeated by heating and cooling
-
 clearvars('-except',initial_vars{:})
+autoLims = true;
+[title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 
 % link each data set to it's 'null' data set: (make this more involved and
 % automated later -- gui driven, maybe?)
 
+% Parameters: 
 null_pair = [1,2]; % first idx is the test trial and the second is the null for each row
-
-% Plot out the quadrant data:
-
 np = 2; %null-pair idx
 exp = 1; % active trial
-% find the quads with the highest and lowest occupancy over the course of
-% the experiment:
 
-sSpan = 180;
+% find the quads with the highest and lowest occupancy over the course of the experiment:
+if ext % there are quadrant specific features
+    dummy = [];
+    plotData = [];
+    for i = 1:4
+        a = grouped(np).innerquad.(quadOrder{i}).all;
+        dummy(i,:) = sum(a,1,'omitnan');
+        % plotData(:,:,i) = a;
+    end
+    % find min and max occupancy quadrants: 
+    [~, lowerIDX] = min(dummy);
+    [~, upperIDX] = max(dummy);
 
-dummy = [];
-plotData = [];
-for i = 1:4
-    a = grouped(np).innerquad.(quadOrder{i}).all;
-    dummy(i,:) = sum(a,1,'omitnan');
-    plotData(:,:,i) = a;
+    % extract trial specific information for averaging
+    [cool_low, cool_high, warm_low, warm_high] = deal([]);
+    for trial = 1:num.trial(np)
+        iLow = lowerIDX(trial); % quadrant with lowest occ throughout experiment
+        iHigh = upperIDX(trial);  % quadrant with highest occ throughout the experiment 
+        cool_low = [cool_low, grouped(np).(param).(quadOrder{iLow}).decreasing.raw(:,trial)];
+        cool_high = [cool_high, grouped(np).(param).(quadOrder{iHigh}).decreasing.raw(:,trial)];
+        warm_low = [warm_low, grouped(np).(param).(quadOrder{iLow}).increasing.raw(:,trial)];
+        warm_high = [warm_high, grouped(np).(param).(quadOrder{iHigh}).increasing.raw(:,trial)];
+    end
+    cool_low = mean(cool_low,2,'omitnan');
+    cool_high = mean(cool_high,2,'omitnan');
+    warm_low = mean(warm_low,2,'omitnan');
+    warm_high = mean(warm_high,2,'omitnan');
+    % find the avg and 'err' from the low and high occupancy regions
+    yC_err = mean((cool_high-cool_low)./2,2,'omitnan');
+    yC_avg = mean([cool_low,cool_high],2,'omitnan');
+    yW_err = mean((warm_high-warm_low)./2,2,'omitnan');
+    yW_avg = mean([warm_low,warm_high],2,'omitnan');
 end
-% find min and max occupancy quadrants: 
-[~, lowerIDX] = min(dummy);
-[~, upperIDX] = max(dummy);
 
-[minOcc,maxOcc] = deal([]);
-for i = 1:num.trial(np)
-    minOcc(:,i) = squeeze(plotData(:,i,lowerIDX(i)));
-    maxOcc(:,i) = squeeze(plotData(:,i,upperIDX(i)));
+r = 1;
+c = 2;
+if ext
+    x = grouped(np).(param).food.temps; % temperature bins from low to high in this experiment type
+else
+    x = grouped(np).(param).temps;
 end
-    y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
-    y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
 
-fig = getfig('',1); 
-    hold on
-    % plot the null distribution data
-    y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
-    y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
-    kolor = grouped(np).color;
-    time = grouped(np).time;
-    y1 = smooth(mean(minOcc,2),sSpan, 'moving');
-    y2 = smooth(mean(maxOcc,2),sSpan, 'moving');
-    plot_error_fills(true, time, y_avg,y_err,kolor,fig_type,0.5);
-    % plot(time,y1,'color',kolor)
-    % plot(time,y2,'color',kolor)
-    % plot the paired food trial on top:
-    x = grouped(exp).time;
-    kolor = grouped(exp).color;
-    y = grouped(exp).fullquad.food.avg;
-    y_err = grouped(exp).fullquad.food.std./sqrt(num.trial(exp));
-    plot_error_fills(true, x, y, y_err, kolor, fig_type);
-    plot(x,y,'color',kolor,'linewidth', 1)
+LW = 2;
+FA = 0.5;
+xlims = [14, 36];
+if autoLims
+    ylims = [];
+else
+    ylims = [0 90];
+end
+
+fig = getfig('',1);
+% cooling temperatures 
+subplot(r,c,1); hold on
+    % 'null' no food distribution 
+    if ext
+        plot_error_fills(true, x, yC_avg,yC_err,grouped(np).color,fig_type,FA);
+        plot(x, yC_avg, 'color', grouped(np).color,'linewidth', LW)
+    else
+        y = grouped(np).(param).decreasing.avg;
+        try y_err = grouped(np).(param).decreasing.std./sqrt(num.trial(np));
+        catch
+            y_err = grouped(np).(param).decreasing.err./sqrt(num.trial(np));
+        end
+        plot_error_fills(true, x, y, y_err, grouped(np).color,fig_type,FA);
+        plot(x, y, 'color', grouped(np).color,'linewidth', LW)
+    end
+    % food distribution 
+    if ext
+        baseY = grouped(exp).(param).food;
+    else
+        baseY = grouped(exp).(param);
+    end
+    y = baseY.decreasing.avg;
+    try y_err = baseY.decreasing.std./sqrt(num.trial(exp));
+    catch
+        y_err = baseY.decreasing.err./sqrt(num.trial(exp));
+    end
+    plot_error_fills(true, x, y, y_err, grouped(exp).color,fig_type,FA);
+    plot(x, y, 'color', grouped(exp).color,'linewidth', LW)
+    %formatting
+    set(gca,'xdir', 'reverse')
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('cooling')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+
+% warming temperatures 
+subplot(r,c,2); hold on
+    % 'null' no food distribution 
+    if ext
+        plot_error_fills(true, x, yW_avg,yW_err,grouped(np).color,fig_type,FA);
+        plot(x, yW_avg, 'color', grouped(np).color,'linewidth', LW)
+    else
+        y = grouped(np).(param).increasing.avg;
+        try y_err = grouped(np).(param).increasing.std./sqrt(num.trial(np));
+        catch 
+            y_err = grouped(np).(param).increasing.err./sqrt(num.trial(np));
+        end
+        plot_error_fills(true, x, y, y_err, grouped(np).color,fig_type,FA);
+        plot(x, y, 'color', grouped(np).color,'linewidth', LW)
+    end
+    % food distribution 
+    if ext
+        baseY = grouped(exp).(param).food;
+    else
+        baseY = grouped(exp).(param);
+    end
+    y = baseY.increasing.avg;
+    try y_err = baseY.increasing.std./sqrt(num.trial(exp));
+    catch
+        y_err = baseY.increasing.err./sqrt(num.trial(exp));
+    end
+    plot_error_fills(true, x, y, y_err, grouped(exp).color,fig_type,FA);
+    plot(x, y, 'color', grouped(exp).color,'linewidth', LW)
     % formatting
-    xlabel('time (min)')
-    ylabel('food quadrant occupancy (%)')
-    xlim([0 700])
-    formatFig(fig,false);
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('warming')       
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+formatFig(fig, blkbgd,[r c]);
+for i = 1:2
+    subplot(r,c,i); hold on
+    if autoLims
+        ylim([min(ylims(:,1)),max(ylims(:,2))]);
+    else 
+        ylim(ylims)
+    end
+end
+
+save_figure(fig,[figDir, param ' occ temp tuning curve separated heating and cooling'],fig_type);
+
+%% LTS STATIC TEMP HOLDS occupancy temp tuning curves
+clearvars('-except',initial_vars{:})
+[title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+foreColor = formattingColors(blkbgd);
+r = 1;
+c = 2;
+autoLims = true;
+
+timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
+
+plotData = [];
+for exp = 1:num.exp
+    if ext
+        y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
+    else
+        y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
+    end
+    plotData = autoCat(plotData, y_all',false);
+end
+
+temp_list = [15 17 20 25 27 33 35]; % temps that we have temp hold data for...
+y_avg = mean(plotData, 1,'omitnan');
+y_sem = std(plotData,0,1,'omitnan')./sqrt(num.trial);
+
+sz = 35;
+buff = 0.4;
+if autoLims
+    ylims = [];
+else
+    ylims = [0 90];
+end
+xlims = [14, 36];
+
+kolor = foreColor;
+LW = 2;
+
+fig = getfig('',1);
+% cooling cooling orientation 
+subplot(r,c,1); hold on
+    for exp = 1:num.exp
+        temp = temp_list(exp);
+        y = plotData(:,exp);
+        y(isnan(y)) = [];
+        x = shuffle_data(linspace(temp-buff, temp+buff, length(y)));
+        scatter(x,y,sz, Color('grey'), 'filled')
+        scatter(temp, y_avg(exp), 70,foreColor,'filled', 'square')
+        errorbar(temp, y_avg(exp), y_sem(exp),'Color', foreColor, 'LineWidth',LW)
+    end
+    plot(temp_list, y_avg,'color', foreColor, 'linewidth', LW, 'linestyle', ':')
+    plot_error_fills(true, temp_list, y_avg, y_sem, foreColor,fig_type);
+    %formatting
+    set(gca,'xdir', 'reverse')
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('static')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+
+% warming orientation
+subplot(r,c,2); hold on
+    for exp = 1:num.exp
+        temp = temp_list(exp);
+        y = plotData(:,exp);
+        y(isnan(y)) = [];
+        x = shuffle_data(linspace(temp-buff, temp+buff, length(y)));
+        scatter(x,y,sz, Color('grey'), 'filled')
+        scatter(temp, y_avg(exp), 70,foreColor,'filled', 'square')
+        errorbar(temp, y_avg(exp), y_sem(exp),'Color', foreColor, 'LineWidth',LW)
+    end
+    plot(temp_list, y_avg,'color', foreColor, 'linewidth', LW, 'linestyle', ':')
+    plot_error_fills(true, temp_list, y_avg, y_sem, foreColor,fig_type);
+    %formatting
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('static')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+formatFig(fig, blkbgd,[r c]);
+for i = 1:2
+    subplot(r,c,i); hold on
+    if autoLims
+        ylim([min(ylims(:,1)),max(ylims(:,2))]);
+    else 
+        ylim(ylims)
+    end
+end
+
+save_figure(fig,[figDir, param ' occ temp tuning curve scatter'],fig_type);
+
+
+% figure;
+% hold on
+% for exp = 1:num.exp
+%     plot(grouped(exp).(param).food.avg(timeROI))
+% end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
-save_figure(fig,[figDir, 'full quad occ over time'],fig_type);
+
 
 
 
