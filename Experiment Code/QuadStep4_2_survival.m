@@ -33,59 +33,88 @@ if isempty(fileIdx)
     return
 end
 
-% % Establish date, trial, and base directories
-% dateDir = eligible_files(fileIdx(1),1);
-% trialDir = eligible_files(fileIdx(1),2); 
-% baseDir = [baseFolder, dateDir{:} '\', trialDir{:} '\'];
-
 % Path data structures folder
 baseFolder = getDataPath(5,2);
 pathNames = getPathNames;
-ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
-ExpGroup = ExpGroup{:};
+% ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
+% ExpGroup = ExpGroup{:};
+
 % If survival curves folder isn't made yet, make it
-figDir = [baseFolder pathNames.grouped_trials ExpGroup '/'];
-c = [figDir 'Survival curve figures'];
-if ~exist(c,'dir')
-    mkdir(c)
-end
-figDir = [figDir 'Survival curve figures']; 
-disp('data loaded')
+ExpGroup = 'Berlin survival comparisons no food';
+rootDir = createFolder([baseFolder pathNames.group_comparision ExpGroup '/']);
+figDir = createFolder([rootDir 'Figures/']);
+
+nexps = length(fileIdx);
 
 
 %% Pull the protocol name and trials under the selected temp protocol
-tempprotocol = temptype{fileIdx};
+data = struct;
+
+for exp = 1:nexps
+tempprotocol = temptype{fileIdx(exp)};
 temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
+data(exp).tempprotocol = tempprotocol;
 
 % Which columns in excel file to plot based on each temp protocol
 switch tempprotocol
     case 'survival_curve_40C'
-        columns = 11:51;
-        k =  'tomato';
+        data(exp).columns = [11,13:52];
+        data(exp).color =  Color('red');
+        data(exp).temp = 40;
     case 'survival_curve_35C'
-        columns = 11:51;
-        k =  'tomato';
+        data(exp).columns = [11,13:52];
+        data(exp).color =  Color('tomato');
+        data(exp).temp = 35;
     case 'survival_curve_5C'
-        columns = [11:13,15,17,19,21,23,26,28,31,33,36,38,41,43,46,48,51,53,56,58];
-        k = 'dodgerblue';
+        data(exp).columns = [11:14,16,18,20,22,24,27,29,32,34,37,39,42,44,47,49,52,54,57,59];
+        data(exp).color = Color('dodgerblue');
+        data(exp).temp = 5;
 end
 
-data = [];
-data.raw = cell2mat([excelfile(temptrials,columns)]);
-data.avg = mean(data.raw,'omitnan');
-timestmp = cell2mat([excelfile(1,columns)]);
-time = timestmp*10;
+data(exp).raw = cell2mat([excelfile(temptrials,data(exp).columns)]);
+data(exp).avg = mean(data(exp).raw,'omitnan');
+data(exp).timestmp = cell2mat([excelfile(1,data(exp).columns)]);
+data(exp).time = data(exp).timestmp*10;
+data(exp).ntrials = size(data(exp).raw,1);
+data(exp).perc = (data(exp).raw ./ cell2mat([excelfile(temptrials,10)]))*100;
+data(exp).avgperc = mean(data(exp).perc,'omitnan');
+end
 
 
 %% Plot number of dead flies overtime
 fig = getfig;
-    plot(time,data.avg,'linewidth',3,'color',Color(k))
+for exp = 1:nexps
+    hold on
+    y_err = (std(data(exp).raw,0,1,'omitnan'))./sqrt(data(exp).ntrials); % calculate SEM
+    plot_error_fills(1, data(exp).time, data(exp).avg, y_err, data(exp).color, fig_type, 0.35); % plot error
+    plot(data(exp).time,data(exp).avg,'linewidth',3,'color',data(exp).color)
+end
 formatFig(fig, blkbnd);
-    ylim([0 15])
+    ylim([0 20])
     set(gca,"YTick", 0:3:20, 'FontSize', 20)
     xlabel('Time (min)')
-    ylabel('Number of dead flies')
+    ylabel('Number of incapaciated flies')
 save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
+
+%% Percentage flies dead overtime
+
+fig = getfig;
+for exp = 1:nexps
+    hold on
+    y_err = (std(data(exp).perc,0,1,'omitnan'))./sqrt(data(exp).ntrials); % calculate SEM
+    plot_error_fills(1, data(exp).time/60, data(exp).avgperc, y_err, data(exp).color, fig_type, 0.35); % plot error
+    plot((data(exp).time)/60,data(exp).avgperc,'linewidth',3,'color',data(exp).color)
+end
+
+formatFig(fig, blkbnd);
+    ylim([0 100])
+    set(gca,"YTick", 0:25:100, 'XTick', 0:6:48, 'FontSize', 15)
+    xlabel('Time (hours)')
+    ylabel('Percentage of incapaciated flies')
+
+save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
+
+
 
 %% Plot number of alive flies overtime
 numflies = cell2mat([excelfile(temptrials,10)]);
