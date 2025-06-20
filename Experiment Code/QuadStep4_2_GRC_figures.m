@@ -476,7 +476,6 @@ end
 save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-png',true,false);
 save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-pdf',true,true);
 
-%% FIGURE: occupancy of inner and outer regions over time and temp: 
 
 %% FIGURE: Time Course for single parameter -- select your metric
 % TODO add flies on food to this section
@@ -681,7 +680,8 @@ nMax =  num.exp;
 
 % TODO: option for equal spacing or temp-dependent spacing
 
-tempList = [15 25 35];
+% tempList = [15 25 35];
+tempList = [17 25];
 
 % set figure folder
 fig_dir = createFolder([saveDir, 'Figures/']);
@@ -761,6 +761,112 @@ groupA2B2 = stats(group1 == 15 & group2 == 2);
 [h,p] = ttest2(groupA1B1, groupA2B2);
 
 [results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
+
+%% FIGURE: Scatter plot for specific time points separated by heating and cooling for each exp 
+% TODO add flies on food to this section
+clearvars('-except',initial_vars{:})
+
+plot_err = true;
+autoLim = true;
+xlim_auto = true; % change the time range for the x axis
+time_limits = [0,900]; % time limits if manual control over x-axis range
+nMax =  num.exp; 
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+
+% tempList = [15 25 35];
+tempList = [17 25];
+
+% set figure folder
+fig_dir = createFolder([saveDir, 'Figures/']);
+
+figWidth = 200 + (100*length(tempList));
+sz = 50;
+buff = 0.5;
+tempStep = 2; % gap between diff temp conditions
+expStep = 1; % gap between different experiments within the same temp cluster
+foreColor = formattingColors(blkbgd);
+r = 1;
+c = 2; % heating and cooling
+buff = 0.5;
+edgeBuff = 3;
+ylims = [0, 75];
+
+timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
+
+for exp = 1:num.exp
+    if ext
+        yBase = grouped(exp).(pName).food;
+    else
+        yBase = grouped(exp).(pName);
+    end
+        
+    fig = getfig('',1,[figWidth, 420]);
+    for tt = 1:2 % cooling then decreasing
+        switch tt
+            case 1
+                tType = 'decreasing';
+                kolor = Color('dodgerblue');
+                tName = 'cooling';
+            case 2
+                tType = 'increasing';
+                kolor = Color('red');
+                tName = 'warming';
+        end
+
+        % cooling data
+        subplot(r,c,tt); hold on
+        for temp = 1:length(tempList)
+            targetTemp = tempList(temp);
+            % pull data and seperate by dynamic or static 
+            if data(exp).hold_exp % hold experiments
+                y_all = mean(yBase.all(timeROI,:),1,'omitnan');
+            else % dyunamic experiments
+                 if ext % subregions
+                    all_temps = grouped(exp).(pName).food.temps;
+                    [~, tIDX]  = min(abs(targetTemp-all_temps));
+                    x = all_temps(tIDX); % this is the actual temp that the data corresponds to
+                    y_all = grouped(exp).(pName).food.(tType).raw(tIDX,:);
+                else
+                    all_temps = grouped(exp).(pName).temps;
+                    [~, tIDX]  = min(abs(targetTemp-all_temps));
+                    x = all_temps(tIDX); % this is the actual temp that the data corresponds to
+                    y_all = grouped(exp).(pName).(tType).raw(tIDX,:);
+                 end
+
+                 % check that the target temp and selected temps match
+                 if ~(targetTemp==x)
+                     warndlg('target temp not aligned with selected temp')
+                     return
+                 end
+            end
+
+            Y = mean(y_all,1,'omitnan');
+            Y_avg = mean(Y,'omitnan');
+            Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
+
+            % plot the data: 
+            X = shuffle_data(linspace(targetTemp-buff,targetTemp+buff,num.trial(exp)));
+            a = scatter(X,Y,sz,kolor,'filled');
+            plot([targetTemp-(5*buff),targetTemp+(5*buff)],[Y_avg, Y_avg], 'color', kolor, 'linewidth',2)
+            
+        end
+        % Formatting
+        title(tName)
+        ylabel(pName)
+        xlabel('temp (\circC) ')
+        set(gca, 'xtick', tempList)
+        xlim([min(tempList)-edgeBuff, max(tempList)+edgeBuff])
+        ylim(ylims)
+    end
+    % formatting full set 
+    formatFig(fig, blkbgd, [r c]);
+    save_figure(fig,[fig_dir, grouped(exp).name ' ' pName ' limited temp occ scatter'],fig_type);
+end
+
+       
+    
 
 %% LTS food vs no food: temp tuning curves for plotting separeated by heating and cooling
 clearvars('-except',initial_vars{:})
@@ -1012,6 +1118,120 @@ save_figure(fig,[figDir, param ' occ temp tuning curve scatter'],fig_type);
 % for exp = 1:num.exp
 %     plot(grouped(exp).(param).food.avg(timeROI))
 % end
+
+%% Static vs dynamic F LRR & waxed comparision figures: 
+clearvars('-except',initial_vars{:})
+
+% scatter plot of 17 and 25 degrees for the holds vs waxed and intact trials
+
+[title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+foreColor = formattingColors(blkbgd);
+% r = 1;
+% c = 2;
+autoLims = true;
+
+timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
+
+% pull hold trial information 
+hold_trials = [3, 4];
+dyn_trials = [1, 2];
+
+
+plotData = [];
+for i = 1:length(hold_trials)
+    exp = hold_trials(i);
+    if ext
+        y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
+    else
+        y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
+    end
+    plotData = autoCat(plotData, y_all',false);
+
+
+
+
+
+
+plotData = [];
+for exp = 1:num.exp
+    if ext
+        y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
+    else
+        y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
+    end
+    plotData = autoCat(plotData, y_all',false);
+end
+
+temp_list = [15 17 20 25 27 33 35]; % temps that we have temp hold data for...
+y_avg = mean(plotData, 1,'omitnan');
+y_sem = std(plotData,0,1,'omitnan')./sqrt(num.trial);
+
+sz = 35;
+buff = 0.4;
+if autoLims
+    ylims = [];
+else
+    ylims = [0 90];
+end
+xlims = [14, 36];
+
+kolor = foreColor;
+LW = 2;
+
+fig = getfig('',1);
+% cooling cooling orientation 
+subplot(r,c,1); hold on
+    for exp = 1:num.exp
+        temp = temp_list(exp);
+        y = plotData(:,exp);
+        y(isnan(y)) = [];
+        x = shuffle_data(linspace(temp-buff, temp+buff, length(y)));
+        scatter(x,y,sz, Color('grey'), 'filled')
+        scatter(temp, y_avg(exp), 70,foreColor,'filled', 'square')
+        errorbar(temp, y_avg(exp), y_sem(exp),'Color', foreColor, 'LineWidth',LW)
+    end
+    plot(temp_list, y_avg,'color', foreColor, 'linewidth', LW, 'linestyle', ':')
+    plot_error_fills(true, temp_list, y_avg, y_sem, foreColor,fig_type);
+    %formatting
+    set(gca,'xdir', 'reverse')
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('static')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+
+% warming orientation
+subplot(r,c,2); hold on
+    for exp = 1:num.exp
+        temp = temp_list(exp);
+        y = plotData(:,exp);
+        y(isnan(y)) = [];
+        x = shuffle_data(linspace(temp-buff, temp+buff, length(y)));
+        scatter(x,y,sz, Color('grey'), 'filled')
+        scatter(temp, y_avg(exp), 70,foreColor,'filled', 'square')
+        errorbar(temp, y_avg(exp), y_sem(exp),'Color', foreColor, 'LineWidth',LW)
+    end
+    plot(temp_list, y_avg,'color', foreColor, 'linewidth', LW, 'linestyle', ':')
+    plot_error_fills(true, temp_list, y_avg, y_sem, foreColor,fig_type);
+    %formatting
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('static')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+formatFig(fig, blkbgd,[r c]);
+for i = 1:2
+    subplot(r,c,i); hold on
+    if autoLims
+        ylim([min(ylims(:,1)),max(ylims(:,2))]);
+    else 
+        ylim(ylims)
+    end
+end
 
 
 

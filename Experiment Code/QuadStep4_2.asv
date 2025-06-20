@@ -130,7 +130,10 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
 
                 % get field list for loading data:
                 dummy = load([structFolder expNames{i} '/' expNames{i} ' post 3.2 data.mat']);
-                
+                if isfield(dummy,'autoRun')
+                try dummy = rmfield(dummy,'autoRun');
+                catch
+                end
                 %field not present in dummy, so add blank
                 if i > 1
                     unmatched_in_dummy = setdiff(fields(data),fields(dummy));
@@ -1517,7 +1520,6 @@ end
 
 %% ANALYSIS: Generate and save the sleep quanitification
 clearvars('-except',initial_vars{:})
-
 paths = getPathNames;
 nbins = 50;
 
