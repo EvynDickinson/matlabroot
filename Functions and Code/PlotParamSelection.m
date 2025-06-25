@@ -23,7 +23,7 @@ if nargin>1 && location_only
     paramList = { 'ring', 'inner75', 'fullquad','quadring', 'innerquad','circle10', 'circle7', 'circle5'};
 else
     % paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Proximity to Food','Speed','Sleep'};
-    paramList = { 'ring', 'inner75', 'fullquad', 'innerquad','circle10', 'circle7', 'circle5','fliesonfood','sleep','speed'};
+    paramList = { 'ring', 'inner75', 'fullquad', 'innerquad', 'quadring','circle10', 'circle7', 'circle5','fliesonfood','sleep','speed'};
 end
 
 idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200]);

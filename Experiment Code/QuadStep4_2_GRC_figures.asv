@@ -781,8 +781,8 @@ tempList = [17 25];
 % set figure folder
 fig_dir = createFolder([saveDir, 'Figures/']);
 
-figWidth = 150 + (100*length(tempList));
-sz = 35;
+figWidth = 200 + (100*length(tempList));
+sz = 50;
 buff = 0.5;
 tempStep = 2; % gap between diff temp conditions
 expStep = 1; % gap between different experiments within the same temp cluster
@@ -790,6 +790,8 @@ foreColor = formattingColors(blkbgd);
 r = 1;
 c = 2; % heating and cooling
 buff = 0.5;
+edgeBuff = 3;
+ylims = [0, 100];
 
 timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
 
@@ -815,7 +817,6 @@ for exp = 1:num.exp
 
         % cooling data
         subplot(r,c,tt); hold on
-        kolor = Color('dodgerblue');
         for temp = 1:length(tempList)
             targetTemp = tempList(temp);
             % pull data and seperate by dynamic or static 
@@ -848,7 +849,7 @@ for exp = 1:num.exp
             % plot the data: 
             X = shuffle_data(linspace(targetTemp-buff,targetTemp+buff,num.trial(exp)));
             a = scatter(X,Y,sz,kolor,'filled');
-            plot([targetTemp-(2*buff),targetTemp+(2*buff)],[Y_avg, Y_avg], 'color', kolor, 'linewidth',2)
+            plot([targetTemp-(5*buff),targetTemp+(5*buff)],[Y_avg, Y_avg], 'color', kolor, 'linewidth',2)
             
         end
         % Formatting
@@ -856,100 +857,16 @@ for exp = 1:num.exp
         ylabel(pName)
         xlabel('temp (\circC) ')
         set(gca, 'xtick', tempList)
-        xlim([min(tempList)-2, max(tempList)+2])
+        xlim([min(tempList)-edgeBuff, max(tempList)+edgeBuff])
+        ylim(ylims)
     end
     % formatting full set 
     formatFig(fig, blkbgd, [r c]);
+    save_figure(fig,[fig_dir, grouped(exp).name ' ' pName ' limited temp occ scatter'],fig_type);
+end
 
-            % % update plotting location tracking
-            % tempLabel = [tempLabel, x]; % keep track of the ACTUAL temp value at this location
-            % tempMark = [tempMark, x_idx]; % the plot location for the data
-            % x_idx = x_idx+expStep;
-            % 
-            % stats = [stats; Y'];
-            % group1 = [group1; x*ones(size(Y'))];
-            % group2 = [group2; exp*ones(size(Y'))];
-            % 
-
-
-
-
-
-
-
-
-
-
-
-        [tempLabel, tempMark, stats, group1, group2] = deal([]);
+       
     
-        x_idx = 0;
-        hold on 
-        for temp = 1:length(tempList)
-            for exp = 1:num.exp
-                kolor = grouped(exp).color;
-                targetTemp = tempList(temp);
-                 if ext % subregions
-                    all_temps = grouped(exp).(pName).food.temps;
-                    [~, tIDX]  = min(abs(targetTemp-all_temps));
-                    x = all_temps(tIDX); % this is the actual temp that the data corresponds to
-                    rawY = [grouped(exp).(pName).food.increasing.raw(tIDX,:);grouped(exp).(pName).food.decreasing.raw(tIDX,:)];
-                else
-                    all_temps = grouped(exp).(pName).temps;
-                    [~, tIDX]  = min(abs(targetTemp-all_temps));
-                    x = all_temps(tIDX); % this is the actual temp that the data corresponds to
-                    rawY = [grouped(exp).(pName).increasing.raw(tIDX,:);grouped(exp).(pName).decreasing.raw(tIDX,:)];
-                end
-                Y = mean(rawY,1,'omitnan');
-                Y_avg = mean(Y,'omitnan');
-                Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
-                  
-                % plot the data: 
-                X = x_idx*ones([1,num.trial(exp)]);
-                a = scatter(X,Y,sz,kolor,'filled', 'XJitter','density');
-                plot([x_idx-buff,x_idx+buff],[Y_avg, Y_avg], 'color', foreColor, 'linewidth',2)
-    
-                % update plotting location tracking
-                tempLabel = [tempLabel, x]; % keep track of the ACTUAL temp value at this location
-                tempMark = [tempMark, x_idx]; % the plot location for the data
-                x_idx = x_idx+expStep;
-    
-                stats = [stats; Y'];
-                group1 = [group1; x*ones(size(Y'))];
-                group2 = [group2; exp*ones(size(Y'))];
-    
-            end
-            if temp < length(tempList)
-                x_idx = x_idx+tempStep;
-            end
-        end
-    
-    % formatting
-    formatFig(fig,blkbgd);
-    xlim([-tempStep,x_idx+1])
-    set(gca, 'XTick',tempMark,'xticklabel',cellstr(string(tempLabel)))
-    xlabel('temp (\circ)')
-    ylabel(y_lab)
-    
-    save_figure(fig,[fig_dir, pName ' occ scatter'],fig_type);
-
-disp('manually update and run the stats')
-return
-
-% Multiway ANOVA
-[p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
-multcompare(stats_out, 'Dimension', 1)  % for temp
-multcompare(stats_out, 'Dimension', 2)  % for exp group
-
-% WORKING HERE: TODO 6.17 STATS on the individual comparisons....
-% manually check which stats are important to you...
-groupA1B1 = stats(group1 == 15 & group2 == 1);
-groupA2B2 = stats(group1 == 15 & group2 == 2);
-[h,p] = ttest2(groupA1B1, groupA2B2);
-
-[results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
-
-
 
 %% LTS food vs no food: temp tuning curves for plotting separeated by heating and cooling
 clearvars('-except',initial_vars{:})
@@ -1318,6 +1235,98 @@ end
 
 
 
+%% Temp rate comparisons: temp tuning curves for plotting separeated by heating and cooling
+clearvars('-except',initial_vars{:})
+autoLims = true;
+[title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+
+r = 1;
+c = 2;
+
+LW = 2;
+FA = 0.5;
+xlims = [17, 25];
+if autoLims
+    ylims = [];
+else
+    ylims = [0 80];
+end
+
+fig = getfig('',1);
+% cooling temperatures 
+subplot(r,c,1); hold on
+    for i = 1:num.exp
+        exp = expOrder(i);
+        % food distribution 
+        if ext
+            baseY = grouped(exp).(param).food;
+            x = grouped(exp).(param).food.temps;
+        else
+            baseY = grouped(exp).(param);
+            x = grouped(exp).(param).temps;
+        end
+        y = baseY.decreasing.avg;
+        try y_err = baseY.decreasing.std./sqrt(num.trial(exp));
+        catch
+            y_err = baseY.decreasing.err./sqrt(num.trial(exp));
+        end
+        plot_error_fills(true, x, y, y_err, grouped(exp).color,fig_type,FA);
+        plot(x, y, 'color', grouped(exp).color,'linewidth', LW)
+    end
+    %formatting
+    set(gca,'xdir', 'reverse')
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('cooling')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+
+% warming temperatures 
+subplot(r,c,2); hold on
+    for i = 1:num.exp
+        exp = expOrder(i);
+        % food distribution 
+        if ext
+            baseY = grouped(exp).(param).food;
+            x = grouped(exp).(param).food.temps;
+        else
+            baseY = grouped(exp).(param);
+            x = grouped(exp).(param).temps;
+        end
+        y = baseY.increasing.avg;
+        try y_err = baseY.increasing.std./sqrt(num.trial(exp));
+        catch
+            y_err = baseY.increasing.err./sqrt(num.trial(exp));
+        end
+        plot_error_fills(true, x, y, y_err, grouped(exp).color,fig_type,FA);
+        plot(x, y, 'color', grouped(exp).color,'linewidth', LW)
+    end
+    % formatting
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('warming')       
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+formatFig(fig, blkbgd,[r c]);
+for i = 1:2
+    subplot(r,c,i); hold on
+    if autoLims
+        ylim([min(ylims(:,1)),max(ylims(:,2))]);
+    else 
+        ylim(ylims)
+    end
+end
+
+save_figure(fig,[figDir, param ' occ temp tuning curve separated heating and cooling'],fig_type);
+
+
+% Temp-occupancy correlation?
+
+
 
 
 
@@ -1330,8 +1339,6 @@ end
 
 
     
-
-
 
 
 

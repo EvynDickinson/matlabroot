@@ -414,6 +414,10 @@ switch expGroup
     case 'Berlin F LRR 25-17 caviar intact vs wax vs hold'
         expOrder = 1:4;
         colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
+    case 'Berlin temp rate caviar'
+        expOrder = [5, 3, 2, 1, 4]; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
+
 end
 
 if ~exist('colors','var')

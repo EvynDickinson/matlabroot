@@ -791,7 +791,7 @@ r = 1;
 c = 2; % heating and cooling
 buff = 0.5;
 edgeBuff = 3;
-ylims = [0, 75];
+ylims = [0, 100];
 
 timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
 
@@ -1235,6 +1235,98 @@ end
 
 
 
+%% Temp rate comparisons: temp tuning curves for plotting separeated by heating and cooling
+clearvars('-except',initial_vars{:})
+autoLims = true;
+[title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+
+r = 1;
+c = 2;
+
+LW = 2;
+FA = 0.5;
+xlims = [17, 25];
+if autoLims
+    ylims = [];
+else
+    ylims = [0 80];
+end
+
+fig = getfig('',1);
+% cooling temperatures 
+subplot(r,c,1); hold on
+    for i = 1:num.exp
+        exp = expOrder(i);
+        % food distribution 
+        if ext
+            baseY = grouped(exp).(param).food;
+            x = grouped(exp).(param).food.temps;
+        else
+            baseY = grouped(exp).(param);
+            x = grouped(exp).(param).temps;
+        end
+        y = baseY.decreasing.avg;
+        try y_err = baseY.decreasing.std./sqrt(num.trial(exp));
+        catch
+            y_err = baseY.decreasing.err./sqrt(num.trial(exp));
+        end
+        plot_error_fills(true, x, y, y_err, grouped(exp).color,fig_type,FA);
+        plot(x, y, 'color', grouped(exp).color,'linewidth', LW)
+    end
+    %formatting
+    set(gca,'xdir', 'reverse')
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('cooling')
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+
+% warming temperatures 
+subplot(r,c,2); hold on
+    for i = 1:num.exp
+        exp = expOrder(i);
+        % food distribution 
+        if ext
+            baseY = grouped(exp).(param).food;
+            x = grouped(exp).(param).food.temps;
+        else
+            baseY = grouped(exp).(param);
+            x = grouped(exp).(param).temps;
+        end
+        y = baseY.increasing.avg;
+        try y_err = baseY.increasing.std./sqrt(num.trial(exp));
+        catch
+            y_err = baseY.increasing.err./sqrt(num.trial(exp));
+        end
+        plot_error_fills(true, x, y, y_err, grouped(exp).color,fig_type,FA);
+        plot(x, y, 'color', grouped(exp).color,'linewidth', LW)
+    end
+    % formatting
+    xlabel('temperature')
+    xlim(xlims)
+    ylabel([param ' %'])
+    title('warming')       
+    if autoLims
+        ylims = [ylims; ylim];
+    end
+formatFig(fig, blkbgd,[r c]);
+for i = 1:2
+    subplot(r,c,i); hold on
+    if autoLims
+        ylim([min(ylims(:,1)),max(ylims(:,2))]);
+    else 
+        ylim(ylims)
+    end
+end
+
+save_figure(fig,[figDir, param ' occ temp tuning curve separated heating and cooling'],fig_type);
+
+
+% Temp-occupancy correlation?
+
+
 
 
 
@@ -1247,8 +1339,6 @@ end
 
 
     
-
-
 
 
 

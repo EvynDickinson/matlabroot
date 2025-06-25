@@ -131,8 +131,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
                 % get field list for loading data:
                 dummy = load([structFolder expNames{i} '/' expNames{i} ' post 3.2 data.mat']);
                 if isfield(dummy,'autoRun')
-                try dummy = rmfield(dummy,'autoRun');
-                catch
+                    dummy = rmfield(dummy,'autoRun');
                 end
                 %field not present in dummy, so add blank
                 if i > 1
@@ -412,6 +411,10 @@ switch expGroup
     case 'Berlin LTS 15-35 intact vs no antenna no food'
         expOrder = 1:2;
         colors = {'dodgerblue', 'peachpuff'};
+    case 'Berlin F LRR 25-17 caviar intact vs wax vs hold'
+        expOrder = 1:4;
+        colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
+    case 'Berlin temp rte '
 end
 
 if ~exist('colors','var')
