@@ -1012,8 +1012,7 @@ save_figure(fig, [figDir 'courstship measures avg over temp region'],'-pdf');
 %% Trial by trial comparision of the different courtship measures 
 clearvars('-except',initial_var{:})
 
-% UPDATE THIS FOR NOT LTS: 
-data.temp = mean(data.temperature,2,'omitnan');
+% UPDATE THIS FOR NOT LTS
 
 % bin by 1 minute increments
 
@@ -1062,7 +1061,7 @@ c = 3;
 sz = 30;
 kolor = {'grey', 'dodgerblue', 'red', 'grey'};
 
-fig = getfig('', 0);
+fig = getfig('', 1);
     for i = 1:c
         subplot(r,c,i); hold on
         for t = 1:4
@@ -1095,75 +1094,6 @@ end
 
 %% 
 
-%% TODO:  grouped Courtship behavior frequency time course
-clearvars('-except',initial_var{:})
-[foreColor, ~] = formattingColors(blkbgd); %get background colors
-kolor = Color('gold');
-% simple plot of when the different courtship behaviors are happening
-r = 5;
-c = 1;
-lw = 2;
-
-time = mean(data.time,2,'omitnan');
-temp = mean(data.temperature,2,'omitnan');
-
-fig = getfig('',0);
-% time
-subplot(r,c,1); hold on 
-% x = data.time;
-% y = data.temp;
-% plot(x,y,'color', foreColor, 'linewidth', lw)
-% ylabel('\circC')
-plot(time, temp,'color', foreColor, 'linewidth', lw)
-ylabel('\circC')
-
-% full courtship index
-subplot(r,c,2); hold on 
-    x = time;
-    y = sum(data.CI,2);
-    plot(x,y,'color', foreColor, 'linewidth', lw)
-    ylabel('CI')
-
-% wing extension
-subplot(r,c,3); hold on 
-    x = time;
-    y = sum(data.wing_ext_all,2);
-    plot(x,y,'color', foreColor, 'linewidth', lw)
-    y = sum(data.wing_ext,2);
-    plot(x,y,'color', kolor, 'linewidth', lw)
-    ylabel('wing ext')
-
-% chasing
-subplot(r,c,4); hold on 
-    x = time;
-    y = sum(data.chase_all,2);
-    plot(x,y,'color', foreColor, 'linewidth', lw)
-    y = sum(data.court_chase,2);
-    plot(x,y,'color', kolor, 'linewidth', lw)
-    ylabel('chase')
-
-% circling
-subplot(r,c,5); hold on 
-    x = time;
-    y = sum(data.circling_all,2);
-    plot(x,y,'color', foreColor, 'linewidth', lw)
-    y = sum(data.circling_1sec,2);
-    plot(x,y,'color', kolor, 'linewidth', lw)
-    ylabel('circling')
-    xlabel('time (min)')
-
-% formating: 
-formatFig(fig, blkbgd,[r,c]);
-trans = [data.cooling_idx, data.warming_idx(2)];
-for i = 1:r
-    subplot(r,c,i)
-    v_line(data.time(trans),'r', '-',1)
-    if i<r
-        set(gca, 'xcolor', 'none')
-    end
-end
-
-save_figure(fig, [figDir 'courtship behaviors over time'],fig_type);
 
 
 

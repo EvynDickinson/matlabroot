@@ -3,6 +3,11 @@ fig_type = '-pdf';
 blkbgd = false;
 
 
+%% update the color selection for the temp hold trials
+
+
+
+
 %% Occupancy 'null' distribution for no food trials
 clearvars('-except',initial_vars{:})
 
@@ -791,7 +796,11 @@ r = 1;
 c = 2; % heating and cooling
 buff = 0.5;
 edgeBuff = 3;
+<<<<<<< Updated upstream
 ylims = [0, 100];
+=======
+ylims = [0, 75];
+>>>>>>> Stashed changes
 
 timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
 

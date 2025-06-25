@@ -218,7 +218,7 @@ y = y./(fly(1).fps*60);
 
 fig = figure; 
 hold on
-for i = 1:4
+for i = 1:length(idx)-1
     x = i*ones(num.trials,1);
     scatter(x, y(:,i),35, fly(1).tRate(i).color,'filled', 'XJitter','density')
     plot([i-buff, i+buff], [mean(y(:,i)), mean(y(:,i))],'color', foreColor)
@@ -323,7 +323,7 @@ end
 
 
 % test to see how the alignment worked for the heating and cooling periods
-fig = getfig('',1);
+fig = getfig('',0);
 subplot(1,2,1)
 plot(data.cooling)
 v_line(middlePoint,'teal', '--',2)

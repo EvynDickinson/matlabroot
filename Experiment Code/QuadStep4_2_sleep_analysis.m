@@ -1857,7 +1857,7 @@ for idx = 1:num.exp
     xlabel('time (min)')
     ylabel('sleep frequency (fly/min)')
     set(gca,'TickDir','out')
-    
+    legend({grouped(:).name})
     % xlim([0, 400])
     % ylim([0, 0.3])
 
