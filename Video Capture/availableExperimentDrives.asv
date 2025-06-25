@@ -34,21 +34,7 @@ switch a
     case 'LTS 35-15'
         expProtocol = 'high_res_LTS_35-15';
         reqSpace = 3.4; % how many terrabytes of free space required
-    case 'hold 15C'
-        expProtocol = 'Hold15C';
-        reqSpace = 3.4; % how many terrabytes of free space required
-    case 'hold 20C'
-        expProtocol = 'Hold20C';
-        reqSpace = 3.4; % how many terrabytes of free space required 
-    case 'hold 25C'
-        expProtocol = 'Hold25C';
-        reqSpace = 3.4; % how many terrabytes of free space required
-    case 'hold 30C'
-        expProtocol = 'Hold30C';
-        reqSpace = 3.4; % how many terrabytes of free space required
-    case 'hold 35C'
-        expProtocol = 'Hold35C';
-        reqSpace = 3.4; % how many terrabytes of free space required
+    case
     case ''
         warndlg('No drive selected')
         drive = nan;

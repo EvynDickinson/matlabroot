@@ -21,6 +21,11 @@ switch parameters.protocol
     case 'high_res_LTS_35-15'
         totalLength = 485; %
         expName = [genotype '_' parameters.protocol '_' food];
+
+    case {'Hold15C', 'Hold20C', 'Hold25C', 'Hold30C', 'Hold35C'}
+        totalLength = 485; %
+        expName = [genotype '_' parameters.protocol '_' food];
+
 end
 
 % parameters.protocol = 'Hold35C';
