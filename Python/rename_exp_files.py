@@ -29,7 +29,7 @@ all_files = os.listdir(folder_path)
 target_files = [f for f in all_files if startstring in f]
 
 # --- Step 5: Rename
-name_replace = 'C2_hold_30_empty'
+name_replace = 'C2_survival_40_empty'
 
 for old_name in target_files:
     new_name = old_name.replace(startstring, name_replace)
