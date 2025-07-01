@@ -23,7 +23,7 @@ end
 
 % query what temp protocol is being used: 
 list = {'F LRR 25-17', 'LTS 35-15', 'hold 15C', 'hold 20C', 'hold 25C', 'hold 30C', 'hold 35C'};
-a = listdlg('PromptString','Select your temp protocol:',ListString=list);
+a = listdlg('PromptString','Select your temp protocol:','ListString',list);
 
 % a = questdlg('Select your temp protocol:','','F LRR 25-17', 'LTS 35-15','Cancel','F LRR 25-17');
 % select drive & space:
@@ -46,7 +46,7 @@ switch a
     case 'hold 30C'
         expProtocol = 'Hold30C';
         reqSpace = 3.4; % how many terrabytes of free space required
-    case 'hold 35C'
+    case 7%'hold 35C'
         expProtocol = 'Hold35C';
         reqSpace = 3.4; % how many terrabytes of free space required
     case ''
