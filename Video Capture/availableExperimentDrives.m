@@ -27,7 +27,8 @@ a = listdlg('PromptString','Select your temp protocol:','ListString',list);
 
 % a = questdlg('Select your temp protocol:','','F LRR 25-17', 'LTS 35-15','Cancel','F LRR 25-17');
 % select drive & space:
-switch a
+b = list{a};
+switch b
     case 'F LRR 25-17'
         reqSpace = 1.5; % how many terrabytes of free space required
         expProtocol = 'courtship_F_LRR_25-17';
@@ -46,7 +47,7 @@ switch a
     case 'hold 30C'
         expProtocol = 'Hold30C';
         reqSpace = 3.4; % how many terrabytes of free space required
-    case 7%'hold 35C'
+    case 'hold 35C'
         expProtocol = 'Hold35C';
         reqSpace = 3.4; % how many terrabytes of free space required
     case ''
