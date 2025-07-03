@@ -1,19 +1,19 @@
 
-figure;
-exp = 1;
-trial = 1;
-y = ones(size(sROImask(exp).all(trial).m));
-y = y.*[1:size(y,2)];
-y(~sROImask(exp).all(trial).m) = nan;
-
-plot(y)
+% figure;
+% exp = 1;
+% trial = 1;
+% y = ones(size(sROImask(exp).all(trial).m));
+% y = y.*[1:size(y,2)];
+% y(~sROImask(exp).all(trial).m) = nan;
+% 
+% plot(y)
 
 %% Load data
 clear; clc;
 % baseFolder = getDataPath(2,2);
 
-blkbnd = false;
-fig_type = '-pdf';
+blkbnd = true;
+fig_type = '-png';
 
 % Load excel file
 [excelfile, Excel, xlFile] = load_SurvivalQuadCounts;
@@ -65,9 +65,13 @@ switch tempprotocol
         data(exp).columns = [11,13:52];
         data(exp).color =  Color('tomato');
         data(exp).temp = 35;
-    case 'survival_curve_5C'
+    case 'survival_curve_10C'
         data(exp).columns = [11:14,16,18,20,22,24,27,29,32,34,37,39,42,44,47,49,52,54,57,59];
         data(exp).color = Color('dodgerblue');
+        data(exp).temp = 10;
+    case 'survival_curve_5C'
+        data(exp).columns = [11:14,16,18,20,22,24,27,29,32,34,37,39,42,44,47,49,52,54,57,59];
+        data(exp).color = Color('blue');
         data(exp).temp = 5;
 end
 
@@ -81,7 +85,7 @@ data(exp).avgperc = mean(data(exp).perc,'omitnan');
 end
 
 
-%% Plot number of dead flies overtime
+%% Plot number of incapacitated/dead flies overtime
 fig = getfig;
 for exp = 1:nexps
     hold on
@@ -96,7 +100,7 @@ formatFig(fig, blkbnd);
     ylabel('Number of incapaciated flies')
 save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
 
-%% Percentage flies dead overtime
+%% Percentage flies incapacitated/dead overtime
 
 fig = getfig;
 for exp = 1:nexps
@@ -115,16 +119,16 @@ formatFig(fig, blkbnd);
 save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
 
 %% Plot number of alive flies overtime
-numflies = cell2mat([excelfile(temptrials,10)]);
-aliveflies = numflies - cell2mat([excelfile(temptrials,11:51)]);
-% perc_alive = (aliveflies/numflies)*100;
-
-fig = getfig;
-    plot(time,aliveflies,'linewidth',2)
-formatFig(fig, blkbnd);
-    ylim([0 20])
-    % xlim([0 500])
-    xlabel('Time (min)')
-    ylabel('Number of alive flies')
+% numflies = cell2mat([excelfile(temptrials,10)]);
+% aliveflies = numflies - cell2mat([excelfile(temptrials,11:51)]);
+% % perc_alive = (aliveflies/numflies)*100;
+% 
+% fig = getfig;
+%     plot(time,aliveflies,'linewidth',2)
+% formatFig(fig, blkbnd);
+%     ylim([0 20])
+%     % xlim([0 500])
+%     xlabel('Time (min)')
+%     ylabel('Number of alive flies')
 
 
