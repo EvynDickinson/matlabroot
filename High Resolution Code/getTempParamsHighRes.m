@@ -44,6 +44,42 @@ switch protocol
         tRate(1).name = 'hold';
         tRate(1).color = Color('grey');
         param.tRate = tRate;
+
+        case {'Hold30C','hold30'}
+        param.ntrans = 0;
+        param.labelstr = '  ';
+        % find the x-time value for each time period
+        tRate = struct;
+        tRate(1).name = 'hold';
+        tRate(1).color = Color('grey');
+        param.tRate = tRate;
+
+        case {'Hold25C','hold25'}
+        param.ntrans = 0;
+        param.labelstr = '  ';
+        % find the x-time value for each time period
+        tRate = struct;
+        tRate(1).name = 'hold';
+        tRate(1).color = Color('grey');
+        param.tRate = tRate;
+
+        case {'Hold20C','hold20'}
+        param.ntrans = 0;
+        param.labelstr = '  ';
+        % find the x-time value for each time period
+        tRate = struct;
+        tRate(1).name = 'hold';
+        tRate(1).color = Color('grey');
+        param.tRate = tRate;
+
+        case {'Hold15C','hold15'}
+        param.ntrans = 0;
+        param.labelstr = '  ';
+        % find the x-time value for each time period
+        tRate = struct;
+        tRate(1).name = 'hold';
+        tRate(1).color = Color('grey');
+        param.tRate = tRate;
 end
 % 
 % % options list:
