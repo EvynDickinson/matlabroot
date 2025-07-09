@@ -309,7 +309,7 @@ switch temp_protocols{1}
         a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling
         a(isnan(a)) = 0; % reset any nans to false
         for trial = 1:num.trials
-            [r,c] = find(a==1); % TODO: WORKING HERE (7.9) use this to find the time points (across trials for universal time)...
+            [r,c] = find(a==1); % TODO: WORKING HERE: use this to find the time points (across trials for universal time)...
             [data.cooling_idx_all(trial,1)] = find(a(:,trial)==1);  % start of cooling
             data.cooling_idx_all(:,2) = find(a(:,trial)==-1); % end of cooling (middlepoint)
             a = (diff(data.warming));
