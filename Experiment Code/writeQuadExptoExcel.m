@@ -28,6 +28,7 @@ nrow = size(excelfile,1)+1;
 % params.(arena).starved_hours
 % params.experimenter
 % params.day_night
+% param.plate
 
 base_paramList = {'date', 'expID', 'protocol'};
 arena_paramList = {'genotype','well_1', 'well_2', 'well_3', 'well_4', 'sex','starved_hours'};
@@ -44,6 +45,12 @@ for arena = 1:4
     % trial name:
     trial_name = [params.date '_' params.expID '_' Alphabet(arena)];
     xlswrite(xlFile, {trial_name}, sheet, [Alphabet(Excel.trialID),num2str(nrow)]);
+    % plate name: 
+    try  xlswrite(xlFile, {num2str(params.plate)}, sheet, [Alphabet(Excel.plate),num2str(nrow)]);
+    catch 
+        xlswrite(xlFile, {(params.plate)}, sheet, [Alphabet(Excel.plate),num2str(nrow)]);
+        disp('remove the num2str for plate number in writeQuadExptoExcel')
+    end
     % shared data:
     for ii = 1:length(base_paramList)
         xlswrite(xlFile, {params.(base_paramList{ii})}, sheet, [Alphabet(Excel.(base_paramList{ii})),num2str(nrow)]);
