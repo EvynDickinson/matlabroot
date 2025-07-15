@@ -363,7 +363,7 @@ end
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
-%% FIGURE: Multimetric tuning curves
+%% FIGURE: Multimetric tuning curves TODO (7/14) update this to work with new spatial regions
 clearvars('-except',initial_vars{:})
 
 autoLim = true;
@@ -371,6 +371,8 @@ xlim_auto = true; % change the time range for the x axis
 time_limits = [0,900]; % time limits if manual control over x-axis range
 nMax =  num.exp;
 [~,backColor] = formattingColors(blkbgd); % get background colors
+
+% [title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 
 % Select which parameters you want to look at
 paramList = {'Proximity to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed','Sleep'};
@@ -422,7 +424,8 @@ nPlots = length(idx);
 fig = getfig;
 % Create a subplot for each parameter
 for ii = 1:nPlots
-    [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamProperties(paramList{idx(ii)},typeString);
+    %TODO (7/14) update this to work with new spatial regions
+    [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamProperties(paramList{idx(ii)},typeString); 
     % Plot parameter data for each experiment group
     for i = num.exp:-1:1
         subplot(1,nPlots,ii)

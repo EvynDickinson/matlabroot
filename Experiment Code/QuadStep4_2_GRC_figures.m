@@ -1144,16 +1144,16 @@ timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
 hold_trials = [3, 4];
 dyn_trials = [1, 2];
 
-
-plotData = [];
-for i = 1:length(hold_trials)
-    exp = hold_trials(i);
-    if ext
-        y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
-    else
-        y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
-    end
-    plotData = autoCat(plotData, y_all',false);
+% 
+% plotData = [];
+% for i = 1:length(hold_trials)
+%     exp = hold_trials(i);
+%     if ext
+%         y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
+%     else
+%         y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
+%     end
+%     plotData = autoCat(plotData, y_all',false);
 
 
 
@@ -1245,7 +1245,7 @@ end
 
 %% Temp rate comparisons: temp tuning curves for plotting separeated by heating and cooling
 clearvars('-except',initial_vars{:})
-autoLims = true;
+autoLims = false;
 [title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 
 r = 1;
@@ -1253,11 +1253,11 @@ c = 2;
 
 LW = 2;
 FA = 0.5;
-xlims = [17, 25];
+xlims = [15, 35];
 if autoLims
     ylims = [];
 else
-    ylims = [0 80];
+    ylims = [0 60];
 end
 
 fig = getfig('',1);
@@ -1328,6 +1328,7 @@ for i = 1:2
         ylim(ylims)
     end
 end
+set(gca,'ycolor', 'none')
 
 save_figure(fig,[figDir, param ' occ temp tuning curve separated heating and cooling'],fig_type);
 

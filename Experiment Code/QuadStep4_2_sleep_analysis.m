@@ -1823,7 +1823,7 @@ save_figure(fig,[saveDir 'Sleep\' 'sleeping onset raster'],fig_type);
 
 %% FIGURE: onset to sleeping after warming start
 clearvars('-except',initial_vars{:})
-% [foreColor,backColor] = formattingColors(blkbgd);
+[foreColor,~] = formattingColors(blkbgd);
 LW = 1.5;
 autoSave = true;
 fig_dir = [saveDir 'Sleep\' 'Sleep Onset Frequency\'];
@@ -1855,9 +1855,9 @@ for idx = 1:num.exp
     end
     formatFig(fig,blkbgd);
     xlabel('time (min)')
-    ylabel('sleep frequency (fly/min)')
+    ylabel('sleep frequency (fly/min)') 
     set(gca,'TickDir','out')
-    legend({grouped(:).name})
+    % legend({grouped(:).name},'color', foreColor)
     % xlim([0, 400])
     % ylim([0, 0.3])
 

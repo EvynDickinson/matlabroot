@@ -306,19 +306,22 @@ switch temp_protocols{1}
         % being two different warming periods and only one hold period 
         
         % save new indexes for plotting regions: 
-        a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling
-        a(isnan(a)) = 0; % reset any nans to false
-        for trial = 1:num.trials
-            [r,c] = find(a==1); % TODO: WORKING HERE (7.9) use this to find the time points (across trials for universal time)...
-            [data.cooling_idx_all(trial,1)] = find(a(:,trial)==1);  % start of cooling
-            data.cooling_idx_all(:,2) = find(a(:,trial)==-1); % end of cooling (middlepoint)
-            a = (diff(data.warming));
-            a(isnan(a)) = 0; % reset any nans to false
-            data.warming_idx_all(:,1) = find(a(:,trial)==1);  % start of warming
-            data.warming_idx_all(:,2) = find(a(:,trial)==-1); % end of warming (middlepoint)
-        end
+        a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling        
+        [r,~] = find(a==1); %  find the time points where cooling begins
+        c1 = median(r(1:2:end)); % cooling start 1
+        c2 = median(r(2:2:end)); % cooling start 2 
+        c3 =  size(a,1); % end of cooling (end of experiment) 
 
-    case 'courtship_F_LRR_25-17'
+        a = (diff(data.warming));
+        [r,~] = find(a==1); % when warming section two starts
+        h1 = median(r(1:2:end)); % warming start 1
+        h2 = median(r(2:2:end)); % warming start 2 
+        
+        % find compile the start and stops for the cooling or warming periods
+        data.warming_idx = [h1,c1-1; h2,c2-1];
+        data.cooling_idx = [c1,h2-1; c2,c3];
+     
+    case 'courtship_F_LRR_25-17' % TODO : 7/10 update this to work with the new ramp strucutres... 
         % save new indexes for plotting regions: 
         a = (diff(data.cooling));
         data.cooling_idx_all(:,1) = find(a==1);  % start of cooling
@@ -336,54 +339,70 @@ end
 
 % test to see how the alignment worked for the heating and cooling periods
 fig = getfig('',0);
-subplot(1,2,1)
-plot(data.cooling)
-v_line(middlePoint,'teal', '--',2)
-title('cooling')
-xlabel('frame')
-set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
-ylim([-0.1,1.1])
-subplot(1,2,2)
-plot(data.warming)
-v_line(middlePoint,'teal', '--',2)
-xlabel('frame')
-set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
-ylim([-0.1,1.1])
-title('warming')
-formatFig(fig, blkbgd,[1,2]);
+    subplot(1,2,1)
+    plot(data.cooling)
+    v_line(middlePoint,'red', '-',2)
+    v_line(middlePoint,'yellow', '--',2)
+    title('cooling')
+    xlabel('frame')
+    set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
+    ylim([-0.1,1.1])
+    subplot(1,2,2)
+    plot(data.warming)
+    v_line(middlePoint,'red', '-',2)
+    v_line(middlePoint,'yellow', '--',2)
+    xlabel('frame')
+    set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
+    ylim([-0.1,1.1])
+    title('warming')
+    formatFig(fig, blkbgd,[1,2]);
 save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type);
 
-[r,~,~] = find(a==1); 
 
 % show the alignment across temperature
+LW  = 2;
 fig = getfig('', 1);
-plot(data.temperature)
-hold on
-% v_line(middlePoint,'teal', '--',2)
-v_line((data.cooling_idx),'dodgerblue', '--',2)
-v_line((data.warming_idx),'red', '--',2)
-xlabel('time')
-ylabel('temperature (\circC)')
-formatFig(fig,blkbgd);
-title([groupName ' | n = ' num2str(num.trials)])
+    plot(data.temperature)
+    y = rangeLine(fig,5,true);
+    hold on
+    % plot warming regions from the warming indx
+    for i = 1:size(data.warming_idx,1)
+        plot([data.warming_idx(i,1),data.warming_idx(i,2)],[y,y],'color', 'r','linewidth', LW)
+    end
+    % plot cooling regions from the cooling indx
+    for i = 1:size(data.cooling_idx,1)
+        plot([data.cooling_idx(i,1),data.cooling_idx(i,2)],[y,y],'color', Color('dodgerblue'),'linewidth', LW)
+    end
+    v_line((data.cooling_idx(:)),'grey', '--',0.5)
+    v_line((data.warming_idx(:)),'grey', '--',0.5)
+    xlabel('time')
+    ylabel('temperature (\circC)')
+    formatFig(fig,blkbgd);
+    title([groupName ' | n = ' num2str(num.trials)])
 save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type);
 
 disp('next:')
 
-%% TODO: create temp bin groups here and a universal temperature ramp:
+%% Create temp bin groups and a universal temperature ramp:
 clearvars('-except',initial_var{:})
 
 % universal temperature profile: 
 data.temp = smooth(mean(data.temperature,2, 'omitnan'),5*30,'moving');
 
+% create logical indexes for heat/cool at specific temperature bins
 temp_bins = floor(min(data.temp)):0.5:ceil(max(data.temp)); % 0.5 deg temperature bins
 idx = discretize(data.temp, temp_bins);
 [c_idx, h_idx] = deal(false(size(data.temp)));
-c_idx(data.cooling_idx(1):data.cooling_idx(2)) = true;
-h_idx(data.warming_idx(1):data.warming_idx(2)) = true;
+for i = 1:size(data.warming_idx,1)
+    h_idx(data.warming_idx(i,1):data.warming_idx(i,2)) = true;
+end
+for i = 1:size(data.cooling_idx,1)
+    c_idx(data.cooling_idx(i,1):data.cooling_idx(i,2)) = true;
+end
+
 tempbin = [];
-tempbin.c_idx = c_idx;
-tempbin.h_idx = h_idx;
+tempbin.c_idx = c_idx; % times when cooling is happening
+tempbin.h_idx = h_idx; % times when warming is happening
 tempbin.temps = temp_bins;
 [tempbin.all, tempbin.cooling, tempbin.warming] = deal(false(length(data.temp),length(temp_bins)));
 

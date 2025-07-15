@@ -417,7 +417,12 @@ switch expGroup
     case 'Berlin temp rate caviar'
         expOrder = [5, 3, 2, 1, 4]; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
-
+    case 'Berlin LTS 15-35 no food mechanical removal comparisons'
+        expOrder = [1,2,3];
+        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
+    case 'TrpA1-gal4 LTS 15-35 no food'
+        expOrder = [1,2,3];
+        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
 end
 
 if ~exist('colors','var')
