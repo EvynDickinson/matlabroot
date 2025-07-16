@@ -8,6 +8,7 @@ expName = 'Berlin_courtship_F_LRR_no_food_ramp1';
 
 
 %% 
+
 vidPath = 'E:\My Drive\Jeanne Lab\DATA\08.12.2021\DummyVid_20C_1.avi';
 movieInfo = VideoReader(vidPath); %read in video
 Img1 = read(movieInfo,1);
@@ -38,6 +39,9 @@ parameters.ArenaA.sex = 'Mixed';
 parameters.ArenaB.sex = 'Mixed';
 parameters.ArenaC.sex = 'Mixed';
 parameters.ArenaD.sex = 'Mixed';
+
+%% change temp protocol
+parameters.protocol = 'Large_temp_sweep_15_35';
 
 %% get base folder pathway
 % baseFolder = getCloudPath;

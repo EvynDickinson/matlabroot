@@ -443,6 +443,363 @@ end
 
 disp('updated distance to food data structures')
 
+
+%% Analysis: create spatial regions screens for ROIs of interest in each trial arena
+% TODO: working here 7/16
+
+%% ANALYSIS: Create ROImasks -- logical masks for all the regions in the arena for each trial
+clearvars('-except',initial_var{:})
+% Add a new structure that contains the masks for each of the regions of
+% interest for the flies in this experiment which can be used to filter
+% other properties later on...like speed in the outer ring etc.
+
+% Initialize empty mask structure:
+initial_var{end+1} = 'ROImask';
+initial_var{end+1} = 'quadOrder';
+ROImask = struct; 
+fields = {'all','ring', 'inner75'}; 
+food_fields = {'fullquad','innerquad','quadring','circle10','circle7','circle5'};
+quadOrder = {'food','right','opp','left'};
+for trial = 1:num.trials
+    % universal regions:
+    for i = 1:length(fields)
+        ROImask.(fields{i})(trial).m = [];
+    end
+    % quadrant regions:
+    for i = 1:length(food_fields)
+        for q = 1:4
+            ROImask.(food_fields{i}).(quadOrder{q})(trial).m = [];
+        end
+    end
+end
+
+% find locations of flies within each region of the arena
+for trial = 1:num.trials
+    % pull parameters for this trial:
+    center = fly(trial).well.center(5,:);
+    % pull fly center positions for the fly body location...
+    
+
+
+    x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
+    y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
+    ct = data(exp).con_type(trial); % experiment lens configuration
+    pix2mm = conversion(ct).pix2mm;
+    R = conversion(ct).R;
+    circle75 = conversion(ct).circle75; % defines the distance to the inside edge of the outer ring
+    circle10 = conversion(ct).circle10;
+    circle7 = conversion(ct).circle7;
+    circle5 = conversion(ct).circle5;
+    foodWell = data(exp).T.foodLoc(trial);
+
+    % Adjust the X and Y coordinates relative to new center of (0,0)
+    adjustedX = x_loc - center(1); 
+    adjustedY = y_loc - center(2);
+
+    % Pull distance measures:  
+    D = hypot(adjustedX, adjustedY)./pix2mm; % distance to center in mm
+
+    % add screen here for regions in the temp protocol that are to be excluded:
+    tp = getTempTurnPoints(data(exp).T.TempProtocol{trial});
+    all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
+    loc = false(size(x_loc));
+    loc(all_points,:) = true;
+    if tp.holdexp
+        loc = true(size(x_loc));
+    end
+
+    % Define base location logicals
+    fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
+
+    innerQuad = (D < circle75) & fly_loc; %logical of all points that have a fly within the inner circle
+    adjustedX(~fly_loc) = nan;
+    adjustedY(~fly_loc) = nan;
+    Q = findQuadLocation(adjustedX,adjustedY);
+
+    % sum of total flies in the three large regions
+    nTotal = sum(fly_loc,2); % total across time
+    nTotalInnerROI = sum(innerQuad,2); % this gives the bottom of the 'inner distribution' fraction
+    nTotalOuterROI = nTotal-nTotalInnerROI; % this gives the bottom of the 'outer distribution' fraction
+    ROImask(exp).all(trial).nflies = nTotal;
+    ROImask(exp).ring(trial).nflies = nTotalOuterROI;
+    ROImask(exp).inner75(trial).nflies = nTotalInnerROI;
+
+    % ------- Find the flies in the outer ring and inner region -------
+    % Define quadrant masks based on the new center & excluding flies that are in the outer ring:
+    % food_fields = {'circle10','circle7','circle5'};
+    ROImask(exp).all(trial).m = fly_loc; % ALL FLIES IN FULL ARENA (with bounds)
+    ROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
+    ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
+
+    % Find the food quadrant (find location with the food well coordinates included)
+    adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
+    adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2); 
+    well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
+    quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
+
+    % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
+    % then it goes quad right, opposite food quad, and finally quad left of the food quad
+    switch quad_loc 
+        case 1
+            opLoc = [1 4 3 2]; 
+        case 2
+            opLoc = [2 1 4 3];
+        case 3
+            opLoc = [3 2 1 4];
+        case 4
+            opLoc = [4 3 2 1];
+    end
+
+    % Find the quadrant that each well belongs to
+    well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
+    well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
+    well_quads = findQuadLocation(well_opt_x,well_opt_y);
+
+    for i = 1:4 % for quadrant type (food, R, opp, L)
+        idx = opLoc(i); % rearrange order based on trial food location
+        well_idx = find(well_quads(idx).Mask);
+        % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
+        ROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
+        ROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
+        ROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
+
+        % well circle related distances
+        dX = adjustedX - well_opt_x(well_idx);% well_idx
+        dY = adjustedY - well_opt_y(well_idx);% well_idx
+        well_D = hypot(dX,dY)./pix2mm;
+        ROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
+        ROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
+        ROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+    end
+end
+
+
+
+%% ANALYSIS: Find occupancy in the different regions 
+clearvars('-except',initial_var{:})
+
+regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+
+% initialize empty variables
+[ring.all,inner75.all] = deal([]);
+region = struct;
+for rr = 1:length(regionList)
+    for q = 1:4 % each of the quadrants
+        region(rr).(quadOrder{q}).all = [];
+        region(rr).(quadOrder{q}).all_info = {'percent relative to all the flies in the whole arena'};
+        if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
+            region(rr).(quadOrder{q}).partial = [];
+            region(rr).(quadOrder{q}).partial_info = {'percent relative to only the flies in the four quadrants of this space'};
+        end
+    end
+end
+
+% Fill structures with all the trials processed data
+for trial = 1:num.trial(exp)
+    nFull = ROImask(exp).all(trial).nflies;
+    nInner = ROImask(exp).inner75(trial).nflies;
+    nRing = ROImask(exp).ring(trial).nflies;
+
+    % ring & inner -- each get compared to the full arena compliment:
+    n = getPercentFlies(ROImask(exp).ring(trial).m,nFull);
+    ring.all = autoCat(ring.all,n,false);
+
+    n = getPercentFlies(ROImask(exp).inner75(trial).m,nFull);
+    inner75.all = autoCat(inner75.all,n,false);
+
+    % fig = figure; hold on
+    %     plot(inner75.all,'color', Color('teal'))
+    %     plot(ring.all,'color', Color('gold'))
+    %     plot(inner75.all + ring.all,'color', Color('white'))
+    %     formatFig(fig,true);
+    %     ylabel('% flies')
+    %     legend({'inner', 'ring','total'},'textcolor', 'w','box', 'off');
+    %     set(gca, 'xcolor', 'none')
+    %     ylim([0,100])
+
+    % for each of the quadrant-related regions:
+    for rr = 1:length(regionList)
+        for q = 1:4 % each of the quadrants
+            temp = ROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m;
+            n = getPercentFlies(temp,nFull);
+            region(rr).(quadOrder{q}).all = autoCat(region(rr).(quadOrder{q}).all,n,false);
+            if strcmp(regionList{rr},'innerquad')
+                n = getPercentFlies(temp,nInner);
+                region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+            elseif strcmp(regionList{rr},'quadring')
+                n = getPercentFlies(temp,nRing);
+                region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+            end
+        end
+    end
+end
+
+% Pull out the averages and errors across the trials: 
+ring.avg = mean(ring.all,2,'omitnan');
+ring.std = std(ring.all,0,2,'omitnan');
+inner75.avg = mean(inner75.all,2,'omitnan');
+inner75.std = std(inner75.all,0,2,'omitnan');
+for rr = 1:length(regionList)
+    for q = 1:4 % each of the quadrants
+        region(rr).(quadOrder{q}).avg = mean(region(rr).(quadOrder{q}).all,2,'omitnan');
+        region(rr).(quadOrder{q}).std = std(region(rr).(quadOrder{q}).all,0,2,'omitnan');
+        if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
+            region(rr).(quadOrder{q}).partial_avg = mean(region(rr).(quadOrder{q}).partial,2,'omitnan');
+            region(rr).(quadOrder{q}).parital_std = std(region(rr).(quadOrder{q}).partial,0,2,'omitnan');
+        end
+    end
+end   
+
+% Assign the data to the grouped structure
+grouped(exp).ring = ring;
+grouped(exp).inner75 = inner75;
+for rr = 1:length(regionList)
+    grouped(exp).(regionList{rr}) = region(rr);
+end
+
+
+% % TODO 5.30.25: demo figure (to be moved to 4.2 something else...)
+% r = 4;
+% c = 1;
+% sb(1).idx = 1;
+% sb(2).idx = 2:4;
+% lw = 2;
+% kolor = {'gold', 'grey', 'white', 'grey'};
+% x_lim = [0,700];
+% 
+% fig = getfig('',1);
+% set(fig, 'windowstyle', 'docked');
+% subplot(r,c,sb(1).idx);
+%     x = grouped(exp).time;
+%     plot(x,grouped(exp).temp,'color','w', 'linewidth',lw)
+%     ylabel('(\circC)')
+%     xlim(x_lim)
+% subplot(r,c,sb(2).idx)
+%     y_all = [];
+%     hold on
+%     for q = 1:4
+%         y = smooth(grouped(exp).quadring.(quadOrder{q}).partial_avg,180,'moving');
+%         plot(x,y,'color',Color(kolor{q}),'linewidth', lw)
+%         y_all = [y_all, y];
+%     end
+%     plot(x, sum(y_all,2),'color', 'r')
+%     xlim(x_lim)
+%     ylabel('quad ring occupancy (%)')
+%     xlabel('time (min)')
+%     ylim([0, 100])
+% formatFig(fig,true,[r,c],sb);
+% subplot(r,c,sb(1).idx);
+% set(gca,'xcolor', 'none');
+% subplot(r,c,sb(2).idx);
+% legend(quadOrder, 'textcolor', 'w', 'box', 'off');
+% save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
+
+
+% Pool the data for heating and cooling together across the
+% different regions for temp-tuning curve comparisons 
+all_regions = [regionList, 'ring', 'inner75'];
+for exp = 1:num.exp
+    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+    nTemp = length(temps);
+    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
+    cIdx = find(rates<0); %cooling index
+    hIdx = find(rates>0); %heating index
+    locs = grouped(exp).position.loc;
+
+    for rr = 1:length(all_regions) % each type of region (e.g. outer ring, food circle etc)
+        switch all_regions{rr}
+            case {'ring','inner75'}
+                nQ = 1; % quadrant number...
+                nP = 1; % partial region percentages to check
+            case {'innerquad','quadring'}
+                nQ = 4;
+                nP = 2;
+            case {'fullquad','circle10','circle7','circle5'}
+                nQ = 4;
+                nP = 1;
+        end
+        for p = 1:nP % for the number of full or partial percentages to compare
+            for q = 1:nQ % each of the quadrants
+                % pull data for the right quadrant (if there are quadrants)
+                if nQ>1
+                    baseY = grouped(exp).(all_regions{rr}).(quadOrder{q});
+                else 
+                    baseY = grouped(exp).(all_regions{rr});
+                end
+                % pull the right type of data to run
+                if p==1
+                    y = baseY.all;
+                else
+                    y = baseY.partial;
+                end
+                % initialize empty structures for the variables
+                [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
+                % [rawC_in, rawH_in, rawC_all, rawH_all] = deal(struct);
+                % [rawC_in(1:4).raw, rawH_in(1:4).raw, rawC_all(1:5).raw, rawH_all(1:5).raw] = deal(nan(nTemp,num.trial(exp)));
+
+                % Update the averages for the preset temperature bins 
+                for t = 1:nTemp
+                    % frame indexes for this temp bin
+                    c_frames = locs(cIdx,t).frames; % cooling frames
+                    h_frames = locs(hIdx,t).frames; % heating frames
+                    if all(isnan(c_frames)) || all(isnan(h_frames)) % if no cooling or heating for this temp bin
+                        continue
+                    end
+                    % pull frames associated with this temp and temp rate 
+                    raw_c(t,:) = mean(y(c_frames,:),1,'omitnan'); 
+                    raw_h(t,:) = mean(y(h_frames,:),1,'omitnan');
+                end
+                % find the avg and err and save to group structure
+                h_avg = mean(raw_h, 2, 'omitnan');
+                h_err = std(raw_h, 0, 2, 'omitnan');
+                c_avg = mean(raw_c, 2, 'omitnan');
+                c_err = std(raw_c, 0, 2, 'omitnan');
+
+
+                switch all_regions{rr}
+                    case {'ring','inner75'}    
+                        grouped(exp).(all_regions{rr}).increasing.raw = raw_h;
+                        grouped(exp).(all_regions{rr}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).decreasing.raw = raw_c;
+                        grouped(exp).(all_regions{rr}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).temps = temps;
+                    case {'fullquad','innerquad','quadring'}
+                        if p == 1
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                        else
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_raw = raw_h;
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_avg = mean(raw_h, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_std = std(raw_h, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_raw = raw_c;
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_avg = mean(raw_c, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_std = std(raw_c, 0, 2, 'omitnan');
+                        end
+                    case {'circle10','circle7','circle5'}
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                end
+            end
+        end
+    end
+end
+
+
+
+
+
 %% Create new comparisons of distances for the group
 
 % % TODO (1/28) give a demo image of the ring size for each area on an image still

@@ -1,4 +1,5 @@
 
+% Load single trial data and run final processing and figures 
 
 %% LOAD data
 clear; clc;
