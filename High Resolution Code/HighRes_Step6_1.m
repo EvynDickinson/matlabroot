@@ -453,6 +453,8 @@ clearvars('-except',initial_var{:})
 % interest for the flies in this experiment which can be used to filter
 % other properties later on...like speed in the outer ring etc.
 
+ct = 4; % condition type for the current high resolution experiment trials
+
 % Initialize empty mask structure:
 initial_var{end+1} = 'ROImask';
 initial_var{end+1} = 'quadOrder';
@@ -473,24 +475,31 @@ for trial = 1:num.trials
     end
 end
 
+exp = 1;
 % find locations of flies within each region of the arena
 for trial = 1:num.trials
     % pull parameters for this trial:
     center = fly(trial).well.center(5,:);
-    % pull fly center positions for the fly body location...
+    % M & F fly body positions
+    x1 = fly(i).m.pos(:,body.center,1);  % x location for male center
+    y1 = fly(i).m.pos(:,body.center,2); % y location for male center
+    x2 = fly(i).f.pos(:,body.center,1); % x location for female center
+    y2 = fly(i).f.pos(:,body.center,2); % y location for female center
+    % matrix with both flies: male first then female -- but this way we can run the processing in parallel
+    x_loc = [x1,x2]; 
+    y_loc = [y1, y2]; 
     
-
-
-    x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
-    y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
-    ct = data(exp).con_type(trial); % experiment lens configuration
+    % x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
+    % y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
+    % ct = data(exp).con_type(trial); % experiment lens configuration
     pix2mm = conversion(ct).pix2mm;
     R = conversion(ct).R;
     circle75 = conversion(ct).circle75; % defines the distance to the inside edge of the outer ring
     circle10 = conversion(ct).circle10;
     circle7 = conversion(ct).circle7;
     circle5 = conversion(ct).circle5;
-    foodWell = data(exp).T.foodLoc(trial);
+    foodWell = fly(trial).well.food_idx;  % which well contains the food TODO: update this to account for no food trials...
+    % foodWell = data(exp).T.foodLoc(trial);
 
     % Adjust the X and Y coordinates relative to new center of (0,0)
     adjustedX = x_loc - center(1); 
@@ -500,13 +509,13 @@ for trial = 1:num.trials
     D = hypot(adjustedX, adjustedY)./pix2mm; % distance to center in mm
 
     % add screen here for regions in the temp protocol that are to be excluded:
-    tp = getTempTurnPoints(data(exp).T.TempProtocol{trial});
-    all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
-    loc = false(size(x_loc));
-    loc(all_points,:) = true;
-    if tp.holdexp
-        loc = true(size(x_loc));
-    end
+    % tp = getTempTurnPoints(data(exp).T.TempProtocol{trial});
+    % all_points = [tp.DownROI,tp.UpROI,tp.HoldROI];
+    % loc = false(size(x_loc));
+    % loc(all_points,:) = true;
+    % if tp.holdexp
+        loc = true(size(x1)); % start with all temporal locations being allowable
+    % end
 
     % Define base location logicals
     fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
@@ -532,8 +541,8 @@ for trial = 1:num.trials
     ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
 
     % Find the food quadrant (find location with the food well coordinates included)
-    adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
-    adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2); 
+    adjusted_wx = fly(trial).well.center(foodWell,1) - center(1); % adjusted well position
+    adjusted_wy = fly(trial).well.center(foodWell,2) - center(2); 
     well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
     quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
 
@@ -551,8 +560,8 @@ for trial = 1:num.trials
     end
 
     % Find the quadrant that each well belongs to
-    well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
-    well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
+    well_opt_x = fly(trial).well.center(1:4,1) - center(1); % adjusted well position
+    well_opt_y = fly(trial).well.center(1:4,2) - center(2);
     well_quads = findQuadLocation(well_opt_x,well_opt_y);
 
     for i = 1:4 % for quadrant type (food, R, opp, L)
@@ -577,8 +586,11 @@ end
 
 %% ANALYSIS: Find occupancy in the different regions 
 clearvars('-except',initial_var{:})
-
+% TODO (7/17): set this up to have a pooled group across all the male
+% flies and one for all the female flies but not combined across the sexes
 regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+
+exp = 1;
 
 % initialize empty variables
 [ring.all,inner75.all] = deal([]);
@@ -594,11 +606,11 @@ for rr = 1:length(regionList)
     end
 end
 
-% Fill structures with all the trials processed data
-for trial = 1:num.trial(exp)
-    nFull = ROImask(exp).all(trial).nflies;
-    nInner = ROImask(exp).inner75(trial).nflies;
-    nRing = ROImask(exp).ring(trial).nflies;
+% Fill structures with all the trials' processed data
+for trial = 1:num.trials 
+    nFull = ROImask(exp).all(trial).nflies; % total fly count in arena
+    nInner = ROImask(exp).inner75(trial).nflies; % fly count in the inner 75% region
+    nRing = ROImask(exp).ring(trial).nflies; % fly count in the outer ring
 
     % ring & inner -- each get compared to the full arena compliment:
     n = getPercentFlies(ROImask(exp).ring(trial).m,nFull);
@@ -643,7 +655,7 @@ for rr = 1:length(regionList)
     for q = 1:4 % each of the quadrants
         region(rr).(quadOrder{q}).avg = mean(region(rr).(quadOrder{q}).all,2,'omitnan');
         region(rr).(quadOrder{q}).std = std(region(rr).(quadOrder{q}).all,0,2,'omitnan');
-        if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
+        if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
             region(rr).(quadOrder{q}).partial_avg = mean(region(rr).(quadOrder{q}).partial,2,'omitnan');
             region(rr).(quadOrder{q}).parital_std = std(region(rr).(quadOrder{q}).partial,0,2,'omitnan');
         end
