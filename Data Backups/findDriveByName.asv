@@ -38,43 +38,73 @@ if ispc
 
             % Check if the volume name matches the target name
             if strcmpi(volumeLabel, targetName)
-                matchingDrives{end+1} = [driveLetter ':']; 
+                matchingDrives{end+1} = driveLetter; 
             end
         end
+
+        matchingDrives{end+1, 1} = driveLetter;
+        matchingDrives{end, 2} = volumeLabel;
+
     end
-    % % % OLD VERSION WITH DEPRECIATED WINDOWS COMMANDS
-    % % Get drive letters and volume names using WMIC
-    % [~, result] = system('wmic volume get DriveLetter,Label /format:csv');
-    % 
-    % % Split the result into lines
-    % lines = strsplit(result, '\n');
-    % 
-    % % Initialize output
-    % matchingDrives = {};
-    % 
-    % % Iterate over each line and check for the target volume name
-    % for i = 2:length(lines) % Skip the header line
-    %     line = strtrim(lines{i});
-    %     if isempty(line)
-    %         continue;
-    %     end
-    % 
-    %     % Split the line by commas
-    %     parts = strsplit(line, ',');
-    % 
-    %     if length(parts) < 3
-    %         continue; % Skip malformed lines
-    %     end
-    % 
-    %     % Extract the drive letter and volume label
-    %     driveLetter = strtrim(parts{2});
-    %     volumeLabel = strtrim(parts{3});
-    % 
-    %     % Check if the volume name matches the target name
-    %     if strcmpi(volumeLabel, targetName)
-    %         matchingDrives{end+1} = driveLetter; 
-    %     end
-    % end
+
+
+
+
+% This PowerShell command fetches drive letters and labels
+command = ['powershell -Command "Get-Volume | ' ...
+           'ForEach-Object { Write-Output (''{0},{1}'' -f $_.DriveLetter, $_.FileSystemLabel) }"'];
+
+[~, result] = system(command);
+
+% Split into lines
+lines = strsplit(strtrim(result), '\n');
+
+% Parse into cell array
+matchingDrives = {};
+for i = 1:numel(lines)
+    parts = strsplit(strtrim(lines{i}), ',');
+    if numel(parts) == 2
+        matchingDrives{end+1, 1} = parts{1};
+        matchingDrives{end, 2} = parts{2};
+    end
+end
+
+
+
+
+
+    % Get drive letters and volume names using WMIC
+    [~, result] = system('wmic volume get DriveLetter,Label /format:csv');
+    
+    % Split the result into lines
+    lines = strsplit(result, '\n');
+    
+    % Initialize output
+    matchingDrives = {};
+    
+    % Iterate over each line and check for the target volume name
+    for i = 2:length(lines) % Skip the header line
+        line = strtrim(lines{i});
+        if isempty(line)
+            continue;
+        end
+        
+        % Split the line by commas
+        parts = strsplit(line, ',');
+        
+        if length(parts) < 3
+            continue; % Skip malformed lines
+        end
+        
+        % Extract the drive letter and volume label
+        driveLetter = strtrim(parts{2});
+        volumeLabel = strtrim(parts{3});
+        
+        % Check if the volume name matches the target name
+        if strcmpi(volumeLabel, targetName)
+            matchingDrives{end+1} = driveLetter; 
+        end
+    end
 end
 
 % FOR MAC COMPUTERS:

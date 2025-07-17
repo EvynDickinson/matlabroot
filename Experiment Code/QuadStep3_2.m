@@ -16,7 +16,6 @@ switch questdlg('Would you like to autoprocess the data?','','Yes','No','Cancel'
     case {'Cancel',''}
         return
 end
-
 switch run_ans
     case 'Yes'
         % baseFolder = getCloudPath;
