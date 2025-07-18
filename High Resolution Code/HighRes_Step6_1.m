@@ -237,11 +237,12 @@ save_figure(fig, [alignmentDir 'raw section durations'],fig_type);
 % Shift trials to align to the ramp trough:
 % preallocate empty space for all the variables that need to be time-shifted across trials
 max_len = size(fly(1).T,1); % set up a buffered time (assume all trials are the same length) 
-optA =  nan(max_len,num.trials); %single data column for each trial
-optB = nan(max_len,2,num.trials); %two data columns per trial
+optA =  nan(max_len,num.trials); % single data column for each trial
+optB = nan(max_len,2,num.trials); % two data columns per trial
 categories = {'temperature', 'frame', 'IFD', 'cooling', 'warming', 'hold', 'wing_ext', 'wing_ext_all',...
               'court_chase', 'chase_all', 'circling_all', 'circling_1sec', 'CI'}; % from fly.T
 sub_cat = {'eccentricity', 'OutterRing', 'foodQuad', 'foodcircle', 'turning'}; % from fly.data
+
 
 % DATA STRUCT is time aligned across trials!!!! AKA use this data moving
 % forward in the analyses
@@ -257,6 +258,10 @@ end
 % fill in data and shift to appropriate place...
 middlePoint = median(MT(:,midpoint_idx)); % this is the new 'center point' in time for the aligned trials to minimize lost data across trials
 middlePoint = int32(middlePoint); % make sure the number is indexable
+
+sexlist = {'m', 'f'};
+MT_pos = nan([max_len, 5, num.trials]);
+[data.x_loc(1).pos, data.x_loc(2).pos, data.x_loc(1).pos, data.y_loc(2).pos]  = deal(MT_pos);
 
 for i = 1:num.trials
     curr_center = MT(i,midpoint_idx); %current index of first temp ramp trough for this specific trial
@@ -288,6 +293,9 @@ for i = 1:num.trials
         end
         data.dist2food(new_idx,sex,i) = fly(i).T.dist2food(curr_idx,sex);
         data.FlyOnFood(new_idx,sex,i) = fly(i).T.FlyOnFood(curr_idx,sex);
+        % update body position locations to time-shifted alignment
+        data.x_loc(sex).pos(new_idx,:,i) = fly(i).(sexlist{sex}).pos(curr_idx,:,1);
+        data.y_loc(sex).pos(new_idx,:,i) = fly(i).(sexlist{sex}).pos(curr_idx,:,2);
     end
     data.sleep(new_idx,M,i) = fly(i).m.sleep(curr_idx);
     data.sleep(new_idx,F,i) = fly(i).f.sleep(curr_idx);
@@ -300,11 +308,8 @@ data.middlepoint = middlePoint;
 
 % TODO: adjust this for protocols that are not mirror image parallel
 switch temp_protocols{1}
+
     case 'high_res_LTS_35-15'
-        % TODO!! 3.23.25 work on adjusting this to work for the LTS
-        % protocol -- need to get the code to work dynamically for there
-        % being two different warming periods and only one hold period 
-        
         % save new indexes for plotting regions: 
         a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling        
         [r,~] = find(a==1); %  find the time points where cooling begins
@@ -440,9 +445,7 @@ for i = 1:num.trials
     fly(i).T.dist2food = [M_dist, F_dist];
 
 end
-
 disp('updated distance to food data structures')
-
 
 %% Analysis: create spatial regions screens for ROIs of interest in each trial arena
 % TODO: working here 7/16
@@ -481,16 +484,15 @@ for trial = 1:num.trials
     % pull parameters for this trial:
     center = fly(trial).well.center(5,:);
     % M & F fly body positions
-    x1 = fly(i).m.pos(:,body.center,1);  % x location for male center
-    y1 = fly(i).m.pos(:,body.center,2); % y location for male center
-    x2 = fly(i).f.pos(:,body.center,1); % x location for female center
-    y2 = fly(i).f.pos(:,body.center,2); % y location for female center
+    x1 = data.x_loc(M).pos(:,body.center,trial); % x location for male center
+    y1 = data.y_loc(M).pos(:,body.center,trial);  % y location for male center
+    x2 = data.x_loc(F).pos(:,body.center,trial); % x location for female center
+    y2 = data.y_loc(F).pos(:,body.center,trial);  % y location for female center
+
     % matrix with both flies: male first then female -- but this way we can run the processing in parallel
     x_loc = [x1,x2]; 
     y_loc = [y1, y2]; 
     
-    % x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
-    % y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
     % ct = data(exp).con_type(trial); % experiment lens configuration
     pix2mm = conversion(ct).pix2mm;
     R = conversion(ct).R;
@@ -583,146 +585,121 @@ for trial = 1:num.trials
 end
 
 
-
-%% ANALYSIS: Find occupancy in the different regions 
+%% ANALYSIS:  Secondary organization of the ROImask data grouped by sex and not trial
+% TODO: 7.18 create a new structure that has the ROImask data grouped by
+% sex and not trial that can more easily be used with the 'data' structure
 clearvars('-except',initial_var{:})
-% TODO (7/17): set this up to have a pooled group across all the male
-% flies and one for all the female flies but not combined across the sexes
-regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+initial_var{end+1} = 'flyROImask';
+% initiate empty structures
+flyROImask = struct;
+fields = {'all','ring', 'inner75'}; 
+food_fields = {'fullquad','innerquad','quadring','circle10','circle7','circle5'};
+quadOrder = {'food','right','opp','left'};
+MT = nan([size(ROImask.all(1).m,1), num.trials]);
+% blanks for the full arena regions
+for i = 1:length(fields)
+    flyROImask.(fields{i})(M).m = MT;
+    flyROImask.(fields{i})(F).m = MT;
+end
+% blanks for the areas with four regions
+for i = 1:length(food_fields)
+    for r = 1:length(quadOrder)
+        flyROImask.(food_fields{i})(M).(quadOrder{r}).m = MT;
+        flyROImask.(food_fields{i})(F).(quadOrder{r}).m = MT;
+    end
+end
 
-exp = 1;
-
-% initialize empty variables
-[ring.all,inner75.all] = deal([]);
-region = struct;
-for rr = 1:length(regionList)
-    for q = 1:4 % each of the quadrants
-        region(rr).(quadOrder{q}).all = [];
-        region(rr).(quadOrder{q}).all_info = {'percent relative to all the flies in the whole arena'};
-        if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
-            region(rr).(quadOrder{q}).partial = [];
-            region(rr).(quadOrder{q}).partial_info = {'percent relative to only the flies in the four quadrants of this space'};
+% Pull and restructure data from the original ROImask (by trial) structure:
+for trial = 1:num.trials
+    for i = 1:length(fields)
+        flyROImask.(fields{i})(M).m(:,trial) = ROImask.(fields{i})(trial).m(:,M);
+        flyROImask.(fields{i})(F).m(:,trial) = ROImask.(fields{i})(trial).m(:,F);
+    end
+    
+    for i = 1:length(food_fields)
+        for r = 1:length(quadOrder)
+            flyROImask.(food_fields{i})(M).(quadOrder{r}).m(:,trial) = ROImask.(food_fields{i}).(quadOrder{r})(trial).m(:,M);
+            flyROImask.(food_fields{i})(F).(quadOrder{r}).m(:,trial) = ROImask.(food_fields{i}).(quadOrder{r})(trial).m(:,F);
         end
     end
 end
 
-% Fill structures with all the trials' processed data
-for trial = 1:num.trials 
-    nFull = ROImask(exp).all(trial).nflies; % total fly count in arena
-    nInner = ROImask(exp).inner75(trial).nflies; % fly count in the inner 75% region
-    nRing = ROImask(exp).ring(trial).nflies; % fly count in the outer ring
+% Get the summary numbers from each region across the flies: 
+for i = 1:length(fields)
+    flyROImask.(fields{i})(M).nflies = sum(flyROImask.(fields{i})(M).m,2,'omitnan');
+    flyROImask.(fields{i})(F).nflies = sum(flyROImask.(fields{i})(F).m,2,'omitnan');
+end
 
+% demo figure: 
+% CRAZY FIGURE (keeeeeep tattoo fodder)
+% fig = getfig('',1);
+%     plot(flyROImask.inner75.nflies,'color',Color('dodgerblue'))
+%     hold on
+%     plot(flyROImask.ring.nflies,'color',Color('orange'))
+% formatFig(fig, false);
+% set(gca,'xcolor', 'none', 'ycolor', 'none')
+% save_figure(fig, [figDir 'tattoo fodder'],'-pdf')
+
+% CRAZY FIGURE (keeeeeep tattoo fodder)
+% fig = getfig('',1);
+%     plot(flyROImask.inner75(F).nflies,'color',Color('dodgerblue'))
+%     hold on
+%     plot(flyROImask.ring(F).nflies,'color',Color('orange'))
+% formatFig(fig, true);
+% set(gca,'xcolor', 'none', 'ycolor', 'none')
+% save_figure(fig, [figDir 'tattoo fodder'],'-pdf')
+
+%% ANALYSIS: Find occupancy in the different regions 
+clearvars('-except',initial_var{:})
+% TODO (7/17): set this up to have a pooled group across all the male
+% flies and one for all the female flies i.e. not combined across the sexes
+regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+
+
+for sex = 1:2
+    nFull = flyROImask.all(sex).nflies; % total fly count in arena
+    nInner = flyROImask.inner75(sex).nflies; % fly count in the inner 75% region
+    nRing = flyROImask.ring(sex).nflies; % fly count in the outer ring
+    
     % ring & inner -- each get compared to the full arena compliment:
-    n = getPercentFlies(ROImask(exp).ring(trial).m,nFull);
-    ring.all = autoCat(ring.all,n,false);
-
-    n = getPercentFlies(ROImask(exp).inner75(trial).m,nFull);
-    inner75.all = autoCat(inner75.all,n,false);
-
-    % fig = figure; hold on
-    %     plot(inner75.all,'color', Color('teal'))
-    %     plot(ring.all,'color', Color('gold'))
-    %     plot(inner75.all + ring.all,'color', Color('white'))
-    %     formatFig(fig,true);
-    %     ylabel('% flies')
-    %     legend({'inner', 'ring','total'},'textcolor', 'w','box', 'off');
-    %     set(gca, 'xcolor', 'none')
-    %     ylim([0,100])
+    n = getPercentFlies(flyROImask.ring(sex).m,nFull);
+    flyROImask.ring(sex).avg = n;
+    
+    n = getPercentFlies(flyROImask.inner75(sex).m,nFull);
+    flyROImask.inner75(sex).avg = n;
 
     % for each of the quadrant-related regions:
     for rr = 1:length(regionList)
         for q = 1:4 % each of the quadrants
-            temp = ROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m;
-            n = getPercentFlies(temp,nFull);
-            region(rr).(quadOrder{q}).all = autoCat(region(rr).(quadOrder{q}).all,n,false);
+            temp = flyROImask.(regionList{rr})(sex).(quadOrder{q}).m;
+            a = mean(temp,2,'omitnan');
+            flyROImask.(regionList{rr})(sex).(quadOrder{q}).avg = getPercentFlies(temp,nFull);
+
             if strcmp(regionList{rr},'innerquad')
-                n = getPercentFlies(temp,nInner);
-                region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+                flyROImask.(regionList{rr})(sex).(quadOrder{q}).partial_avg = getPercentFlies(temp,nInner);
             elseif strcmp(regionList{rr},'quadring')
-                n = getPercentFlies(temp,nRing);
-                region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+                flyROImask.(regionList{rr})(sex).(quadOrder{q}).partial_avg = getPercentFlies(temp,nRing);
             end
         end
     end
 end
 
-% Pull out the averages and errors across the trials: 
-ring.avg = mean(ring.all,2,'omitnan');
-ring.std = std(ring.all,0,2,'omitnan');
-inner75.avg = mean(inner75.all,2,'omitnan');
-inner75.std = std(inner75.all,0,2,'omitnan');
-for rr = 1:length(regionList)
-    for q = 1:4 % each of the quadrants
-        region(rr).(quadOrder{q}).avg = mean(region(rr).(quadOrder{q}).all,2,'omitnan');
-        region(rr).(quadOrder{q}).std = std(region(rr).(quadOrder{q}).all,0,2,'omitnan');
-        if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
-            region(rr).(quadOrder{q}).partial_avg = mean(region(rr).(quadOrder{q}).partial,2,'omitnan');
-            region(rr).(quadOrder{q}).parital_std = std(region(rr).(quadOrder{q}).partial,0,2,'omitnan');
-        end
-    end
-end   
 
-% Assign the data to the grouped structure
-grouped(exp).ring = ring;
-grouped(exp).inner75 = inner75;
-for rr = 1:length(regionList)
-    grouped(exp).(regionList{rr}) = region(rr);
-end
-
-
-% % TODO 5.30.25: demo figure (to be moved to 4.2 something else...)
-% r = 4;
-% c = 1;
-% sb(1).idx = 1;
-% sb(2).idx = 2:4;
-% lw = 2;
-% kolor = {'gold', 'grey', 'white', 'grey'};
-% x_lim = [0,700];
-% 
-% fig = getfig('',1);
-% set(fig, 'windowstyle', 'docked');
-% subplot(r,c,sb(1).idx);
-%     x = grouped(exp).time;
-%     plot(x,grouped(exp).temp,'color','w', 'linewidth',lw)
-%     ylabel('(\circC)')
-%     xlim(x_lim)
-% subplot(r,c,sb(2).idx)
-%     y_all = [];
-%     hold on
-%     for q = 1:4
-%         y = smooth(grouped(exp).quadring.(quadOrder{q}).partial_avg,180,'moving');
-%         plot(x,y,'color',Color(kolor{q}),'linewidth', lw)
-%         y_all = [y_all, y];
-%     end
-%     plot(x, sum(y_all,2),'color', 'r')
-%     xlim(x_lim)
-%     ylabel('quad ring occupancy (%)')
-%     xlabel('time (min)')
-%     ylim([0, 100])
-% formatFig(fig,true,[r,c],sb);
-% subplot(r,c,sb(1).idx);
-% set(gca,'xcolor', 'none');
-% subplot(r,c,sb(2).idx);
-% legend(quadOrder, 'textcolor', 'w', 'box', 'off');
-% save_figure(fig, [saveDir 'Figures/' grouped(exp).name ' fly quadring occupancy over time'],'-png');
-
-
-% Pool the data for heating and cooling together across the
-% different regions for temp-tuning curve comparisons 
+% TODO (7.18): update this to work with static temperature holds...
 all_regions = [regionList, 'ring', 'inner75'];
-for exp = 1:num.exp
-    temps = grouped(exp).position.temp_list; % pre-binned temperatures
+for sex = 1:2
+    
+    temps = data.tempbin.temps; % binned temp groups
     nTemp = length(temps);
-    rates = grouped(exp).position.temp_rates; % temperature rates in this experimental group
-    cIdx = find(rates<0); %cooling index
-    hIdx = find(rates>0); %heating index
-    locs = grouped(exp).position.loc;
+    cIDX = data.tempbin.cooling; % logical locations for each temp bin across time
+    hIDX = data.tempbin.warming;
 
-    for rr = 1:length(all_regions) % each type of region (e.g. outer ring, food circle etc)
-        switch all_regions{rr}
+    for i = 1:length(all_regions)
+
+        switch all_regions{i}
             case {'ring','inner75'}
-                nQ = 1; % quadrant number...
-                nP = 1; % partial region percentages to check
+                nQ = 1; % number of quadrants ...
+                nP = 1; % number of partial region percentages to check
             case {'innerquad','quadring'}
                 nQ = 4;
                 nP = 2;
@@ -734,82 +711,53 @@ for exp = 1:num.exp
             for q = 1:nQ % each of the quadrants
                 % pull data for the right quadrant (if there are quadrants)
                 if nQ>1
-                    baseY = grouped(exp).(all_regions{rr}).(quadOrder{q});
+                    baseY = flyROImask.(all_regions{i})(sex).(quadOrder{q});
                 else 
-                    baseY = grouped(exp).(all_regions{rr});
+                    baseY = flyROImask.(all_regions{i})(sex);
                 end
                 % pull the right type of data to run
                 if p==1
-                    y = baseY.all;
+                    y = baseY.avg;
                 else
-                    y = baseY.partial;
+                    y = baseY.partial_avg;
                 end
-                % initialize empty structures for the variables
-                [raw_c, raw_h] = deal(nan(nTemp,num.trial(exp))); %empty raw structures to fill in for each exp
-                % [rawC_in, rawH_in, rawC_all, rawH_all] = deal(struct);
-                % [rawC_in(1:4).raw, rawH_in(1:4).raw, rawC_all(1:5).raw, rawH_all(1:5).raw] = deal(nan(nTemp,num.trial(exp)));
-
-                % Update the averages for the preset temperature bins 
-                for t = 1:nTemp
-                    % frame indexes for this temp bin
-                    c_frames = locs(cIdx,t).frames; % cooling frames
-                    h_frames = locs(hIdx,t).frames; % heating frames
-                    if all(isnan(c_frames)) || all(isnan(h_frames)) % if no cooling or heating for this temp bin
-                        continue
-                    end
-                    % pull frames associated with this temp and temp rate 
-                    raw_c(t,:) = mean(y(c_frames,:),1,'omitnan'); 
-                    raw_h(t,:) = mean(y(h_frames,:),1,'omitnan');
+                % extract the temp and rate dependent information for each region: 
+                [c_avg, h_avg, c_std, h_std] = deal(nan([nTemp,1])); 
+                for tt = 1:nTemp %  for each temperature bin
+                    c_loc = cIDX(:,tt); % logical vector where the temp rate and temp match
+                    h_loc = hIDX(:,tt);
+                    % find the avg and err within the temp bin: 
+                    c_avg(tt) = mean(y(c_loc),'omitnan');
+                    h_avg(tt) = mean(y(h_loc),'omitnan');
+                    c_std(tt) = std(y(c_loc),'omitnan');
+                    h_avg(tt) = std(y(h_loc),'omitnan');
                 end
-                % find the avg and err and save to group structure
-                h_avg = mean(raw_h, 2, 'omitnan');
-                h_err = std(raw_h, 0, 2, 'omitnan');
-                c_avg = mean(raw_c, 2, 'omitnan');
-                c_err = std(raw_c, 0, 2, 'omitnan');
-
-
-                switch all_regions{rr}
+                % save back to the larger structure:                         
+                switch all_regions{i}
                     case {'ring','inner75'}    
-                        grouped(exp).(all_regions{rr}).increasing.raw = raw_h;
-                        grouped(exp).(all_regions{rr}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).decreasing.raw = raw_c;
-                        grouped(exp).(all_regions{rr}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).temps = temps;
-                    case {'fullquad','innerquad','quadring'}
-                        if p == 1
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                        flyROImask.(all_regions{i})(sex).increasing.avg = h_avg;
+                        flyROImask.(all_regions{i})(sex).increasing.std = h_avg;
+                        flyROImask.(all_regions{i})(sex).decreasing.avg = c_avg;
+                        flyROImask.(all_regions{i})(sex).decreasing.std = h_std;
+                        flyROImask.(all_regions{i})(sex).temps = temps;
+                    case {'fullquad','innerquad','quadring','circle10','circle7','circle5'}
+                        if p == 1 %aka full avg and not based on partial region occupancy
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.avg = h_avg;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.std = h_std;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.avg = c_avg;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.std = c_std;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).temps = temps;
                         else
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_raw = raw_h;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_avg = mean(raw_h, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_std = std(raw_h, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_raw = raw_c;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_avg = mean(raw_c, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_std = std(raw_c, 0, 2, 'omitnan');
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.p_avg = h_avg;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.p_std = h_std;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.p_avg = c_avg;
+                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.p_std = c_std;
                         end
-                    case {'circle10','circle7','circle5'}
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
                 end
             end
         end
     end
 end
-
-
-
 
 
 %% Create new comparisons of distances for the group
