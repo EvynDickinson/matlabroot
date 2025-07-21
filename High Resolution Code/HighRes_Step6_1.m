@@ -734,7 +734,7 @@ for sex = 1:2
                 end
                 % save back to the larger structure:                         
                 switch all_regions{i}
-                    case {'ring','inner75'}    
+                    case {'ring','inner75'}
                         flyROImask.(all_regions{i})(sex).increasing.avg = h_avg;
                         flyROImask.(all_regions{i})(sex).increasing.std = h_avg;
                         flyROImask.(all_regions{i})(sex).decreasing.avg = c_avg;

@@ -1655,6 +1655,7 @@ end
 formatFig(fig,true,[2 2]);
 
 % determine the avg number of tracked flies per video: 
+
 fig = getfig;
 for vid = 1:nvids
     loc = T.vidNums==vid;

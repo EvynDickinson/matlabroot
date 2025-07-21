@@ -446,9 +446,8 @@ save_figure(fig, [analysisDir expName ' Dropped frames by video'],'-png',false,t
 skip_loc = find(any(d(:,2:5),2));
 if ~isempty(skip_loc)
     disp('skipped frame locations:')
-    e = sum(d(skip_loc,2:5),2);
-    disp([skip_loc, e])
-end
+    e = sum(d(skip_loc,2:5),2)
+    disp()
 
 n = 1; % how many miscounted frames to look at
 % Check flycount offset by arena:
