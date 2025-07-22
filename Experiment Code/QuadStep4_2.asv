@@ -414,7 +414,23 @@ switch expGroup
     case 'Berlin F LRR 25-17 caviar intact vs wax vs hold'
         expOrder = 1:4;
         colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
-    case 'Berlin temp rte '
+    case 'Berlin temp rate caviar'
+        expOrder = [5, 3, 2, 1, 4]; % slow to fast
+        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
+    case 'Berlin LTS 15-35 no food mechanical removal comparisons'
+        expOrder = [1,2,3];
+        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
+    case 'TrpA1-gal4 LTS 15-35 no food'
+        expOrder = [1,2,3];
+        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
+    case 'Berlin temperature holds' % includes food and empty trials
+        expOrder = 1:num.exp;
+        kolor1 = Color('Blue', 'LightGrey', 3); % ultimately 5 (with all temp trials added)
+        kolor2 = Color('LightGrey', 'Red', 2);  % ultimately 5 (with all temp trials added)
+        colors = nan([8, 3]); % ultimately 18x3 (with all temp trials added)
+        colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
+        colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
+        % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
 end
 
 if ~exist('colors','var')
@@ -445,7 +461,11 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     end
     grouped(i).name = data(i).ExpGroup;
     if exist('colors','var')
-        grouped(expOrder(i)).color = Color(colors{(i)});
+        if iscell(colors)
+            grouped(expOrder(i)).color = Color(colors{(i)});
+        else
+            grouped(expOrder(i)).color = colors;
+        end
     else 
         grouped(expOrder(i)).color = cMap(i,:);
     end
@@ -579,7 +599,6 @@ conversion = getConversion;
 clearvars('-except',initial_vars{:})
 OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy'); % camera & lens change accounting
 
-% TODO 5.13 update this to account for different plates
 
 for i = 1:num.exp
   % BINNED
@@ -603,7 +622,7 @@ for i = 1:num.exp
             loc = nan;
         end
         loc_mat(rr,tt).frames = loc;
-        loc_mat(rr,tt).x = []; %set empty space for appending
+        loc_mat(rr,tt).x = []; % set empty space for appending
         loc_mat(rr,tt).y = [];
     end
   end
@@ -623,8 +642,7 @@ for i = 1:num.exp
     Y = data(i).data(trial).data.y_loc;
     X = X-x_offset;
     Y = Y-y_offset;
-    % save the position normalized data into the grouped structure or
-    % something
+    % save the position normalized data into the grouped structure or something
 
     [WELLS,x_data,y_data] = deal([]);
     if trial_date > OG_Orientation %new camera orientation
@@ -710,6 +728,30 @@ for i = 1:num.exp
   grouped(i).position.temp_list = temp_list; %
   grouped(i).position.well_pos = wellXY; %position of the wells in the newly oriented arena
 end
+
+%% Visual test of arena alignment and overlay ... make sure the alignment actually worked! 
+[c, r] = subplot_numbers(num.exp);
+fig = figure;
+for exp = 1:num.exp
+    subplot(r,c,exp)
+    % plot the well positions as a '+'
+    barX1 = grouped(exp).position.well_pos.x([1,3],:);
+    barX2 = grouped(exp).position.well_pos.x([2,4],:);
+    barY1 = grouped(exp).position.well_pos.y([1,3],:);
+    barY2 = grouped(exp).position.well_pos.y([2,4],:);
+    centreX = grouped(exp).position.well_pos.x(5,:);
+    centreY = grouped(exp).position.well_pos.y(5,:);
+    hold on
+        plot(barX1, barY1,'Marker','.','MarkerSize',15)
+        plot(barX2, barY2,'Marker','.','MarkerSize',15)
+        scatter(centreX, centreY,35,'filled')
+        title(grouped(exp).name,'color', 'w')
+end
+formatFig(fig, true,[r,c]);
+
+% find the postive values that are errors : 
+exp = 5; % berlin 25C
+
 
 %% ANALYSIS: calculate group occupancy
 clearvars('-except',initial_vars{:})
