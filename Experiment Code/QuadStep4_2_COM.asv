@@ -820,9 +820,6 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
                         end
                     end
                     
-                    % find the bin location for the food well OR the lowest
-                    % or highest occupied region
-                    
                     xInd = discretize(0,x_edge);
                     yInd = discretize(0,y_edge);
                     plotData(i).type(type,rr).wells(:,trial) = [xInd,yInd];
@@ -848,28 +845,27 @@ circ_Y = discretize(Cy, y_edge);
 
 % PLOT 3 TYPES OF HEATMAP OCCUPANCIES
 r = 2; % this is based on there only being 2 possible temp rates...
-c = length(plotData);
+c = num.exp;
 fig_W = 20 + (400*c); % set this to match sizing for trials with heating and cooling....
 
 for type = 1:nTypes
     fig = getfig('',false,[fig_W, 340*2]); 
-        for rr = 1:nRates
-            r_off = (length(plotData)*(rr-1)); % subplot index offset to get same rate to plot top and bottom
-            for i = 1:length(plotData)
-                subplot(r,c,r_off+i)
-                hold on
-                imagesc(plotData(i).type(type,rr).data); hold on
-                wellX = median(plotData(i).type(type,rr).wells(1,:),'omitnan');
-                wellY = median(plotData(i).type(type,rr).wells(2,:),'omitnan');
-                scatter(wellX, wellY,10,'r','filled')
-                axis tight;
-                axis square;
-                % h = drawcircle('Center',[Cx,Cy],'Radius',conversion(1).R*conversion(1).pix2mm,'StripeColor',foreColor);
-                v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
-            end
+    for rr = 1:nRates
+        r_
+
+        for i = 1:length(plotData)
+            subplot(r,c,i)
+            hold on
+            imagesc(plotData(i).type(type,rr).data); hold on
+            wellX = median(plotData(i).wells(1,:),'omitnan');
+            wellY = median(plotData(i).wells(2,:),'omitnan');
+            scatter(wellX, wellY,10,'r','filled')
+            axis tight;
+            axis square;
+            % h = drawcircle('Center',[Cx,Cy],'Radius',conversion(1).R*conversion(1).pix2mm,'StripeColor',foreColor);
+            v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
         end
         formatFig(fig, blkbgd,[r,c]);
-    
         for i = expList
             subplot(r,c,i)
             set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
@@ -886,7 +882,8 @@ for type = 1:nTypes
             end
         
             colormap(flipud(gray))
-        end 
+        end
+    end
     % save the figure to a folder specific to that cohort?
     save_figure(fig,[save_path '2D spatial distribution all experiments'], fig_type);
 
