@@ -425,9 +425,9 @@ switch expGroup
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
-        kolor1 = Color('Blue', 'LightGrey', 3); % ultimately 5 (with all temp trials added)
-        kolor2 = Color('LightGrey', 'Red', 2);  % ultimately 5 (with all temp trials added)
-        colors = nan([8, 3]); % ultimately 18x3 (with all temp trials added)
+        kolor1 = Color('Blue', 'LightGrey', 5); % ultimately 5 (with all temp trials added)
+        kolor2 = Color('LightGrey', 'Red', 4);  % ultimately 5 (with all temp trials added)
+        colors = nan([16, 3]); % ultimately 18x3 (with all temp trials added)
         colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
@@ -595,152 +595,212 @@ end
 
 conversion = getConversion;
 
+%% ANALYSIS: For no food exp groups, find the null highest and lowest occupancy quadrants
+% as defined by the 7% space around the well (aka using the 'occupancy' measure
+clearvars('-except',initial_vars{:})
+
+for exp = 1:num.exp
+    grouped(exp).occ_idx = (nan([num.trial(exp),2]));
+    for trial = 1:num.trial(exp)
+        quad_avg = mean(data(exp).data(trial).data.occ_P,1,'omitnan');
+        [~, low_idx] = min(quad_avg);
+        [~, high_idx] = max(quad_avg);
+        grouped(exp).occ_idx(trial,1) = low_idx;
+        grouped(exp).occ_idx(trial,2) = high_idx;
+    end
+    % add a logical for if this is an empty trial (make it easier for switching code sections later
+    if strcmp(data(exp).foodNames, 'Movement')
+        data(exp).emptytrial = true;
+    else
+        data(exp).emptytrial = false;
+    end
+end
+
 %% ANALYSIS: normalize fly position within arena to common orientation (food location) 
 clearvars('-except',initial_vars{:})
 OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy'); % camera & lens change accounting
 
+% TODO: 7.23.25 add two new fields here for exps that are no food trials so
+% that we can pull the 'null' version alignments by highest and lowest
+% occupied quadrants and save them as two position alignments 
 
-for i = 1:num.exp
-  % BINNED
-  [tempRates,decreasing,increasing,temperatures] = deal([]);
-  % Pull temperature and rate information for the temp protocol
-  temp_rates = data(i).G(1).TR.rates;
-  temp_list = data(i).G(1).TR.temps;
-  nrates = data(i).G(1).TR.nRates;
-  ntemps = data(i).G(1).TR.nTemps;
-  rate_idx = data(i).G(1).TR.rateIdx;
-  temp_idx = data(i).G(1).TR.tempIdx;
-  loc_mat = struct;
-
-  % find frame index for each temp bin & rate of change
-  for tt = 1:ntemps
-    for rr = 1:nrates
-        rateAligned = rate_idx==rr;
-        tempAligned = temp_idx==tt;
-        loc = find(rateAligned & tempAligned);
-        if isempty(loc)
-            loc = nan;
-        end
-        loc_mat(rr,tt).frames = loc;
-        loc_mat(rr,tt).x = []; % set empty space for appending
-        loc_mat(rr,tt).y = [];
+for type = 1:3 % assigned food well, lowest occupied, highest occupied
+    switch type
+        case 1 % food assigned position 
+            field_label = 'position';
+        case 2 % lowest occupancy position aligned
+            field_label = 'position_low';
+        case 3 % highest occupancy position aligned
+            field_label = 'position_high';
     end
-  end
-  wellXY = [];
-  for trial = 1:num.trial(i)
-    trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
-    % get arena information
-    well_loc = data(i).T.foodLoc(trial);
-    wells = data(i).data(trial).data.wellcenters;
-    % find offset to make the food well the origin
-    x_offset = wells(1,well_loc);
-    y_offset = wells(2,well_loc);
-    wells_x = wells(1,:)-x_offset;
-    wells_y = wells(2,:)-y_offset;
 
-    X = data(i).data(trial).data.x_loc;
-    Y = data(i).data(trial).data.y_loc;
-    X = X-x_offset;
-    Y = Y-y_offset;
-    % save the position normalized data into the grouped structure or something
-
-    [WELLS,x_data,y_data] = deal([]);
-    if trial_date > OG_Orientation %new camera orientation
-        % Rotate to correct orientation
-        switch well_loc
-            case 1
-                x_data = X;
-                y_data = Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = wells_y;
-            case 2
-                x_data = Y;
-                y_data = -X;
-                WELLS(:,1) = wells_y;
-                WELLS(:,2) = -wells_x;
-            case 3
-                x_data = X;
-                y_data = -Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = -wells_y;
-            case 4
-                x_data = -Y;
-                y_data = X;
-                WELLS(:,1) = -wells_y;
-                WELLS(:,2) = wells_x;
-        end
-    else % Rotate to correct orientation with older camera arrangement            
-        switch well_loc
-            case 1
-                x_data = Y;
-                y_data = -X;
-                WELLS(:,1) = wells_y;
-                WELLS(:,2) = -wells_x;
-            case 2
-                x_data = X;
-                y_data = -Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = -wells_y;
-            case 3
-                x_data = -Y;
-                y_data = X;
-                WELLS(:,1) = -wells_y;
-                WELLS(:,2) = wells_x;
-            case 4
-                x_data = X;
-                y_data = Y;
-                WELLS(:,1) = wells_x;
-                WELLS(:,2) = wells_y;
-        end
-
-    end
+    for i = 1:num.exp
+      % BINNED
+      [tempRates,decreasing,increasing,temperatures] = deal([]);
+      % Pull temperature and rate information for the temp protocol
+      temp_rates = data(i).G(1).TR.rates;
+      temp_list = data(i).G(1).TR.temps;
+      nrates = data(i).G(1).TR.nRates;
+      ntemps = data(i).G(1).TR.nTemps;
+      rate_idx = data(i).G(1).TR.rateIdx;
+      temp_idx = data(i).G(1).TR.tempIdx;
+      loc_mat = struct;
     
-    wellXY.x(:,trial) = WELLS(:,1);
-    wellXY.y(:,trial) = WELLS(:,2);
-
-    % For each temp and rate, pool all (now normalized) fly positions
-    for tt = 1:ntemps
-      for rr = 1:nrates
-        frame_idx = loc_mat(rr,tt).frames;
-        % shift positions for food well as origin
-        if ~isnan(frame_idx)
-            x = x_data(frame_idx,:);
-            y = y_data(frame_idx,:);
-            
-            % save data into structure:
-            loc_mat(rr,tt).data(trial).pos = [x(:),y(:)];
-            loc_mat(rr,tt).x = [loc_mat(rr,tt).x; x(:)];
-            loc_mat(rr,tt).y = [loc_mat(rr,tt).y; y(:)];
-        else
-            loc_mat(rr,tt).data(trial).pos = [nan nan];
-            loc_mat(rr,tt).x = nan;
-            loc_mat(rr,tt).y = nan;
+      % find frame index for each temp bin & rate of change
+      for tt = 1:ntemps
+        for rr = 1:nrates
+            rateAligned = rate_idx==rr;
+            tempAligned = temp_idx==tt;
+            loc = find(rateAligned & tempAligned);
+            if isempty(loc)
+                loc = nan;
+            end
+            loc_mat(rr,tt).frames = loc;
+            loc_mat(rr,tt).x = []; % set empty space for appending
+            loc_mat(rr,tt).y = [];
         end
       end
+      wellXY = [];
+      for trial = 1:num.trial(i)
+        trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
+        
+        % get arena information
+         switch type
+             case 1 % food assigned position 
+                well_loc = data(i).T.foodLoc(trial);
+             case 2 % lowest occupancy position aligned
+                well_loc = grouped(i).occ_idx(trial,1);
+             case 3 % highest occupancy position aligned
+                well_loc = grouped(i).occ_idx(trial,2);
+        end
+        wells = data(i).data(trial).data.wellcenters;
+    
+        % % find offset to make the food well the origin
+        % x_offset = wells(1,well_loc);
+        % y_offset = wells(2,well_loc);
+        % wells_x = wells(1,:)-x_offset;
+        % wells_y = wells(2,:)-y_offset;
+        % 
+        % X = data(i).data(trial).data.x_loc;
+        % Y = data(i).data(trial).data.y_loc;
+        % X = X-x_offset;
+        % Y = Y-y_offset;
+        % % save the position normalized data into the grouped structure or something
+    
+        % use the arena center as rotation center rather than the wells
+        arena_center_x = mean(wells(1,:));
+        arena_center_y = mean(wells(2,:));
+        
+        % offset all data by arena center
+        X = data(i).data(trial).data.x_loc - arena_center_x;
+        Y = data(i).data(trial).data.y_loc - arena_center_y;
+        
+        wells_x = wells(1,:) - arena_center_x;
+        wells_y = wells(2,:) - arena_center_y;
+    
+        [WELLS,x_data,y_data] = deal([]);
+        if trial_date > OG_Orientation %new camera orientation
+            % Rotate to correct orientation
+            switch well_loc
+                case 1
+                    x_data = X;
+                    y_data = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+                case 2
+                    x_data = Y;
+                    y_data = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 3
+                    x_data = X;
+                    y_data = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 4
+                    x_data = -Y;
+                    y_data = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+            end
+        else % Rotate to correct orientation with older camera arrangement            
+            switch well_loc
+                case 1
+                    x_data = Y;
+                    y_data = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 2
+                    x_data = X;
+                    y_data = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 3
+                    x_data = -Y;
+                    y_data = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+                case 4
+                    x_data = X;
+                    y_data = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+            end
+    
+        end
+        
+        wellXY.x(:,trial) = WELLS(:,1);
+        wellXY.y(:,trial) = WELLS(:,2);
+    
+        % For each temp and rate, pool all (now normalized) fly positions
+        for tt = 1:ntemps
+          for rr = 1:nrates
+            frame_idx = loc_mat(rr,tt).frames;
+            % shift positions for food well as origin
+            if ~isnan(frame_idx)
+                x = x_data(frame_idx,:);
+                y = y_data(frame_idx,:);
+                
+                % save data into structure:
+                loc_mat(rr,tt).data(trial).pos = [x(:),y(:)];
+                loc_mat(rr,tt).x = [loc_mat(rr,tt).x; x(:)];
+                loc_mat(rr,tt).y = [loc_mat(rr,tt).y; y(:)];
+            else
+                loc_mat(rr,tt).data(trial).pos = [nan nan];
+                loc_mat(rr,tt).x = nan;
+                loc_mat(rr,tt).y = nan;
+            end
+          end
+        end
+        grouped(i).(field_label).trial(trial).x = x_data; % this is the full x data for each trial reoriented! 
+        grouped(i).(field_label).trial(trial).y = y_data; % this is the full y data for each trial reoriented! 
+      end
+      
+      % save trial data into broad structure
+      grouped(i).(field_label).loc = loc_mat;
+      grouped(i).(field_label).temp_rates = temp_rates;
+      grouped(i).(field_label).temp_list = temp_list; %
+      grouped(i).(field_label).well_pos = wellXY; %position of the wells in the newly oriented arena
     end
-    grouped(i).position.trial(trial).x = x_data; % this is the full x data for each trial reoriented! 
-    grouped(i).position.trial(trial).y = y_data; % this is the full y data for each trial reoriented! 
-  end
-  
-  % save trial data into broad structure
-  grouped(i).position.loc = loc_mat;
-  grouped(i).position.temp_rates = temp_rates;
-  grouped(i).position.temp_list = temp_list; %
-  grouped(i).position.well_pos = wellXY; %position of the wells in the newly oriented arena
+
 end
 
+
 %% Visual test of arena alignment and overlay ... make sure the alignment actually worked! 
+
+field_label = 'position_high';
+
 [c, r] = subplot_numbers(num.exp);
-fig = figure;
+fig = getfig(field_label,1);
 for exp = 1:num.exp
     subplot(r,c,exp)
     % plot the well positions as a '+'
-    barX1 = grouped(exp).position.well_pos.x([1,3],:);
-    barX2 = grouped(exp).position.well_pos.x([2,4],:);
-    barY1 = grouped(exp).position.well_pos.y([1,3],:);
-    barY2 = grouped(exp).position.well_pos.y([2,4],:);
-    centreX = grouped(exp).position.well_pos.x(5,:);
-    centreY = grouped(exp).position.well_pos.y(5,:);
+    barX1 = grouped(exp).(field_label).well_pos.x([1,3],:);
+    barX2 = grouped(exp).(field_label).well_pos.x([2,4],:);
+    barY1 = grouped(exp).(field_label).well_pos.y([1,3],:);
+    barY2 = grouped(exp).(field_label).well_pos.y([2,4],:);
+    centreX = grouped(exp).(field_label).well_pos.x(5,:);
+    centreY = grouped(exp).(field_label).well_pos.y(5,:);
     hold on
         plot(barX1, barY1,'Marker','.','MarkerSize',15)
         plot(barX2, barY2,'Marker','.','MarkerSize',15)
@@ -748,14 +808,6 @@ for exp = 1:num.exp
         title(grouped(exp).name,'color', 'w')
 end
 formatFig(fig, true,[r,c]);
-
-% find the postive values that are errors : 
-exp = 5; % berlin 25C
-% trials 1 and 2 are flipped up the wrong way...
-
-
-
-
 
 %% ANALYSIS: calculate group occupancy
 clearvars('-except',initial_vars{:})
@@ -2422,8 +2474,11 @@ end
 %% ANALYSIS: Event aligned signals  -- food occupancy
 % TODO: update this to work with the new occupancy structure format!
 % 5.30.25
+
+% TODO: ERROR -- this structure does not work for LTS because the two ramps
+% are not identical and thus cannot be averaged in the same way ... 
 clearvars('-except',initial_vars{:})
-data_types = {'occ', 'dist', 'speed', 'ring'};
+data_types = {'occ', 'dist', 'speed', 'ring','fullquad', 'innerquad','circle10'};
 
 % account for any temperature hold groups
 fictive_proto = false;
@@ -2432,10 +2487,20 @@ if any([data(:).hold_exp])
          'do you want to assign them a fictive temperature protocol for '...
          'temperature event aligned comparisons?']);
     if strcmp(result, 'Yes') % offer a selection from the other trials within the grouping
-        protocol_options = unique({data(:).temp_protocol});
-        idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[175, 150]);
+         % Import and Load Temperature Protocol Options
+        drivepath = getCloudPath;
+        drivepath = drivepath(1:end-5);
+        xlFile = [drivepath 'Quad Bowl Experiments.xlsx'];
+        [~,~,excelfile] = xlsread(xlFile, 'Temp Protocols'); %#ok<XLSRD> % suppress the warning
+        protocol_options = excelfile(:,1);
+        idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[225, 500]);
         fictive_protocol = protocol_options{idx};
         fictive_proto = true;
+        % OLD VERSON: only select from temp protocols within the grouped data sets
+        % protocol_options = unique({data(:).temp_protocol});
+        % idx  = listdlg('PromptString','Select fictive temp protocol','ListString',protocol_options, 'ListSize',[175, 150]);
+        % fictive_protocol = protocol_options{idx};
+        % fictive_proto = true;
     end
 end
 
@@ -2448,6 +2513,12 @@ for i = 1:num.exp
         grouped(i).fictivetemp = data(i).temp_protocol;
     end
     tp = getTempTurnPoints(grouped(i).aligned.temp_protocol);
+    
+    % skip this alignment if this is the LTS since there isn't symmetry for
+    % this type of temperature alignment
+    if strcmp(grouped(i).fictivetemp,'Large_temp_sweep_15_35')
+        continue
+    end
 
     sectIDX = false(1,3);
     sections = {'decreasing', 'increasing', 'holding'};
@@ -2480,10 +2551,11 @@ for i = 1:num.exp
                 tpBin = 'hold';
                 nrr = tp.nHold;
         end
-        [speed, occ, dist, ring, temperature] = deal([]);
+        [speed, occ, dist, ring, temperature,fullquad, innerquad, circle10] = deal([]);
         duration = min(tp.(tpBin)(:,2)-tp.(tpBin)(:,1)); % get shortest ramp period
         time = 1:duration;
         time = time./(tp.fps*60);
+        % 'fullquad', 'innerquad','circle10'
         for rr = 1:nrr % for each ramp...
             % ROI and temperaure:
             ROI = tp.(tpBin)(rr,1):tp.(tpBin)(rr,1)+duration;
@@ -2496,6 +2568,12 @@ for i = 1:num.exp
             speed(:,:,rr) = grouped(i).speed.all(ROI,:);
             % ring occupancy
             ring(:,:,rr) = grouped(i).ring.all(ROI,:);
+            % full quadrant occupancy
+            fullquad(:,:,rr) = grouped(i).fullquad.food.all(ROI,:);
+            % inner quadrant occupancy
+            innerquad(:,:,rr) = grouped(i).innerquad.food.all(ROI,:);
+            % 10% circle occupancy
+            circle10(:,:,rr) = grouped(i).circle10.food.all(ROI,:);
         end
         % loop through all the data types to extract
         for type = 1:length(data_types)
@@ -2508,6 +2586,12 @@ for i = 1:num.exp
                     y_all = speed;
                 case 'ring' % RING OCCUPANCY
                     y_all = ring;
+                case 'fullquad'
+                    y_all = fullquad;
+                case 'innerquad'
+                    y_all = innerquad;
+                case 'circle10'
+                    y_all = circle10;
             end
             % calculate the cross-ramp means and normalization
             y = mean(y_all,3);        

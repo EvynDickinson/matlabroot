@@ -1677,7 +1677,9 @@ for i = 1:4
 end
 
 
-
+%% 
+frame = frames(rr).idx;
+x = grouped(exp).(pos_type).trial(trial).x;
 
 
 
