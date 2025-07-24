@@ -99,12 +99,16 @@ switch computerName
         serverPath = paths.SGServerPath;
         serverTwoPath = paths.SGServerTwoPath;
 end 
-if exist(serverPath, 'dir') == 7
+
+if isfolder(serverPath)
     serverDrive = true;
 end
-if exist(serverTwoPath, 'dir') == 7
-    serverTwoDrive = true;
-end
+% TODO: sort out the time delay on the server two function call
+% Reinstate this function when server2 is being actively used
+% if isfolder(serverTwoPath)
+    % serverTwoDrive = true;
+% end
+serverTwoDrive = false;
 
 % Output folder paths for available options
 

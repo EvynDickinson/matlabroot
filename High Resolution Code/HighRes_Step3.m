@@ -12,7 +12,7 @@ loc = cellfun(@isnan,excelfile(2:end,Excel.tracked));
 loc = ~loc; 
 rownums = find(loc)+1; 
 eligible_files = excelfile([false;loc],[Excel.date, Excel.expID, Excel.ramp, Excel.proofed]);
-FileNames = format_eligible_files(eligible_files,filler_string);
+FileNames = format_eligible_files(eligible_files);%,filler_string);
 
 fileIdx = listdlg('ListString', FileNames,'ListSize',[350,450],'promptstring', 'Select data to process');
 if isempty(fileIdx)
@@ -55,6 +55,7 @@ for trial = 1:ntrials
         ntracks(vid) = size(data(vid).occupancy_matrix,1);
     end
 
+%%%%%%%%%%%%%% MAYBE HERE CLEAR EXTRA TRACKS FOR FROM 15C HR EXPS %%%%%%%%%%%%%%%%%%
     % Open the file for writing
     outputFile = fullfile(baseDir, 'proof_videos.txt');
     fid = fopen(outputFile, 'w'); % 'w' for writing (overwrites if the file exists)
