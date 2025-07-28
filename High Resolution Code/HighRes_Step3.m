@@ -28,6 +28,8 @@ initial_var = who;
 initial_var{end+1} = 'trial';
 initial_var{end+1} = 'initial_var';
 
+disp('data loaded')
+
 %% Load and check for proofing needs
 for trial = 1:ntrials
     baseDir = [baseFolder, List.date{trial} '\', List.expID{trial} '\'];
@@ -55,57 +57,86 @@ for trial = 1:ntrials
         ntracks(vid) = size(data(vid).occupancy_matrix,1);
     end
 
-%%%%%%%%%%%%%% MAYBE HERE CLEAR EXTRA TRACKS FOR FROM 15C HR EXPS %%%%%%%%%%%%%%%%%%
-    % Open the file for writing
-    outputFile = fullfile(baseDir, 'proof_videos.txt');
-    fid = fopen(outputFile, 'w'); % 'w' for writing (overwrites if the file exists)
-    if fid == -1
-        error('Could not open file for writing.');
-    end
-    % Identify videos to proof
-    vidloc = find(~(ntracks == 2));
-    fprintf('Proof the following videos: \n');
-    disp(baseDir);
-    fprintf(fid, 'Proof the following videos: \n');
-    fprintf(fid, '%s\n', baseDir);
-    % Loop through the videos and output to file and console
-    for i = vidloc
-        outputStr = sprintf('video %d | current tracks %d\n', i, ntracks(i));
-        fprintf('%s', outputStr); % Display in command window
-        fprintf(fid, '%s', outputStr); % Write to file
-    end
-    % Close the file
-    fclose(fid);
-    disp(['Output written to: ' outputFile]);
-
-    % Copy the original files to the backup folder: 
-    response = questdlg('Copy files to backup folder?');
-    if strcmpi(response, 'Yes')
-        a = [baseDir 'Tracking backup'];
-        filelist = dir([a '*']);
-        foldercount = length(filelist)+1;
-        enddir = [a ' ' num2str(foldercount)];
-        if ~exist(enddir,"dir")
-            mkdir(enddir)
-        end
-        for i = vidloc
-            targetfile = [baseDir 'compiled_video_' num2str(i) '.avi.predictions.slp'];
-            copyfile(targetfile,enddir) % slp file
-            copyfile([targetfile '.h5'],enddir) % h5 file
-        end
-    end 
-
-    % write 'R' for ready into the excel sheet: 
-    if ~isExcelFileOpen(xlFile,true)
-        writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.proofed) num2str(fileIdx(trial)+1)]);
-    else 
-        disp('Couldn''t write to excel sheet for:')
-        disp([List.date{trial} ' ' List.expID{trial}])
-    end
-disp('  ')
 end
 
-disp('All finished')
+
+
+%% Remove extra tracks (after proofing)
+
+% This assumes that all videos have been visually proofed and the first two tracks align with the two flies
+
+response = questdlg('Delete extra tracks?','','Yes','No','Yes');
+
+switch response
+    case 'Yes'
+        for vid = 1:nvids
+            data(vid).occupancy_matrix(3:end,:) = [];
+            % Save cleaned occupancy data back to h5 files
+            filePath = [baseDir, 'compiled_video_' num2str(vid) '.avi.predictions.slp.h5'];
+            h5write(filePath,'/track_occupancy',data(vid).occupancy_matrix)
+        end
+    case 'No'
+        return
+end
+     
+
+    
+    
+    
+    
+    
+%%    
+% 
+%     % Open the file for writing
+%     outputFile = fullfile(baseDir, 'proof_videos.txt');
+%     fid = fopen(outputFile, 'w'); % 'w' for writing (overwrites if the file exists)
+%     if fid == -1
+%         error('Could not open file for writing.');
+%     end
+%     % Identify videos to proof
+%     vidloc = find(~(ntracks == 2));
+%     fprintf('Proof the following videos: \n');
+%     disp(baseDir);
+%     fprintf(fid, 'Proof the following videos: \n');
+%     fprintf(fid, '%s\n', baseDir);
+%     % Loop through the videos and output to file and console
+%     for i = vidloc
+%         outputStr = sprintf('video %d | current tracks %d\n', i, ntracks(i));
+%         fprintf('%s', outputStr); % Display in command window
+%         fprintf(fid, '%s', outputStr); % Write to file
+%     end
+%     % Close the file
+%     fclose(fid);
+%     disp(['Output written to: ' outputFile]);
+% 
+%     % Copy the original files to the backup folder: 
+%     response = questdlg('Copy files to backup folder?');
+%     if strcmpi(response, 'Yes')
+%         a = [baseDir 'Tracking backup'];
+%         filelist = dir([a '*']);
+%         foldercount = length(filelist)+1;
+%         enddir = [a ' ' num2str(foldercount)];
+%         if ~exist(enddir,"dir")
+%             mkdir(enddir)
+%         end
+%         for i = vidloc
+%             targetfile = [baseDir 'compiled_video_' num2str(i) '.avi.predictions.slp'];
+%             copyfile(targetfile,enddir) % slp file
+%             copyfile([targetfile '.h5'],enddir) % h5 file
+%         end
+%     end 
+% 
+%     % write 'R' for ready into the excel sheet: 
+%     if ~isExcelFileOpen(xlFile,true)
+%         writecell({'R'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.proofed) num2str(fileIdx(trial)+1)]);
+%     else 
+%         disp('Couldn''t write to excel sheet for:')
+%         disp([List.date{trial} ' ' List.expID{trial}])
+%     end
+% disp('  ')
+% end
+% 
+% disp('All finished')
 
 
 
