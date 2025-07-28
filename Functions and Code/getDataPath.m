@@ -39,8 +39,10 @@ function [path, location_name] = getDataPath(dataType, dataLocation, promptStrin
 % path = []; % empty so that in the end, there is something assigned
 % %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
 
+
 paths = getPathNames; 
 path = [];
+
 
 % default values -- single trial data, user selected drive
 switch nargin
@@ -98,6 +100,7 @@ end
 % BASE DRIVE LOCATION SELECTION
 % find the list of available drives
 [availableDrives, availablePaths] = getDataFolderOptions;
+
 % are they available? 
 portableDrive = availableDrives.portable;
 serverDrive = availableDrives.server;
