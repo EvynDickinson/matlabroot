@@ -6,8 +6,7 @@
 % ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
 % *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
-
-%% Select data groups to compare 
+%% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
 format shortG
@@ -426,8 +425,8 @@ switch expGroup
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
         kolor1 = Color('Blue', 'LightGrey', 5); % ultimately 5 (with all temp trials added)
-        kolor2 = Color('LightGrey', 'Red', 4);  % ultimately 5 (with all temp trials added)
-        colors = nan([16, 3]); % ultimately 18x3 (with all temp trials added)
+        kolor2 = Color('LightGrey', 'Red', 5);  % ultimately 5 (with all temp trials added)
+        colors = nan([18, 3]); % ultimately 18x3 (with all temp trials added)
         colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test

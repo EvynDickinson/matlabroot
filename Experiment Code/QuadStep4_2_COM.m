@@ -663,7 +663,248 @@ end
 
 % end
 
+%% FIGURE: TODO: (working here 7.28) DYNAMIC trials -- plot heatmap of fly position within arena
+% CAUTION: SLOW FOR LARGER GROUPS
+% Currently only has the option to compare to LTS fictive temperature timelines
+clearvars('-except',initial_vars{:})
+save_path = createFolder([saveDir 'COM/']);
+autoSave = true;
+
+[foreColor] = formattingColors(blkbgd);
+
+% Find the occupancy for each bin:
+n = 26; % number of spatial bins
+autoLim = false;
+% axis_limits = [0, 1.5];
+axis_limits = [0, 6];
+nTypes = 3; % food quad, low occ quad, high occ quad
+
+% Select temperatures to plot: 
+expList = 1:num.exp;
+full_temp_list =  [15 17 20 23 25 27 30 33 35];
+idx = listdlg("PromptString",'Select temps to include:', 'ListString',string(full_temp_list),...
+    'selectionmode', 'multiple','listsize', [150 200],'initialvalue', 1:length(full_temp_list));
+temp_list = full_temp_list(idx); % temps that we have temp hold data for...
+
+% food vs no food trials separated 
+% then in no food --> high vs low occupancy separated ...
+
+% select type of trials to run (food vs empty) then automatically adjust to
+% find those trials 
+switch questdlg('Select the type of trials to demonstrate?', '','Food trials', 'Empty trials', 'Cancel', 'Food trials')
+    case 'Food trials'
+        empty_trials = false;
+        trial_type  = 'food';
+        exp_idx = find(~([data(:).emptytrial]));
+    case 'Empty trials'
+        trial_type = 'empty';
+        empty_trials = true;
+        exp_idx = find([data(:).emptytrial]);
+    case {'Cancel',''}
+        return
+end
+
+% find the time point index: 
+plotData = struct;
+max_occ = [];
+frames = struct;
+
+exp = exp_idx(1); % TODO make this more dynamic in case there are multiple groups that have food or are empty etc 
+
+for i = 1:length(temp_list)
+    % % find the temp for this hold trial: 
+    % trial = 1; %(all trials within a group should have the same protocol, so trial 1 is representative) 
+    % temp = mean(data(exp).data(trial).occupancy.real_temp,'omitnan'); % avg real temp of the hold exp
+    % plotData(i).real_temp = temp;
+    
+    % WORKING HERE 7.28: 
+    % update this to cycle through the different temps and find the
+    % appropriate temp and temp rate indexes that can be used to extract
+    % data
+    % then find a way to merge this data with the static temp data 
+
+    if FT % fictive temp needs to match the real temp...
+        % for now, use the built in LTS 15-35 but need to adjust this for
+        % future use to be more dynamic...TODO IMPORTANT 7.23
+        [~, temp_loc] = min(abs(temp - LTS_temp.temp_list));
+        fictive_temp_match = LTS_temp.temp_list(temp_loc);
+        disp(['Target temp vs fictive temp: ' num2str(temp) ' vs ' num2str(fictive_temp_match)])
+        % throw warning if the temps are really far from each other
+        if abs(fictive_temp_match - temp)>1
+            h = warndlg('Large temp discrepency between fictive temp and real temp');
+            uiwait(h)
+        end
+        nRates = length(LTS_temp.temp_rates);
+        for r = 1:nRates
+            frames(r).idx = LTS_temp.loc(r,temp_loc).frames; % frames for each temp rate at this temp bin
+        end
+
+        FT_label = 'fictive temp';
+        plotData(i).fictive_temp = fictive_temp_match;
+    else % just use the avg value for the pre-selected time within the experiment
+        % pull ROI for this trial: 
+        nRates = 1;
+        frames(1).idx = start_time*(fps*60):(start_time+duration_time)*(fps*60);
+        FT_label = ['avg over ' num2str(duration_time/60) ' hrs'];
+        plotData(i).fictive_temp = temp;
+    end
+
+    for type = 1:nTypes % e.g. food quad only, or low and high occ quad orientations
+        switch type
+            case 1 % food quad (or fake assigned random quad)
+                pos_type = 'position';
+            case 2 % low occupancy quad
+                pos_type = 'position_low';
+            case 3 % high occupancy quad
+                pos_type = 'position_high';
+        end
+
+        for rr = 1:nRates % cycle through the temp ratesssss
+            % save the names of the condition types (so that we can keep track later) 
+            
+            if FT
+                plotData(i).type(type,rr).rate = LTS_temp.temp_rates(rr);
+                plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(fictive_temp_match) ' | ' FT_label];
+            else 
+                plotData(i).type(type,rr).rate = 0;
+                plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(temp) ' | ' FT_label];
+            end
+
+            % find the center of the arena for this exp type
+            Cx = mean(grouped(exp).(pos_type).well_pos.x(5,:)); %center X
+            Cy = mean(grouped(exp).(pos_type).well_pos.y(5,:)); %center Y
+    
+            nflies = nan([n,n,num.trial(exp)]); % initialize the variable as zeros
+            plotData(i).type(type,rr).wells = nan([2,num.trial(exp)]);
+            for trial = 1:num.trial(exp)
+                con_type = data(exp).con_type(trial);
+                % if any(con_type==[1 2]) %check if it matches plate 1 
+                    % allow for the couple trials that have slightly shorter hold lengths
+                    tempX = grouped(exp).(pos_type).trial(trial).x;
+                    tempY = grouped(exp).(pos_type).trial(trial).y;
+                    keepLoc = ismember(frames(rr).idx, 1:length(tempX));
+                    frame_idx = frames(rr).idx(keepLoc);
+                    % extract fly position data from the time points that match this temp and rate
+                    x = tempX(frame_idx,:);
+                    y = tempY(frame_idx,:);
+                    r = conversion(con_type).R*conversion(con_type).pix2mm; % pixel radius of this arena
+                    % find the edges of the spatial bins 
+                    x_edge = linspace(Cx-r,Cx+r,n);
+                    y_edge = linspace(Cy-r,Cy+r,n);
+                    % find which fly locations go to which spatial bin
+                    nanLoc = isnan(x)| isnan(y);
+                    x(nanLoc) = [];
+                    y(nanLoc) = []; % this also reorganizes the data as a vector
+                    xInd = discretize(x,x_edge);
+                    yInd = discretize(y,y_edge);
+        
+                    % find the number of flies within each spatial bin:
+                    nflies = zeros(n); % initialize the variable as zeros
+                    for row = 1:n
+                        for col = 1:n
+                            nflies(row,col,trial) = sum(yInd==row & xInd==col);
+                        end
+                    end
+                    
+                    % find the bin location for the food well OR the lowest/highest occupied region
+                    switch type 
+                        case 1 % food quadrant
+                            idx = data(exp).T.foodLoc(trial);
+                        case 2 % low occupancy
+                            idx = grouped(exp).occ_idx(trial,1);
+                        case 3 % high occupancy
+                            idx = grouped(exp).occ_idx(trial,2);
+                    end
+                    xInd = discretize((grouped(exp).(pos_type).well_pos.x(idx,trial)),x_edge); %well X bin location
+                    yInd = discretize((grouped(exp).(pos_type).well_pos.y(idx,trial)),y_edge); %well Y bin location   
+                    plotData(i).type(type,rr).wells(:,trial) = [xInd,yInd];
+                % end
+            end
+            % find the occupancy across all the trials for this experiment group
+            tot_flies = sum(nflies,3,'omitnan');
+            tot_flies = (tot_flies./sum(sum(tot_flies))*100);
+        
+            plotData(i).type(type,rr).data = tot_flies;
+            max_occ = max([max_occ,max(max(plotData(i).type(type,rr).data))]);
+        end
+    end
+    disp(['Finished ' grouped(exp).name]) 
+end
+
+disp(['Max occupancy: ' num2str(max_occ)])
+
+square_unit = mean(diff(x_edge)); % pixel size for one bin
+circ_r = r/square_unit; % arena radius in bin size
+circ_X = discretize(Cx, x_edge);
+circ_Y = discretize(Cy, y_edge);
+
+% PLOT 3 TYPES OF HEATMAP OCCUPANCIES
+r = nRates; % this is based on there only being 2 possible temp rates...and zero
+c = length(plotData);
+fig_W = 20 + (400*c); % set this to match sizing for trials with heating and cooling....
+
+for type = 1:nTypes
+
+    fig = getfig('',false,[fig_W, 340*r]); 
+        for rr = 1:nRates
+            r_off = (length(plotData)*(rr-1)); % subplot index offset to get same rate to plot top and bottom
+            for i = 1:length(plotData)
+                subplot(r,c,r_off+i)
+                hold on
+                imagesc(plotData(i).type(type,rr).data); hold on
+                wellX = median(plotData(i).type(type,rr).wells(1,:),'omitnan');
+                wellY = median(plotData(i).type(type,rr).wells(2,:),'omitnan');
+                scatter(wellX, wellY,10,'r','filled')
+                axis tight;
+                axis square;
+                % h = drawcircle('Center',[Cx,Cy],'Radius',conversion(1).R*conversion(1).pix2mm,'StripeColor',foreColor);
+                v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
+            end
+        end
+        formatFig(fig, blkbgd,[r,c]);
+        for i = 1:length(plotData)
+            for rr = 1:nRates
+                r_off = (length(plotData)*(rr-1)); % subp
+                subplot(r,c,r_off+i)
+                set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
+                tltStr = strrep(plotData(i).type(type,rr).name,'_', ' ');
+                title(tltStr,'color',foreColor,'fontsize', 12)
+                if autoLim
+                    clim([0,max_occ]) %#ok<UNRCH>
+                else
+                    clim(axis_limits)
+                    % clim([0,max_occ])
+                end
+                if blkbgd
+                    colormap((gray)) %#ok<UNRCH>
+                else
+                    colormap(flipud(gray))
+                end
+                % set(gca,'ColorScale','log')
+                % if i == c || i == c*r
+                    C = colorbar;
+                    C.Label.String = 'Occ Prob (%)';
+                    C.Label.Color = foreColor;
+                    C.Color = foreColor;
+                % end
+            end
+        end 
+    % save the figure to a folder specific to that cohort?
+    a = strsplit(plotData(i).type(type,rr).name,' | ');
+    fig_title = [trial_type ' ' expGroup ' ' a{1} ' ' a{3} ' 2D spatial distribution'];
+    save_figure(fig,[save_path fig_title], fig_type);
+end
+
+% Save matrix occupancy data so that it can be compared to other trial
+% types in the future more easily: 
+if strcmp(questdlg('Save matrix data?'),'Yes')
+    save([save_path trial_type ' ' a{3} ' ' expGroup ' 2D occupancy matrix.mat'],'plotData');
+    disp('saved data')
+end
+
 %% FIGURE: STATIC trials -- plot heatmap of fly position within arena
+% CAUTION: SLOW FOR LARGER GROUPS
+% Currently only has the option to compare to LTS fictive temperature timelines
 clearvars('-except',initial_vars{:})
 save_path = createFolder([saveDir 'COM/']);
 autoSave = true;
@@ -674,7 +915,8 @@ autoSave = true;
 
 n = 26; % number of spatial bins
 autoLim = false;
-axis_limits = [0, 1.5];
+% axis_limits = [0, 1.5];
+axis_limits = [0, 6];
 nTypes = 3; % food quad, low occ quad, high occ quad
 
 % use the fictive temp bins for the occupancy behavior (so that it's
@@ -720,8 +962,10 @@ temp_list = full_temp_list(idx); % temps that we have temp hold data for...
 switch questdlg('Select the type of trials to demonstrate?', '','Food trials', 'Empty trials', 'Cancel', 'Food trials')
     case 'Food trials'
         empty_trials = false;
+        trial_type  = 'food';
         exp_idx = find(~([data(:).emptytrial]));
     case 'Empty trials'
+        trial_type = 'empty';
         empty_trials = true;
         exp_idx = find([data(:).emptytrial]);
     case {'Cancel',''}
@@ -765,6 +1009,7 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
         plotData(i).fictive_temp = fictive_temp_match;
     else % just use the avg value for the pre-selected time within the experiment
         % pull ROI for this trial: 
+        nRates = 1;
         frames(1).idx = start_time*(fps*60):(start_time+duration_time)*(fps*60);
         FT_label = ['avg over ' num2str(duration_time/60) ' hrs'];
         plotData(i).fictive_temp = temp;
@@ -782,7 +1027,14 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
 
         for rr = 1:nRates % cycle through the temp ratesssss
             % save the names of the condition types (so that we can keep track later) 
-            plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(fictive_temp_match) ' | ' FT_label];
+            
+            if FT
+                plotData(i).type(type,rr).rate = LTS_temp.temp_rates(rr);
+                plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(fictive_temp_match) ' | ' FT_label];
+            else 
+                plotData(i).type(type,rr).rate = 0;
+                plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(temp) ' | ' FT_label];
+            end
 
             % find the center of the arena for this exp type
             Cx = mean(grouped(exp).(pos_type).well_pos.x(5,:)); %center X
@@ -820,11 +1072,17 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
                         end
                     end
                     
-                    % find the bin location for the food well OR the lowest
-                    % or highest occupied region
-                    
-                    xInd = discretize(0,x_edge);
-                    yInd = discretize(0,y_edge);
+                    % find the bin location for the food well OR the lowest/highest occupied region
+                    switch type 
+                        case 1 % food quadrant
+                            idx = data(exp).T.foodLoc(trial);
+                        case 2 % low occupancy
+                            idx = grouped(exp).occ_idx(trial,1);
+                        case 3 % high occupancy
+                            idx = grouped(exp).occ_idx(trial,2);
+                    end
+                    xInd = discretize((grouped(exp).(pos_type).well_pos.x(idx,trial)),x_edge); %well X bin location
+                    yInd = discretize((grouped(exp).(pos_type).well_pos.y(idx,trial)),y_edge); %well Y bin location   
                     plotData(i).type(type,rr).wells(:,trial) = [xInd,yInd];
                 % end
             end
@@ -847,12 +1105,13 @@ circ_X = discretize(Cx, x_edge);
 circ_Y = discretize(Cy, y_edge);
 
 % PLOT 3 TYPES OF HEATMAP OCCUPANCIES
-r = 2; % this is based on there only being 2 possible temp rates...
+r = nRates; % this is based on there only being 2 possible temp rates...and zero
 c = length(plotData);
 fig_W = 20 + (400*c); % set this to match sizing for trials with heating and cooling....
 
 for type = 1:nTypes
-    fig = getfig('',false,[fig_W, 340*2]); 
+
+    fig = getfig('',false,[fig_W, 340*r]); 
         for rr = 1:nRates
             r_off = (length(plotData)*(rr-1)); % subplot index offset to get same rate to plot top and bottom
             for i = 1:length(plotData)
@@ -869,33 +1128,171 @@ for type = 1:nTypes
             end
         end
         formatFig(fig, blkbgd,[r,c]);
-    
-        for i = expList
-            subplot(r,c,i)
-            set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
-            title(grouped(i).name,'color',foreColor,'fontsize', 12)
-            % set(gca,'ColorScale','log')
-            C = colorbar;
-            C.Label.String = 'Occupancy Probability';
-            C.Label.Color = foreColor;
-            C.Color = foreColor;
-            if autoLim
-                clim([0,max_occ])
-            else
-                clim(axis_limits)
+        for i = 1:length(plotData)
+            for rr = 1:nRates
+                r_off = (length(plotData)*(rr-1)); % subp
+                subplot(r,c,r_off+i)
+                set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
+                tltStr = strrep(plotData(i).type(type,rr).name,'_', ' ');
+                title(tltStr,'color',foreColor,'fontsize', 12)
+                if autoLim
+                    clim([0,max_occ]) %#ok<UNRCH>
+                else
+                    clim(axis_limits)
+                    % clim([0,max_occ])
+                end
+                if blkbgd
+                    colormap((gray)) %#ok<UNRCH>
+                else
+                    colormap(flipud(gray))
+                end
+                % set(gca,'ColorScale','log')
+                % if i == c || i == c*r
+                    C = colorbar;
+                    C.Label.String = 'Occ Prob (%)';
+                    C.Label.Color = foreColor;
+                    C.Color = foreColor;
+                % end
             end
-        
-            colormap(flipud(gray))
         end 
     % save the figure to a folder specific to that cohort?
-    save_figure(fig,[save_path '2D spatial distribution all experiments'], fig_type);
-
-    % Save matrix occupancy data so that it can be compared to other trial
-    % types in the future more easily: 
-    for i = 1:length(temp_list)
-        plotData(i).name = ['static ' num2str(temp_list(i)) 'C'];
-    end
-    save([save_path '2D occupancy matrix.mat'],'plotData');
-
+    a = strsplit(plotData(i).type(type,rr).name,' | ');
+    fig_title = [trial_type ' ' expGroup ' ' a{1} ' ' a{3} ' 2D spatial distribution'];
+    save_figure(fig,[save_path fig_title], fig_type);
 end
- 
+
+% Save matrix occupancy data so that it can be compared to other trial
+% types in the future more easily: 
+if strcmp(questdlg('Save matrix data?'),'Yes')
+    save([save_path trial_type ' ' a{3} ' ' expGroup ' 2D occupancy matrix.mat'],'plotData');
+    disp('saved data')
+end
+
+%% LOAD AND COMPARE TRIALS OF DIFFERENT TYPES FOR SPATIAL ANALYSIS
+% THIS IS MANUALLY CONTROLLED AND CANNOT BE AUTO-RUN
+clearvars('-except',initial_vars{:})
+[foreColor] = formattingColors(blkbgd);
+start_folder = [saveDir 'COM/'];
+
+% select the data files for comparison:  (manually select these from the folders and locations they are saved into) 
+group1 = 'empty avg over 4.5 hrs Berlin temperature holds';
+group2 = 'food avg over 4.5 hrs Berlin temperature holds';
+empty = load([start_folder group1 ' 2D occupancy matrix.mat']);
+food = load([start_folder group2 ' 2D occupancy matrix.mat']);
+
+FT = false; 
+food_type = 1;
+empty_type = 3;
+
+% compare food quad vs highest occupany quad (then later against lowest occupancy quad)
+nTemps = length(food.plotData);
+r = 1;
+c = nTemps;
+fig_W = 20 + (400*c);
+
+fig = getfig('',false,[fig_W, (340*r)]); 
+for i = 1:nTemps
+    % .... subtract one from the other but add in a dynamic switch for low
+    % or high occupancy comparisions
+    n = food.plotData(i).type(food_type).data - empty.plotData(i).type(empty_type).data;
+    subplot(r,c,i)
+        hold on
+        imagesc(n); 
+        hold on
+        % wellX = median(plotData(exp).wells(1,:),'omitnan');
+        % wellY = median(plotData(exp).wells(2,:),'omitnan');
+        % scatter(wellX, wellY,10,'r','filled')
+        % title([num2str(temp_list(temp)) '\circC @ ' num2str(grouped(exp).position.temp_rates(rr)) '\circC/min'],'color', foreColor)
+        axis tight square
+        axis square;
+        % v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
+        % i = i+1; % update the subplot location
+end
+
+
+% Create custom colormap for positive and negative change between static and dynamic trials
+n = 256;  % number of colors
+z0 = -5; z1 = 0; z2 = 5; % color axis limits...
+% Number of colors below and above zero
+n_neg = round(n * abs(z0) / (z2 - z0));
+n_pos = n - n_neg;
+switch blkbgd
+    case true  % black at zero
+        % Negative side: blue to black
+        cmap_neg = [linspace(0,0,n_neg)', linspace(0,0,n_neg)', linspace(1,0,n_neg)'];  % Blue → Black
+        % Positive side: black to red
+        cmap_pos = [linspace(0,1,n_pos)', linspace(0,0,n_pos)', linspace(0,0,n_pos)'];  % Black → Red
+
+    case false  % white at zero
+        % Negative side: blue to white
+        cmap_neg = [linspace(0,1,n_neg)', linspace(0,1,n_neg)', ones(n_neg,1)];  % Blue → White
+        % Positive side: white to red
+        cmap_pos = [ones(n_pos,1), linspace(1,0,n_pos)', linspace(1,0,n_pos)'];  % White → Red
+end
+
+% Combined color map
+cmap = [cmap_neg; cmap_pos];
+
+% FORMATTING: 
+formatFig(fig, blkbgd,[r,c]);
+for i = 1: nTemps%*nRates
+    subplot(r,c,i)
+    set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
+    C = colorbar;
+    C.Label.String = '\Delta Occupancy';
+    C.Label.Color = foreColor;
+    C.Color = foreColor;
+    clim([z0, z2])
+    colormap(cmap)
+end
+% save the figure
+save_figure(fig,[start_folder group2 ' - ' group1 ' 2D spatial distribution difference'], fig_type);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
