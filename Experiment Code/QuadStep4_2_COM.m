@@ -663,7 +663,7 @@ end
 
 % end
 
-%% FIGURE: TODO: (working here 7.28) DYNAMIC trials -- plot heatmap of fly position within arena
+%% FIGURE: TODO: DYNAMIC trials -- plot heatmap of fly position within arena
 % CAUTION: SLOW FOR LARGER GROUPS
 % Currently only has the option to compare to LTS fictive temperature timelines
 clearvars('-except',initial_vars{:})
@@ -676,7 +676,7 @@ autoSave = true;
 n = 26; % number of spatial bins
 autoLim = false;
 % axis_limits = [0, 1.5];
-axis_limits = [0, 6];
+axis_limits = [0, 5];
 nTypes = 3; % food quad, low occ quad, high occ quad
 
 % Select temperatures to plot: 
@@ -689,8 +689,7 @@ temp_list = full_temp_list(idx); % temps that we have temp hold data for...
 % food vs no food trials separated 
 % then in no food --> high vs low occupancy separated ...
 
-% select type of trials to run (food vs empty) then automatically adjust to
-% find those trials 
+% select type of trials to run (food vs empty) then automatically adjust to find those trials 
 switch questdlg('Select the type of trials to demonstrate?', '','Food trials', 'Empty trials', 'Cancel', 'Food trials')
     case 'Food trials'
         empty_trials = false;
@@ -711,43 +710,22 @@ frames = struct;
 
 exp = exp_idx(1); % TODO make this more dynamic in case there are multiple groups that have food or are empty etc 
 
-for i = 1:length(temp_list)
-    % % find the temp for this hold trial: 
-    % trial = 1; %(all trials within a group should have the same protocol, so trial 1 is representative) 
-    % temp = mean(data(exp).data(trial).occupancy.real_temp,'omitnan'); % avg real temp of the hold exp
-    % plotData(i).real_temp = temp;
-    
-    % WORKING HERE 7.28: 
-    % update this to cycle through the different temps and find the
-    % appropriate temp and temp rate indexes that can be used to extract
-    % data
-    % then find a way to merge this data with the static temp data 
+for i = 1:length(temp_list)   
+    % Find the temp bin that corresponds to the selected temperature
+    temp = temp_list(i);
+    [~, temp_loc] = min(abs(temp - grouped(exp).position.temp_list));
+    temp_match = grouped(exp).position.temp_list(temp_loc);
+    disp(['Target temp vs bin temp match: ' num2str(temp) ' vs ' num2str(temp_match)])
 
-    if FT % fictive temp needs to match the real temp...
-        % for now, use the built in LTS 15-35 but need to adjust this for
-        % future use to be more dynamic...TODO IMPORTANT 7.23
-        [~, temp_loc] = min(abs(temp - LTS_temp.temp_list));
-        fictive_temp_match = LTS_temp.temp_list(temp_loc);
-        disp(['Target temp vs fictive temp: ' num2str(temp) ' vs ' num2str(fictive_temp_match)])
-        % throw warning if the temps are really far from each other
-        if abs(fictive_temp_match - temp)>1
-            h = warndlg('Large temp discrepency between fictive temp and real temp');
-            uiwait(h)
-        end
-        nRates = length(LTS_temp.temp_rates);
-        for r = 1:nRates
-            frames(r).idx = LTS_temp.loc(r,temp_loc).frames; % frames for each temp rate at this temp bin
-        end
-
-        FT_label = 'fictive temp';
-        plotData(i).fictive_temp = fictive_temp_match;
-    else % just use the avg value for the pre-selected time within the experiment
-        % pull ROI for this trial: 
-        nRates = 1;
-        frames(1).idx = start_time*(fps*60):(start_time+duration_time)*(fps*60);
-        FT_label = ['avg over ' num2str(duration_time/60) ' hrs'];
-        plotData(i).fictive_temp = temp;
+    if abs(temp_match - temp)>1
+        h = warndlg('Large temp discrepency between target temp and real temp');
+        uiwait(h)
     end
+    nRates = length(grouped(exp).position.temp_rates);
+    for r = 1:nRates
+        frames(r).idx = grouped(exp).position.loc(r,temp_loc).frames; % frames for each temp rate at this temp bin
+    end
+    plotData(i).temp_match = temp_match;
 
     for type = 1:nTypes % e.g. food quad only, or low and high occ quad orientations
         switch type
@@ -761,14 +739,8 @@ for i = 1:length(temp_list)
 
         for rr = 1:nRates % cycle through the temp ratesssss
             % save the names of the condition types (so that we can keep track later) 
-            
-            if FT
-                plotData(i).type(type,rr).rate = LTS_temp.temp_rates(rr);
-                plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(fictive_temp_match) ' | ' FT_label];
-            else 
-                plotData(i).type(type,rr).rate = 0;
-                plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(temp) ' | ' FT_label];
-            end
+            plotData(i).type(type,rr).rate = grouped(exp).(pos_type).temp_rates(rr);
+            plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(temp_match)];
 
             % find the center of the arena for this exp type
             Cx = mean(grouped(exp).(pos_type).well_pos.x(5,:)); %center X
@@ -795,7 +767,11 @@ for i = 1:length(temp_list)
                     nanLoc = isnan(x)| isnan(y);
                     x(nanLoc) = [];
                     y(nanLoc) = []; % this also reorganizes the data as a vector
-                    xInd = discretize(x,x_edge);
+                    if ~any(size(x)==1) % force reorganize the data as a vector
+                        x = x(:);
+                        y = y(:);
+                    end
+                    xInd = discretize(x,x_edge); % this finds the spatial x bin for each of the flies in the arena
                     yInd = discretize(y,y_edge);
         
                     % find the number of flies within each spatial bin:
@@ -828,7 +804,7 @@ for i = 1:length(temp_list)
             max_occ = max([max_occ,max(max(plotData(i).type(type,rr).data))]);
         end
     end
-    disp(['Finished ' grouped(exp).name]) 
+    disp(['Finished ' num2str(temp_list(i))]) 
 end
 
 disp(['Max occupancy: ' num2str(max_occ)])
@@ -891,14 +867,14 @@ for type = 1:nTypes
         end 
     % save the figure to a folder specific to that cohort?
     a = strsplit(plotData(i).type(type,rr).name,' | ');
-    fig_title = [trial_type ' ' expGroup ' ' a{1} ' ' a{3} ' 2D spatial distribution'];
+    fig_title = [trial_type ' ' expGroup ' ' a{1} ' 2D spatial distribution'];
     save_figure(fig,[save_path fig_title], fig_type);
 end
 
 % Save matrix occupancy data so that it can be compared to other trial
 % types in the future more easily: 
 if strcmp(questdlg('Save matrix data?'),'Yes')
-    save([save_path trial_type ' ' a{3} ' ' expGroup ' 2D occupancy matrix.mat'],'plotData');
+    save([save_path trial_type ' ' expGroup ' 2D occupancy matrix.mat'],'plotData');
     disp('saved data')
 end
 
@@ -916,7 +892,7 @@ autoSave = true;
 n = 26; % number of spatial bins
 autoLim = false;
 % axis_limits = [0, 1.5];
-axis_limits = [0, 6];
+axis_limits = [0, 5];
 nTypes = 3; % food quad, low occ quad, high occ quad
 
 % use the fictive temp bins for the occupancy behavior (so that it's
@@ -982,7 +958,7 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
     exp = exp_idx(i); % pull from only the food or empty trials
     % find the temp for this hold trial: 
     trial = 1; %(all trials within a group should have the same protocol, so trial 1 is representative) 
-    temp = mean(data(exp).data(trial).occupancy.real_temp,'omitnan'); % avg real temp of the hold exp
+    temp = round(mean(data(exp).data(trial).occupancy.real_temp,'omitnan')); % avg real temp of the hold exp
     plotData(i).real_temp = temp;
     
     % TODO: Working here 7.23.25 Account for the fictive temp condition, 
