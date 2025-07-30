@@ -66,7 +66,7 @@ switch response
     case 'Yes'
         for vid = 1:nvids
             data(vid).occupancy_matrix(3:end,:) = [];
-            data(vid).tracks(3:end,:) = [];
+            % data(vid).tracks(3:end,:) = [];
         end
     case 'No'
         return

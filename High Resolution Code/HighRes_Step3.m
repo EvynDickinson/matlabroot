@@ -73,7 +73,7 @@ switch response
             data(vid).occupancy_matrix(3:end,:) = [];
             % Save cleaned occupancy data back to h5 files
             filePath = [baseDir, 'compiled_video_' num2str(vid) '.avi.predictions.slp.h5'];
-            h5write(filePath,'/track_occupancy',data(vid).occupancy_matrix)
+            h5write(filePath,'/track_occupancy',data(vid).occupancy_matrix,[5400 1],[5400 2])
         end
     case 'No'
         return
