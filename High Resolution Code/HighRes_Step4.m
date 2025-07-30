@@ -59,14 +59,17 @@ disp('data loaded')
 
 %% Post proofing cleaning
 
-dummy = data.tracks;
+dummy = size(data(vid).tracks);
 
 response = questdlg('Delete extra tracks?','','Yes','No','Yes');
 switch response
     case 'Yes'
         for vid = 1:nvids
             data(vid).occupancy_matrix(3:end,:) = [];
-            data(vid).tracks(3:end,:) = [];
+            if size(data(vid).tracks,4) > 2
+                data(vid).tracks(:,:,:,3:end) = [];
+                disp(size(data(vid).tracks,4))
+            end
         end
     case 'No'
         return
