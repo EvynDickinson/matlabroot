@@ -61,7 +61,7 @@ disp('data loaded')
 
 dummy = size(data(vid).tracks);
 
-response = questdlg('Delete extra tracks?','','Yes','No','Yes');
+response = questdlg('Delete extra tracks?','','Yes','No','No');
 switch response
     case 'Yes'
         for vid = 1:nvids
