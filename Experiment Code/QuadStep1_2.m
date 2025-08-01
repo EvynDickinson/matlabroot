@@ -446,8 +446,24 @@ save_figure(fig, [analysisDir expName ' Dropped frames by video'],'-png',false,t
 skip_loc = find(any(d(:,2:5),2));
 if ~isempty(skip_loc)
     disp('Vid | # skipped:')
+    % create and write into a text file: 
     e = sum(d(skip_loc,2:5),2);
     disp([skip_loc, e])
+    if strcmp(questdlg('Move files to a new batch folder?'),'Yes')
+        tic
+        % create a new batch folder within the main folder
+        start_loc = [baseFolder folder '/Batch 2/'];
+        new_loc = [baseFolder folder '/Batch ' expName];
+        copyfile(start_loc, new_loc)
+        for i = 1:length(skip_loc)
+            vid_name  = [expName '_' num2str(skip_loc(i)) '.avi'];
+            disp(vid_name)
+            movefile([baseFolder folder '/' vid_name], [baseFolder folder '/Batch ' expName '/' vid_name])
+        end
+        toc
+        disp('Go retrack the video files')
+        return
+    end
 end
 
 % cancel further processing if there needs to be retracking

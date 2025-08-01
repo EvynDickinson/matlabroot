@@ -728,6 +728,7 @@ for i = 1:length(temp_list)
     plotData(i).temp_match = temp_match;
 
     for type = 1:nTypes % e.g. food quad only, or low and high occ quad orientations
+        trial_count = 0; % initalize a counter for the number of trials that match a specific plate
         switch type
             case 1 % food quad (or fake assigned random quad)
                 pos_type = 'position';
@@ -750,7 +751,8 @@ for i = 1:length(temp_list)
             plotData(i).type(type,rr).wells = nan([2,num.trial(exp)]);
             for trial = 1:num.trial(exp)
                 con_type = data(exp).con_type(trial);
-                % if any(con_type==[1 2]) %check if it matches plate 1 
+                if any(con_type==[1 2]) %check if it matches plate 1 
+                    trial_count =  trial_count + 1;
                     % allow for the couple trials that have slightly shorter hold lengths
                     tempX = grouped(exp).(pos_type).trial(trial).x;
                     tempY = grouped(exp).(pos_type).trial(trial).y;
@@ -794,21 +796,21 @@ for i = 1:length(temp_list)
                     xInd = discretize((grouped(exp).(pos_type).well_pos.x(idx,trial)),x_edge); %well X bin location
                     yInd = discretize((grouped(exp).(pos_type).well_pos.y(idx,trial)),y_edge); %well Y bin location   
                     plotData(i).type(type,rr).wells(:,trial) = [xInd,yInd];
-                % end
 
-                 % save the arena size and well location to the plot data structure for later use
-                square_unit = mean(diff(x_edge)); % pixel size for one bin
-                circ_r = r/square_unit; % arena radius in bin size
-                circ_X = discretize(Cx, x_edge);
-                circ_Y = discretize(Cy, y_edge);
-                plotData(i).type(type,rr).arenaSize(:,trial) = [circ_r,circ_X,circ_Y];
-                
+                    % save the arena size and well location to the plot data structure for later use
+                    square_unit = mean(diff(x_edge)); % pixel size for one bin
+                    circ_r = r/square_unit; % arena radius in bin size
+                    circ_X = discretize(Cx, x_edge);
+                    circ_Y = discretize(Cy, y_edge);
+                    plotData(i).type(type,rr).arenaSize(:,trial) = [circ_r,circ_X,circ_Y];
+                 end
             end
             % find the occupancy across all the trials for this experiment group
             tot_flies = sum(nflies,3,'omitnan');
             tot_flies = (tot_flies./sum(sum(tot_flies))*100);
         
             plotData(i).type(type,rr).data = tot_flies;
+            plotData(i).type(type,rr).trial_count = trial_count;
             max_occ = max([max_occ,max(max(plotData(i).type(type,rr).data))]);
         end
     end
@@ -896,7 +898,6 @@ autoSave = true;
 [foreColor] = formattingColors(blkbgd);
 
 % Find the occupancy for each bin:
-
 n = 26; % number of spatial bins
 autoLim = false;
 % axis_limits = [0, 1.5];
@@ -1000,6 +1001,7 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
     end
 
     for type = 1:nTypes % e.g. food quad only, or low and high occ quad orientations
+        trial_count = 0;
         switch type
             case 1 % food quad (or fake assigned random quad)
                 pos_type = 'position';
@@ -1028,7 +1030,8 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
             plotData(i).type(type,rr).wells = nan([2,num.trial(exp)]);
             for trial = 1:num.trial(exp)
                 con_type = data(exp).con_type(trial);
-                % if any(con_type==[1 2]) %check if it matches plate 1 
+                if any(con_type==[1 2]) %check if it matches plate 1 
+                    trial_count = trial_count + 1; % count how many trials are included in this dataset
                     % allow for the couple trials that have slightly shorter hold lengths
                     tempX = grouped(exp).(pos_type).trial(trial).x;
                     tempY = grouped(exp).(pos_type).trial(trial).y;
@@ -1068,21 +1071,21 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
                     xInd = discretize((grouped(exp).(pos_type).well_pos.x(idx,trial)),x_edge); %well X bin location
                     yInd = discretize((grouped(exp).(pos_type).well_pos.y(idx,trial)),y_edge); %well Y bin location   
                     plotData(i).type(type,rr).wells(:,trial) = [xInd,yInd];
-                % end
-
-                % save the arena size and well location to the plot data structure for later use
-                square_unit = mean(diff(x_edge)); % pixel size for one bin
-                circ_r = r/square_unit; % arena radius in bin size
-                circ_X = discretize(Cx, x_edge);
-                circ_Y = discretize(Cy, y_edge);
-                plotData(i).type(type,rr).arenaSize(:,trial) = [circ_r,circ_X,circ_Y];
-
+                
+                    % save the arena size and well location to the plot data structure for later use
+                    square_unit = mean(diff(x_edge)); % pixel size for one bin
+                    circ_r = r/square_unit; % arena radius in bin size
+                    circ_X = discretize(Cx, x_edge);
+                    circ_Y = discretize(Cy, y_edge);
+                    plotData(i).type(type,rr).arenaSize(:,trial) = [circ_r,circ_X,circ_Y];
+                end
             end
             % find the occupancy across all the trials for this experiment group
             tot_flies = sum(nflies,3,'omitnan');
             tot_flies = (tot_flies./sum(sum(tot_flies))*100);
         
             plotData(i).type(type,rr).data = tot_flies;
+            plotData(i).type(type,rr).trial_count = trial_count;
             max_occ = max([max_occ,max(max(plotData(i).type(type,rr).data))]);
         end
     end
@@ -1478,10 +1481,32 @@ end
 % % save the figure
 % save_figure(fig,[start_folder group2 ' - ' group1 ' 2D spatial distribution difference'], fig_type);
 
+%% FIGURE: experiment distribution across the plates
+% How many of the trials for each experiment fit each plate and condition? 
+clearvars('-except',initial_vars{:})
+
+foreColor = formattingColors(blkbgd);
+buff = 0.2;
+lw = 1;
+ww = 0.2;
 
 
+fig = getfig('',1);
+hold on
+for exp = 1:num.exp
+    y = data(exp).con_type;
+    a = sum(y==1);
+    b = sum(y==2);
+    c = sum(y==3);
+    bar(exp-buff, a, ww, 'FaceColor', Color('cyan'), 'EdgeColor',foreColor,'LineWidth',lw)
+    bar(exp, b, ww, 'FaceColor', Color('teal'), 'EdgeColor',foreColor,'LineWidth',lw)
+    bar(exp+buff, c, ww, 'FaceColor', Color('orange'), 'EdgeColor',foreColor,'LineWidth',lw)
+end
 
-
+set(gca, 'xtick', 1:num.exp, 'xticklabel', expNames, 'XTickLabelRotation', 45)
+ylabel('number of trials on each plate')
+formatFig(fig, blkbgd);
+save_figure(fig,[figDir 'plate distribution across experiments'], fig_type);
 
 
 
