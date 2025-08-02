@@ -1024,8 +1024,6 @@ g = find(m.sleep);
 h = find(f.sleep);
 if isempty(g) && isempty(h)
     disp('no male or female sleep found')
-else
-    return
 end
 
 %% ANALYSIS: Behavior probability map
