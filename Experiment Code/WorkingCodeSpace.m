@@ -1681,14 +1681,66 @@ end
 frame = frames(rr).idx;
 x = grouped(exp).(pos_type).trial(trial).x;
 
-%% 
+%% FIGURE: testing how many of the empty trials have spatial biases?
+clearvars('-except',initial_vars{:})
 
+fig = getfig('',1); 
+    % plate 2
+    high_occ = grouped(4).occ_idx(:,2); 
+    h = histogram(high_occ);
+    h.FaceColor = grouped(2).color;
+    h.FaceAlpha = 0.8;
+    % plate 1
+    hold on
+    high_occ = grouped(3).occ_idx(:,2); 
+    h = histogram(high_occ);
+    h.FaceColor = grouped(1).color;
+    h.FaceAlpha = 0.8;
+    % formatting
+    formatFig(fig, blkbgd);
+    xlabel('Well location')
+    ylabel('exp count')
+    set(gca, 'xtick', 1:4)
+    title('Berlin F LRR 25-17 empty trials', 'color', 'w')
+save_figure(fig,[figDir, 'null well distribution'],fig_type);
 
+fig = getfig('',1);    hold on
+    % plate 1
+    high_occ = grouped(1).occ_idx(:,2); 
+    h = histogram(high_occ);
+    h.FaceColor = grouped(1).color;
+    h.FaceAlpha = 0.8;
+    % plate 2
+    high_occ = grouped(2).occ_idx(:,2); 
+    h = histogram(high_occ);
+    h.FaceColor = grouped(2).color;
+    h.FaceAlpha = 0.8;
+    % formatting
+    formatFig(fig, blkbgd);
+    xlabel('Well location')
+    ylabel('exp count')
+    set(gca, 'xtick', 1:4)
+    title('Berlin F LRR 25-17 food trials', 'color', 'w')
+save_figure(fig,[figDir, 'food well distribution'],fig_type);
 
+% Comparison of food wells to highest occupancy well over the full experiment: 
 
-
-
-
+fig = getfig('',1); hold on
+  % plate 1
+    exp = 1;
+    high_occ = grouped(exp).occ_idx(:,2); 
+    foodWell = [data(exp).T.foodLoc];
+    y = [foodWell, high_occ];
+    x = ones(size(y)).*[1,2];
+    plot(x',y','color', grouped(exp).color)
+    % plate 2
+    exp = 2;
+    high_occ = grouped(exp).occ_idx(:,2); 
+    foodWell = [data(exp).T.foodLoc];
+    y = [foodWell, high_occ];
+    x = ones(size(y)).*[1,2];
+    plot(x',y','color', grouped(exp).color)
+    
 
 
 

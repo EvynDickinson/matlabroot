@@ -3,7 +3,12 @@
 %% Food vs no food trial comparisons 
 
 % Make food to no food alignment list: 
-foodPairs = [1,3; 2,4]; % Berlin LTS 15-35 plate comparisons
+switch expGroup
+    case 'Berlin LTS 15-35 plate comparisons'
+        foodPairs = [1,3; 2,4];  
+    case 'Berlin F LRR 25-17 plate comparisons'
+        foodPairs = [1,3; 2,4];  
+end
 initial_vars{end+1} = 'foodPairs';
 
 %% FIGURE: Time Course for single parameter -- select your metric
@@ -13,7 +18,8 @@ clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = false;
 xlim_auto = false; % change the time range for the x axis
-time_limits = [100,700]; % time limits if manual control over x-axis range
+% time_limits = [100,700]; % time limits if manual control over x-axis range
+time_limits = [0, 400];
 nMax =  num.exp; 
 plot_high_null = true; % plot the low or high null occupancy for empty trials
 foreColor = formattingColors(blkbgd); %get background colors
