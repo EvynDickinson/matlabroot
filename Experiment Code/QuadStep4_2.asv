@@ -6,8 +6,7 @@
 % ** THIS ASSUMES ALL LOADED GROUPS HAVE THE SAME WITHIN-GROUPING TEMPERATURE PROTOCOLS
 % *** DOESN'T WORK FOR TEMP PROTOCOLS WITH MORE THAN 1 HEATING AND COOLING TEMP RATE
 
-
-%% Select data groups to compare 
+%% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
 format shortG
@@ -425,9 +424,9 @@ switch expGroup
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
-        kolor1 = Color('Blue', 'LightGrey', 3); % ultimately 5 (with all temp trials added)
-        kolor2 = Color('LightGrey', 'Red', 2);  % ultimately 5 (with all temp trials added)
-        colors = nan([8, 3]); % ultimately 18x3 (with all temp trials added)
+        kolor1 = Color('Blue', 'LightGrey', 5); % ultimately 5 (with all temp trials added)
+        kolor2 = Color('LightGrey', 'Red', 5);  % ultimately 5 (with all temp trials added)
+        colors = nan([18, 3]); % ultimately 18x3 (with all temp trials added)
         colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
@@ -595,18 +594,18 @@ end
 
 conversion = getConversion;
 
-%% ANALYSIS: For no food exp groups, find the null highest and lowest occupancy quadrants
+%% ANALYSIS: Find the quadrants with the highest and lowest occupancy over the exp for null comparison
 % as defined by the 7% space around the well (aka using the 'occupancy' measure
 clearvars('-except',initial_vars{:})
 
 for exp = 1:num.exp
-    grouped(exp).occ_idx = (nan([num.trial(exp),2]));
-    for trial = 1:num.trial(exp)
-        quad_avg = mean(data(exp).data(trial).data.occ_P,1,'omitnan');
-        [~, low_idx] = min(quad_avg);
-        [~, high_idx] = max(quad_avg);
-        grouped(exp).occ_idx(trial,1) = low_idx;
-        grouped(exp).occ_idx(trial,2) = high_idx;
+    grouped(exp).occ_idx = (nan([num.trial(exp),2])); % initialize an empty occupancy index
+    for trial = 1:num.trial(exp) 
+        quad_avg = mean(data(exp).data(trial).data.occ_P,1,'omitnan'); % pull the percent occupancy for each food well
+        [~, low_idx] = min(quad_avg); % which quad was lowest occ on avg
+        [~, high_idx] = max(quad_avg); % which quad was highest occ on avg
+        grouped(exp).occ_idx(trial,1) = low_idx; % register into the index the quad identity for lowest occupancy 
+        grouped(exp).occ_idx(trial,2) = high_idx; % register into the index the quad identity for highest occupancy 
     end
     % add a logical for if this is an empty trial (make it easier for switching code sections later
     if strcmp(data(exp).foodNames, 'Movement')
@@ -619,10 +618,6 @@ end
 %% ANALYSIS: normalize fly position within arena to common orientation (food location) 
 clearvars('-except',initial_vars{:})
 OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy'); % camera & lens change accounting
-
-% TODO: 7.23.25 add two new fields here for exps that are no food trials so
-% that we can pull the 'null' version alignments by highest and lowest
-% occupied quadrants and save them as two position alignments 
 
 for type = 1:3 % assigned food well, lowest occupied, highest occupied
     switch type
@@ -788,10 +783,10 @@ end
 
 %% Visual test of arena alignment and overlay ... make sure the alignment actually worked! 
 
-field_label = 'position';
+field_label = 'position_high';
 
 [c, r] = subplot_numbers(num.exp);
-fig = figure(field_label,1);
+fig = getfig(field_label,1);
 for exp = 1:num.exp
     subplot(r,c,exp)
     % plot the well positions as a '+'
@@ -809,7 +804,10 @@ for exp = 1:num.exp
 end
 formatFig(fig, true,[r,c]);
 
-%% ANALYSIS: calculate group occupancy
+%% ANALYSIS: calculate group occupancy for food circle
+% this is fairly legacy at this point (8/4/25) and the new quad occupancy
+% should be used over this metric moving forward. This uses the 7% circle
+% data
 clearvars('-except',initial_vars{:})
 
 % Pull the data together: 
@@ -1140,9 +1138,9 @@ clearvars('-except',initial_vars{:})
 initial_vars{end+1} = 'ROImask';
 initial_vars{end+1} = 'quadOrder';
 ROImask = struct; 
-fields = {'all','ring', 'inner75'}; 
-food_fields = {'fullquad','innerquad','quadring','circle10','circle7','circle5'};
-quadOrder = {'food','right','opp','left'};
+fields = {'all', 'ring', 'inner75'}; 
+food_fields = {'fullquad', 'innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+quadOrder = {'food', 'right', 'opp', 'left'}; 
 for exp = 1:num.exp
     for trial = 1:num.trial(exp)
         % universal regions:
@@ -1162,17 +1160,19 @@ for exp = 1:num.exp
     % find locations of flies within each region of the arena
     for trial = 1:num.trial(exp)
         % pull parameters for this trial:
-        center = data(exp).data(trial).data.centre;
+        center = data(exp).data(trial).data.centre; % arena center
         x_loc = data(exp).data(trial).data.x_loc; % all fly X positions in the arena
         y_loc = data(exp).data(trial).data.y_loc; % all fly Y positions in the arena
         ct = data(exp).con_type(trial); % experiment lens configuration
-        pix2mm = conversion(ct).pix2mm;
-        R = conversion(ct).R;
+        pix2mm = conversion(ct).pix2mm; % conversion to mm for this configuration
+        R = conversion(ct).R; % arena radius
         circle75 = conversion(ct).circle75; % defines the distance to the inside edge of the outer ring
         circle10 = conversion(ct).circle10;
         circle7 = conversion(ct).circle7;
         circle5 = conversion(ct).circle5;
-        foodWell = data(exp).T.foodLoc(trial);
+        foodWell = data(exp).T.foodLoc(trial); % location of food or randomly assigned region
+        lowWell = grouped(exp).occ_idx(trial,1); % location of lowest occupancy region
+        highWell = grouped(exp).occ_idx(trial,2); % location of highest occupancy region
 
         % Adjust the X and Y coordinates relative to new center of (0,0)
         adjustedX = x_loc - center(1); 
@@ -1213,45 +1213,61 @@ for exp = 1:num.exp
         ROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
         ROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
 
-        % Find the food quadrant (find location with the food well coordinates included)
-        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
-        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2); 
-        well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
-        quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
-
-        % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
-        % then it goes quad right, opposite food quad, and finally quad left of the food quad
-        switch quad_loc 
-            case 1
-                opLoc = [1 4 3 2]; 
-            case 2
-                opLoc = [2 1 4 3];
-            case 3
-                opLoc = [3 2 1 4];
-            case 4
-                opLoc = [4 3 2 1];
-        end
-
-        % Find the quadrant that each well belongs to
-        well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
-        well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
-        well_quads = findQuadLocation(well_opt_x,well_opt_y);
-
-        for i = 1:4 % for quadrant type (food, R, opp, L)
-            idx = opLoc(i); % rearrange order based on trial food location
-            well_idx = find(well_quads(idx).Mask);
-            % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
-            ROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
-            ROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
-            ROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
-
-            % well circle related distances
-            dX = adjustedX - well_opt_x(well_idx);% well_idx
-            dY = adjustedY - well_opt_y(well_idx);% well_idx
-            well_D = hypot(dX,dY)./pix2mm;
-            ROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
-            ROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
-            ROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+        for CC = 1:3 % for food, low, high quad 
+            switch CC
+                case 1 % food well occupancy 
+                    selectedWell = foodWell;
+                    all_quads = true; % run the data for all the other quadrants
+                    subfields = quadOrder;
+                case 2 % low quad occupancy
+                    selectedWell = lowWell;
+                    all_quads = false; % don't run data on all other quadrants
+                    subfields = {'low'};
+                case 3 % high quad occupancy
+                    selectedWell = highWell;
+                    all_quads = false; % don't run data on all other quadrants
+                    subfields = {'high'};
+            end
+            % Find the food quadrant (find location with the food well coordinates included)
+            adjusted_wx = data(exp).data(trial).data.wellcenters(1,selectedWell) - center(1); % adjusted well position
+            adjusted_wy = data(exp).data(trial).data.wellcenters(2,selectedWell) - center(2); 
+            well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
+            quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
+    
+            % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
+            % then it goes quad right, opposite food quad, and finally quad left of the food quad
+            switch quad_loc 
+                case 1
+                    opLoc = [1 4 3 2]; 
+                case 2
+                    opLoc = [2 1 4 3];
+                case 3
+                    opLoc = [3 2 1 4];
+                case 4
+                    opLoc = [4 3 2 1];
+            end
+    
+            % Find the quadrant that each well belongs to
+            well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
+            well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
+            well_quads = findQuadLocation(well_opt_x,well_opt_y);
+    
+            for i = 1:length(subfields) % for quadrant type (food, R, opp, L)
+                idx = opLoc(i); % rearrange order based on trial food location
+                well_idx = find(well_quads(idx).Mask);
+                % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
+                ROImask(exp).fullquad.(subfields{i})(trial).m = Q(idx).Mask; % full quadrant
+                ROImask(exp).innerquad.(subfields{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
+                ROImask(exp).quadring.(subfields{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
+    
+                % well circle related distances
+                dX = adjustedX - well_opt_x(well_idx);% well_idx
+                dY = adjustedY - well_opt_y(well_idx);% well_idx
+                well_D = hypot(dX,dY)./pix2mm;
+                ROImask(exp).circle10.(subfields{(i)})(trial).m = well_D <= circle10; % within 10% area of well
+                ROImask(exp).circle7.(subfields{(i)})(trial).m = well_D <= circle7; % within 7% area of well
+                ROImask(exp).circle5.(subfields{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+            end
         end
     end
 end
@@ -1305,22 +1321,23 @@ if strcmp('Yes', questdlg('Show demo image of arena regions of interest?','','Ye
     save_figure(fig, [saveDir 'Figures/ROI outlines'],'-png');
 end
 
-%% ANALYSIS: Find occupancy in the different regions 
+%% ANALYSIS: Extract occupancy data from the different regions 
 clearvars('-except',initial_vars{:})
 
 regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
+ext_quadOrder = [quadOrder, 'low', 'high'];
 
 for exp = 1:num.exp
     % initialize empty variables
     [ring.all,inner75.all] = deal([]);
     region = struct;
     for rr = 1:length(regionList)
-        for q = 1:4 % each of the quadrants
-            region(rr).(quadOrder{q}).all = [];
-            region(rr).(quadOrder{q}).all_info = {'percent relative to all the flies in the whole arena'};
-            if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
-                region(rr).(quadOrder{q}).partial = [];
-                region(rr).(quadOrder{q}).partial_info = {'percent relative to only the flies in the four quadrants of this space'};
+        for q = 1:length(ext_quadOrder) % each of the quadrants + low + high
+            region(rr).(ext_quadOrder{q}).all = [];
+            region(rr).(ext_quadOrder{q}).all_info = {'percent relative to all the flies in the whole arena'};
+            if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
+                region(rr).(ext_quadOrder{q}).partial = [];
+                region(rr).(ext_quadOrder{q}).partial_info = {'percent relative to only the flies in the four quadrants of this space'};
             end
         end
     end
@@ -1350,16 +1367,16 @@ for exp = 1:num.exp
 
         % for each of the quadrant-related regions:
         for rr = 1:length(regionList)
-            for q = 1:4 % each of the quadrants
-                temp = ROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m;
+            for q = 1:length(ext_quadOrder) % each of the quadrants
+                temp = ROImask(exp).(regionList{rr}).(ext_quadOrder{q})(trial).m;
                 n = getPercentFlies(temp,nFull);
-                region(rr).(quadOrder{q}).all = autoCat(region(rr).(quadOrder{q}).all,n,false);
+                region(rr).(ext_quadOrder{q}).all = autoCat(region(rr).(ext_quadOrder{q}).all,n,false);
                 if strcmp(regionList{rr},'innerquad')
                     n = getPercentFlies(temp,nInner);
-                    region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+                    region(rr).(ext_quadOrder{q}).partial = autoCat(region(rr).(ext_quadOrder{q}).partial,n,false);
                 elseif strcmp(regionList{rr},'quadring')
                     n = getPercentFlies(temp,nRing);
-                    region(rr).(quadOrder{q}).partial = autoCat(region(rr).(quadOrder{q}).partial,n,false);
+                    region(rr).(ext_quadOrder{q}).partial = autoCat(region(rr).(ext_quadOrder{q}).partial,n,false);
                 end
             end
         end
@@ -1371,12 +1388,12 @@ for exp = 1:num.exp
     inner75.avg = mean(inner75.all,2,'omitnan');
     inner75.std = std(inner75.all,0,2,'omitnan');
     for rr = 1:length(regionList)
-        for q = 1:4 % each of the quadrants
-            region(rr).(quadOrder{q}).avg = mean(region(rr).(quadOrder{q}).all,2,'omitnan');
-            region(rr).(quadOrder{q}).std = std(region(rr).(quadOrder{q}).all,0,2,'omitnan');
-            if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
-                region(rr).(quadOrder{q}).partial_avg = mean(region(rr).(quadOrder{q}).partial,2,'omitnan');
-                region(rr).(quadOrder{q}).parital_std = std(region(rr).(quadOrder{q}).partial,0,2,'omitnan');
+        for q = 1:length(ext_quadOrder) % each of the quadrants
+            region(rr).(ext_quadOrder{q}).avg = mean(region(rr).(ext_quadOrder{q}).all,2,'omitnan');
+            region(rr).(ext_quadOrder{q}).std = std(region(rr).(ext_quadOrder{q}).all,0,2,'omitnan');
+            if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
+                region(rr).(ext_quadOrder{q}).partial_avg = mean(region(rr).(ext_quadOrder{q}).partial,2,'omitnan');
+                region(rr).(ext_quadOrder{q}).parital_std = std(region(rr).(ext_quadOrder{q}).partial,0,2,'omitnan');
             end
         end
     end   
@@ -1443,17 +1460,17 @@ for exp = 1:num.exp
                 nQ = 1; % quadrant number...
                 nP = 1; % partial region percentages to check
             case {'innerquad','quadring'}
-                nQ = 4;
+                nQ = length(ext_quadOrder);
                 nP = 2;
             case {'fullquad','circle10','circle7','circle5'}
-                nQ = 4;
+                nQ = length(ext_quadOrder);
                 nP = 1;
         end
         for p = 1:nP % for the number of full or partial percentages to compare
             for q = 1:nQ % each of the quadrants
                 % pull data for the right quadrant (if there are quadrants)
                 if nQ>1
-                    baseY = grouped(exp).(all_regions{rr}).(quadOrder{q});
+                    baseY = grouped(exp).(all_regions{rr}).(ext_quadOrder{q});
                 else 
                     baseY = grouped(exp).(all_regions{rr});
                 end
@@ -1498,29 +1515,29 @@ for exp = 1:num.exp
                         grouped(exp).(all_regions{rr}).temps = temps;
                     case {'fullquad','innerquad','quadring'}
                         if p == 1
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.raw = raw_h;
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.raw = raw_c;
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).temps = temps;
                         else
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_raw = raw_h;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_avg = mean(raw_h, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.p_std = std(raw_h, 0, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_raw = raw_c;
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_avg = mean(raw_c, 2, 'omitnan');
-                            grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.p_std = std(raw_c, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.p_raw = raw_h;
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.p_avg = mean(raw_h, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.p_std = std(raw_h, 0, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.p_raw = raw_c;
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.p_avg = mean(raw_c, 2, 'omitnan');
+                            grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.p_std = std(raw_c, 0, 2, 'omitnan');
                         end
                     case {'circle10','circle7','circle5'}
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.raw = raw_h;
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.raw = raw_c;
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
-                        grouped(exp).(all_regions{rr}).(quadOrder{q}).temps = temps;
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.raw = raw_h;
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.avg = mean(raw_h, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).increasing.std = std(raw_h, 0, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.raw = raw_c;
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.avg = mean(raw_c, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).decreasing.std = std(raw_c, 0, 2, 'omitnan');
+                        grouped(exp).(all_regions{rr}).(ext_quadOrder{q}).temps = temps;
                 end
             end
         end
@@ -1551,6 +1568,7 @@ end
 %% ANALYSIS: Flies on Food
 clearvars('-except',initial_vars{:})
 maxR = 3; % 2.5 mm radius of the physical well -- give 0.5mm buffer zone outside well since body mark is body center not head
+% TODO: (8.4.25) update this to include the null low and high well data
 
 % Find the percent of the flies that are on the food 
 for exp = 1:num.exp
@@ -2057,6 +2075,7 @@ sROImask = struct;
 % Initialize empty mask structure:
 fields = {'all','ring', 'inner75'}; 
 food_fields = {'fullquad','innerquad','quadring','circle10','circle7','circle5'};
+ext_quadOrder = [quadOrder, 'low', 'high']; 
 
 for exp = 1:num.exp
     for trial = 1:num.trial(exp)
@@ -2064,10 +2083,10 @@ for exp = 1:num.exp
         for i = 1:length(fields)
             sROImask(exp).(fields{i})(trial).m = [];
         end
-        % quadrant regions:
+        % quadrant regions + low/high regions:
         for i = 1:length(food_fields)
-            for q = 1:4
-                sROImask(exp).(food_fields{i}).(quadOrder{q})(trial).m = [];
+            for q = 1:length(ext_quadOrder)
+                sROImask(exp).(food_fields{i}).(ext_quadOrder{q})(trial).m = [];
             end
         end
     end
@@ -2091,6 +2110,8 @@ for exp = 1:num.exp
         circle7 = conversion(ct).circle7;
         circle5 = conversion(ct).circle5;
         foodWell = data(exp).T.foodLoc(trial);
+        lowWell = grouped(exp).occ_idx(trial, 1); % low well occupancy region
+        highWell = grouped(exp).occ_idx(trial, 2); % low well occupancy region
 
         % Adjust the X and Y coordinates relative to new center of (0,0)
         adjustedX = x_loc - center(1); 
@@ -2130,45 +2151,59 @@ for exp = 1:num.exp
         sROImask(exp).ring(trial).m = fly_loc & ~innerQuad; % ALL FLIES WITHIN THE OUTER RING
         sROImask(exp).inner75(trial).m = fly_loc & innerQuad; % ALL FLIES IN INNER CIRCLE
 
-        % Find the food quadrant (find location with the food well coordinates included)
-        adjusted_wx = data(exp).data(trial).data.wellcenters(1,foodWell) - center(1); % adjusted well position
-        adjusted_wy = data(exp).data(trial).data.wellcenters(2,foodWell) - center(2); 
-        well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
-        quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
+        for CC = 1:3
+            switch CC
+                case 1 % food well
+                    subfields = quadOrder;
+                    well_selection = foodWell;
+                case 2 % low occupancy well
+                    subfields = {'low'};
+                    well_selection = lowWell;
+                case 3 % high occupancy well
+                    subfields = {'high'};
+                    well_selection = highWell;
+            end
 
-        % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
-        % then it goes quad right, opposite food quad, and finally quad left of the food quad
-        switch quad_loc 
-            case 1
-                opLoc = [1 4 3 2]; 
-            case 2
-                opLoc = [2 1 4 3];
-            case 3
-                opLoc = [3 2 1 4];
-            case 4
-                opLoc = [4 3 2 1];
-        end
-
-        % Find the quadrant that each well belongs to
-        well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
-        well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
-        well_quads = findQuadLocation(well_opt_x,well_opt_y);
-
-        for i = 1:4 % for quadrant type (food, R, opp, L)
-            idx = opLoc(i); % rearrange order based on trial food location
-            well_idx = find(well_quads(idx).Mask);
-            % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
-            sROImask(exp).fullquad.(quadOrder{i})(trial).m = Q(idx).Mask; % full quadrant
-            sROImask(exp).innerquad.(quadOrder{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
-            sROImask(exp).quadring.(quadOrder{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
-
-            % well circle related distances
-            dX = adjustedX - well_opt_x(well_idx);% well_idx
-            dY = adjustedY - well_opt_y(well_idx);% well_idx
-            well_D = hypot(dX,dY)./pix2mm;
-            sROImask(exp).circle10.(quadOrder{(i)})(trial).m = well_D <= circle10; % within 10% area of well
-            sROImask(exp).circle7.(quadOrder{(i)})(trial).m = well_D <= circle7; % within 7% area of well
-            sROImask(exp).circle5.(quadOrder{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+            % Find the food quadrant (find location with the food well coordinates included)
+            adjusted_wx = data(exp).data(trial).data.wellcenters(1,well_selection) - center(1); % adjusted well position
+            adjusted_wy = data(exp).data(trial).data.wellcenters(2,well_selection) - center(2); 
+            well_locations = findQuadLocation(adjusted_wx,adjusted_wy);
+            quad_loc = find([well_locations(:).Mask]); % quadrant idx that has food
+    
+            % opposition Matrix: orientation of the quadrants such that loc 1 is the food quad and 
+            % then it goes quad right, opposite food quad, and finally quad left of the food quad
+            switch quad_loc 
+                case 1
+                    opLoc = [1 4 3 2]; 
+                case 2
+                    opLoc = [2 1 4 3];
+                case 3
+                    opLoc = [3 2 1 4];
+                case 4
+                    opLoc = [4 3 2 1];
+            end
+    
+            % Find the quadrant that each well belongs to
+            well_opt_x = data(exp).data(trial).data.wellcenters(1,1:4) - center(1); % adjusted well position
+            well_opt_y = data(exp).data(trial).data.wellcenters(2,1:4) - center(2);
+            well_quads = findQuadLocation(well_opt_x,well_opt_y);
+    
+            for i = 1:length(subfields) % for quadrant type (food, R, opp, L)
+                idx = opLoc(i); % rearrange order based on trial food location
+                well_idx = find(well_quads(idx).Mask);
+                % well_idx = find(well_quad_loc==idx); % index of the well that falls into this quadrant of interest
+                sROImask(exp).fullquad.(subfields{i})(trial).m = Q(idx).Mask; % full quadrant
+                sROImask(exp).innerquad.(subfields{i})(trial).m = Q(idx).Mask & innerQuad; % quadrant inside inner circle
+                sROImask(exp).quadring.(subfields{i})(trial).m = Q(idx).Mask & ~innerQuad; % quadrant portion of outer ring
+    
+                % well circle related distances
+                dX = adjustedX - well_opt_x(well_idx);% well_idx
+                dY = adjustedY - well_opt_y(well_idx);% well_idx
+                well_D = hypot(dX,dY)./pix2mm;
+                sROImask(exp).circle10.(subfields{(i)})(trial).m = well_D <= circle10; % within 10% area of well
+                sROImask(exp).circle7.(subfields{(i)})(trial).m = well_D <= circle7; % within 7% area of well
+                sROImask(exp).circle5.(subfields{(i)})(trial).m = well_D <= circle5; % within 5% area of well
+            end
         end
     end
 end
@@ -2179,6 +2214,7 @@ clearvars('-except',initial_vars{:})
 
 regionList = {'fullquad','innerquad', 'quadring', 'circle10', 'circle7', 'circle5'};
 groupType = {'allflies','sleepflies', 'withinROI'};
+ext_quadOrder = [quadOrder, 'low', 'high'];
 
 disp('Processing sleep locations...')
 tic
@@ -2190,19 +2226,19 @@ for exp = 1:num.exp
 
     region = struct;
     for rr = 1:length(regionList)
-        for q = 1:4 % each of the quadrants
-            region(rr).(quadOrder{q}).allflies.all = [];
-            region(rr).(quadOrder{q}).allflies.all_info = {['percent of sleeping flies in the region relative ...' ...
+        for q = 1:length(ext_quadOrder) % each of the quadrants
+            region(rr).(ext_quadOrder{q}).allflies.all = [];
+            region(rr).(ext_quadOrder{q}).allflies.all_info = {['percent of sleeping flies in the region relative ...' ...
                                         'to all the flies (not just sleeping flies) in the whole arena']};
-            region(rr).(quadOrder{q}).sleepflies.all = [];
-            region(rr).(quadOrder{q}).sleepflies.all_info = {'in region percent of the total flies that are sleeping'};
-            region(rr).(quadOrder{q}).withinROI.all = [];
-            region(rr).(quadOrder{q}).withinROI.all_info = {'in region sleep percent of the total flies in that region'};
-            if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
-                region(rr).(quadOrder{q}).allflies.partial = [];
-                region(rr).(quadOrder{q}).allflies.partial_info = {'percent relative to only the total flies in the four quadrants of this space'};
-                region(rr).(quadOrder{q}).sleepflies.partial = [];
-                region(rr).(quadOrder{q}).sleepflies.partial_info = {'percent relative to only the sleeping flies in the four quadrants of this space'};
+            region(rr).(ext_quadOrder{q}).sleepflies.all = [];
+            region(rr).(ext_quadOrder{q}).sleepflies.all_info = {'in region percent of the total flies that are sleeping'};
+            region(rr).(ext_quadOrder{q}).withinROI.all = [];
+            region(rr).(ext_quadOrder{q}).withinROI.all_info = {'in region sleep percent of the total flies in that region'};
+            if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
+                region(rr).(ext_quadOrder{q}).allflies.partial = [];
+                region(rr).(ext_quadOrder{q}).allflies.partial_info = {'percent relative to only the total flies in the four quadrants of this space'};
+                region(rr).(ext_quadOrder{q}).sleepflies.partial = [];
+                region(rr).(ext_quadOrder{q}).sleepflies.partial_info = {'percent relative to only the sleeping flies in the four quadrants of this space'};
             end
         end
     end
@@ -2262,8 +2298,8 @@ for exp = 1:num.exp
 
         % for each of the quadrant-related regions:
         for rr = 1:length(regionList)
-            for q = 1:4 % each of the quadrants
-                temp = sROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m;
+            for q = 1:length(ext_quadOrder) % each of the quadrants
+                temp = sROImask(exp).(regionList{rr}).(ext_quadOrder{q})(trial).m;
                 for g = 1:3 % for each percentage type (e.g. all flies, within sleeping flies or within the region
                     switch g
                         case 1 % all flies
@@ -2271,22 +2307,22 @@ for exp = 1:num.exp
                         case 2 % within sleeping flies
                             n = getPercentFlies(temp,snFull);
                         case 3 % within the flies of that region
-                            nArea = sum(ROImask(exp).(regionList{rr}).(quadOrder{q})(trial).m,2);
+                            nArea = sum(ROImask(exp).(regionList{rr}).(ext_quadOrder{q})(trial).m,2);
                             n = getPercentFlies(temp,nArea);
                     end
                     
-                    region(rr).(quadOrder{q}).(groupType{g}).all = autoCat(region(rr).(quadOrder{q}).(groupType{g}).all,n,false);
+                    region(rr).(ext_quadOrder{q}).(groupType{g}).all = autoCat(region(rr).(ext_quadOrder{q}).(groupType{g}).all,n,false);
                 end
                 if strcmp(regionList{rr},'innerquad')
                     n = getPercentFlies(temp,nInner);
-                    region(rr).(quadOrder{q}).allflies.partial = autoCat(region(rr).(quadOrder{q}).allflies.partial,n,false);
+                    region(rr).(ext_quadOrder{q}).allflies.partial = autoCat(region(rr).(ext_quadOrder{q}).allflies.partial,n,false);
                     n = getPercentFlies(temp,snInner);
-                    region(rr).(quadOrder{q}).sleepflies.partial = autoCat(region(rr).(quadOrder{q}).sleepflies.partial,n,false);
+                    region(rr).(ext_quadOrder{q}).sleepflies.partial = autoCat(region(rr).(ext_quadOrder{q}).sleepflies.partial,n,false);
                 elseif strcmp(regionList{rr},'quadring')
                     n = getPercentFlies(temp,nRing);
-                    region(rr).(quadOrder{q}).allflies.partial = autoCat(region(rr).(quadOrder{q}).allflies.partial,n,false);
+                    region(rr).(ext_quadOrder{q}).allflies.partial = autoCat(region(rr).(ext_quadOrder{q}).allflies.partial,n,false);
                     n = getPercentFlies(temp,snRing);
-                    region(rr).(quadOrder{q}).sleepflies.partial = autoCat(region(rr).(quadOrder{q}).sleepflies.partial,n,false);
+                    region(rr).(ext_quadOrder{q}).sleepflies.partial = autoCat(region(rr).(ext_quadOrder{q}).sleepflies.partial,n,false);
                 end
             end
         end
@@ -2300,16 +2336,16 @@ for exp = 1:num.exp
         inner75.(groupType{g}).std = std(inner75.(groupType{g}).all,0,2,'omitnan');
     end
     for rr = 1:length(regionList)
-        for q = 1:4 % each of the quadrants
+        for q = 1:length(ext_quadOrder) % each of the quadrants
             for g = 1:3
-                region(rr).(quadOrder{q}).(groupType{g}).avg = mean(region(rr).(quadOrder{q}).(groupType{g}).all,2,'omitnan');
-                region(rr).(quadOrder{q}).(groupType{g}).std = std(region(rr).(quadOrder{q}).(groupType{g}).all,0,2,'omitnan');
+                region(rr).(ext_quadOrder{q}).(groupType{g}).avg = mean(region(rr).(ext_quadOrder{q}).(groupType{g}).all,2,'omitnan');
+                region(rr).(ext_quadOrder{q}).(groupType{g}).std = std(region(rr).(ext_quadOrder{q}).(groupType{g}).all,0,2,'omitnan');
             end
-            if strcmp(regionList{rr},'innerquad') | strcmp(regionList{rr},'quadring')
-                region(rr).(quadOrder{q}).allflies.partial_avg = mean(region(rr).(quadOrder{q}).allflies.partial,2,'omitnan');
-                region(rr).(quadOrder{q}).allflies.parital_std = std(region(rr).(quadOrder{q}).allflies.partial,0,2,'omitnan');
-                region(rr).(quadOrder{q}).sleepflies.partial_avg = mean(region(rr).(quadOrder{q}).sleepflies.partial,2,'omitnan');
-                region(rr).(quadOrder{q}).sleepflies.parital_std = std(region(rr).(quadOrder{q}).sleepflies.partial,0,2,'omitnan');
+            if strcmp(regionList{rr},'innerquad') || strcmp(regionList{rr},'quadring')
+                region(rr).(ext_quadOrder{q}).allflies.partial_avg = mean(region(rr).(ext_quadOrder{q}).allflies.partial,2,'omitnan');
+                region(rr).(ext_quadOrder{q}).allflies.parital_std = std(region(rr).(ext_quadOrder{q}).allflies.partial,0,2,'omitnan');
+                region(rr).(ext_quadOrder{q}).sleepflies.partial_avg = mean(region(rr).(ext_quadOrder{q}).sleepflies.partial,2,'omitnan');
+                region(rr).(ext_quadOrder{q}).sleepflies.parital_std = std(region(rr).(ext_quadOrder{q}).sleepflies.partial,0,2,'omitnan');
             end
         end
     end   
@@ -2379,10 +2415,10 @@ for exp = 1:num.exp
                 nQ = 1; % quadrant number...
                 nP = 1; % partial region percentages to check
             case {'innerquad','quadring'}
-                nQ = 4;
+                nQ = length(ext_quadOrder);
                 nP = 2;
             case {'fullquad','circle10','circle7','circle5'}
-                nQ = 4;
+                nQ = length(ext_quadOrder);
                 nP = 1;
         end
         for p = 1:nP % for the number of full or partial percentages to compare
@@ -2397,7 +2433,7 @@ for exp = 1:num.exp
                 end
                 % pull data for the right quadrant (if there are quadrants)
                 if nQ>1
-                    baseY = grouped(exp).sleep.(all_regions{rr}).(quadOrder{q}).(groupType{g});
+                    baseY = grouped(exp).sleep.(all_regions{rr}).(ext_quadOrder{q}).(groupType{g});
                 else 
                     baseY = grouped(exp).sleep.(all_regions{rr}).(groupType{g});
                 end

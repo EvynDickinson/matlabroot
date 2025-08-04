@@ -52,7 +52,7 @@ switch title_str
         ext = true; % extension for sub region required
         y_dir = 'normal';
         y_lab = [title_str ' (%)'];
-        nullD = 75;
+        nullD = 25;
         scaler = 1;
      case 'quadring'
         pName = 'quadring';

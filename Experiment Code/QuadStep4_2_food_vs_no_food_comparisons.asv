@@ -46,15 +46,14 @@ sb(1).idx = [1,2]; %temp timecourse
 sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
 sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
 
-lw = 0.5;
+LW = 0.75;
 hLW = 1.5;
-buff = 0.5; % tuning curve buffer
 sSpan = 180;
 dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true);
-for i = num.exp:-1:1
+for i = 1:num.exp
     % general parameters:
     x = grouped(i).time;
     if any(foodPairs(:,2)==i) % if this trial is an empty trial
@@ -62,13 +61,11 @@ for i = num.exp:-1:1
         ls = '-';
         highlight = true;
         nP = 2; % plot both high and low occ
-        LW = lw;
     else
         FP_idx = i;
         ls = '-';
         highlight = false;
         nP = 1; % plot only food occupancy
-        LW = lw + hLW;
     end
     kolor = grouped(FP_idx).color; 
 
@@ -80,16 +77,15 @@ for i = num.exp:-1:1
    % selected parameter time course
     subplot(r,c,sb(2).idx); hold on
     for nn = 1:nP % for number of subfields (eg. 2 low/high or 1 food)
-        
+        disp(['running ' subfield']
         % determine if this is a food or null trial
         if data(i).emptytrial % empty trial, so use high occupancy null instead of random food assignment
-           switch nn
-               case 1 % high occupancy null
-                    subfield = 'high'; 
-                    hColor = foreColor;
-               case 2 % low occupancy null
-                   subfield = 'low'; 
-                   hColor = foreColor;
+           if nn==1
+                subfield = 'high'; 
+                hColor = foreColor;
+           elseif nn==2
+               subfield = 'low'; 
+               hColor = Color('grey');
            end
         else 
             subfield = 'food';
@@ -129,7 +125,7 @@ for i = num.exp:-1:1
                 hColor = foreColor;
            elseif nn==2
                subfield = 'low'; 
-               hColor = foreColor;
+               hColor = Color('grey');
            end
         else 
             subfield = 'food';
@@ -150,7 +146,7 @@ for i = num.exp:-1:1
                     if highlight
                         plot(x,y,'LineWidth',LW+hLW,'Color',hColor)
                     end
-                    plot(x,y,'color',kolor,'linewidth',LW + buff)
+                    plot(x,y,'color',kolor,'linewidth',1.25)
                 end
     
              case 2 % avg lines (combined heating and cooling)
@@ -161,7 +157,7 @@ for i = num.exp:-1:1
                 if highlight
                     plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle',ls)
                 end
-                plot(x,y,'color',kolor,'linewidth',LW + buff,'LineStyle',ls)
+                plot(x,y,'color',kolor,'linewidth',1.25,'LineStyle',ls)
                 plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
     
              case 3 % separated heating and cooling
@@ -175,7 +171,7 @@ for i = num.exp:-1:1
                 if highlight
                     plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','--')
                 end
-                plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '--')
+                plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
                 % heating
                 y = mean(YH,2,'omitnan')*scaler;
                 y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
@@ -183,7 +179,7 @@ for i = num.exp:-1:1
                 if highlight
                     plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
                 end
-                plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')          
+                plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
          end
          dataString{i} = grouped(i).name;
      end
@@ -226,16 +222,15 @@ set(gca, 'xlim', time_limits)
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 % null string notation (high or low occupancy)
-% if plot_high_null && any([data(:).emptytrial])
-%     null_str = 'null high';
-% elseif ~plot_high_null && any([data(:).emptytrial])
-%     null_str = 'null low';
-% else
-%     null_str = '';
-% end
-%  % ' ' null_str
+if plot_high_null && any([data(:).emptytrial])
+    null_str = 'null high';
+elseif ~plot_high_null && any([data(:).emptytrial])
+    null_str = 'null low';
+else
+    null_str = '';
+end
 % save figure
-save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
+save_figure(fig,[fig_dir 'Timecourse summary ' title_str ' ' null_str],fig_type);
 
 %% Occupancy 'null' distribution for no food trials
 clearvars('-except',initial_vars{:})
