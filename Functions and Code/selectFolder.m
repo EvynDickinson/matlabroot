@@ -34,7 +34,7 @@ if isempty(folderNames)
     return
 end
 
-indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[300 500]);
+indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[450 600]);
 nFolders = length(indx);
 
 if isempty(indx)

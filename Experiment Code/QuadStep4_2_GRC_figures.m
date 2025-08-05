@@ -5,7 +5,8 @@ blkbgd = false;
 
 %% update the color selection for the temp hold trials
 
-color_list = {'Blue', 'DodgerBlue', 'LightSkyBlue',  'Silver', 'DarkSalmon', 'Red','FireBrick'};
+% color_list = {'Blue', 'DodgerBlue', 'LightSkyBlue',  'Silver', 'DarkSalmon', 'Red','FireBrick'};
+color_list = {'Peachpuff', 'Powderblue','Magenta'};
 for i = 1:num.exp
     grouped(i).color = Color(color_list{i});
 end

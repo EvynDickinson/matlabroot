@@ -208,7 +208,7 @@ set(gca,'ydir','reverse')
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
 
 %% FIGURE: Time Course for single parameter -- select your metric
-% TODO add flies on food to this section
+% TODO (8/5) make this work with subregions
 clearvars('-except',initial_vars{:})
 
 plot_err = true;
@@ -218,7 +218,7 @@ time_limits = [0,900]; % time limits if manual control over x-axis range
 nMax =  num.exp; 
 
 % Select the type of information to plot: 
-[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end] = PlotParamSelection(true);
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(true);
 switch questdlg('Plot error?','','True','False', 'Cancel','True')
     case 'True'
         plot_err = true;
@@ -254,8 +254,14 @@ fig = getfig('',true);
 for i = num.exp:-1:1
     x = grouped(i).time;
     kolor = grouped(i).color;
+    switch ext
+        case true % subregions exist
+            yy = grouped(i).(pName).food;
+        case false % no subregions
+            yy = grouped(i).(pName);
+    end
 
-    %temp
+    % temp
     subplot(r,c,sb(1).idx); hold on
         y = grouped(i).temp;
         plot(x,y,'LineWidth',2,'Color',kolor)
@@ -265,11 +271,11 @@ for i = num.exp:-1:1
         switch dType
             case 1 % single trial lines
                 for trial = 1:num.trial(i)
-                    y = smooth(grouped(i).(pName).all(:,trial),sSpan, 'moving')*scaler;
+                    y = smooth(yy.all(:,trial),sSpan, 'moving')*scaler;
                     plot(x,y,'LineWidth',LW,'Color',kolor)
                 end
             case {2, 3} % avg line
-                y = smooth(grouped(i).(pName).avg,sSpan, 'moving')*scaler;
+                y = smooth(yy.avg,sSpan, 'moving')*scaler;
                 plot(x,y,'LineWidth',LW,'Color',kolor)
         end
 
@@ -283,8 +289,8 @@ for i = num.exp:-1:1
                     x = grouped(i).(pName).distavgbytemp(:,1);
                     rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
                 else
-                    x = grouped(i).(pName).temps;
-                    rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
+                    x = yy.temps;
+                    rawY = [yy.increasing.raw(:,trial),yy.decreasing.raw(:,trial)];
                 end
                 y = mean(rawY,2,'omitnan')*scaler;
                 plot(x,y,'color',kolor,'linewidth',1.25)
@@ -295,8 +301,8 @@ for i = num.exp:-1:1
                 x = grouped(i).(pName).distavgbytemp(:,1);
                 rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
             else
-                x = grouped(i).(pName).temps;
-                rawY = [grouped(i).(pName).increasing.raw,grouped(i).(pName).decreasing.raw];
+                x = yy.temps;
+                rawY = [yy.increasing.raw,yy.decreasing.raw];
             end
             y = mean(rawY,2,'omitnan')*scaler;
             y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
@@ -309,9 +315,9 @@ for i = num.exp:-1:1
                 YC = grouped(i).decreasing.all;
                 YH = grouped(i).increasing.all;
             else
-                x = grouped(i).(pName).temps;
-                YC = grouped(i).(pName).decreasing.raw;
-                YH = grouped(i).(pName).increasing.raw;
+                x = yy.temps;
+                YC = yy.decreasing.raw;
+                YH = yy.increasing.raw;
             end
             % cooling
             y = mean(YC,2,'omitnan')*scaler;
@@ -344,7 +350,7 @@ subplot(r,c,sb(3).idx)
 ylabel(y_lab)
 xlabel('temp (\circC)')
 % if ~autoLim
-%     ylim(dt_lim)
+%     ylim([0 60])
 % end
 h_line(nullD,'grey',':',2) %36.2
 set(gca,'ydir',y_dir)

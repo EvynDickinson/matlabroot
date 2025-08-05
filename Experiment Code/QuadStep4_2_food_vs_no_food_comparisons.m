@@ -8,6 +8,8 @@ switch expGroup
         foodPairs = [1,3; 2,4];  
     case 'Berlin F LRR 25-17 plate comparisons'
         foodPairs = [1,3; 2,4];  
+    case 'Berlin temperature holds'
+        foodPairs = [1,2; 3,4; 5,6; 7,8; 9,10; 11,12; 13,14; 15,16];
 end
 initial_vars{end+1} = 'foodPairs';
 
@@ -243,67 +245,65 @@ set(gca, 'xlim', time_limits)
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
-%% Occupancy 'null' distribution for no food trials
+
+%% FIGURE: testing how many of the empty trials have spatial biases?
 clearvars('-except',initial_vars{:})
 
-% Plot out the quadrant data:
-
-np = 2; %null-pair idx
-exp = 1; % active trial
-% find the quads with the highest and lowest occupancy over the course of
-% the experiment:
-
-sSpan = 180;
-
-dummy = [];
-plotData = [];
-for i = 1:4
-    a = grouped(np).fullquad.(quadOrder{i}).all;
-    dummy(i,:) = sum(a,1,'omitnan');
-    plotData(:,:,i) = a;
-end
-% find min and max occupancy quadrants: 
-[~, lowerIDX] = min(dummy);
-[~, upperIDX] = max(dummy);
-
-[minOcc,maxOcc] = deal([]);
-for i = 1:num.trial(np)
-    minOcc(:,i) = squeeze(plotData(:,i,lowerIDX(i)));
-    maxOcc(:,i) = squeeze(plotData(:,i,upperIDX(i)));
-end
-    y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
-    y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
-
-fig = getfig('',1); 
-    hold on
-    % plot the null distribution data
-    y_err = smooth(mean((minOcc-maxOcc)./2,2,'omitnan'),sSpan,'moving');
-    y_avg = smooth(mean([minOcc,maxOcc],2,'omitnan'),sSpan, 'moving');
-    kolor = grouped(np).color;
-    time = grouped(np).time;
-    y1 = smooth(mean(minOcc,2),sSpan, 'moving');
-    y2 = smooth(mean(maxOcc,2),sSpan, 'moving');
-    plot_error_fills(true, time, y_avg,y_err,kolor,fig_type,0.5);
-    % plot(time,y1,'color',kolor)
-    % plot(time,y2,'color',kolor)
-    % plot the paired food trial on top:
-    x = grouped(exp).time;
-    kolor = grouped(exp).color;
-    y = grouped(exp).fullquad.food.avg;
-    y_err = grouped(exp).fullquad.food.std./sqrt(num.trial(exp));
-    plot_error_fills(true, x, y, y_err, kolor, fig_type);
-    plot(x,y,'color',kolor,'linewidth', 1)
+fig = getfig('',1); hold on
+    high_occ = [];
+    for i = 1:size(foodPairs,1)
+        exp = foodPairs(i,2);
+        high_occ = [high_occ; grouped(exp).occ_idx(:,2)]; 
+    end
+    h = histogram(high_occ);
+    h.FaceColor = Color('grey');
+    h.FaceAlpha = 0.8;
     % formatting
-    xlabel('time (min)')
-    ylabel('food quadrant occupancy (%)')
-    xlim([0 700])
-    formatFig(fig,false);
-    
-save_figure(fig,[figDir, 'full quad occ over time'],fig_type);
+    formatFig(fig, blkbgd);
+    xlabel('Well location')
+    ylabel('exp count')
+    set(gca, 'xtick', 1:4)
+    title([expGroup ' empty trials'], 'color', 'w')
+save_figure(fig,[figDir, 'null well distribution'],fig_type);
 
+fig = getfig('',1);    hold on
+   % both
+    high_occ = [];
+    for i = 1:size(foodPairs,1)
+        exp = foodPairs(i,1);
+        high_occ = [high_occ; grouped(exp).occ_idx(:,2)]; 
+    end
+    h = histogram(high_occ);
+    h.FaceColor = Color('grey');
+    h.FaceAlpha = 0.8;
+    % % formatting
+    formatFig(fig, blkbgd);
+    xlabel('Well location')
+    ylabel('exp count')
+    set(gca, 'xtick', 1:4)
+    title([expGroup ' food trials'], 'color', 'w')
+save_figure(fig,[figDir, 'food well distribution'],fig_type);
 
+% Comparison of food wells to highest occupancy well over the full experiment: 
 
-
+fig = getfig('',1); hold on
+    % percent of food trials with the highest occ being the food well
+    trial_per = nan([size(foodPairs,1),1]);
+    for i = 1:size(foodPairs,1) %food trials only
+        exp = foodPairs(i,1);
+        high_occ = grouped(exp).occ_idx(:,2);
+        foodWell = data(exp).T.foodLoc;
+        alignedN = sum((high_occ-foodWell)==0);
+        alignedPercent = (alignedN/size(high_occ,1))*100;
+        trial_per(i) = alignedPercent; % percent of aligned trials this group
+    end
+    bar(trial_per, 'FaceColor',Color('grey'))
+    trials = {expNames{foodPairs(:,1)}};
+    trials = strrep(trials, '_', ' ');
+    set(gca, 'xtick', 1:size(foodPairs,1),'xticklabel',trials,'XTickLabelRotation',30)
+    ylabel('Percent trials with food and highest occupancy aligned')
+    formatFig(fig, blkbgd);
+save_figure(fig,[figDir, 'food well to high occ alignment'],fig_type);
 
 
 

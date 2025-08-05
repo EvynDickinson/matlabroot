@@ -25,7 +25,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             % find and select list of possible experimental groups:
             list_dirs = dir([baseFolder paths.group_comparision]);  list_dirs = {list_dirs(:).name};
             list_dirs(1:2) = [];
-            [dirIdx, v] = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[400,700]);
+            [dirIdx, v] = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[500,700]);
             if v
                 expGroup = list_dirs{dirIdx}; %name of experiment groups selected
             else
@@ -73,7 +73,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             includedIdx(isnan(includedIdx)) = [];
             %Check that the current selection of experiments is okay by showing the included groups
             prompt_string = {'Select the groups for the structure: ', expGroup};
-            expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450], ...
+            expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[450,600], ...
                             'InitialValue',includedIdx,'PromptString',prompt_string); clear prompt_string     
 
             % List of included data for comparison & updates
@@ -120,7 +120,7 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             UpdatedFlag = true;
             % Select processed data structures to compare:
             list_dirs = dir(structFolder);  list_dirs = {list_dirs(:).name};  list_dirs(1:2) = [];
-            expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[300,450]);
+            expIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'multiple','ListSize',[450,600]);
             expNames = list_dirs(expIdx); %name of experiment groups selected
             num.exp = length(expIdx);  %number of groups selected
            
@@ -430,6 +430,9 @@ switch expGroup
         colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
+    case 'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food'
+        expOrder = 1:num.exp;
+        colors = {'Peachpuff', 'Powderblue','Gold'};
 end
 
 if ~exist('colors','var')
@@ -2646,6 +2649,7 @@ for i = 1:num.exp
     end
 end
 
+close all
 disp('All finished')
 
 %% Food vs no food control trial information....

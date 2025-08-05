@@ -1681,67 +1681,28 @@ end
 frame = frames(rr).idx;
 x = grouped(exp).(pos_type).trial(trial).x;
 
-%% FIGURE: testing how many of the empty trials have spatial biases?
-clearvars('-except',initial_vars{:})
 
-fig = getfig('',1); 
-    % plate 2
-    high_occ = grouped(4).occ_idx(:,2); 
-    h = histogram(high_occ);
-    h.FaceColor = grouped(2).color;
-    h.FaceAlpha = 0.8;
-    % plate 1
-    hold on
-    high_occ = grouped(3).occ_idx(:,2); 
-    h = histogram(high_occ);
-    h.FaceColor = grouped(1).color;
-    h.FaceAlpha = 0.8;
-    % formatting
-    formatFig(fig, blkbgd);
-    xlabel('Well location')
-    ylabel('exp count')
-    set(gca, 'xtick', 1:4)
-    title('Berlin F LRR 25-17 empty trials', 'color', 'w')
-save_figure(fig,[figDir, 'null well distribution'],fig_type);
+%% Determine how many trials we may need to scrap if they are Long and have food present on plate 1...
 
-fig = getfig('',1);    hold on
-    % plate 1
-    high_occ = grouped(1).occ_idx(:,2); 
-    h = histogram(high_occ);
-    h.FaceColor = grouped(1).color;
-    h.FaceAlpha = 0.8;
-    % plate 2
-    high_occ = grouped(2).occ_idx(:,2); 
-    h = histogram(high_occ);
-    h.FaceColor = grouped(2).color;
-    h.FaceAlpha = 0.8;
-    % formatting
-    formatFig(fig, blkbgd);
-    xlabel('Well location')
-    ylabel('exp count')
-    set(gca, 'xtick', 1:4)
-    title('Berlin F LRR 25-17 food trials', 'color', 'w')
-save_figure(fig,[figDir, 'food well distribution'],fig_type);
+[excelfile, Excel, xlFile] = load_QuadBowlExperiments;
 
-% Comparison of food wells to highest occupancy well over the full experiment: 
+% look for trials that meet these conditions: [LTS or temp hold], [caviar], [plate 2]
+protocols = excelfile(2:end,Excel.protocol);
+proto_idx = strcmp(protocols, 'Large_temp_sweep_15_35');
+food_idx = false(size(proto_idx)); %initialize as an empty false vector
+for well = 1:4
+    food = excelfile(2:end,Excel.(['well_' num2str(well)]));
+    food_idx = food_idx | strcmpi(food, 'Caviar');
+end
+plate = [excelfile{2:end,Excel.plate}]';
+plate_idx = plate==2;
 
-fig = getfig('',1); hold on
-  % plate 1
-    exp = 1;
-    high_occ = grouped(exp).occ_idx(:,2); 
-    foodWell = [data(exp).T.foodLoc];
-    y = [foodWell, high_occ];
-    x = ones(size(y)).*[1,2];
-    plot(x',y','color', grouped(exp).color)
-    % plate 2
-    exp = 2;
-    high_occ = grouped(exp).occ_idx(:,2); 
-    foodWell = [data(exp).T.foodLoc];
-    y = [foodWell, high_occ];
-    x = ones(size(y)).*[1,2];
-    plot(x',y','color', grouped(exp).color)
-    
+% trials to toss: 
+bad_idx = proto_idx & food_idx & plate_idx;
+sum(bad_idx)
 
+% what are the trials that we would need to scrap: 
+badTrials = [excelfile([false; bad_idx],Excel.trialID), excelfile([false; bad_idx],Excel.genotype)];
 
 
 
