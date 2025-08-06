@@ -431,8 +431,11 @@ switch expGroup
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
     case 'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food'
-        expOrder = 1:num.exp;
-        colors = {'Peachpuff', 'Powderblue','Gold'};
+        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
+        colors = {'Peachpuff', 'Powderblue','Magenta'};
+    case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
+        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
+        colors = {'Peachpuff', 'Powderblue','Magenta'};
 end
 
 if ~exist('colors','var')

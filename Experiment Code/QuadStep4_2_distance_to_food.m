@@ -334,17 +334,21 @@ for i = num.exp:-1:1
 end
 
 % FORMATING AND LABELS
+nat_xlims = [];
 formatFig(fig,blkbgd,[r,c],sb);
 % temp
 subplot(r,c,sb(1).idx)
 ylabel('\circC')
 set(gca,"XColor",'none')
+nat_xlims = [nat_xlims, xlim];
 
 % distance
 subplot(r,c,sb(2).idx)
 ylabel(y_lab)
 xlabel('time (min)')
 set(gca,'ydir',y_dir)
+nat_xlims = [nat_xlims, xlim];
+
 % temp-distance relationship
 subplot(r,c,sb(3).idx)
 ylabel(y_lab)
@@ -357,11 +361,17 @@ set(gca,'ydir',y_dir)
 
 if ~xlim_auto
     subplot(r,c,sb(1).idx)
-    set(gca, 'xlim', time_limits)
+    xlim(time_limits)
     subplot(r,c,sb(2).idx)
-    set(gca, 'xlim', time_limits)
+    xlim(time_limits)
     % ylim([0,100])
     % ylim([20,100])
+else % make sure the x-axis matches on timecourse figs
+    xlimits = [min(nat_xlims), max(nat_xlims)];
+    subplot(r,c,sb(1).idx)
+    xlim(xlimits)
+    subplot(r,c,sb(2).idx)
+    xlim(xlimits)
 end
 
 % legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
