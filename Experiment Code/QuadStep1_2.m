@@ -449,20 +449,34 @@ if ~isempty(skip_loc)
     % create and write into a text file: 
     e = sum(d(skip_loc,2:5),2);
     disp([skip_loc, e])
-    if strcmp(questdlg('Move files to a new batch folder?'),'Yes')
-        tic
-        % create a new batch folder within the main folder
-        start_loc = [baseFolder folder '/Batch 2/'];
-        new_loc = [baseFolder folder '/Batch ' expName];
-        copyfile(start_loc, new_loc)
-        for i = 1:length(skip_loc)
-            vid_name  = [expName '_' num2str(skip_loc(i)) '.avi'];
-            disp(vid_name)
-            movefile([baseFolder folder '/' vid_name], [baseFolder folder '/Batch ' expName '/' vid_name])
-        end
-        toc
-        disp('Go retrack the video files')
-        return
+    switch questdlg('What files do you want to move to a new tracking folder?','', 'All', '+1 skipped frames', 'None','+1 skipped frames')
+        case 'All'
+            % create a new batch folder within the main folder
+            start_loc = [baseFolder folder '/Batch 2/'];
+            new_loc = [baseFolder folder '/Batch ' expName];
+            copyfile(start_loc, new_loc)
+            for i = 1:length(skip_loc)
+                vid_name  = [expName '_' num2str(skip_loc(i)) '.avi'];
+                disp(vid_name)
+                movefile([baseFolder folder '/' vid_name], [baseFolder folder '/Batch ' expName '/' vid_name])
+            end
+            disp('Go retrack the video files')
+            return
+        case '+1 skipped frames'
+            % create a new batch folder within the main folder
+            start_loc = [baseFolder folder '/Batch 2/'];
+            new_loc = [baseFolder folder '/Batch ' expName];
+            copyfile(start_loc, new_loc)
+            for i = 1:length(skip_loc)
+                if e(i) > 4
+                    vid_name  = [expName '_' num2str(skip_loc(i)) '.avi'];
+                    disp(vid_name)
+                    movefile([baseFolder folder '/' vid_name], [baseFolder folder '/Batch ' expName '/' vid_name])
+                end
+            end
+            disp('Go retrack the video files')
+            return
+        case {'None', ''}
     end
 end
 
