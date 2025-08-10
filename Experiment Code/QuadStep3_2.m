@@ -224,8 +224,9 @@ clearvars('-except',initial_vars{:})
 disp('next section')
 
 %% FIGURE: visual check of temperature alignment across the experiments:
-fig = figure; set(fig, 'position', [107 595 1150 235]); hold on
+fig = figure; set(fig, 'position', [107 595 1150 235]);hold on
     for trial = 1:ntrials
+        % subplot(5,4,trial)
         X = data(trial).occupancy.time;
         Y = data(trial).occupancy.temp;
         plot(X, Y, 'linewidth', 1) 
@@ -294,7 +295,9 @@ end
 % end
 
 % Generate the idealized fictive temperature protocol for the selected temperature protocol *if LRR only*:
-if hold_exp
+% TODO: update this to be able to auto generate the giant temp sweep protocol as well
+temp_str_check = contains(temp_protocol, 'linear_ramp'); % is the faux temp protocol a LRR??
+if hold_exp && temp_str_check
      for trial = 1:ntrials
         tP = getTempTurnPoints(temp_protocol);
         upper_temp =  tP.threshHigh-0.5; % normal 0.5 buffer
@@ -312,11 +315,10 @@ if hold_exp
             fill_temp = linspace(lower_temp,upper_temp,tP.up(i,2)-tP.up(i,1)+1);
             fict_temp(tP.up(i,1):tP.up(i,2)) = fill_temp;
         end
-        % save fictive temp into the temperature slot:
-       
-            data(trial).occupancy.real_temp = data(trial).occupancy.temp;
-            data(trial).occupancy.temp = fict_temp;
-        end
+        % save fictive temp into the temperature slot & create real temp data in 'real_temp' field
+        data(trial).occupancy.real_temp = data(trial).occupancy.temp;
+        data(trial).occupancy.temp = fict_temp;
+    end
 end
 
 clearvars('-except',initial_vars{:})
