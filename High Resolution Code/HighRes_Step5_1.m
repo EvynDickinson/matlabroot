@@ -3,6 +3,7 @@
 
 %% LOAD data
 clear; clc;
+warning off
 path = getDataPath(6,0);
 baseFolder = [path,'Trial Data/'];
 trialDir = selectFolder(baseFolder); 
