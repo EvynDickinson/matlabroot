@@ -557,8 +557,7 @@ for trial = 1:num.trials
             opLoc = [2 1 4 3];
         case 3
             opLoc = [3 2 1 4];
-        case 4
-            opLoc = [4 3 2 1];
+        case 4          opLoc = [4 3 2 1];
     end
 
     % Find the quadrant that each well belongs to

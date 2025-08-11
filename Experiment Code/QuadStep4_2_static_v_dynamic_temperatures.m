@@ -8,7 +8,7 @@ buff_1 = 0.25;
 buff_2 = 0.5;
 sz = 60;
 LW = 2;
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+foreColor = formattingColors(blkbgd); %get background colors
 
 temps_idx = [3, 9, 15, 19];  % 17,20,23,25 [temp locations that match the assigned hold temps]
 temp_actual = grouped(4).position.temp_list(temps_idx);

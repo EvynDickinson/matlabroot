@@ -553,9 +553,8 @@ end
 
 % make mask for arena sizing...
 
-%% FIGURE (TEMP HOLDS ONLY): 2D spatial occupancy in arena histogram
-% TODO 4/3 get this to work -- just saved all aligned position data to
-% grouped.position.trial.x/y so use that
+%% FIGURE (TEMP HOLDS ONLY):  [ OLD ] 2D spatial occupancy in arena histogram
+
 clearvars('-except',initial_vars{:})
 save_path = createFolder([saveDir 'COM/']);
 autoSave = true;
@@ -565,7 +564,7 @@ blkbgd = false;
 [foreColor,backColor] = formattingColors(blkbgd);
 
 % Find the occupancy for each bin:
-r = data(1).data(1).data.r; %pixel radius of the arena
+% r = data(1).data(1).data.r; %pixel radius of the arena
 n = 26; % number of spatial bins
 autoLim = false;
 axis_limits = [0, 0.01];
@@ -574,7 +573,8 @@ plotData = [];
 max_occ = [];
 % GROUP DATA
 for i = num.exp
-    % get the 'square' units for partitioning space  (aka grid lines for subdividing space) 
+    % get the 'square' units for partitioning space  (aka grid lines for subdividing space)
+    r = data(i).data(1).data.r;  % pixel radius of the arena (for trial 1)...since only plate-aligned trials will be used eventually
     Cx = mean(grouped(i).position.well_pos.x(5,:)); %center X
     Cy = mean(grouped(i).position.well_pos.y(5,:)); %center Y
     x_edge = linspace(Cx-r,Cx+r,n);
@@ -611,14 +611,13 @@ for i = num.exp
     plotData(i).rawcounts = nflies;
     
     max_occ = max([max_occ,max(max(plotData(i).data))]); % for later thresholding
-
+    
     % Find the wells within the binned space
     xInd = discretize(0,x_edge);
     yInd = discretize(0,y_edge);
 
     plotData(i).wells = [xInd,yInd];
 end
-
 
 disp(['Max occupancy: ' num2str(max_occ)])
 
@@ -896,12 +895,12 @@ save_path = createFolder([saveDir 'COM/']);
 autoSave = true;
 
 [foreColor] = formattingColors(blkbgd);
-
+acceptable_plate_conds = [1 2 3]; % which plate conditions are allowable 
 % Find the occupancy for each bin:
 n = 26; % number of spatial bins
 autoLim = false;
 % axis_limits = [0, 1.5];
-axis_limits = [0, 5];
+axis_limits = [0, 4];
 nTypes = 3; % food quad, low occ quad, high occ quad
 
 % use the fictive temp bins for the occupancy behavior (so that it's
@@ -1013,7 +1012,6 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
 
         for rr = 1:nRates % cycle through the temp ratesssss
             % save the names of the condition types (so that we can keep track later) 
-            
             if FT
                 plotData(i).type(type,rr).rate = LTS_temp.temp_rates(rr);
                 plotData(i).type(type,rr).name = [pos_type ' | Temp: ' num2str(fictive_temp_match) ' | ' FT_label];
@@ -1030,7 +1028,7 @@ for i = 1:length(temp_list) % could also do this as auto find of the avg temp fo
             plotData(i).type(type,rr).wells = nan([2,num.trial(exp)]);
             for trial = 1:num.trial(exp)
                 con_type = data(exp).con_type(trial);
-                if any(con_type==[1 2]) %check if it matches plate 1 
+                if any(con_type==acceptable_plate_conds) %check if it matches desired plate 
                     trial_count = trial_count + 1; % count how many trials are included in this dataset
                     % allow for the couple trials that have slightly shorter hold lengths
                     tempX = grouped(exp).(pos_type).trial(trial).x;
@@ -1195,8 +1193,7 @@ fig_W = 20 + (400*c);
 
 fig = getfig('',false,[fig_W, (340*r)]); 
 for i = 1:nTemps
-    % .... subtract one from the other but add in a dynamic switch for low
-    % or high occupancy comparisions
+    % .... subtract one from the other but add in a dynamic switch for low or high occupancy comparisions
     n = food.plotData(i).type(food_type).data - empty.plotData(i).type(empty_type).data;
     subplot(r,c,i)
         hold on
@@ -1217,12 +1214,12 @@ for i = 1:nTemps
         circSize = food.plotData(i).type(food_type).arenaSize(2:3,1)';
         circ_r = food.plotData(i).type(food_type).arenaSize(1,1);
         v = viscircles(circSize,circ_r, 'color', foreColor);
-        i = i+1; % update the subplot location
+        % i = i+1; % update the subplot location
 end
 
 % Create custom colormap for positive and negative change between static and dynamic trials
 n = 256;  % number of colors
-z0 = -5; z1 = 0; z2 = 5; % color axis limits...
+z0 = -4; z1 = 0; z2 = 4; % color axis limits...
 % Number of colors below and above zero
 n_neg = round(n * abs(z0) / (z2 - z0));
 n_pos = n - n_neg;
@@ -1258,6 +1255,110 @@ end
 % save the figure
 save_figure(fig,[start_folder group2 ' - ' group1 ' 2D spatial distribution difference'], fig_type);
 
+%% LOAD AND COMPARE STATIC TRIALS ACROSS TEMPERATURES TO 25C
+% THIS IS MANUALLY CONTROLLED AND CANNOT BE AUTO-RUN
+clearvars('-except',initial_vars{:})
+[foreColor] = formattingColors(blkbgd);
+
+fig_type = '-pdf';
+blkbgd = false;
+color_lims = 5; % max color percent
+
+% select the data files for comparison:  (manually select these from the folders and locations they are saved into)
+% 
+% static food vs empty comparison
+start_folder = [saveDir 'COM/'];
+group1 = 'empty avg over 4.5 hrs Berlin temperature holds';
+group2 = 'food avg over 4.5 hrs Berlin temperature holds';
+
+% Load the data
+empty = load([start_folder group1 ' 2D occupancy matrix.mat']);
+food = load([start_folder group2 ' 2D occupancy matrix.mat']);
+
+FT = false; % Fictive time
+reference_temp = 25; % which temperature is the reference temp 
+food_type = 1; % food well position based data
+empty_type = 3; % high occupancy based data
+
+% find the exp number for the reference temperature
+ref_idx = contains({grouped(:).name},num2str(reference_temp));
+empty_ref = find([data(:).emptytrial] & ref_idx);
+food_ref = find(~[data(:).emptytrial] & ref_idx);
+
+% compare food quad vs highest occupany quad (then later against lowest occupancy quad)
+nTemps = length(food.plotData); 
+r = 1;
+c = nTemps;
+fig_W = 20 + (400*c);
+
+for type = 1:2 % food and then empty
+
+    fig = getfig('',false,[fig_W, (340*r)]); 
+    for i = 1:nTemps
+        switch type
+            case 1 % food
+                n = food.plotData(i).type(food_type).data - food.plotData(food_ref).type(food_type).data;
+                circSize = food.plotData(i).type(food_type).arenaSize(2:3,1)';
+                circ_r = food.plotData(i).type(food_type).arenaSize(1,1);
+            case 2 % empty
+                n = empty.plotData(i).type(empty_type).data - empty.plotData(empty_ref).type(empty_type).data;
+                circSize = empty.plotData(i).type(empty_type).arenaSize(2:3,1)';
+                circ_r = empty.plotData(i).type(empty_type).arenaSize(1,1);
+        end
+        subplot(r,c,i)
+            hold on
+            imagesc(n);
+            hold on
+            % wellX = median(plotData(exp).wells(1,:),'omitnan');
+            % wellY = median(plotData(exp).wells(2,:),'omitnan');
+            % scatter(wellX, wellY,10,'r','filled')
+            % title([num2str(temp_list(temp)) '\circC @ ' num2str(grouped(exp).position.temp_rates(rr)) '\circC/min'],'color', foreColor)
+            axis tight square
+            axis square;
+            % plot the arena circle around the heatmap
+            v = viscircles(circSize,circ_r, 'color', foreColor);
+            % i = i+1; % update the subplot location
+    end
+    
+    % Create custom colormap for positive and negative change between static and dynamic trials
+    n = 256;  % number of colors
+    z0 = -color_lims; z1 = 0; z2 = color_lims; % color axis limits...
+    % Number of colors below and above zero
+    n_neg = round(n * abs(z0) / (z2 - z0));
+    n_pos = n - n_neg;
+    switch blkbgd
+        case true  % black at zero
+            % Negative side: blue to black
+            cmap_neg = [linspace(0,0,n_neg)', linspace(0,0,n_neg)', linspace(1,0,n_neg)'];  % Blue → Black
+            % Positive side: black to red
+            cmap_pos = [linspace(0,1,n_pos)', linspace(0,0,n_pos)', linspace(0,0,n_pos)'];  % Black → Red
+        case false  % white at zero
+            % Negative side: blue to white
+            cmap_neg = [linspace(0,1,n_neg)', linspace(0,1,n_neg)', ones(n_neg,1)];  % Blue → White
+            % Positive side: white to red
+            cmap_pos = [ones(n_pos,1), linspace(1,0,n_pos)', linspace(1,0,n_pos)'];  % White → Red
+    end
+    
+    % Combined color map
+    cmap = [cmap_neg; cmap_pos];
+    
+    % FORMATTING: 
+    formatFig(fig, blkbgd,[r,c]);
+    for i = 1: nTemps %*nRates
+        subplot(r,c,i)
+        set(gca,'XColor','none','Ycolor','none','XTick', [],'YTick', [])
+        C = colorbar;
+        C.Label.String = '\Delta Occupancy';
+        C.Label.Color = foreColor;
+        C.Color = foreColor;
+        clim([z0, z2])
+        colormap(cmap)
+        title([num2str(food.plotData(i).real_temp) '\circC'],'color', foreColor)
+    end
+    % save the figure
+    save_figure(fig,[start_folder group2 ' - ' group1 ' 2D spatial distribution difference'], fig_type);
+
+end
 
 %% LOAD AND COMPARE FOOD VS EMPTY TRIALS FOR DYNAMIC TEMP PROTOCOLS
 % THIS IS MANUALLY CONTROLLED AND CANNOT BE AUTO-RUN
@@ -1490,6 +1591,7 @@ buff = 0.2;
 lw = 1;
 ww = 0.2;
 
+
 fig = getfig('',1);
 hold on
 for exp = 1:num.exp
@@ -1502,9 +1604,10 @@ for exp = 1:num.exp
     bar(exp+buff, c, ww, 'FaceColor', Color('orange'), 'EdgeColor',foreColor,'LineWidth',lw)
 end
 
-set(gca, 'xtick', 1:num.exp, 'xticklabel', grou
-
-
+set(gca, 'xtick', 1:num.exp, 'xticklabel', expNames, 'XTickLabelRotation', 45)
+ylabel('number of trials on each plate')
+formatFig(fig, blkbgd);
+save_figure(fig,[figDir 'plate distribution across experiments'], fig_type);
 
 
 

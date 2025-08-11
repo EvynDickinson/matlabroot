@@ -1036,7 +1036,7 @@ r = 1;
 c = 2;
 autoLims = true;
 
-timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
+timeROI = 1:data(1).fps * 3600 * 5 ; % time region to average over...5 hours
 
 plotData = [];
 for exp = 1:num.exp
@@ -1048,7 +1048,7 @@ for exp = 1:num.exp
     plotData = autoCat(plotData, y_all',false);
 end
 
-temp_list = [15 17 20 25 27 33 35]; % temps that we have temp hold data for...
+temp_list = [15 17 20 23 25 27 30 33]; % temps that we have temp hold data for...
 y_avg = mean(plotData, 1,'omitnan');
 y_sem = std(plotData,0,1,'omitnan')./sqrt(num.trial);
 
