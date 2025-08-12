@@ -162,10 +162,7 @@ clearvars('-except',initial_var{:})
 % TODO -- slow down the figure progression so that you can see all of them
 % and approve etc.
 
-% add idx and midpoint idx for holds 
-% add data.cooling/warming idx (will be empty), maybe add hold idx 
-% adjust figures to account for empty cooling/warming data
-
+% 
 
 
 
