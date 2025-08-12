@@ -326,61 +326,67 @@ save_figure(fig,[figDir, 'food well to high occ alignment'],fig_type);
 
 %% FIGURE: [STATIC TRIALS ONLY] Scatter plot for single parameter -- select your metric
 clearvars('-except',initial_vars{:})
+% Select which type of time region to use for behavior binning: 
+temp_type = questdlg('Use fictive temp matching or time duration for position plotting?', '','fictive temp', 'duration', 'cancel', 'fictive temp');
+switch temp_type
+    case 'fictive temp'
+        FT = true; % FT = fictive temp
+        % check if it's a hold and if it's dummy LTS then load that data here: 
+        if any([data(:).hold_exp]) && any(strcmp({grouped(:).fictivetemp}, 'Large_temp_sweep_15_35'))
+            if ~exist('LTS_temp', 'var')
+                drivePath = getCloudPath;   
+                drivePath = drivePath(1:end-5);
+                load([drivePath, 'LTS 15-35 temp data.mat']); 
+                initial_vars{end+1} = 'LTS_temp';
+            end
+        end
+    case 'duration'
+        FT = false;
+        start_time = 15; % (mins) when to start counting the behavior (mins)
+        duration_time = 5; % (hours) duration of time
+        conv = 60*data(1).fps;
+        timeROI = start_time * conv : conv * 60 * duration_time; % time region to average over
+    case {'cancel',''}
+        return
+end
 
-% plot_err = true;
-autoLim = false;
-xlim_auto = false; % change the time range for the x axis
-% time_limits = [100,700]; % time limits if manual control over x-axis range
-time_limits = [0, 400];
-nMax =  num.exp; 
-plot_high_null = true; % plot the low or high null occupancy for empty trials
-foreColor = formattingColors(blkbgd); %get background colors
+% Hold temperature parameters: 
+expList = 1:num.exp;
+full_temp_list =  [15 17 20 23 25 27 30 33 35];
+idx = listdlg("PromptString",'Select temps to plot:', 'ListString',string(full_temp_list),...
+    'selectionmode', 'multiple','listsize', [150 200],'initialvalue', 1:length(full_temp_list));
+temp_list = full_temp_list(idx); % temps that we have temp hold data for...
 
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(false);
-switch questdlg('Plot error?','','True','False', 'Cancel','True')
-    case 'True'
-        plot_err = true;
-    case 'False'
-        plot_err = false;
-    case 'Cancel'
-        return
-    case ''
-        return
-end
 if isempty(title_str)
     return
 end
-fig_dir = [saveDir, dir_end];
-% set figure folder
-if ~exist(fig_dir, 'dir')
-    mkdir(fig_dir)
-end
 
-% Fictive or real time? 
-% TODO: (8.10) update this to work for both fictive time and time duration
-FT = false;
-if ~FT 
-    timeROI = 1:data(1).fps * 3600 * 5; % time region to average over...5 hours
-end
-
+% Plotting Parameters:
+autoLim = false;
+xlim_auto = false; % change the time range for the x axis
+temp_lims = [12, 35]; % x limit default values
+occ_lims = [0 100]; % y limit default values
 food_color = Color('gold');
 empty_color = Color('black');
 empty_type = 2; % high occupancy null data
-
-
-% Plotting Parameters: 
-LW = 1.5; % avg line width
-eLW = 0.75; % error bar width
-SZ = 35; % scatter point size 
-buff = 0.75; % scatter plot buffer size
-dataString = cell([1,num.exp]);
+LW = 2; % avg line width
+eLW = 2; % error bar width
+SZ = 25; % scatter point size 
+buff = 0.3; % scatter plot buffer size
 r = 1; % rows
 c = 2; % columns
+foreColor = formattingColors(blkbgd);
+
+% Stats setup: 
+SD = []; % stats data structure
+[SD.w, SD.c] = deal(nan([max(num.trial),num.exp])); % empty mat for the trial average data to fill
+[SD.w_temps,SD.c_temps] = deal(nan([num.exp,1]));
 
 % FIGURE:
 fig = getfig('',true);
-
+ylimits = [];
 for i = 1:num.exp
     % get temperature for the experiment group: 
     x = strrep(data(i).temp_protocol,'Hold','');
@@ -390,7 +396,7 @@ for i = 1:num.exp
     switch data(i).emptytrial
         case true  % empty trial 
             kolor = empty_color;
-            subfield = 'high'; 
+            subfield = 'high'; % low or high occupancy quadrant to plot
         case false % food present
             kolor = food_color;
             subfield = 'food';
@@ -402,254 +408,168 @@ for i = 1:num.exp
     else
         yy = grouped(i).(pName); % no subregions in the metric (e.g., ring)
     end
-    % MAKE SWITCH HERE FOR FICTIVE OR NOT...
 
     for type = 1:2 % heating and cooling
         subplot(r,c,type)
         hold on
-        if ~FT
-            hROI = timeROI;
-            cROI = timeROI;
-        end
-        switch type
-            case 1 % heating
-                ROI = hROI;
-            case 2 % cooling
-                ROI = cROI;
+        if FT % fictive temp
+            % for now, use the built in LTS 15-35 but need to adjust this for
+            % future use to be more dynamic...TODO IMPORTANT 7.23
+            [~, temp_loc] = min(abs(x - LTS_temp.temp_list));
+            fictive_temp_match = LTS_temp.temp_list(temp_loc);
+            % disp(['Target temp vs fictive temp: ' num2str(x) ' vs ' num2str(fictive_temp_match)])
+            % throw warning if the temps are really far from each other
+            if abs(fictive_temp_match - x)>1
+                h = warndlg('Large temp discrepency between fictive temp and real temp');
+                uiwait(h)
+            end
+            switch type
+                case 1 % warming
+                    rateIDX = find(LTS_temp.temp_rates>0);
+                case 2 % cooling 
+                    rateIDX = find(LTS_temp.temp_rates<0);
+            end
+            ROI = LTS_temp.loc(rateIDX,temp_loc).frames;
+            sbpt_str = {'''warming''', '''cooling'''};
+        else % duration! 
+           ROI = timeROI;
+           sbpt_str = {['avg first ' num2str(duration_time) ' hours'], ['avg first ' num2str(duration_time) ' hours']};
         end
 
-        % heating data: 
-        y = mean(yy.all(hROI,:),1,'omitnan');
+        % plot data: 
+        y = mean(yy.all(ROI,:),1,'omitnan');
         y_avg = mean(y);
         y_err = std(y, 0,2)/sqrt(length(y));
-        X = linspace(x-buff, x+buff, length(y));
+        X = shuffle_data(linspace(x-buff, x+buff, length(y)));
         scatter(X, y, SZ, kolor, 'filled')
         plot([x-buff, x+buff],[y_avg, y_avg], 'color', kolor, 'linewidth', LW)
-        if plot_err
-            errorbar(x,y_avg,y_err,'color', kolor, 'linewidth', eLW)
+        errorbar(x,y_avg,y_err,'color', kolor, 'linewidth', eLW)
+
+        % Save stats data: 
+        switch type
+            case 1 % warming
+                SD.w(1:length(y),i) = y;
+                SD.w_temps(i) = x;
+            case 2 % cooling
+                SD.c(1:length(y),i) = y;
+                SD.c_temps(i) = x;
         end
     end
+    ylimits = [ylimits, ylim]; %#ok<AGROW>
 end
+ylimits = [min(ylimits), max(ylimits)];
 
+% Formatting
 formatFig(fig, blkbgd,[r,c]);
-subplot(r,c,1)
-title('warming')
-xlim([0,])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if any(foodPairs(:,2)==i) % if this trial is an empty trial
-        FP_idx = foodPairs(foodPairs(:,2)==i,1); % find it's paired food trial for pulling color
-        ls = '-';
-        highlight = true;
-        nP = 2; % plot both high and low occ
-        LW = lw;
-    else
-        FP_idx = i;
-        ls = '-';
-        highlight = false;
-        nP = 1; % plot only food occupancy
-        LW = lw + hLW;
+for i = 1:2 % 
+    subplot(r,c,i)
+    title(sbpt_str{i})
+    xlabel('temp \circC')
+    ylabel([title_str ' occupancy (%)'])
+    if ~autoLim 
+        ylim(ylimits)
     end
-    kolor = grouped(FP_idx).color; 
-
-    % temperature time course 
-    subplot(r,c,sb(1).idx); hold on
-        y = grouped(i).temp;
-        plot(x,y,'LineWidth',2,'Color',kolor,'LineStyle',ls)
-
-   % selected parameter time course
-    subplot(r,c,sb(2).idx); hold on
-    for nn = 1:nP % for number of subfields (eg. 2 low/high or 1 food)
-        
-        % determine if this is a food or null trial
-        if data(i).emptytrial % empty trial, so use high occupancy null instead of random food assignment
-           switch nn
-               case 1 % high occupancy null
-                    subfield = 'high'; 
-                    hColor = foreColor;
-               case 2 % low occupancy null
-                   subfield = 'low'; 
-                   hColor = foreColor;
-           end
-        else 
-            subfield = 'food';
-        end
-        % pull the subfield data structure from the grouped data set
-        if quad_regions % sub regions (requires '.food' or '.low' extension etc)
-            yy = grouped(i).(pName).(subfield);
-        else
-            yy = grouped(i).(pName); % no subregions in the metric (e.g., ring)
-        end
-        % plot the data lines based on the type (e.g. single trial or avg)
-        switch dType
-            case 1 % single trial lines
-                for trial = 1:num.trial(i)
-                    y = smooth(yy.all(:,trial),sSpan, 'moving')*scaler;
-                    if highlight
-                        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle',ls)
-                    end
-                    plot(x,y,'LineWidth',LW,'Color',kolor,'LineStyle',ls)
-                end
-            case {2, 3} % avg line (for full timecourse -- this gets separated by H/
-                    y = smooth(yy.avg,sSpan, 'moving')*scaler;
-                    if highlight
-                        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle',ls)
-                    end
-                    plot(x,y,'LineWidth',LW,'Color',kolor, 'LineStyle',ls)
-        end
+    if ~xlim_auto
+        xlim(temp_lims)
     end
-
-    % temp vs dependent variable tuning curve
-    subplot(r,c,sb(3).idx); hold on
-     for nn = 1:nP % for number of subfields (eg. 2 low/high or 1 food)
-        % determine if this is a food or null trial
-        if data(i).emptytrial % empty trial, so use high occupancy null instead of random food assignment
-           if nn==1
-                subfield = 'high'; 
-                hColor = foreColor;
-           elseif nn==2
-               subfield = 'low'; 
-               hColor = foreColor;
-           end
-        else 
-            subfield = 'food';
-        end
-        % pull the subfield data structure from the grouped data set
-        if quad_regions % sub regions (requires '.food' or '.low' extension etc)
-            yy = grouped(i).(pName).(subfield);
-        else
-            yy = grouped(i).(pName); % no subregions in the metric (e.g., ring)
-        end
-
-         switch dType
-             case 1 % single trial lines
-                for trial = 1:num.trial(i)
-                    x = yy.temps;
-                    rawY = [grouped(i).(pName).increasing.raw(:,trial),grouped(i).(pName).decreasing.raw(:,trial)];
-                    y = mean(rawY,2,'omitnan')*scaler;
-                    if highlight
-                        plot(x,y,'LineWidth',LW+hLW,'Color',hColor)
-                    end
-                    plot(x,y,'color',kolor,'linewidth',LW + buff)
-                end
-    
-             case 2 % avg lines (combined heating and cooling)
-                x = yy.temps;
-                rawY = [yy.increasing.raw,yy.decreasing.raw];
-                y = mean(rawY,2,'omitnan')*scaler;
-                y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-                if highlight
-                    plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle',ls)
-                end
-                plot(x,y,'color',kolor,'linewidth',LW + buff,'LineStyle',ls)
-                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-    
-             case 3 % separated heating and cooling
-                x = yy.temps;
-                YC = yy.decreasing.raw;
-                YH = yy.increasing.raw;
-                % cooling
-                y = mean(YC,2,'omitnan')*scaler;
-                y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                if highlight
-                    plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','--')
-                end
-                plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '--')
-                % heating
-                y = mean(YH,2,'omitnan')*scaler;
-                y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                if highlight
-                    plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
-                end
-                plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')          
-         end
-         dataString{i} = grouped(i).name;
-     end
+    h_line(nullD, 'grey','--', 1)
 end
 
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx)
-ylabel('\circC')
-set(gca,"XColor",'none')
-curr_lims = xlim;
+% Add statistics here...compare across temps within food and no food trials
+% ANOVA with post-hoc multicompare
 
-% distance
-subplot(r,c,sb(2).idx)
-ylabel(y_lab)
-xlabel('time (min)')
-set(gca,'ydir',y_dir)
-curr_lims = [curr_lims; xlim];
+% Are there differences between the food and no food conditions for each temperature? 
+[pC, pW, C_TP, W_TP] = deal([]);
+for i = 1:size(foodPairs,1)
+    food = foodPairs(i,1);
+    empty = foodPairs(i,2);
+    [~,pC(i)] = ttest(SD.c(:,food), SD.c(:,empty));
+    [~,pW(i)] = ttest(SD.w(:,food), SD.w(:,empty));
+    C_TP(i) = SD.c_temps(food); % working here
+    W_TP(i) = SD.w_temps(food); % working here
+end
+%Bonferonni correction:
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+hC = pC<=p_limit; % 'cooling' comparison btwn food and empty
+hW = pW<=p_limit; % 'warming' comparison btwn food and empty
 
-% temp-distance relationship
-subplot(r,c,sb(3).idx)
-ylabel(y_lab)
-xlabel('temp (\circC)')
-% if ~autoLim
-%     ylim(dt_lim)
+% plot the significance stars on the data: 
+subplot(r, c, 1) % warming
+    ySig = rangeLine(fig,1,true);
+    XX = W_TP;
+    YY = ySig*ones(size(W_TP));
+    XX(~hW) = []; % remove non-significant comparisons
+    YY(~hW) = []; % remove non-significant comparisons
+    scatter(XX,YY, 200, foreColor,'filled', 'pentagram')
+subplot(r, c, 2) % cooling
+    ySig = rangeLine(fig,1,true);
+    XX = C_TP;
+    YY = ySig*ones(size(C_TP));
+    XX(~hC) = []; % remove non-significant comparisons
+    YY(~hC) = []; % remove non-significant comparisons
+    scatter(XX,YY, 200, foreColor,'filled', 'pentagram')
+
+% Save the figure
+fig_folder = createFolder([saveDir 'Figures/']);
+save_figure(fig,[fig_folder title_str ' occ scatter tuning food vs no food ' temp_type],fig_type);
+
+% statistical comparisons across the different temperatures -- set up the
+% groups and identifiers
+
+temps = string(num2str(SD.w_temps));
+temps = repmat(temps',size(SD.w,1),1);
+temps = reshape(temps,[numel(temps),1]);
+foodList = repmat("Food",num.exp,1);
+foodList([data(:).emptytrial]) = "Empty";
+foodList = repmat(foodList',size(SD.w,1),1);
+foodList = reshape(foodList,[numel(foodList),1]);
+warm = reshape(SD.w,[numel(SD.w),1]);
+cool = reshape(SD.c,[numel(SD.c),1]);
+warm_idx = ~isnan(warm);
+cool_idx = ~isnan(cool);
+wTL = temps(warm_idx);
+wFL = foodList(warm_idx);
+cTL = temps(cool_idx);
+cFL = foodList(cool_idx);
+warm = warm(warm_idx);
+cool = cool(cool_idx);
+
+% TODO: need to pull these out for each individual item....
+w_aov = anova({wTL, wFL}, warm,FactorNames=["Temperature" "Food_Status"]);
+c_aov = anova({cTL, cFL}, cool,FactorNames=["Temperature" "Food_Status"]);
+
+m = multcompare(w_aov,["Temperature" "Food_Status"], CriticalValueType="bonferroni");
+
+% TODO: make this into a comparison matrix to show which are different between the conditions
+
+p = anovan(warm,{wTL, wFL},'model','interaction','varnames',{'Temperature','Food_Status'});
+
+
+
+
+% 
+% 
+% % statistics: are there differences betwen heating and cooling in the occupancy data for the selected region?
+% [group_name, p, ~, ~] = deal([]);
+% for ii = 1:num.exp
+%     [~,p(ii)] = ttest(SD.c_occ(:,ii), SD.w_occ(:,ii));
+%     group_name{ii} = SD.name{ii};
+%     % %multicompare
+%     % mlt = autoCat(mlt, plotY',false);
+%     % id = autoCat(id,ii*ones(length(plotY),1),false);
 % end
-h_line(nullD,'grey',':',2) %36.2
-set(gca,'ydir',y_dir)
-
-% align xlimits on the two timecourse plots
-if xlim_auto
-    time_limits = [min(curr_lims(:)), max(curr_lims(:))]; %#ok<UNRCH>
-end
-subplot(r,c,sb(1).idx)
-set(gca, 'xlim', time_limits)
-subplot(r,c,sb(2).idx)
-set(gca, 'xlim', time_limits)
-
-% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
-
-% null string notation (high or low occupancy)
-% if plot_high_null && any([data(:).emptytrial])
-%     null_str = 'null high';
-% elseif ~plot_high_null && any([data(:).emptytrial])
-%     null_str = 'null low';
-% else
-%     null_str = '';
-% end
-%  % ' ' null_str
-% save figure
-save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
-
-
-
-%% clearvars('-except',initial_vars{:})
-[title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
-foreColor = formattingColors(blkbgd);
-r = 1;
-c = 2;
-autoLims = true;
-
-timeROI = 1:data(1).fps * 3600 * 5; % time region to average over...5 hours
-% add in fictive temp option here later (8/11)
+% %Bonferonni correction:
+% alpha = 0.05;
+% m = num.exp;
+% p_limit = alpha/m;
+% h = p<=p_limit;
+% disp('Differences between selected temp region in ring occupancy:')
+% stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+% disp(stats_tbl)
+% 
+% 
 
 
 
@@ -657,92 +577,7 @@ timeROI = 1:data(1).fps * 3600 * 5; % time region to average over...5 hours
 
 
 
-plotData = [];
-for exp = 1:num.exp
-    if ext
-        y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
-    else
-        y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
-    end
-    plotData = autoCat(plotData, y_all',false);
-end
-
-temp_list = [15 17 20 23 25 27 30 33]; % temps that we have temp hold data for...
-y_avg = mean(plotData, 1,'omitnan');
-y_sem = std(plotData,0,1,'omitnan')./sqrt(num.trial);
-
-sz = 35;
-buff = 0.4;
-if autoLims
-    ylims = [];
-else
-    ylims = [0, 90];
-end
-xlims = [14, 36];
-
-kolor = foreColor;
-LW = 2;
-
-fig = getfig('',1);
-% cooling cooling orientation 
-subplot(r,c,1); hold on
-    for exp = 1:num.exp
-        temp = temp_list(exp);
-        y = plotData(:,exp);
-        y(isnan(y)) = [];
-        x = shuffle_data(linspace(temp-buff, temp+buff, length(y)));
-        scatter(x,y,sz, Color('grey'), 'filled')
-        scatter(temp, y_avg(exp), 70,foreColor,'filled', 'square')
-        errorbar(temp, y_avg(exp), y_sem(exp),'Color', foreColor, 'LineWidth',LW)
-    end
-    plot(temp_list, y_avg,'color', foreColor, 'linewidth', LW, 'linestyle', ':')
-    plot_error_fills(true, temp_list, y_avg, y_sem, foreColor,fig_type);
-    %formatting
-    set(gca,'xdir', 'reverse')
-    xlabel('temperature')
-    xlim(xlims)
-    ylabel([param ' %'])
-    title('static')
-    if autoLims
-        ylims = [ylims; ylim];
-    end
-
-% warming orientation
-subplot(r,c,2); hold on
-    for exp = 1:num.exp
-        temp = temp_list(exp);
-        y = plotData(:,exp);
-        y(isnan(y)) = [];
-        x = shuffle_data(linspace(temp-buff, temp+buff, length(y)));
-        scatter(x,y,sz, Color('grey'), 'filled')
-        scatter(temp, y_avg(exp), 70,foreColor,'filled', 'square')
-        errorbar(temp, y_avg(exp), y_sem(exp),'Color', foreColor, 'LineWidth',LW)
-    end
-    plot(temp_list, y_avg,'color', foreColor, 'linewidth', LW, 'linestyle', ':')
-    plot_error_fills(true, temp_list, y_avg, y_sem, foreColor,fig_type);
-    %formatting
-    xlabel('temperature')
-    xlim(xlims)
-    ylabel([param ' %'])
-    title('static')
-    if autoLims
-        ylims = [ylims; ylim];
-    end
-formatFig(fig, blkbgd,[r c]);
-for i = 1:2
-    subplot(r,c,i); hold on
-    if autoLims
-        ylim([min(ylims(:,1)),max(ylims(:,2))]);
-    else 
-        ylim(ylims)
-    end
-end
-
-save_figure(fig,[figDir, param ' occ temp tuning curve scatter'],fig_type);
 
 
-% figure;
-% hold on
-% for exp = 1:num.exp
-%     plot(grouped(exp).(param).food.avg(timeROI))
-% end
+
+
