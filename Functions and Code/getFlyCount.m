@@ -2,7 +2,7 @@
 
 function getFlyCount(img,savePath,xlrows)
 
-baseFolder = getCloudPath;
+% baseFolder = getCloudPath;
 
 % load the outlines of the arena and their coordinates
 load([savePath ' arena coordinates.mat'])

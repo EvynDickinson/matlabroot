@@ -53,9 +53,24 @@ function [src, vid] = Initialize2Cameras(FPS,cam_sel)
                 vid.FramesPerTrigger = inf;
                 vid.ROIPosition = partial_ROI;
                 disp('Purple BACK camera initialized')
-                
+            
+            case 4 % Blue front camera (2) 
+                vid = videoinput('pointgrey', 1, 'F7_Raw8_2048x2048_Mode0');
+                partial_ROI = [66 72 1920 1920];
+                src = getselectedsource(vid);
+                % camera parameters
+                src.Brightness = 29; %15;
+                src.Exposure  = 2;
+                src.FrameRate = FPS; %3
+                src.Gain = 4.4558; %6;
+                src.Gamma = 1.5338; %1.502002;
+                src.Shutter = 6; %7.420205;
+                vid.FramesPerTrigger = inf;
+                vid.ROIPosition = partial_ROI;
+                disp('Blue camera initialized')
         end
     
+
 
 % src.Brightness = 21.7406;
 % src.Gamma = 1.752491;
