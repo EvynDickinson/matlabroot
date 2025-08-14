@@ -531,8 +531,9 @@ clearvars('-except',initial_vars{:})
 disp('All finished')
 
 %% FIGURE: Sleeping over time
+clearvars('-except',initial_vars{:})
+
 plot_err = false;
-[~,backColor] = formattingColors(blkbgd); %get background colors
 LW = 1.5;
 sb(1).idx = 1;
 sb(2).idx = 2:3;
@@ -562,7 +563,7 @@ end
 
 formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx);
-set(gca,'xcolor',backColor) 
+set(gca,'xcolor','none') 
 subplot(r,c,sb(2).idx)
 legend(expNames,'box','off')
 

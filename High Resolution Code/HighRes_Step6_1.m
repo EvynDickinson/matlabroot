@@ -162,11 +162,6 @@ clearvars('-except',initial_var{:})
 % TODO -- slow down the figure progression so that you can see all of them
 % and approve etc.
 
-% TODO 8/14
-% add idx and midpoint idx for holds 
-% add data.cooling/warming idx (will be empty), maybe add hold idx 
-% adjust figures to account for empty cooling/warming data
-
 foreColor = formattingColors(blkbgd); %get background colors
 
 alignmentDir = createFolder([figDir, 'Alignment Figures/']);
@@ -204,13 +199,18 @@ hold_exp = any(contains(temp_protocols,'Hold'));
 
 
 % create a new matrix to look at trial alignment times
-switch fly(1).parameters.protocol
-    case 'high_res_LTS_35-15'
-        idx = [1 3 5 7 9 10]; % LTS alignment points
-        midpoint_idx = 4; % bottom trough of full sweep
-    case {'courtship_F_LRR_25-17','high_res_F_LRR_25-17'}
-        idx = [1 3 5 7 8]; % F LRR alignment points (beginning of each temp region)
-        midpoint_idx = 3; % center of ramp
+if hold_exp
+    idx = [1 2]; % start and end of hold 
+    midpoint_idx = 1; % hold start
+else
+    switch fly(1).parameters.protocol
+        case 'high_res_LTS_35-15'
+            idx = [1 3 5 7 9 10]; % LTS alignment points
+            midpoint_idx = 4; % bottom trough of full sweep
+        case {'courtship_F_LRR_25-17','high_res_F_LRR_25-17'}
+            idx = [1 3 5 7 8]; % F LRR alignment points (beginning of each temp region)
+            midpoint_idx = 3; % center of ramp
+    end
 end
 
 % get a matrix of all the transition points between the temp roi types
@@ -226,7 +226,6 @@ end
 xtick_lab = {};
 buff = 0.3;
 y = diff(MT,1,2);
-rampDur = mean(y(:,2:3),"all"); % mean ramp duration for our 
 y = y./(fly(1).fps*60);
 
 fig = figure; 
@@ -315,40 +314,48 @@ data.color(F,:) = fly(1).data(F).color; % female color
 data.middlepoint = middlePoint;
 
 % TODO: adjust this for protocols that are not mirror image parallel
-switch temp_protocols{1}
-
-    case 'high_res_LTS_35-15'
-        % save new indexes for plotting regions: 
-        a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling        
-        [r,~] = find(a==1); %  find the time points where cooling begins
-        c1 = median(r(1:2:end)); % cooling start 1
-        c2 = median(r(2:2:end)); % cooling start 2 
-        c3 =  size(a,1); % end of cooling (end of experiment) 
-
-        a = (diff(data.warming));
-        [r,~] = find(a==1); % when warming section two starts
-        h1 = median(r(1:2:end)); % warming start 1
-        h2 = median(r(2:2:end)); % warming start 2 
-        
-        % find compile the start and stops for the cooling or warming periods
-        data.warming_idx = [h1,c1-1; h2,c2-1];
-        data.cooling_idx = [c1,h2-1; c2,c3];
-     
-    case 'courtship_F_LRR_25-17' % TODO : 7/10 update this to work with the new ramp strucutres... 
-        % save new indexes for plotting regions: 
-        a = (diff(data.cooling));
-        data.cooling_idx_all(:,1) = find(a==1);  % start of cooling
-        data.cooling_idx_all(:,2) = find(a==-1); % end of cooling (middlepoint)
-        a = (diff(data.warming));
-        data.warming_idx_all(:,1) = find(a==1);  % start of warming
-        data.warming_idx_all(:,2) = find(a==-1); % end of warming (middlepoint)
-        % universal timings: 
-        data.cooling_idx = int32(median(data.cooling_idx_all));
-        data.warming_idx = median(data.warming_idx_all);
-        data.warming_idx(1) = data.warming_idx(1)+1; % offset the start of warming by 1 frame
-        data.warming_idx = int32(data.warming_idx);
-end 
-
+if hold_exp
+    data.warming_idx = [];
+    data.cooling_idx = [];
+    data.hold_idx = [1,length(data.time)];
+else
+    switch temp_protocols{1}
+    
+        case 'high_res_LTS_35-15'
+            % save new indexes for plotting regions: 
+            a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling        
+            [r,~] = find(a==1); %  find the time points where cooling begins
+            c1 = median(r(1:2:end)); % cooling start 1
+            c2 = median(r(2:2:end)); % cooling start 2 
+            c3 =  size(a,1); % end of cooling (end of experiment) 
+    
+            a = (diff(data.warming));
+            [r,~] = find(a==1); % when warming section two starts
+            h1 = median(r(1:2:end)); % warming start 1
+            h2 = median(r(2:2:end)); % warming start 2 
+            
+            % find compile the start and stops for the cooling or warming periods
+            data.warming_idx = [h1,c1-1; h2,c2-1];
+            data.cooling_idx = [c1,h2-1; c2,c3];
+            data.hold_idx = []; % TODO: deal with this
+         
+        case 'courtship_F_LRR_25-17' % TODO : 7/10 update this to work with the new ramp strucutres... 
+            % save new indexes for plotting regions: 
+            a = (diff(data.cooling));
+            data.cooling_idx_all(:,1) = find(a==1);  % start of cooling
+            data.cooling_idx_all(:,2) = find(a==-1); % end of cooling (middlepoint)
+            a = (diff(data.warming));
+            data.warming_idx_all(:,1) = find(a==1);  % start of warming
+            data.warming_idx_all(:,2) = find(a==-1); % end of warming (middlepoint)
+            % universal timings: 
+            data.cooling_idx = int32(median(data.cooling_idx_all));
+            data.warming_idx = median(data.warming_idx_all);
+            data.warming_idx(1) = data.warming_idx(1)+1; % offset the start of warming by 1 frame
+            data.warming_idx = int32(data.warming_idx);
+            data.hold_idx = []; % TODO: deal with this
+  
+    end 
+end
 
 % test to see how the alignment worked for the heating and cooling periods
 fig = getfig('',0);
@@ -694,79 +701,80 @@ end
 
 
 % TODO (7.18): update this to work with static temperature holds...
-all_regions = [regionList, 'ring', 'inner75'];
-for sex = 1:2
+if ~hold_exp
+    all_regions = [regionList, 'ring', 'inner75'];
+    for sex = 1:2
+        
+        temps = data.tempbin.temps; % binned temp groups
+        nTemp = length(temps);
+        cIDX = data.tempbin.cooling; % logical locations for each temp bin across time
+        hIDX = data.tempbin.warming;
     
-    temps = data.tempbin.temps; % binned temp groups
-    nTemp = length(temps);
-    cIDX = data.tempbin.cooling; % logical locations for each temp bin across time
-    hIDX = data.tempbin.warming;
-
-    for i = 1:length(all_regions)
-
-        switch all_regions{i}
-            case {'ring','inner75'}
-                nQ = 1; % number of quadrants ...
-                nP = 1; % number of partial region percentages to check
-            case {'innerquad','quadring'}
-                nQ = 4;
-                nP = 2;
-            case {'fullquad','circle10','circle7','circle5'}
-                nQ = 4;
-                nP = 1;
-        end
-        for p = 1:nP % for the number of full or partial percentages to compare
-            for q = 1:nQ % each of the quadrants
-                % pull data for the right quadrant (if there are quadrants)
-                if nQ>1
-                    baseY = flyROImask.(all_regions{i})(sex).(quadOrder{q});
-                else 
-                    baseY = flyROImask.(all_regions{i})(sex);
-                end
-                % pull the right type of data to run
-                if p==1
-                    y = baseY.avg;
-                else
-                    y = baseY.partial_avg;
-                end
-                % extract the temp and rate dependent information for each region: 
-                [c_avg, h_avg, c_std, h_std] = deal(nan([nTemp,1])); 
-                for tt = 1:nTemp %  for each temperature bin
-                    c_loc = cIDX(:,tt); % logical vector where the temp rate and temp match
-                    h_loc = hIDX(:,tt);
-                    % find the avg and err within the temp bin: 
-                    c_avg(tt) = mean(y(c_loc),'omitnan');
-                    h_avg(tt) = mean(y(h_loc),'omitnan');
-                    c_std(tt) = std(y(c_loc),'omitnan');
-                    h_avg(tt) = std(y(h_loc),'omitnan');
-                end
-                % save back to the larger structure:                         
-                switch all_regions{i}
-                    case {'ring','inner75'}
-                        flyROImask.(all_regions{i})(sex).increasing.avg = h_avg;
-                        flyROImask.(all_regions{i})(sex).increasing.std = h_avg;
-                        flyROImask.(all_regions{i})(sex).decreasing.avg = c_avg;
-                        flyROImask.(all_regions{i})(sex).decreasing.std = h_std;
-                        flyROImask.(all_regions{i})(sex).temps = temps;
-                    case {'fullquad','innerquad','quadring','circle10','circle7','circle5'}
-                        if p == 1 %aka full avg and not based on partial region occupancy
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.avg = h_avg;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.std = h_std;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.avg = c_avg;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.std = c_std;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).temps = temps;
-                        else
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.p_avg = h_avg;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.p_std = h_std;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.p_avg = c_avg;
-                            flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.p_std = c_std;
-                        end
+        for i = 1:length(all_regions)
+    
+            switch all_regions{i}
+                case {'ring','inner75'}
+                    nQ = 1; % number of quadrants ...
+                    nP = 1; % number of partial region percentages to check
+                case {'innerquad','quadring'}
+                    nQ = 4;
+                    nP = 2;
+                case {'fullquad','circle10','circle7','circle5'}
+                    nQ = 4;
+                    nP = 1;
+            end
+            for p = 1:nP % for the number of full or partial percentages to compare
+                for q = 1:nQ % each of the quadrants
+                    % pull data for the right quadrant (if there are quadrants)
+                    if nQ>1
+                        baseY = flyROImask.(all_regions{i})(sex).(quadOrder{q});
+                    else 
+                        baseY = flyROImask.(all_regions{i})(sex);
+                    end
+                    % pull the right type of data to run
+                    if p==1
+                        y = baseY.avg;
+                    else
+                        y = baseY.partial_avg;
+                    end
+                    % extract the temp and rate dependent information for each region: 
+                    [c_avg, h_avg, c_std, h_std] = deal(nan([nTemp,1])); 
+                    for tt = 1:nTemp %  for each temperature bin
+                        c_loc = cIDX(:,tt); % logical vector where the temp rate and temp match
+                        h_loc = hIDX(:,tt);
+                        % find the avg and err within the temp bin: 
+                        c_avg(tt) = mean(y(c_loc),'omitnan');
+                        h_avg(tt) = mean(y(h_loc),'omitnan');
+                        c_std(tt) = std(y(c_loc),'omitnan');
+                        h_avg(tt) = std(y(h_loc),'omitnan');
+                    end
+                    % save back to the larger structure:                         
+                    switch all_regions{i}
+                        case {'ring','inner75'}
+                            flyROImask.(all_regions{i})(sex).increasing.avg = h_avg;
+                            flyROImask.(all_regions{i})(sex).increasing.std = h_avg;
+                            flyROImask.(all_regions{i})(sex).decreasing.avg = c_avg;
+                            flyROImask.(all_regions{i})(sex).decreasing.std = h_std;
+                            flyROImask.(all_regions{i})(sex).temps = temps;
+                        case {'fullquad','innerquad','quadring','circle10','circle7','circle5'}
+                            if p == 1 %aka full avg and not based on partial region occupancy
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.avg = h_avg;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.std = h_std;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.avg = c_avg;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.std = c_std;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).temps = temps;
+                            else
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.p_avg = h_avg;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).increasing.p_std = h_std;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.p_avg = c_avg;
+                                flyROImask.(all_regions{i})(sex).(quadOrder{q}).decreasing.p_std = c_std;
+                            end
+                    end
                 end
             end
         end
     end
 end
-
 
 %% Create new comparisons of distances for the group
 

@@ -13,6 +13,9 @@ switch expGroup
 end
 initial_vars{end+1} = 'foodPairs';
 
+fig_type = '-pdf';
+blkbgd = false;
+
 %% FIGURE: Time Course for single parameter -- select your metric
 % TODO add flies on food to this section
 clearvars('-except',initial_vars{:})
@@ -245,7 +248,6 @@ set(gca, 'xlim', time_limits)
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
-
 %% FIGURE: testing how many of the empty trials have spatial biases?
 clearvars('-except',initial_vars{:})
 
@@ -364,12 +366,13 @@ if isempty(title_str)
 end
 
 % Plotting Parameters:
+foreColor = formattingColors(blkbgd); %get background colors
 autoLim = false;
 xlim_auto = false; % change the time range for the x axis
 temp_lims = [12, 35]; % x limit default values
 occ_lims = [0 100]; % y limit default values
 food_color = Color('gold');
-empty_color = Color('black');
+empty_color = foreColor;
 empty_type = 2; % high occupancy null data
 LW = 2; % avg line width
 eLW = 2; % error bar width
@@ -465,7 +468,7 @@ for i = 1:2 %
     subplot(r,c,i)
     title(sbpt_str{i})
     xlabel('temp \circC')
-    ylabel([title_str ' occupancy (%)'])
+    ylabel(y_lab)
     if ~autoLim 
         ylim(ylimits)
     end
@@ -549,27 +552,48 @@ p = anovan(warm,{wTL, wFL},'model','interaction','varnames',{'Temperature','Food
 [~,~,stats] = anovan(warm,{wTL, wFL},'model','interaction','varnames',{'Temperature','Food_Status'});
 
 
-% 
-% 
-% % statistics: are there differences betwen heating and cooling in the occupancy data for the selected region?
-% [group_name, p, ~, ~] = deal([]);
-% for ii = 1:num.exp
-%     [~,p(ii)] = ttest(SD.c_occ(:,ii), SD.w_occ(:,ii));
-%     group_name{ii} = SD.name{ii};
-%     % %multicompare
-%     % mlt = autoCat(mlt, plotY',false);
-%     % id = autoCat(id,ii*ones(length(plotY),1),false);
-% end
-% %Bonferonni correction:
-% alpha = 0.05;
-% m = num.exp;
-% p_limit = alpha/m;
-% h = p<=p_limit;
-% disp('Differences between selected temp region in ring occupancy:')
-% stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
-% disp(stats_tbl)
-% 
-% 
+
+%% Ring occupancy vs speed (to show that there isn't a direct correlation between the two)
+% [just cause flies are moving faster, doesn't mean they are more or less
+% likely to be somewhere -- would have to show this]
+
+
+%% FIGURE: sleep 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
