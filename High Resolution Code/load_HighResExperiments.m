@@ -18,7 +18,11 @@ baseFolder = basePath(1:end-5); % path to just the '/jeanne lab/' folder
 xlFile = [baseFolder 'High Resolution Experiments.xlsx'];
 
 %load excel sheet data
-[~,~,excelfile] = xlsread(xlFile,'Exp List');
+if ~ismac
+    [~,~,excelfile] = xlsread(xlFile,'Exp List');
+else
+    excelfile = readcell(xlFile,'Sheet','Exp List');
+end
 
 % Excel column for the headers:
 Excel.headers = excelfile(1,:); %xltitles

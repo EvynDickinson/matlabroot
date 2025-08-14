@@ -184,7 +184,7 @@ end
 switch dataLocation
     case 0 % user select path manually:
         basePath = uigetdir;
-        path = [basePath, '\' path_end];   
+        path = [basePath, '/' path_end];   
         location_name  = 'unknown';
     case 1 % local permanent path
         path = [availablePaths.permanentPath, path_end];

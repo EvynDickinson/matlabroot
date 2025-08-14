@@ -162,13 +162,10 @@ clearvars('-except',initial_var{:})
 % TODO -- slow down the figure progression so that you can see all of them
 % and approve etc.
 
+% TODO 8/14
 % add idx and midpoint idx for holds 
 % add data.cooling/warming idx (will be empty), maybe add hold idx 
 % adjust figures to account for empty cooling/warming data
-
-
-
-
 
 foreColor = formattingColors(blkbgd); %get background colors
 
@@ -568,7 +565,8 @@ for trial = 1:num.trials
             opLoc = [2 1 4 3];
         case 3
             opLoc = [3 2 1 4];
-        case 4          opLoc = [4 3 2 1];
+        case 4 
+            opLoc = [4 3 2 1];
     end
 
     % Find the quadrant that each well belongs to

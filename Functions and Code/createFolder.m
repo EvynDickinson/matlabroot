@@ -7,5 +7,8 @@ function folderPath = createFolder(folderPath)
 % ES Dickinson, 2025
 
 if ~exist(folderPath, 'dir')
-    mkdir(folderPath)
+    try mkdir(folderPath)
+    catch 
+        mkdir folderPath
+    end
 end

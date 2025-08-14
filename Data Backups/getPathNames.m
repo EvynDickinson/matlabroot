@@ -32,3 +32,4 @@ paths.acadiaServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc092
 paths.togiakServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
 paths.chilkatServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';
 paths.SGServerTwoPath = 'R:\Evyn\DATA\';
+
