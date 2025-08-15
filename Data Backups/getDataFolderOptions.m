@@ -56,7 +56,6 @@ else
 end
 
 % storage drive:
-% TODO (3/1) -- update this for possibilities of two drives found
 matchingDrives = findDriveByName(paths.storageDrive); % test if there is a removable drive attached
 if ~isempty(matchingDrives)
     storageDrive = true;

@@ -13,7 +13,39 @@ if nargin==0
 end
 
 if ispc
-    try % Get drive letters and volume names using WMIC
+    if strcmp(getenv('COMPUTERNAME'),'SLEEPINGGIANT')
+        % Use PowerShell to get drive letters and volume labels
+        [~, result] = system('powershell -Command "Get-Volume | Select-Object DriveLetter, FileSystemLabel | ConvertTo-Csv -NoTypeInformation"');
+        
+        % Split the result into lines
+        lines = strsplit(result, '\n');
+        
+        % Remove header and any empty lines
+        lines = strtrim(lines);
+        lines = lines(~cellfun('isempty', lines));
+        if numel(lines) < 2
+            matchingDrives = {};
+            return;
+        end
+        
+        % Extract data
+        matchingDrives = {};
+        for i = 2:length(lines) % Skip header
+            line = strrep(lines{i}, '"', ''); % Remove quotes
+            parts = strsplit(line, ',');
+            if numel(parts) >= 2
+                driveLetter = strtrim(parts{1});
+                volumeLabel = strtrim(parts{2});
+    
+                % Check if the volume name matches the target name
+                if strcmpi(volumeLabel, targetName)
+                    matchingDrives{end+1} = [driveLetter ':']; 
+                end
+            end
+        end
+
+    else % all other computers seem to work with this older style of drive search find
+        % Get drive letters and volume names using WMIC
         [~, result] = system('wmic volume get DriveLetter,Label /format:csv');
         % Split the result into lines
         lines = strsplit(result, '\n');
@@ -42,37 +74,6 @@ if ispc
             % Check if the volume name matches the target name
             if strcmpi(volumeLabel, targetName)
                 matchingDrives{end+1} = driveLetter; 
-            end
-        end
-    catch
-
-        % Use PowerShell to get drive letters and volume labels
-        [~, result] = system('powershell -Command "Get-Volume | Select-Object DriveLetter, FileSystemLabel | ConvertTo-Csv -NoTypeInformation"');
-        
-        % Split the result into lines
-        lines = strsplit(result, '\n');
-        
-        % Remove header and any empty lines
-        lines = strtrim(lines);
-        lines = lines(~cellfun('isempty', lines));
-        if numel(lines) < 2
-            matchingDrives = {};
-            return;
-        end
-        
-        % Extract data
-        matchingDrives = {};
-        for i = 2:length(lines) % Skip header
-            line = strrep(lines{i}, '"', ''); % Remove quotes
-            parts = strsplit(line, ',');
-            if numel(parts) >= 2
-                driveLetter = strtrim(parts{1});
-                volumeLabel = strtrim(parts{2});
-    
-                % Check if the volume name matches the target name
-                if strcmpi(volumeLabel, targetName)
-                    matchingDrives{end+1} = [driveLetter ':']; 
-                end
             end
         end
     end

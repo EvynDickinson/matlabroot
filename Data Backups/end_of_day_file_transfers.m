@@ -3,13 +3,17 @@
 %% SELECT EXPERIMENT TO TRANSFER
 clear  
 
-%raw data folder: 
+% Get data folders / paths: 
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
-start_dir = 'F:\Evyn\DATA\'; %'C:\Users\jeannelab\Documents\Evyn\DATA\';
-
-%get base folder pathway  
-baseFolder = 'S:\Evyn\DATA\Raw DATA\'; % G:\My Drive\Jeanne Lab\DATA\';  
+switch getenv('COMPUTERNAME')
+    case 'togiak'
+        start_dir = 'F:\Evyn\DATA\'; 
+    case 'SLEEPINGGIANT'
+        start_dir = 'D:\DATA\'; 
+end
+baseFolder = 'S:\Evyn\DATA\Raw DATA\'; 
 trackingFolder = 'S:\Evyn\Tracking Folders\';
+
 %select folder date    
 list_dirs = dir(start_dir);
 for i = 3:length(list_dirs)
