@@ -9,6 +9,7 @@
 %% Select data groups to compare
 % add matlabroot folder to the directory path
 % addpath(genpath('C:\matlabroot'));
+warning off % turn off the warnings about the oversized figures & how they might be slow to save
 format shortG
 clear; close all; clc
 paths = getPathNames; % get the appropriate file path names
@@ -469,7 +470,7 @@ for i = 1:num.exp % FOR EACH DATA GROUP
         if iscell(colors)
             grouped(expOrder(i)).color = Color(colors{(i)});
         else
-            grouped(expOrder(i)).color = colors;
+            grouped(expOrder(i)).color = colors(i,:);
         end
     else 
         grouped(expOrder(i)).color = cMap(i,:);
@@ -549,6 +550,21 @@ for i = 1:num.exp % FOR EACH DATA GROUP
     grouped(i).decreasing.rate = median(tempRates(:,downIdx));
 
 end
+
+% REAL TEMP TIME COURSE FOR EMPTY TRIALS
+for exp = 1:num.exp
+    if data(exp).hold_exp
+        str_fill = 'real_temp';
+    else 
+        str_fill = 'temp';
+    end
+    temp = [];
+    for trial = 1:num.trial(exp)
+        temp = autoCat(temp,data(exp).data(trial).occupancy.(str_fill),false,true);
+    end
+    grouped(exp).real_temp = mean(temp,2,'omitnan');
+end
+
 
 % RAMP-TO-RAMP COMPARISONS
 binWidth = 0.5; %temp bin increment
