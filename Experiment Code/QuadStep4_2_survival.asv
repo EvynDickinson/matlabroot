@@ -89,14 +89,16 @@ fprintf('Data loaded\n')
 disp('next section')
 
 %% 
+fps = 3;
+sSpan = 180;
 
 fig = getfig;
 % y = mean(data.speed.avg,'omitnan');
 for trial =  1:ntrials
     hold on
-    y = data(trial).speed.avg;
-    yy = smooth(y);
-    plot(data(trial).occupancy.time, yy)
+    y  = data(trial).speed.avg;
+    yy = smooth(y,sSpan,'moving');
+    plot(data(trial).occupancy.time, mean(yy))
 end
 
 
