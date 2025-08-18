@@ -1,4 +1,3 @@
-
 % figure;
 % exp = 1;
 % trial = 1;
@@ -8,7 +7,114 @@
 % 
 % plot(y)
 
+%    GroupDataGUI_v2
+
 %% Load data
+
+clear; clc; warning off
+blkbnd = true;
+fig_type = '-png';
+
+% Select data structure from folder names out of GroupDataGUI:
+% Need both the Data Folder path (pulling data from here) and the
+% structures folder (saving data to here)
+baseFolder = getDataPath(5,0);
+pathNames = getPathNames;
+ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
+ExpGroup = ExpGroup{:};
+% data structures folder:
+figDir = [baseFolder pathNames.grouped_trials ExpGroup '/'];
+    
+rawDataFolder = [baseFolder, pathNames.single_trial];
+
+% Does the data grouping already exist?
+raw_file = [figDir ExpGroup ' raw.mat'];
+if exist(raw_file,'file') == 2 %file exists
+    oldList =  load(raw_file, 'T');
+    newList = load([figDir 'fileList.mat'],'T');
+end
+
+% load the directory list:
+load([figDir 'fileList.mat'])
+
+% extract information
+ntrials = size(T,1);
+dates = T.Date;
+arenas = T.Arena;
+expID = T.ExperimentID;
+
+% load data
+n = cell(1,ntrials);
+data = struct('dist2wells', n, 'wellLabels', n, 'occupancy', n,'nflies',n,'data', n,'plate', n, 'pix2mm', n);  
+var2load = fieldnames(data);
+
+for trial = 1:ntrials
+    trial_ID = [dates{trial} '_' expID{trial} '_' arenas{trial}];
+    filePath = [rawDataFolder trial_ID '/'];
+    % filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+    if ~isfolder(filePath)
+        warndlg(['File not found ' trial_ID])
+    end
+    
+    temp = load([filePath expID{trial} arenas{trial} ' timecourse data v2.mat'], var2load{:});
+    for ii = 1:length(var2load)
+        try data(trial).(var2load{ii}) = temp.(var2load{ii});
+        catch
+            try data(trial).(var2load{ii}) = temp.data.(var2load{ii});
+            catch
+                if strcmp(var2load{ii},'dist2wells')
+                    try data(trial).(var2load{ii}) = temp.data.dist2well;
+                    catch; data(trial).(var2load{ii}) = [];
+                    end
+                else
+                    data(trial).(var2load{ii}) = [];
+                end
+            end
+        end
+    end
+
+    % load speed data:
+    temp = load([filePath expID{trial} ' speed data v2.mat']);
+    data(trial).speed = temp.speed;
+    disp([expID{trial} arenas{trial}])
+end
+
+initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
+        'initial_vars', 'folder', 'ntrials', 'FPS'};
+clearvars('-except',initial_vars{:})
+
+save([figDir ExpGroup ' raw.mat'],'-v7.3')
+
+fprintf('Data loaded\n')
+disp('next section')
+
+%% 
+
+fig = getfig;
+% y = mean(data.speed.avg,'omitnan');
+for trial =  1:ntrials
+    fig = getfig;
+    hold on
+    y  = data(trial).speed.avg;
+    yy = smooth(y);
+    plot(data(trial).occupancy.time, yy)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Load MANUAL data
 clear; clc;
 % baseFolder = getDataPath(2,2);
 

@@ -1,14 +1,119 @@
+% figure;
+% exp = 1;
+% trial = 1;
+% y = ones(size(sROImask(exp).all(trial).m));
+% y = y.*[1:size(y,2)];
+% y(~sROImask(exp).all(trial).m) = nan;
+% 
+% plot(y)
 
-figure;
-exp = 1;
-trial = 1;
-y = ones(size(sROImask(exp).all(trial).m));
-y = y.*[1:size(y,2)];
-y(~sROImask(exp).all(trial).m) = nan;
-
-plot(y)
+%    GroupDataGUI_v2
 
 %% Load data
+
+clear; clc; warning off
+blkbnd = true;
+fig_type = '-png';
+
+% Select data structure from folder names out of GroupDataGUI:
+% Need both the Data Folder path (pulling data from here) and the
+% structures folder (saving data to here)
+baseFolder = getDataPath(5,0);
+pathNames = getPathNames;
+ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
+ExpGroup = ExpGroup{:};
+% data structures folder:
+figDir = [baseFolder pathNames.grouped_trials ExpGroup '/'];
+    
+rawDataFolder = [baseFolder, pathNames.single_trial];
+
+% Does the data grouping already exist?
+raw_file = [figDir ExpGroup ' raw.mat'];
+if exist(raw_file,'file') == 2 %file exists
+    oldList =  load(raw_file, 'T');
+    newList = load([figDir 'fileList.mat'],'T');
+end
+
+% load the directory list:
+load([figDir 'fileList.mat'])
+
+% extract information
+ntrials = size(T,1);
+dates = T.Date;
+arenas = T.Arena;
+expID = T.ExperimentID;
+
+% load data
+n = cell(1,ntrials);
+data = struct('dist2wells', n, 'wellLabels', n, 'occupancy', n,'nflies',n,'data', n,'plate', n, 'pix2mm', n);  
+var2load = fieldnames(data);
+
+for trial = 1:ntrials
+    trial_ID = [dates{trial} '_' expID{trial} '_' arenas{trial}];
+    filePath = [rawDataFolder trial_ID '/'];
+    % filePath = [baseFolder, dates{trial}, '/Arena ' arenas{trial} '/analysis/'];
+    if ~isfolder(filePath)
+        warndlg(['File not found ' trial_ID])
+    end
+    
+    temp = load([filePath expID{trial} arenas{trial} ' timecourse data v2.mat'], var2load{:});
+    for ii = 1:length(var2load)
+        try data(trial).(var2load{ii}) = temp.(var2load{ii});
+        catch
+            try data(trial).(var2load{ii}) = temp.data.(var2load{ii});
+            catch
+                if strcmp(var2load{ii},'dist2wells')
+                    try data(trial).(var2load{ii}) = temp.data.dist2well;
+                    catch; data(trial).(var2load{ii}) = [];
+                    end
+                else
+                    data(trial).(var2load{ii}) = [];
+                end
+            end
+        end
+    end
+
+    % load speed data:
+    temp = load([filePath expID{trial} ' speed data v2.mat']);
+    data(trial).speed = temp.speed;
+    disp([expID{trial} arenas{trial}])
+end
+
+initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
+        'initial_vars', 'folder', 'ntrials', 'FPS'};
+clearvars('-except',initial_vars{:})
+
+save([figDir ExpGroup ' raw.mat'],'-v7.3')
+
+fprintf('Data loaded\n')
+disp('next section')
+
+%% 
+
+fig = getfig;
+% y = mean(data.speed.avg,'omitnan');
+for trial =  1:ntrials
+    hold on
+    y = data(trial).speed.avg;
+    yy = smooth(y);
+    plot(data(trial).occupancy.time, yy)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Load MANUAL data
 clear; clc;
 % baseFolder = getDataPath(2,2);
 
@@ -38,6 +143,7 @@ baseFolder = getDataPath(5,2);
 pathNames = getPathNames;
 % ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
 % ExpGroup = ExpGroup{:};
+
 % If survival curves folder isn't made yet, make it
 ExpGroup = 'Berlin survival comparisons no food';
 rootDir = createFolder([baseFolder pathNames.group_comparision ExpGroup '/']);
@@ -64,9 +170,13 @@ switch tempprotocol
         data(exp).columns = [11,13:52];
         data(exp).color =  Color('tomato');
         data(exp).temp = 35;
-    case 'survival_curve_5C'
+    case 'survival_curve_10C'
         data(exp).columns = [11:14,16,18,20,22,24,27,29,32,34,37,39,42,44,47,49,52,54,57,59];
         data(exp).color = Color('dodgerblue');
+        data(exp).temp = 10;
+    case 'survival_curve_5C'
+        data(exp).columns = [11:14,16,18,20,22,24,27,29,32,34,37,39,42,44,47,49,52,54,57,59];
+        data(exp).color = Color('blue');
         data(exp).temp = 5;
 end
 
@@ -80,7 +190,7 @@ data(exp).avgperc = mean(data(exp).perc,'omitnan');
 end
 
 
-%% Plot number of dead flies overtime
+%% Plot number of incapacitated/dead flies overtime
 fig = getfig;
 for exp = 1:nexps
     hold on
@@ -92,42 +202,38 @@ formatFig(fig, blkbnd);
     ylim([0 20])
     set(gca,"YTick", 0:3:20, 'FontSize', 20)
     xlabel('Time (min)')
-    ylabel('Number of dead flies')
+    ylabel('Number of incapaciated flies')
 save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
 
-%% Percentage flies dead overtime
+%% Percentage flies incapacitated/dead overtime
 
 fig = getfig;
 for exp = 1:nexps
     hold on
-    y_err = (std(data(exp).per,0,1,'omitnan'))./sqrt(data(exp).ntrials); % calculate SEM
-    plot_error_fills(1, data(exp).time, data(exp).avg, y_err, data(exp).color, fig_type, 0.35); % plot error
-    plot(data(exp).time,data(exp).avgperc,'linewidth',3,'color',data(exp).color)
+    y_err = (std(data(exp).perc,0,1,'omitnan'))./sqrt(data(exp).ntrials); % calculate SEM
+    plot_error_fills(1, data(exp).time/60, data(exp).avgperc, y_err, data(exp).color, fig_type, 0.35); % plot error
+    plot((data(exp).time)/60,data(exp).avgperc,'linewidth',3,'color',data(exp).color)
 end
+
 formatFig(fig, blkbnd);
     ylim([0 100])
-    set(gca,"YTick", 0:25:100, 'FontSize', 20)
-    xlabel('Time (min)')
-    ylabel('Number of dead flies')
+    set(gca,"YTick", 0:25:100, 'XTick', 0:6:48, 'FontSize', 15)
+    xlabel('Time (hours)')
+    ylabel('Percentage of incapaciated flies')
+
 save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
 
-
-
-
-
-
-
 %% Plot number of alive flies overtime
-numflies = cell2mat([excelfile(temptrials,10)]);
-aliveflies = numflies - cell2mat([excelfile(temptrials,11:51)]);
-% perc_alive = (aliveflies/numflies)*100;
-
-fig = getfig;
-    plot(time,aliveflies,'linewidth',2)
-formatFig(fig, blkbnd);
-    ylim([0 20])
-    % xlim([0 500])
-    xlabel('Time (min)')
-    ylabel('Number of alive flies')
+% numflies = cell2mat([excelfile(temptrials,10)]);
+% aliveflies = numflies - cell2mat([excelfile(temptrials,11:51)]);
+% % perc_alive = (aliveflies/numflies)*100;
+% 
+% fig = getfig;
+%     plot(time,aliveflies,'linewidth',2)
+% formatFig(fig, blkbnd);
+%     ylim([0 20])
+%     % xlim([0 500])
+%     xlabel('Time (min)')
+%     ylabel('Number of alive flies')
 
 
