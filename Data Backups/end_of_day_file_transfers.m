@@ -6,7 +6,7 @@ clear
 % Get data folders / paths: 
 date_today = strrep(datestr(datetime,'mm-dd-yyyy'),'-','.');
 switch getenv('COMPUTERNAME')
-    case 'togiak'
+    case 'TOGIAK'
         start_dir = 'F:\Evyn\DATA\'; 
     case 'SLEEPINGGIANT'
         start_dir = 'D:\DATA\'; 
