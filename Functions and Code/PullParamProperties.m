@@ -1,7 +1,7 @@
 
 
-function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamProperties(title_str,typeString)
-% [pName,y_dir,y_lab,nullD,scaler] = PlotParamSelection(plotType);
+function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir, subquads] = PullParamProperties(title_str,typeString)
+% [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir, subquads] = PullParamProperties(title_str,typeString);
 % plotType = true --> select the type of data to plot (e.g., avg, single
 % trial, separated heating and cooling
 % {'Distance to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed'};
