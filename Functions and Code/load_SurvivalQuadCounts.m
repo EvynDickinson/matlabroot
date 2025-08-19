@@ -6,7 +6,7 @@ function [excelfile, Excel, xlFile] = load_SurvivalQuadCounts
 % 'Excel' [structure with locations of column headers]
 % 'xlFile' excel file path
 %
-%
+% Adapted by B Ray from load_QuadBowlExperiments, Yale University, June 2025
 % ES Dickinson, University of Washington, Dec 2018
 % updated Yale University, Aug 2021
 
