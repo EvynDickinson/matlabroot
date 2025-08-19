@@ -18,6 +18,8 @@ function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir, subquads] = P
 
 % Select the type of information to plot: 
 
+subquads = false; % set this as the default value
+
 switch title_str
     case 'Proximity to Food'
         pName = 'dist';
@@ -46,6 +48,7 @@ switch title_str
         y_lab = [title_str ' (%)'];
         nullD = 25;
         scaler = 1;
+        subquads = true;
     case 'Ring Occupancy'
         pName = 'ring';
         y_dir = 'normal';
