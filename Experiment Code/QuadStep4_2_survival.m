@@ -91,29 +91,48 @@ disp('next section')
 %% 
 
 sSpan = 180; % 3fps = 1min bin
-sb(1).idx = 1; % temperature
-sb(2).idx = 2:4;
 
-tic
-fig = getfig;
-% y = mean(data.speed.avg,'omitnan');
-for trial = 1:ntrials
-    hold on
-    y  = data(trial).speed.avg;
-    yy = smooth(y,sSpan,'moving');
-    plot(data(trial).occupancy.time, mean(yy))
-end
-toc
+speed = [];
+a = [];
+for trial = 1:ntrials 
+    speed = autoCat(speed, data(trial).speed.avg, false);
+    a = [a, length(data(trial).occupancy.time)];
+end 
+[b,c] = min(a);
+avgspeed = mean(speed(1:b,:),2,'omitnan');
 
 fig = getfig;
-hold on
-for trial = 1:ntrials
-    hold on
-    y  = data(trial).speed.avg;
-    yy = smooth(y,sSpan,'moving');
-    plot(data(trial).occupancy.time, mean(yy))
+yy = smooth(avgspeed,sSpan,'moving');
+plot(data(c).occupancy.time, (yy))
+
+
+%%
+
+
+% Smooth raw speed data for clearer visualization
+binsize = 3;
+for trial = 1:ntrials    
+    numtracks = size(data(trial).speed.raw,2);
+    numframes = length(data(trial).speed.raw);
+    a = [];
+    for track = 1:numtracks
+        a(:,track) = smooth(data(trial).speed.raw(:,track),binsize,'moving');
+    end
+    data(trial).speed.smoothed_raw = a;
 end
 
+min_speed = 0.1; %min speed, up for debate, matched to courtship min
+for trial = 1 %:ntrials
+    for track = 1 %:numtracks
+        still = data(trial).speed.smoothed_raw(:,track) < min_speed;
+        loc = find(still);
+    end
+end
+
+%have location in raw data for one trial and one track where speed is < 0.1
+%need place to store locs 
+%what percentage of tracks are still over time
+%compare that to percentage of flies still over time
 
 
 
@@ -122,13 +141,6 @@ end
 
 
 
-
-
-
-
-
-
-    subplot(r,c,sb(1).idx); hold on
 
 
 
