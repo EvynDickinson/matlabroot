@@ -89,8 +89,12 @@ fprintf('Data loaded\n')
 disp('next section')
 
 %% 
-sSpan = 180; % 3fps = 1min bin
 
+sSpan = 180; % 3fps = 1min bin
+sb(1).idx = 1; % temperature
+sb(2).idx = 2:4;
+
+tic
 fig = getfig;
 % y = mean(data.speed.avg,'omitnan');
 for trial = 1:ntrials
@@ -99,6 +103,32 @@ for trial = 1:ntrials
     yy = smooth(y,sSpan,'moving');
     plot(data(trial).occupancy.time, mean(yy))
 end
+toc
+
+fig = getfig;
+hold on
+for trial = 1:ntrials
+    hold on
+    y  = data(trial).speed.avg;
+    yy = smooth(y,sSpan,'moving');
+    plot(data(trial).occupancy.time, mean(yy))
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    subplot(r,c,sb(1).idx); hold on
 
 
 
