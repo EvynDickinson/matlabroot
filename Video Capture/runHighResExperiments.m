@@ -103,7 +103,7 @@ tempLogStart = [];
 % start delay on the experiment
 pause(start_pause*60)
 % pause(10)
-    
+
 % for n = 1:numSections
 n = 1;
 % save start temp log information    
