@@ -1,7 +1,7 @@
 
 
-function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamProperties(title_str,typeString)
-% [pName,y_dir,y_lab,nullD,scaler] = PlotParamSelection(plotType);
+function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir, subquads] = PullParamProperties(title_str,typeString)
+% [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir, subquads] = PullParamProperties(title_str,typeString);
 % plotType = true --> select the type of data to plot (e.g., avg, single
 % trial, separated heating and cooling
 % {'Distance to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed'};
@@ -17,6 +17,8 @@ function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir] = PullParamPr
 % ES Dickinson, 2024
 
 % Select the type of information to plot: 
+
+subquads = false; % set this as the default value
 
 switch title_str
     case 'Proximity to Food'
@@ -46,6 +48,7 @@ switch title_str
         y_lab = [title_str ' (%)'];
         nullD = 25;
         scaler = 1;
+        subquads = true;
     case 'Ring Occupancy'
         pName = 'ring';
         y_dir = 'normal';

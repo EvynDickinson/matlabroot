@@ -437,6 +437,9 @@ switch expGroup
     case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
         expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
         colors = {'Peachpuff', 'Powderblue','Magenta'};
+    case 'Berlin vs UAS-Kir2.1 caviar background comparison'
+        expOrder = 1:num.exp;
+        colors = {'turquoise', 'DarkOrchid'};
 end
 
 if ~exist('colors','var')

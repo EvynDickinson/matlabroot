@@ -1,19 +1,18 @@
 
 
 function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only)
-% TODO: update this for the new region occupancy structures...6.16.25 ESD
-% [pName,y_dir,y_lab,nullD,scaler] = PlotParamSelection(plotType);
-% plotType = true --> select the type of data to plot (e.g., avg, single
-% trial, separated heating and cooling
+% [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only)
+% plotType = true --> select the type of data to plot (avg, single trial, separated heating and cooling)
 % {'Distance to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed'};
 % title_str = Name of the selected parameter
 % pName = parameter name in the grouped structure
 % y_dir = y axis plotting direction
 % y_lab  = y axis label
 % nullD = null distribution value
-% scaler = multiplication scaler for the parameter 
+% scaler = multiplication scaler for the parameter
 % dType = display type (e.g., single trial, avg, sep H &C)
 % fig_dir = fig directory ending for subfolder of this plot type
+% ext = are there subplots that can be plotted 
 % 
 % ES Dickinson, 2024
 
