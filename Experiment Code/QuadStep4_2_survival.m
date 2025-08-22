@@ -9,7 +9,7 @@
 
 %    GroupDataGUI_v2
 
-%% Load data
+%% LOAD: Individual survival data structure
 
 clear; clc; warning off
 blkbnd = true;
@@ -80,7 +80,7 @@ for trial = 1:ntrials
 end
 
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
-        'initial_vars', 'folder', 'ntrials', 'FPS'};
+        'initial_vars', 'folder', 'ntrials', 'FPS','sSpan','blkbnd','fig_type'};
 clearvars('-except',initial_vars{:})
 
 save([figDir ExpGroup ' raw.mat'],'-v7.3')
@@ -90,24 +90,24 @@ disp('next section')
 
 %% 
 
-sSpan = 180; % 3fps = 1min bin
+% sSpan = 180; % 3fps = 1min bin
+% 
+% speed = [];
+% a = [];
+% for trial = 1:ntrials 
+%     speed = autoCat(speed, data(trial).speed.avg, false);
+%     a = [a, length(data(trial).occupancy.time)];
+% end 
+% [b,c] = min(a); %[minimun, what column minimum value is located within a]
+% avgspeed = mean(speed(1:b,:),2,'omitnan');
+% 
+% fig = getfig;
+% yy = smooth(avgspeed,sSpan,'moving');
+% plot(data(c).occupancy.time, (yy))
 
-speed = [];
-a = [];
-for trial = 1:ntrials 
-    speed = autoCat(speed, data(trial).speed.avg, false);
-    a = [a, length(data(trial).occupancy.time)];
-end 
-[b,c] = min(a);
-avgspeed = mean(speed(1:b,:),2,'omitnan');
 
-fig = getfig;
-yy = smooth(avgspeed,sSpan,'moving');
-plot(data(c).occupancy.time, (yy))
-
-
-%%
-
+%% ANALYSIS: Smooth speed data and calculate proportion of still flies
+clearvars('-except',initial_vars{:})
 
 % Smooth raw speed data for clearer visualization
 binsize = 3;
@@ -121,20 +121,87 @@ for trial = 1:ntrials
     data(trial).speed.smoothed_raw = a;
 end
 
-min_speed = 0.1; %min speed, up for debate, matched to courtship min
-for trial = 1 %:ntrials
-    for track = 1 %:numtracks
-        still = data(trial).speed.smoothed_raw(:,track) < min_speed;
-        loc = find(still);
+% Find proportion of still flies throughout experiment
+min_speed = 0.2; %min speed, base on speed distribution
+
+for trial = 1:ntrials
+    numtracks = size(data(trial).speed.raw,2);
+    numframes = length(data(trial).speed.raw);
+    % Create matrix for when fly speed is < min allocated 
+    still = [];
+    loc = [];
+    for track = 1:numtracks
+        b = data(trial).speed.smoothed_raw(:,track) < min_speed;
+        still = [still, b];  
+        c = find(b);
+        loc = autoCat(loc, c, false); %locations in smoothed raw data where speed is < 0.1
+    end
+    % Calcuate proportion of still tracks from total number of tracks for each frame
+    incap = sum(still,2);
+    d = ~isnan(data(trial).speed.raw);
+    data(trial).speed.sizetracks = sum(d,2);
+    data(trial).speed.still = incap./data(trial).speed.sizetracks; 
+    
+end
+
+infinity_loc = [];
+for trial = 1:ntrials
+    infinity_loc = autoCat(infinity_loc,find(isinf(data(trial).speed.still)),false);
+    loc2 = length(infinity_loc);
+    for i = 1:loc2
+        data(trial).speed.still(infinity_loc(i,trial)) = 0;
     end
 end
 
-%have location in raw data for one trial and one track where speed is < 0.1
-%need place to store locs 
-%what percentage of tracks are still over time
-%compare that to percentage of flies still over time
 
 
+%% FIGURE: Histogram of fly speed 
+
+% FIGURE
+fig = getfig;
+hold on
+for trial = 1:ntrials
+    histogram(data(trial).speed.smoothed_raw,"BinWidth",0.01)
+end
+xlim([0 0.5])
+
+% Format figure
+formatFig(fig,blkbnd);
+xlabel('Speed (mm/s')
+ylabel('Frequency')
+
+% Save figure
+save_figure(fig,[figDir, 'Speed histogram'], fig_type);
+
+
+%% FIGURE: Percentage of still flies over time
+clearvars('-except',initial_vars{:})
+
+sSpan = 180; % 3fps = 1min bin
+% Calculate average percentage still 
+incap = [];
+a = [];
+for trial = 1:ntrials 
+    incap = autoCat(incap, data(trial).speed.still, false);
+    a = [a, length(data(trial).occupancy.time)];
+end 
+[b,c] = min(a); %[minimun, what column minimum value is located within a]
+avgstill = mean(incap(1:b,:),2,'omitnan');
+percstill = avgstill*100;
+
+% FIGURE
+fig = getfig;
+y = smooth(percstill,sSpan,'moving');
+% y = smooth(y,sSpan,'moving');
+plot(data(c).occupancy.time, y,'linewidth',1)
+
+% Format figure
+formatFig(fig,blkbnd);
+xlabel('Time (min)')
+ylabel('Percentage of still flies')
+
+% Save figure
+save_figure(fig,[figDir, 'Percentage still flies overtime'], fig_type);
 
 
 
