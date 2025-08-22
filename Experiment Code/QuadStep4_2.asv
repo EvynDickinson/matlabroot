@@ -2687,7 +2687,7 @@ else
     add_str = 'ps, no existing data found';
 end
 
-if strcmp(questdlg({'Save subfields into separate data files for later use?'; add_str}),'Yes')
+if strcmp(questdlg({'Save subfields into separate data files for later use?' add_str]),'Yes')
     tic
     for param = 1:length(save_list) % save each field as its own 
         y = struct;

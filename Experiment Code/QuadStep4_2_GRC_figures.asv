@@ -5,7 +5,11 @@ blkbgd = false;
 
 %% update the color selection for the temp hold trials
 
-
+% color_list = {'Blue', 'DodgerBlue', 'LightSkyBlue',  'Silver', 'DarkSalmon', 'Red','FireBrick'};
+color_list = {'Peachpuff', 'Powderblue','Magenta'};
+for i = 1:num.exp
+    grouped(i).color = Color(color_list{i});
+end
 
 
 %% Occupancy 'null' distribution for no food trials
@@ -685,8 +689,8 @@ nMax =  num.exp;
 
 % TODO: option for equal spacing or temp-dependent spacing
 
-% tempList = [15 25 35];
-tempList = [17 25];
+tempList = [15 20 25 30 35];
+% tempList = [17 25];
 
 % set figure folder
 fig_dir = createFolder([saveDir, 'Figures/']);
@@ -720,12 +724,13 @@ fig = getfig('',1,[figWidth, 420]);
             end
             Y = mean(rawY,1,'omitnan');
             Y_avg = mean(Y,'omitnan');
-            Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
+            Y_err = std(Y,0,2,'omitnan');%/sqrt(num.trial(exp));
               
             % plot the data: 
             X = x_idx*ones([1,num.trial(exp)]);
             a = scatter(X,Y,sz,kolor,'filled', 'XJitter','density');
             plot([x_idx-buff,x_idx+buff],[Y_avg, Y_avg], 'color', foreColor, 'linewidth',2)
+            errorbar(x_idx, Y_avg, Y_err, 'color', foreColor, 'LineWidth',1,'CapSize',2)
 
             % update plotting location tracking
             tempLabel = [tempLabel, x]; % keep track of the ACTUAL temp value at this location
@@ -751,21 +756,21 @@ ylabel(y_lab)
 
 save_figure(fig,[fig_dir, pName ' occ scatter'],fig_type);
 
-disp('manually update and run the stats')
-return
-
-% Multiway ANOVA
-[p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
-multcompare(stats_out, 'Dimension', 1)  % for temp
-multcompare(stats_out, 'Dimension', 2)  % for exp group
-
-% WORKING HERE: TODO 6.17 STATS on the individual comparisons....
-% manually check which stats are important to you...
-groupA1B1 = stats(group1 == 15 & group2 == 1);
-groupA2B2 = stats(group1 == 15 & group2 == 2);
-[h,p] = ttest2(groupA1B1, groupA2B2);
-
-[results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
+% disp('manually update and run the stats')
+% return
+% 
+% % Multiway ANOVA
+% [p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
+% multcompare(stats_out, 'Dimension', 1)  % for temp
+% multcompare(stats_out, 'Dimension', 2)  % for exp group
+% 
+% % WORKING HERE: TODO 6.17 STATS on the individual comparisons....
+% % manually check which stats are important to you...
+% groupA1B1 = stats(group1 == 15 & group2 == 1);
+% groupA2B2 = stats(group1 == 15 & group2 == 2);
+% [h,p] = ttest2(groupA1B1, groupA2B2);
+% 
+% [results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
 
 %% FIGURE: Scatter plot for specific time points separated by heating and cooling for each exp 
 % TODO add flies on food to this section
@@ -780,8 +785,8 @@ nMax =  num.exp;
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 
-% tempList = [15 25 35];
-tempList = [17 25];
+tempList = [15 20 25 30 35];
+% tempList = [17 25];
 
 % set figure folder
 fig_dir = createFolder([saveDir, 'Figures/']);
@@ -796,11 +801,7 @@ r = 1;
 c = 2; % heating and cooling
 buff = 0.5;
 edgeBuff = 3;
-<<<<<<< Updated upstream
 ylims = [0, 100];
-=======
-ylims = [0, 75];
->>>>>>> Stashed changes
 
 timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
 
@@ -859,6 +860,7 @@ for exp = 1:num.exp
             X = shuffle_data(linspace(targetTemp-buff,targetTemp+buff,num.trial(exp)));
             a = scatter(X,Y,sz,kolor,'filled');
             plot([targetTemp-(5*buff),targetTemp+(5*buff)],[Y_avg, Y_avg], 'color', kolor, 'linewidth',2)
+            errorbar(targetTemp, Y_avg, Y_err, 'color', foreColor, 'LineWidth',1,'CapSize',2)
             
         end
         % Formatting
@@ -1036,7 +1038,7 @@ r = 1;
 c = 2;
 autoLims = true;
 
-timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
+timeROI = 1:data(1).fps * 3600 * 5 ; % time region to average over...5 hours
 
 plotData = [];
 for exp = 1:num.exp
@@ -1048,7 +1050,7 @@ for exp = 1:num.exp
     plotData = autoCat(plotData, y_all',false);
 end
 
-temp_list = [15 17 20 25 27 33 35]; % temps that we have temp hold data for...
+temp_list = [15 17 20 23 25 27 30 33]; % temps that we have temp hold data for...
 y_avg = mean(plotData, 1,'omitnan');
 y_sem = std(plotData,0,1,'omitnan')./sqrt(num.trial);
 
@@ -1145,16 +1147,16 @@ timeROI = 1:data(1).fps * 3600 * 4.5 ; % time region to average over...4.5 hours
 hold_trials = [3, 4];
 dyn_trials = [1, 2];
 
-
-plotData = [];
-for i = 1:length(hold_trials)
-    exp = hold_trials(i);
-    if ext
-        y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
-    else
-        y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
-    end
-    plotData = autoCat(plotData, y_all',false);
+% 
+% plotData = [];
+% for i = 1:length(hold_trials)
+%     exp = hold_trials(i);
+%     if ext
+%         y_all = mean(grouped(exp).(param).food.all(timeROI,:),1,'omitnan');
+%     else
+%         y_all = mean(grouped(exp).(param).all(timeROI,:),1,'omitnan');
+%     end
+%     plotData = autoCat(plotData, y_all',false);
 
 
 
@@ -1246,7 +1248,7 @@ end
 
 %% Temp rate comparisons: temp tuning curves for plotting separeated by heating and cooling
 clearvars('-except',initial_vars{:})
-autoLims = true;
+autoLims = false;
 [title_str, param,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 
 r = 1;
@@ -1254,11 +1256,11 @@ c = 2;
 
 LW = 2;
 FA = 0.5;
-xlims = [17, 25];
+xlims = [15, 35];
 if autoLims
     ylims = [];
 else
-    ylims = [0 80];
+    ylims = [0 60];
 end
 
 fig = getfig('',1);
@@ -1329,6 +1331,7 @@ for i = 1:2
         ylim(ylims)
     end
 end
+set(gca,'ycolor', 'none')
 
 save_figure(fig,[figDir, param ' occ temp tuning curve separated heating and cooling'],fig_type);
 

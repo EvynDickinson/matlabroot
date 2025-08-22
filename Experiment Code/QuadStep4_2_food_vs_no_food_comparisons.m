@@ -10,6 +10,8 @@ switch expGroup
         foodPairs = [1,3; 2,4];  
     case 'Berlin temperature holds'
         foodPairs = [1,2; 3,4; 5,6; 7,8; 9,10; 11,12; 13,14; 15,16];
+    case  'Berlin LTS 15-35 caviar vs empty'
+        foodPairs = [1,2];
 end
 initial_vars{end+1} = 'foodPairs';
 
@@ -23,8 +25,8 @@ clearvars('-except',initial_vars{:})
 plot_err = true;
 autoLim = false;
 xlim_auto = false; % change the time range for the x axis
-% time_limits = [100,700]; % time limits if manual control over x-axis range
-time_limits = [0, 400];
+time_limits = [100,700]; % time limits if manual control over x-axis range
+% time_limits = [0, 900];
 nMax =  num.exp; 
 plot_high_null = true; % plot the low or high null occupancy for empty trials
 foreColor = formattingColors(blkbgd); %get background colors
@@ -556,7 +558,6 @@ p = anovan(warm,{wTL, wFL},'model','interaction','varnames',{'Temperature','Food
 %% Ring occupancy vs speed (to show that there isn't a direct correlation between the two)
 % [just cause flies are moving faster, doesn't mean they are more or less
 % likely to be somewhere -- would have to show this]
-
 
 %% FIGURE: sleep 
 

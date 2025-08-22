@@ -1473,7 +1473,43 @@ for exp = dynm_idx
 end
 
 
+%% [MANUAL LOADING SECTION]
+% load data that already has been saved to plot across static and dynamic
+% trials without having to load the massive set of all of them
 
+paths = getPathNames; % get the appropriate file path names
+baseFolder = getDataPath(5,0,'Select where you want to find the grouped data structures');
+% baseFolder = getCloudPath;
+structFolder = [baseFolder paths.group_comparision];
+
+% Pick type of data to load from 4_2 where we export processed data subtypes
+param_options = {'ring', 'inner75', 'fullquad', 'innerquad', 'quadring', 'circle10', 'circle7', 'circle5', 'fliesonfood', 'sleep'}; 
+idx = listdlg("PromptString",'select data type to load', 'ListString', param_options, 'SelectionMode', 'single');
+try param = param_options{idx};
+catch
+    return
+end
+
+% Pick static & dynamic data sets
+folderName = selectFolder(structFolder,true,'Select dynamic and static data to load');
+nGroups = length(folderName);
+
+% Check if the selected data sets have the appropriate data saved
+file_check = false([1,nGroups]);
+for i = 1:nGroups
+    file_check(i) = isfile([structFolder folderName{i} '/' param ' data.mat']);
+end
+if any(~file_check)
+    {folderName{~file_check}}'
+    warndlg('Presaved data not found')
+    return
+end
+
+% Load data for the selected types
+for i = 1:nGroups
+    data()
+
+% Plot data
 
 
 

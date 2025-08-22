@@ -689,8 +689,8 @@ nMax =  num.exp;
 
 % TODO: option for equal spacing or temp-dependent spacing
 
-% tempList = [15 25 35];
-tempList = [17 25];
+tempList = [15 20 25 30 35];
+% tempList = [17 25];
 
 % set figure folder
 fig_dir = createFolder([saveDir, 'Figures/']);
@@ -724,12 +724,13 @@ fig = getfig('',1,[figWidth, 420]);
             end
             Y = mean(rawY,1,'omitnan');
             Y_avg = mean(Y,'omitnan');
-            Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
+            Y_err = std(Y,0,2,'omitnan');%/sqrt(num.trial(exp));
               
             % plot the data: 
             X = x_idx*ones([1,num.trial(exp)]);
             a = scatter(X,Y,sz,kolor,'filled', 'XJitter','density');
             plot([x_idx-buff,x_idx+buff],[Y_avg, Y_avg], 'color', foreColor, 'linewidth',2)
+            errorbar(x_idx, Y_avg, Y_err, 'color', foreColor, 'LineWidth',1,'CapSize',2)
 
             % update plotting location tracking
             tempLabel = [tempLabel, x]; % keep track of the ACTUAL temp value at this location
@@ -755,21 +756,21 @@ ylabel(y_lab)
 
 save_figure(fig,[fig_dir, pName ' occ scatter'],fig_type);
 
-disp('manually update and run the stats')
-return
-
-% Multiway ANOVA
-[p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
-multcompare(stats_out, 'Dimension', 1)  % for temp
-multcompare(stats_out, 'Dimension', 2)  % for exp group
-
-% WORKING HERE: TODO 6.17 STATS on the individual comparisons....
-% manually check which stats are important to you...
-groupA1B1 = stats(group1 == 15 & group2 == 1);
-groupA2B2 = stats(group1 == 15 & group2 == 2);
-[h,p] = ttest2(groupA1B1, groupA2B2);
-
-[results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
+% disp('manually update and run the stats')
+% return
+% 
+% % Multiway ANOVA
+% [p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
+% multcompare(stats_out, 'Dimension', 1)  % for temp
+% multcompare(stats_out, 'Dimension', 2)  % for exp group
+% 
+% % WORKING HERE: TODO 6.17 STATS on the individual comparisons....
+% % manually check which stats are important to you...
+% groupA1B1 = stats(group1 == 15 & group2 == 1);
+% groupA2B2 = stats(group1 == 15 & group2 == 2);
+% [h,p] = ttest2(groupA1B1, groupA2B2);
+% 
+% [results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
 
 %% FIGURE: Scatter plot for specific time points separated by heating and cooling for each exp 
 % TODO add flies on food to this section
@@ -784,8 +785,8 @@ nMax =  num.exp;
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 
-% tempList = [15 25 35];
-tempList = [17 25];
+tempList = [15 25 35];
+% tempList = [17 25];
 
 % set figure folder
 fig_dir = createFolder([saveDir, 'Figures/']);
@@ -812,15 +813,16 @@ for exp = 1:num.exp
     end
         
     fig = getfig('',1,[figWidth, 420]);
+    kolor = grouped(exp).color;
     for tt = 1:2 % cooling then decreasing
         switch tt
             case 1
                 tType = 'decreasing';
-                kolor = Color('dodgerblue');
+                % kolor = Color('dodgerblue');
                 tName = 'cooling';
             case 2
                 tType = 'increasing';
-                kolor = Color('red');
+                % kolor = Color('red');
                 tName = 'warming';
         end
 
@@ -853,12 +855,13 @@ for exp = 1:num.exp
 
             Y = mean(y_all,1,'omitnan');
             Y_avg = mean(Y,'omitnan');
-            Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
+            Y_err = std(Y,0,2,'omitnan');%/sqrt(num.trial(exp));
 
             % plot the data: 
             X = shuffle_data(linspace(targetTemp-buff,targetTemp+buff,num.trial(exp)));
             a = scatter(X,Y,sz,kolor,'filled');
-            plot([targetTemp-(5*buff),targetTemp+(5*buff)],[Y_avg, Y_avg], 'color', kolor, 'linewidth',2)
+            plot([targetTemp-(3*buff),targetTemp+(3*buff)],[Y_avg, Y_avg], 'color', foreColor, 'linewidth',2)
+            errorbar(targetTemp, Y_avg, Y_err, 'color', foreColor, 'LineWidth',1,'CapSize',2)
             
         end
         % Formatting
