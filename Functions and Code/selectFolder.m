@@ -1,8 +1,10 @@
 
 
-function folderSelected = selectFolder(path,mulitselect,promptString)
-% folderSelected = selectFolder(path,mulitselect,promptString)
-% select a folder from an input directory with the autoadded 
+function folderSelected = selectFolder(path,mulitselect,promptString,default_search_names)
+% folderSelected = selectFolder(path,mulitselect,promptString,default_search_names)
+% default_search_names = {'name 1', 'name 2'} search for these names and
+% highlight them as the default start values...
+% select a folder from an input directory with the auto added 
 
 % path_A = 'C:\Users\evynd\OneDrive\Desktop\Testing End Folder\'
 
@@ -23,18 +25,24 @@ folders = dirc([dirc.isdir]);
 
 % Get the names of the folders
 folderNames = {folders.name}';
-
-
-% folderNames = {dirc(:).name};
 folderNames(1:2) = [];
-
 if isempty(folderNames)
     fprintf('\n No available folders \n')
     folderSelected = '';
     return
 end
 
-indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[450 600]);
+% if start search values, look for those: 
+if nargin==4 && ~isempty(default_search_names)
+    start_loc = [];
+    for i = 1:length(default_search_names)
+        start_loc(i) = find(strcmpi(default_search_names{i},folderNames)); %#ok<AGROW>
+    end
+else 
+    start_loc = 1;
+end
+
+indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[450 600],'InitialValue',start_loc);
 nFolders = length(indx);
 
 if isempty(indx)

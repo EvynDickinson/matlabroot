@@ -5,6 +5,7 @@
 % load data that already has been saved to plot across static and dynamic
 % trials without having to load the massive set of all of them
 clear; clc
+warning off
 
 paths = getPathNames; % get the appropriate file path names
 baseFolder = getDataPath(5,0,'Select where you want to find the grouped data structures');
@@ -20,8 +21,10 @@ catch
 end
 
 % Pick static & dynamic data sets
-folderName = selectFolder(structFolder,true,'Select dynamic and static data to load');
+default_structs = {'Berlin LTS 15-35 caviar vs empty','Berlin temperature holds'};
+folderName = selectFolder(structFolder,true,'Select dynamic and static data to load', default_structs);
 nGroups = length(folderName);
+clear default_structs
 
 % Check if the selected data sets have the appropriate data saved
 file_check = false([1,nGroups]);
@@ -51,6 +54,8 @@ data(d).foodPairs = [1,2]; % food vs empty for the dynamic trials
 
 blkbgd = false; % black background or not
 
+figDir = [structFolder 'Berlin Static Vs Dynamic/'];
+
 initial_vars = who; 
 initial_vars{end+1} = 'initial_vars';
 initial_vars{end+1} = 'static_names';
@@ -66,10 +71,11 @@ if ~exist('LTS_temp', 'var')
 end
 
 %% Plot the data 
+% scatter plot of static vs dynamic separated by warming and cooling for the loaded parameter
 clearvars('-except',initial_vars{:})
+food = true; % plot the food data trials
 
-% scatter plot of static vs dynamic sep by warming and cooling for the loaded parameter
-
+% tempList = [15  25  33]; % what temps to plot
 tempList = [15 20 25 30 33]; % what temps to plot
 nTemps = length(tempList);
 % full_temp_list =  [15 17 20 23 25 27 30 33 35];
@@ -77,13 +83,22 @@ nTemps = length(tempList);
 % Plotting Parameters:
 foreColor = formattingColors(blkbgd); %get background colors
 
-food = true; % plot the food data trials
 if food
-    expIdxD = data(d).foodPairs(1);
-    expIdxS = 1;
+    expIdxD = data(d).foodPairs(1); % food idx of dynamic trials
+    expIdxS = 1; %  food column index in static trials
+    food_str = 'food';
 else 
-    expIdxS = 2;
-    expIdxD = data(d).foodPairs(2);
+    expIdxS = 2; % empty food column index in static trials
+    expIdxD = data(d).foodPairs(2); % empty idx of static trials
+    food_str = 'high'; % also the quadrant type to search/plot
+end
+
+% determine if this data type has subsections that need to be characterized
+% by food or occupancy
+if isfield(data(1).y(1).(param),'food')
+    ext = true;
+else
+    ext = false;
 end
 
 % extract the temperature information from the static group trial names:
@@ -99,14 +114,14 @@ end
 buff = 0.3; % x scatter buffer size
 SZ = 35; % scatter point size
 sideBuff = 0.5; % side shift from temp to fit both comparisons
-Lbuff = 2.5; % scaling on distance for avg line
+Lbuff = 3; % scaling on distance for avg line
 LW = 2;
 r = 1;
 c = 2;
 
 % PLOT THE FIGURE:
 fig = getfig('',1);
-%subplots for heating vs cooling
+% subplots for heating vs cooling
 for type = 1:2 % heating then cooling
     subplot(r,c,type); hold on
     switch type
@@ -118,7 +133,11 @@ for type = 1:2 % heating then cooling
     % ____ plot the dynamic trial data first ____ 
     for i = 1:nTemps
         x = tempList(i);
-        y = data(d).y(expIdxD).(param);
+        if ext
+            y = data(d).y(expIdxD).(param).(food_str);
+        else
+            y = data(d).y(expIdxD).(param);
+        end
         % find the temp index for the desired temperatures
         [~, temp_loc] = min(abs(x - y.temps));
         % plot data 
@@ -153,7 +172,11 @@ for type = 1:2 % heating then cooling
         end
         ROI = LTS_temp.loc(rateIDX,temp_loc).frames;
         % extract the averages for these frames: 
-        y = data(s).y(sIdx).(param).all(ROI,:);
+        if ext
+            y = data(s).y(sIdx).(param).(food_str).all(ROI,:);
+        else
+            y = data(s).y(sIdx).(param).all(ROI,:);
+        end
         y_points = mean(y,1,'omitnan');
         y_avg = mean(y_points);
         X = x+sideBuff;
@@ -168,6 +191,19 @@ for type = 1:2 % heating then cooling
 end
 
 % format the figure:
+formatFig(fig,blkbgd,[r,c]);
+for i = 1:c
+    subplot(r,c,i)
+    xlabel('temperature \circC')
+    ylabel([param ' occupancy (%)'])
+end
+% match x and y axes
+fig = matchAxis(fig,true);
+
+fig_str = [figDir, param ' ' food_str ' occupancy scatter'];
+save_choice = save_figure(fig, fig_str, '-pdf',false, false);
+save_figure(fig, fig_str, '-png',save_choice);
+
 
 % GOTTA LOOK AT THIS WITH THE NO FOOD TRIALS -- DOES THE PRESENCE OF FOOD
 % BUFFER THE THREAT OF THE FOOD?

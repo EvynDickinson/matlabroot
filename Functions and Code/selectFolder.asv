@@ -1,8 +1,12 @@
 
 
-function folderSelected = selectFolder(path,mulitselect,promptString)
-% folderSelected = selectFolder(path)
-% select a folder from an input directory with the autoadded 
+function folderSelected = selectFolder(path,mulitselect,promptString,default_search_names)
+% folderSelected = selectFolder(path,mulitselect,promptString,default_search_names)
+% default_search_names = {'name 1', 'name 2'} search for these names and
+% highlight them as the default start values...
+% select a folder from an input directory with the auto added 
+
+% path_A = 'C:\Users\evynd\OneDrive\Desktop\Testing End Folder\'
 
 switch nargin 
     case 1
@@ -12,25 +16,40 @@ switch nargin
         promptString = 'Select folders';
 end
 
+%TODO: screen for only folders? 
 
 dirc = dir(path);
-folderNames = {dirc(:).name};
+
+% Remove files from the list of directory contents
+folders = dirc([dirc.isdir]);
+
+% Get the names of the folders
+folderNames = {folders.name}';
 folderNames(1:2) = [];
-indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[300 500]);
+if isempty(folderNames)
+    fprintf('\n No available folders \n')
+    folderSelected = '';
+    return
+end
+
+% if start search values, look for those: 
+if nargin==4 && ~isempty(default_search_names)
+    start_loc = [];
+    for i = 1:length(default_search_names)
+        strcmp(folderNames,default_search_names)
+
+indx = listdlg('ListString', folderNames, 'SelectionMode', mulitselect,'PromptString', promptString, 'ListSize',[450 600]);
 nFolders = length(indx);
+
 if isempty(indx)
     fprintf('\n No folder selected\n')
-    folder = '';
+    folderSelected = '';
     return
 end
 
 dir_sel = cell(1,nFolders);
 for i = 1:nFolders
-    if indx(i)==1 %TODAY
-        dir_sel{i} = char(datetime('Today','Format', 'MM.dd.yyyy'));
-    else
-        dir_sel{i} = folderNames{indx(i)};
-    end
+    dir_sel{i} = folderNames{indx(i)};
 end
 
 folderSelected = dir_sel;

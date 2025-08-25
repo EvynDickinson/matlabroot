@@ -382,11 +382,19 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 %% FIGURE: Plot multiple tuning curves -- select your metric
 clearvars('-except',initial_vars{:})
 
-autoLim = true;
+blkbgd = false;
+fig_type = '-pdf';
+
+autoLim = false;
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
 foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
+
+narrow_fig = true;
+narrow_fig_size = [676 680];
 
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(true,false,true);
@@ -504,7 +512,18 @@ for roi = 1:nPlots
     h_line(nullD(roi),foreColor,'--',1) % plot the null distribution value if it exists...
     ylabel(y_lab{roi})
     xlabel('temp (\circC)')
-    xlim(xlimits)
+    if autoLim
+        xlim(xlimits)
+    else 
+        xlim(manual_xlims)
+    end
+end
+
+% adjust the figure size if selected
+if narrow_fig
+    cur_pos = fig.Position;
+    new_pos = [cur_pos(1:2), narrow_fig_size];
+    fig.Position = new_pos;
 end
 
 save_figure(fig,[fig_dir 'Multimetric tuning curves'],fig_type);

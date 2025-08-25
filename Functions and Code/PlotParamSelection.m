@@ -21,8 +21,10 @@ function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotPar
 % allow multiple parameters to be selected at a time or not
 if nargin > 2 && multiselect
     selectionMode = 'multiple';
+    prompt_str = 'Select MULTPLE types for comparison:';
 else
     selectionMode = 'single';
+    prompt_str = 'Select a data type:';
 end
 
 % Select the type of information to plot: 
@@ -34,7 +36,7 @@ else
     paramList = {'fullquad', 'innerquad', 'quadring','circle10', 'circle7', 'circle5', 'fliesonfood','ring','speed','sleep','inner75'};
 end
 
-idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200],'SelectionMode',selectionMode);
+idx = listdlg('ListString', paramList,'PromptString', prompt_str,'ListSize',[200,200],'SelectionMode',selectionMode);
 if isempty(idx)
     disp('No choice selected')
     return
