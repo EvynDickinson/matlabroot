@@ -1,7 +1,7 @@
 
-% TODO: 
-% R =  25.6;
-% Adjust the outer ring occupancy to represent the accessible space in the arena
+% Groups together trials that have the same conditions to form a single
+% unified cohort of flies (do not mix across different experimental
+% parameters) 
 
 %% Load grouped data to compare across flies and ramps
 

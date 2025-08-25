@@ -1270,7 +1270,8 @@ save_figure(fig, [figDir 'courtship behaviors smoothed over time'],fig_type);
 clearvars('-except',initial_var{:})
 fps = 30;
 
-
+r = 1;
+c = 4;
 SZ = 40;
 kolor = Color('dodgerblue');
 startX = 1;
@@ -1281,31 +1282,62 @@ LW = 2;
 
 x = shuffle_data(linspace(startX,stopX,num.trials));
 
-fieldList = {'CI', 'wing_ext_all', 'chase_all', 'circling_all'};
-ylabList = {'CI', 'wing extension', 'chase', 'circling'};
-ylimits = [7 4 25 3.5];
-r = 1;
-c = length(fieldList);
 
 fig = getfig('',0);
 
-for i = 1:c
-subplot(r,c,i); hold on 
-    y = sum(data.(fieldList{i}),1,'omitnan');
+% full courtship index
+subplot(r,c,1); hold on 
+    y = sum(data.CI,1,'omitnan');
     y = (y./fps)./60; % how many minutes of behavior was there
     scatter(x, y, SZ, kolor,'filled')
     plot([startX-buff, stopX+buff], [mean(y), mean(y)],'color', kolor,'linewidth', LW)
     xlim(xlimits)
-    ylabel(['total ' ylabList{i} ' (min)'])
-end
-formatFig(fig, blkbgd,[r c]);
-for i = 1:c
-    subplot(r,c,i)
-    set(gca, 'xcolor', 'none')
-    ylim([0, ylimits(i)])
-end
+    ylabel('total CI (min)')
 
-save_figure(fig, [figDir 'total time for each behavior'],fig_type);
+% wing extension
+subplot(r,c,2); hold on 
+    y = sum(data.wing_ext_all,1,'omitnan');
+    y = (y./fps)./60; % how many minutes of behavior was there
+    scatter(x, y, SZ, kolor,'filled')
+    plot([startX-buff, stopX+buff], [mean(y), mean(y)],'color', kolor,'linewidth', LW)
+    xlim(xlimits)
+    ylabel('total CI (min)')
+
+
+    x = time;
+    y = mean(data.wing_ext_all,2,'omitnan');
+    y1 = smooth(y,sSpan, 'moving');
+    % plot(x,y,'color', foreColor, 'linewidth', lw)
+    % y = sum(data.wing_ext,2);
+    % plot(x,y,'color', kolor, 'linewidth', lw)
+    ylabel('wing ext')
+    % yyaxis right
+    plot(x,y1,'color', kolor, 'linewidth', lw)
+
+% chasing
+subplot(r,c,3); hold on 
+    x = time;
+    y = mean(data.chase_all,2,'omitnan');
+    y1 = smooth(y,sSpan, 'moving');
+    % plot(x,y,'color', foreColor, 'linewidth', lw)
+    % y = sum(data.court_chase,2);
+    % plot(x,y,'color', kolor, 'linewidth', lw)
+    ylabel('chase')
+    % yyaxis right
+    plot(x,y1,'color', kolor, 'linewidth', lw)
+
+% circling
+subplot(r,c,4); hold on 
+    x = time;
+    y = mean(data.circling_all,2,'omitnan');
+    y1 = smooth(y,sSpan, 'moving');
+    % plot(x,y,'color', foreColor, 'linewidth', lw)
+    % y = sum(data.circling_1sec,2);
+    % plot(x,y,'color', kolor, 'linewidth', lw)
+    ylabel('circling')
+    xlabel('time (min)')
+    % yyaxis right
+    plot(x,y1,'color', kolor, 'linewidth', lw)
 
 
 
