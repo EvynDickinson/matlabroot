@@ -73,7 +73,7 @@ end
 
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
         'initial_vars', 'folder', 'ntrials', 'FPS','sSpan','blkbnd','fig_type','excelfile', 'Excel', 'xlFile','manual',...
-        'avgpercstill'};
+        'avgpercstill','nexps'};
 clearvars('-except',initial_vars{:})
 
 save([figDir ExpGroup ' raw.mat'],'-v7.3')
@@ -83,20 +83,20 @@ disp('next section')
 
 %% 
 
-% sSpan = 180; % 3fps = 1min bin
-% 
-% speed = [];
-% a = [];
-% for trial = 1:ntrials 
-%     speed = autoCat(speed, data(trial).speed.avg, false);
-%     a = [a, length(data(trial).occupancy.time)];
-% end 
-% [b,c] = min(a); %[minimun, what column minimum value is located within a]
-% avgspeed = mean(speed(1:b,:),2,'omitnan');
-% 
-% fig = getfig;
-% yy = smooth(avgspeed,sSpan,'moving');
-% plot(data(c).occupancy.time, (yy))
+sSpan = 180; % 3fps = 1min bin
+
+speed = [];
+a = [];
+for trial = 1:ntrials 
+    speed = autoCat(speed, data(trial).speed.avg, false);
+    a = [a, length(data(trial).occupancy.time)];
+end 
+[b,c] = min(a); %[minimun, what column minimum value is located within a]
+avgspeed = mean(speed(1:b,:),2,'omitnan');
+
+fig = getfig;
+yy = smooth(avgspeed,sSpan,'moving');
+plot(data(c).occupancy.time, (yy),'LineWidth',2)
 
 
 %% ANALYSIS: Smooth speed data and calculate proportion of still flies
@@ -147,6 +147,22 @@ for trial = 1:ntrials
 end
 
 
+%% FIGURE: Smoothed speed over time
+sSpan = 180; % 3fps = 1min bin
+
+speed = [];
+a = [];
+for trial = 1:ntrials 
+    speed = autoCat(speed, data(trial).speed.avg, false);
+    a = [a, length(data(trial).occupancy.time)];
+end 
+[b,c] = min(a); %[minimun, what column minimum value is located within a]
+avgspeed = mean(speed(1:b,:),2,'omitnan');
+
+fig = getfig;
+yy = smooth(avgspeed,sSpan,'moving');
+plot(data(c).occupancy.time, (yy),'LineWidth',2)
+
 
 %% FIGURE: Histogram of fly speed 
 
@@ -165,6 +181,12 @@ ylabel('Frequency')
 
 % Save figure
 save_figure(fig,[figDir, 'Speed histogram'], fig_type);
+
+
+%%
+% plot where along time course speed is above or below minimum
+
+
 
 
 %% FIGURE: Percentage of still flies over time
@@ -223,7 +245,7 @@ if isempty(fileIdx)
 end
 
 
-% FOR MULTIPLE TEMP COMPARISON
+% % FOR MULTIPLE TEMP COMPARISON
 % % Path data structures folder
 % baseFolder = getDataPath(5,2);
 % pathNames = getPathNames;
@@ -239,7 +261,6 @@ nexps = length(fileIdx);
 
 
 %% ANALYSIS: Pull the protocol name and trials under the selected temp protocol for ground truthing
-clearvars('-except',initial_vars{:})
 
 manual = struct;
 
@@ -251,11 +272,11 @@ manual(exp).tempprotocol = tempprotocol;
 % Which columns in excel file to plot based on each temp protocol
 switch tempprotocol
     case 'survival_curve_40C'
-        manual(exp).columns = [11,13:52];
+        manual(exp).columns = [11,13:32];
         manual(exp).color =  Color('red');
         manual(exp).temp = 40;
     case 'survival_curve_35C'
-        manual(exp).columns = [11,13:52];
+        manual(exp).columns = [11,13:32];
         manual(exp).color =  Color('tomato');
         manual(exp).temp = 35;
     case 'survival_curve_10C'
@@ -280,13 +301,24 @@ end
 %% FIGURE: Compare tracked vs manual data for ground truthing
 clearvars('-except',initial_vars{:})
 
+% Calculate average percentage still 
+incap = [];
+a = [];
+for trial = 1:ntrials 
+    incap = autoCat(incap, data(trial).speed.still, false);
+    a = [a, length(data(trial).occupancy.time)];
+end 
+[b,c] = min(a); %[minimun, what column minimum value is located within a]
+avgstill = mean(incap(1:b,:),2,'omitnan');
+avgpercstill = avgstill*100;
+
 % FIGURE
 fig = getfig;
 hold on
 y = smooth(avgpercstill,sSpan,'moving');
-z = manual.avg;
+z = manual.avgperc;
 plot(data(c).occupancy.time, y,'linewidth',1)
-plot(data(c).occupancy.time, )
+plot(manual.time, z,'LineWidth',1)
 
 % Format figure
 formatFig(fig,blkbnd);

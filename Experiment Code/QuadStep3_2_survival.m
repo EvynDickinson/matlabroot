@@ -147,6 +147,28 @@ for trial = 1:ntrials
 end
 
 
+%% FIGURE: Smoothed speed over time
+sSpan = 180; % 3fps = 1min bin
+
+speed = [];
+a = [];
+for trial = 1:ntrials 
+    speed = autoCat(speed, data(trial).speed.avg, false);
+    a = [a, length(data(trial).occupancy.time)];
+end 
+[b,c] = min(a); %[minimun, what column minimum value is located within a]
+avgspeed = mean(speed(1:b,:),2,'omitnan');
+
+fig = getfig;
+hold on
+for track = 1:numtracks
+yy = smooth(data(1).speed.smoothed_raw(:,track),sSpan,'moving');
+plot(data(1).occupancy.time, (yy),'LineWidth',2)
+end
+formatFig(fig,blkbnd)
+xlabel('time (min)')
+ylabel('Speed (mm/s)')
+
 
 %% FIGURE: Histogram of fly speed 
 
@@ -154,9 +176,12 @@ end
 fig = getfig;
 hold on
 for trial = 1:ntrials
-    histogram(data(trial).speed.smoothed_raw,"BinWidth",0.01)
+    histogram(data(trial).speed.smoothed_raw)%,"BinWidth",0.01)
 end
-xlim([0 0.5])
+% xlim([0 0.5])
+for trial = 1:ntrials
+    max(data(trial).speed.smoothed_raw)
+end
 
 % Format figure
 formatFig(fig,blkbnd);
@@ -229,7 +254,7 @@ if isempty(fileIdx)
 end
 
 
-% FOR MULTIPLE TEMP COMPARISON
+% % FOR MULTIPLE TEMP COMPARISON
 % % Path data structures folder
 % baseFolder = getDataPath(5,2);
 % pathNames = getPathNames;
@@ -285,11 +310,16 @@ end
 %% FIGURE: Compare tracked vs manual data for ground truthing
 clearvars('-except',initial_vars{:})
 
+% Calculate average percentage still 
+incap = [];
 a = [];
 for trial = 1:ntrials 
+    incap = autoCat(incap, data(trial).speed.still, false);
     a = [a, length(data(trial).occupancy.time)];
 end 
 [b,c] = min(a); %[minimun, what column minimum value is located within a]
+avgstill = mean(incap(1:b,:),2,'omitnan');
+avgpercstill = avgstill*100;
 
 % FIGURE
 fig = getfig;
