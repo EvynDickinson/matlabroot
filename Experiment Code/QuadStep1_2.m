@@ -632,16 +632,20 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: make folder in arena folder to save figures in
+% how to decide what to make radius, not sure how to make it not too stringent
+% how does T.X (or T.Y) work??
+
 n = 1; % how many miscounted frames to look at
 
 % Check flycount offset by arena:
 arena = 4; % Arena D
-% save_loc = [baseFolder folder '/Arena ' arenaIdx{arena} '/' expName ' over and Under Tracked Images.pdf'];
 offset = flyCount(:,arena)-nflies(arena);
 [~,idx] = sort(offset);
-% lowIDX = idx(1:n);          % lowest fly count frame index
 highIDX = idx(end-n+1:end); % highest fly count frame index
+% lowIDX = idx(1:n); % lowest fly count frame index
 
+% Identify point to be erased
 frame = highIDX;
 vidNum = T.vidNums(frame);
 vidframe = T.vidFrame(frame);
@@ -661,10 +665,9 @@ fig = figure;
     [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
     pointloc = [xi, yi];
 
-r = 10;
+% How many tracks are within the sphere around the point?
+pr = 8; % radius around point
 flyCount = [];
-% which points are within the sphere around the point?
-
 % Pull variables:
 X = T.X;
 Y = T.Y;
@@ -672,22 +675,47 @@ c1 = pointloc(1);
 c2 = pointloc(2);
 
 % Find points within area:
-loc = sqrt((X-c1).^2 + (Y-c2).^2)<=r; % tracked points within circle (distance formula)
+loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance formula)
 X(~loc) = nan;
 Y(~loc) = nan;
 flyNum = sum(loc,2); % how many points are found within that area
+loc2 = find(~loc == flyNum); % index of where points inside circle are in X and Y
+%s = sum(flyNum);
 
-sSpan = 180; 
-
+% Compare extra point to #tracks - #flies
+sSpan = 360; 
 fig = getfig;
     hold on
     x = T.time;
-    extra = T.flyCount_D - nflies(arena);
-    y = smooth(extra,sSpan,'moving');
+    y = smooth(offset,sSpan,'moving');
+    y = smooth(y,sSpan,'moving');
     plot(x,y)
     yy = smooth(flyNum,sSpan,'moving');
     plot(x,yy)
 
+% Look at different radii around the extra point
+fig = figure;
+    imshow(img); set(fig,'color', 'k')
+    hold on
+    x = T.X(frame,:);
+    y = T.Y(frame,:);
+    scatter(x,y, 10, 'y')
+    % draw arena circle
+    kolor = arenaData(arena).color;
+    centre = arenaData(arena).centre;
+    viscircles(centre', r, 'color', kolor);
+    % draw circle around point
+    % point radius
+    viscircles(pointloc, pr,'color', "g");
+    % point radius + 2
+    viscircles(pointloc, pr+2,'color', "b");
+    % point radius +4
+    viscircles(pointloc, pr+4,'color', "m");
+
+ROI = 
+
+for vid = 1%:nvids
+    
 
 
 
@@ -704,9 +732,7 @@ fig = getfig;
 
 
 
-
-
-
+end
 
 % fly count for this area
 flyCount = [flyCount,flyNum];
