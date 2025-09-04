@@ -138,26 +138,21 @@ conversion = getConversion; % this pulls in the standard pix2mm values for trial
 fig_type = '-png';
 initial_var{end+1} = 'fig_type';
 initial_var{end+1} = 'hold_exp';
-fps = 30;
-initial_var{end+1} = 'fps';
 
 clearvars('-except',initial_var{:})
 
 %% MANUALLY LOAD DATA HERE: 
-% % select the location of the data structure
-% [file_name, dir_path] = uigetfile;
-% % load data 
-% load([dir_path file_name])
-% % override the saved path location variables: 
-% baseFolder = []; 
-% baseDir = [];
-% groupDir = dir_path;
-% figDir = createFolder([groupDir '/Figures/']);
-% initial_var{end+1} = 'hold_exp'; % this may not be already included...
-% fps = 30;
-% initial_var{end+1} = 'fps';
-% 
-% clearvars('-except',initial_var{:})
+% select the location of the data structure
+[file_name, dir_path] = uigetfile;
+% load data 
+load([dir_path file_name])
+% override the saved path location variables: 
+strsplit(dir_path, '/');
+baseFolder = [];
+groupDir = [];
+
+figDir = [dir_path '/Figures/'];
+
 
 %% Update the data structures to have appropriate distances for the arena 
 % Fixes any old data that uses incorrect distance measurments from faulty
