@@ -633,6 +633,8 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: make folder in arena folder to save figures in
+% how to decide what to make radius, not sure how to make it not too stringent
+% how does T.X (or T.Y) work??
 
 n = 1; % how many miscounted frames to look at
 
@@ -644,6 +646,7 @@ highIDX = idx(end-n+1:end); % highest fly count frame index
 % lowIDX = idx(1:n); % lowest fly count frame index
 
 % Identify point to be erased
+% Find a way to zoom in on the arena? Right now hard coded for D but could 
 frame = highIDX;
 vidNum = T.vidNums(frame);
 vidframe = T.vidFrame(frame);
@@ -662,9 +665,10 @@ fig = figure;
     % cross hairs to select point
     [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
     pointloc = [xi, yi];
+    % Maybe make option to redo point selection at the end if bad?
 
 % How many tracks are within the sphere around the point?
-pr = 10; % radius around point
+pr = 8; % radius around point
 flyCount = [];
 % Pull variables:
 X = T.X;
@@ -677,7 +681,7 @@ loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance 
 X(~loc) = nan;
 Y(~loc) = nan;
 flyNum = sum(loc,2); % how many points are found within that area
-loc2 = find()
+loc2 = find(~loc == flyNum); % index of where points inside circle are in X and Y
 %s = sum(flyNum);
 
 % Compare extra point to #tracks - #flies

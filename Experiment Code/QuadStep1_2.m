@@ -646,6 +646,7 @@ highIDX = idx(end-n+1:end); % highest fly count frame index
 % lowIDX = idx(1:n); % lowest fly count frame index
 
 % Identify point to be erased
+% TODO Find a way to zoom in on the arena? Right now hard coded for D but could be others?
 frame = highIDX;
 vidNum = T.vidNums(frame);
 vidframe = T.vidFrame(frame);
@@ -664,6 +665,7 @@ fig = figure;
     % cross hairs to select point
     [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
     pointloc = [xi, yi];
+    % TODO Maybe make option to redo point selection at the end if bad?
 
 % How many tracks are within the sphere around the point?
 pr = 8; % radius around point
@@ -681,6 +683,9 @@ Y(~loc) = nan;
 flyNum = sum(loc,2); % how many points are found within that area
 loc2 = find(~loc == flyNum); % index of where points inside circle are in X and Y
 %s = sum(flyNum);
+
+xloc = sum(X,2,'omitnan');
+yloc = sum(Y,2,'omitnan');
 
 % Compare extra point to #tracks - #flies
 sSpan = 360; 
