@@ -631,7 +631,7 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 % clearvars('-except',initial_vars{:})
 
 %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------------------------------------------------------------------------------------------------------------------------------------------------
 % TODO: make folder in arena folder to save figures in
 % how to decide what to make radius, not sure how to make it not too stringent
 % how does T.X (or T.Y) work??
@@ -646,7 +646,7 @@ highIDX = idx(end-n+1:end); % highest fly count frame index
 % lowIDX = idx(1:n); % lowest fly count frame index
 
 % Identify point to be erased
-% Find a way to zoom in on the arena? Right now hard coded for D but could 
+% TODO Find a way to zoom in on the arena? Right now hard coded for D but could be others?
 frame = highIDX;
 vidNum = T.vidNums(frame);
 vidframe = T.vidFrame(frame);
@@ -665,7 +665,7 @@ fig = figure;
     % cross hairs to select point
     [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
     pointloc = [xi, yi];
-    % Maybe make option to redo point selection at the end if bad?
+    % TODO Maybe make option to redo point selection at the end if bad?
 
 % How many tracks are within the sphere around the point?
 pr = 8; % radius around point
@@ -684,11 +684,15 @@ flyNum = sum(loc,2); % how many points are found within that area
 loc2 = find(~loc == flyNum); % index of where points inside circle are in X and Y
 %s = sum(flyNum);
 
+xloc = sum(X,2,'omitnan');
+yloc = sum(Y,2,'omitnan');
+
 % Compare extra point to #tracks - #flies
 sSpan = 360; 
 fig = getfig;
     hold on
     x = T.time;
+    % y = smooth(offset,sSpan,'moving');
     y = smooth(offset,sSpan,'moving');
     y = smooth(y,sSpan,'moving');
     plot(x,y)
@@ -714,9 +718,7 @@ fig = figure;
     % point radius +4
     viscircles(pointloc, pr+4,'color', "m");
 
-ROI = 
 
-for vid = 1%:nvids
     
 
 
@@ -734,31 +736,6 @@ for vid = 1%:nvids
 
 
 
-end
-
-% fly count for this area
-flyCount = [flyCount,flyNum];
-arenaData(arena).flyCount = flyNum;
-
-% Save to structures
-switch arena
-    case 1
-        flyCount_A = flyNum;
-        xA = x_loc;
-        yA = y_loc;
-    case 2
-        flyCount_B = flyNum;
-        xB = x_loc;
-        yB = y_loc;
-    case 3
-        flyCount_C = flyNum;
-        xC = x_loc;
-        yC = y_loc;
-    case 4
-        flyCount_D = flyNum;
-        xD = x_loc;
-        yD = y_loc;
-end
 
 
 
