@@ -344,9 +344,9 @@ if UpdatedFlag
         list_dirs(1:2) = [];
         if exist('expGroup','var')
             guessLoc = find(strcmp(expGroup,list_dirs)); % TODO check if there is an existing folder and then offer that as the base selection
-            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450], 'InitialValue',guessLoc);
+            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,500], 'InitialValue',guessLoc);
         else
-            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[300,450]);
+            dirIdx = listdlg('ListString', list_dirs, 'SelectionMode', 'single','ListSize',[350,500]);
         end
         expGroup = list_dirs{dirIdx}; %name of experiment groups selected
         saveDir = [baseFolder paths.group_comparision expGroup '/'];
@@ -418,7 +418,7 @@ switch expGroup
         expOrder = [5, 3, 2, 1, 4]; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
     case 'Berlin LTS 15-35 no food mechanical removal comparisons'
-        expOrder = [1,2,3];
+        expOrder = [1,2,3]; % berlin, no antenna, no arista? 
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
@@ -434,8 +434,9 @@ switch expGroup
     case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
         expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
-    case 'TrpAl=gal4 x Kir2.1 no antenna LTS 15-35 no food'
-        
+    case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food'
+        expOrder = 1:2; % intact vs antenna-less
+        colors = {'Grey', 'DodgerBlue'};
     case 'Berlin vs UAS-Kir2.1 caviar background comparison'
         expOrder = 1:num.exp;
         colors = {'turquoise', 'DarkOrchid'};

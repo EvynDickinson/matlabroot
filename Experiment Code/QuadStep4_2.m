@@ -418,7 +418,7 @@ switch expGroup
         expOrder = [5, 3, 2, 1, 4]; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
     case 'Berlin LTS 15-35 no food mechanical removal comparisons'
-        expOrder = [1,2,3];
+        expOrder = [1,2,3]; % berlin, no antenna, no arista? 
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
