@@ -382,11 +382,19 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 %% FIGURE: Plot multiple tuning curves -- select your metric
 clearvars('-except',initial_vars{:})
 
-autoLim = true;
+blkbgd = false;
+fig_type = '-pdf';
+
+autoLim = false;
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
 foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
+
+narrow_fig = true;
+narrow_fig_size = [676 680];
 
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(true,false,true);
@@ -504,113 +512,21 @@ for roi = 1:nPlots
     h_line(nullD(roi),foreColor,'--',1) % plot the null distribution value if it exists...
     ylabel(y_lab{roi})
     xlabel('temp (\circC)')
-    xlim(xlimits)
+    if autoLim
+        xlim(xlimits)
+    else 
+        xlim(manual_xlims)
+    end
+end
+
+% adjust the figure size if selected
+if narrow_fig
+    cur_pos = fig.Position;
+    new_pos = [cur_pos(1:2), narrow_fig_size];
+    fig.Position = new_pos;
 end
 
 save_figure(fig,[fig_dir 'Multimetric tuning curves'],fig_type);
-
-
-%% FIGURE: [manual] Scatter plot of specific regions of time binned together (select your idenpendent variable) 
-% WORKING HERE 8.22
-% need to update this maybe to 
-clearvars('-except',initial_vars{:})
-
-plot_err = true;
-autoLim = true;
-xlim_auto = true; % change the time range for the x axis
-time_limits = [0,900]; % time limits if manual control over x-axis range
-nMax =  num.exp; 
-
-% Select the type of information to plot: 
-[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
-
-% select the regions of temp to compare: 
-tempROIs = [15:24.5; 25.5:35]; % look at these for cooling and for warming 
-
-
-% tempList = [15 25 35];
-tempList = [17 25];
-
-% set figure folder
-fig_dir = createFolder([saveDir, 'Figures/']);
-
-figWidth = 150 + (100*length(tempList));
-sz = 35;
-buff = 0.5;
-tempStep = 2; % gap between diff temp conditions
-expStep = 1; % gap between different experiments within the same temp cluster
-foreColor = formattingColors(blkbgd);
-
-fig = getfig('',1,[figWidth, 420]);
-    [tempLabel, tempMark, stats, group1, group2] = deal([]);
-
-    x_idx = 0;
-    hold on 
-    for temp = 1:length(tempList)
-        for exp = 1:num.exp
-            kolor = grouped(exp).color;
-            targetTemp = tempList(temp);
-             if ext % subregions
-                all_temps = grouped(exp).(pName).food.temps;
-                [~, tIDX]  = min(abs(targetTemp-all_temps));
-                x = all_temps(tIDX); % this is the actual temp that the data corresponds to
-                rawY = [grouped(exp).(pName).food.increasing.raw(tIDX,:);grouped(exp).(pName).food.decreasing.raw(tIDX,:)];
-            else
-                all_temps = grouped(exp).(pName).temps;
-                [~, tIDX]  = min(abs(targetTemp-all_temps));
-                x = all_temps(tIDX); % this is the actual temp that the data corresponds to
-                rawY = [grouped(exp).(pName).increasing.raw(tIDX,:);grouped(exp).(pName).decreasing.raw(tIDX,:)];
-            end
-            Y = mean(rawY,1,'omitnan');
-            Y_avg = mean(Y,'omitnan');
-            Y_err = std(Y,0,2,'omitnan')/sqrt(num.trial(exp));
-              
-            % plot the data: 
-            X = x_idx*ones([1,num.trial(exp)]);
-            a = scatter(X,Y,sz,kolor,'filled', 'XJitter','density');
-            plot([x_idx-buff,x_idx+buff],[Y_avg, Y_avg], 'color', foreColor, 'linewidth',2)
-
-            % update plotting location tracking
-            tempLabel = [tempLabel, x]; % keep track of the ACTUAL temp value at this location
-            tempMark = [tempMark, x_idx]; % the plot location for the data
-            x_idx = x_idx+expStep;
-
-            stats = [stats; Y'];
-            group1 = [group1; x*ones(size(Y'))];
-            group2 = [group2; exp*ones(size(Y'))];
-
-        end
-        if temp < length(tempList)
-            x_idx = x_idx+tempStep;
-        end
-    end
-
-% formatting
-formatFig(fig,blkbgd);
-xlim([-tempStep,x_idx+1])
-set(gca, 'XTick',tempMark,'xticklabel',cellstr(string(tempLabel)))
-xlabel('temp (\circ)')
-ylabel(y_lab)
-
-save_figure(fig,[fig_dir, pName ' occ scatter'],fig_type);
-
-disp('manually update and run the stats')
-return
-
-% Multiway ANOVA
-[p, tbl, stats_out] = anovan(stats, {group1, group2}, 'model', 'interaction', 'varnames', {'Temp','ExpGroup'});
-multcompare(stats_out, 'Dimension', 1)  % for temp
-multcompare(stats_out, 'Dimension', 2)  % for exp group
-
-% WORKING HERE: TODO 6.17 STATS on the individual comparisons....
-% manually check which stats are important to you...
-groupA1B1 = stats(group1 == 15 & group2 == 1);
-groupA2B2 = stats(group1 == 15 & group2 == 2);
-[h,p] = ttest2(groupA1B1, groupA2B2);
-
-[results,~,~,gnames] = multcompare(stats_out,"Dimension",[1 2]);
-
-
 
 %% FIGURE: WORKING highlight specific trials within the grouped data:
 
@@ -4343,9 +4259,210 @@ save_figure(fig,[saveDir 'Max Ring Occupancy cooling'],fig_type);
 
 
 
-%%
+%% WORKING HERE: FIGURE: comparison across temp bins between parental control and manipulation trials
+% this section will make a figure that shows the temp - XXX tuning curve,
+% separated by heating and cooling. Additionally, this will plot simple
+% t-test comparisons between the experimental group compared to each of the
+% parental control groups, so we can see the areas in which the
+% experimental data may differ significantly as a result of the manipulations. 
+% The significant temps and direction of difference will then be saved into
+% a data structure that will be saved for later comparison with other
+% genetic manipulations without needing to load all of the data
+
+% 0) Select the type of data to show/compare
+% 1) Pull up the temp-tuning curve data
+% 2) Plot the data
+% 3) Run statistical comparisons btwn the exp and parental lines
+% 4) Plot significance lines for temps that have single parental difference
+% 5) Plot sig. locations for both parental lines
+
+clearvars('-except',initial_vars{:})
+
+% blkbgd = false;
+% fig_type = '-pdf';
+
+autoLim = false;
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
+
+plot_err = true; % plot SEM
+plot_high_null = true; % plot the low or high null occupancy for empty trials
+foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
+
+narrow_fig = true;
+narrow_fig_size = [700 680];
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(true,false,false);
+
+switch questdlg('Plot error?','','True','False', 'Cancel','True')
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
+
+% set figure folder
+fig_dir = createFolder([saveDir, dir_end]);
+
+% set region selection for trials that have subregions to select between
+null_quad = 'high'; % highest occupancy quadrant
+food_quad = 'food'; % quadrant with food
+
+% Plotting Parameters
+LW = 0.5; % line width
+hLW = 1.5; % highlight line width for empty trials (to indicate that it is plotting highest occupancy region, not the food quadrant) 
+buff = 0.5; % linewidth buffer to match the non null to null width...
+dataString = cell([1,num.exp]); % for adding a legend -- to fill with group names
+nPlots = 2; % warming and then cooling
+r = 1;          % rows  
+c = nPlots; % columns (one for cooling and one for heating)
+xlimits = []; % initialize empty x for finding uniform x axis scaling later
+FA = 0.35; % fill opacity for the error shading
+
+% Empty structure for the later data comparison
+statsD = struct;
+
+% FIGURE:
+fig = getfig('',true);
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    dataString{i} = grouped(i).name; % save name of the group in plot order
+    % determine if this is a food or null trial
+    if data(i).emptytrial 
+        subfield = null_quad; 
+        hColor = foreColor;
+        highlight = false; % set to true if you want this highlighted
+    else 
+        subfield = food_quad;
+        highlight = false;
+    end
+    % pull the subfield data structure from the grouped data set
+    if quad_regions % sub regions (requires '.food' or '.low' extension etc)
+        yy = grouped(i).(pName).(subfield);
+    else
+        yy = grouped(i).(pName); % no subregions in the metric (e.g., ring)
+    end
+
+    % Pull the heating and cooling data for this experiment
+    x = yy.temps; % temperature bins
+    YC = yy.decreasing.raw;
+    YH = yy.increasing.raw;
+
+    statsD(i).YC = YC;
+    statsD(i).YH = YH;
+    statsD(i).temps = x;
+
+    % cooling
+    subplot(r,c,1); hold on
+    y = mean(YC,2,'omitnan')*scaler;
+    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+    if highlight
+        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+    end
+    plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')
+    % xlimits = [xlimits, xlim];
+    % heating
+    subplot(r,c,2); hold on
+    y = mean(YH,2,'omitnan')*scaler;
+    y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+    if highlight
+        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+    end
+    plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')    
+     % xlimits = [xlimits, xlim];
+end
+
+% find the xlimits
+% xlimits = [min(xlimits), max(xlimits)];
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c]);
+matchAxis(fig, true); % match the x and y axis ranges between the subplots
+for i = 1:c
+    subplot(r,c,i); hold on
+    h_line(nullD,foreColor,'--',1) % plot the null distribution value if it exists...
+    ylabel(y_lab)
+    xlabel('temp (\circC)')
+    if ~autoLim
+        xlim(manual_xlims)
+    end
+    if i == 1
+        title('Cooling','color', foreColor)
+    elseif i==2
+        title('Warming', 'color', foreColor)
+        set(gca, 'ycolor', 'none')
+    end    
+end
+
+% % adjust the figure size if selected
+if narrow_fig
+    cur_pos = fig.Position;
+    new_pos = [cur_pos(1:2), narrow_fig_size];
+    fig.Position = new_pos;
+end
 
 
+% Test for significant differences between each of the trial types for each
+% of the temperature bins
+
+% for each temp bin -- test 
+
+% set up comparison pairs: 
+switch expGroup
+    case 'Berlin LTS 15-35 no food mechanical removal comparisons'
+        comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
+end
+
+% get y values for where to plot significance markers on the plots
+offset_perc = 10; % off
+nTests = statsD(g1).YC; % this is just the number of temp bins 
+y1 = rangeLine(fig,10,false);
+
+
+
+nComps = size(comp_pairs,1);
+for i = 1:nComps
+    g1 = comp_pairs(i,1);
+    g2 = comp_pairs(i,2);
+    kolor = grouped(comp_pairs(i,3));
+
+    x = statsD(g1).YC;
+    y = statsD(g2).YC;
+    p = nan(nTests,1); % set empty matrix for the p-value to populate (so we can do mlt. comp. corr. on it)
+
+    for tt = 1:nTests % for each of the temperature bins make this comparison
+        [~,p(tt)] = ttest2(x(tt,:),y(tt,:)); % T-TEST COMPARISON
+    end
+    
+    % multiple comparison correction on p-value
+    ogAlpha = 0.05; %baseline alpha level for significance
+    adjAlpha = ogAlpha / nTests; % adjusted alpha level for significance
+    h = p < adjAlpha; % points that ARE significant = true
+    
+    % need to find an easy way to quickly loop and test across these as well as
+    % finding a way to throw sig points onto the graphs appropriately
+
+    
+    
+
+
+
+
+
+
+    
+
+
+
+
+save_figure(fig,[fig_dir title_str ' tuning curves separated heating and cooling'],fig_type);
 
 
 

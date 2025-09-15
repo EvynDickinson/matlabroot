@@ -4259,9 +4259,214 @@ save_figure(fig,[saveDir 'Max Ring Occupancy cooling'],fig_type);
 
 
 
-%%
+%% WORKING HERE: FIGURE: comparison across temp bins between parental control and manipulation trials
+% this section will make a figure that shows the temp - XXX tuning curve,
+% separated by heating and cooling. Additionally, this will plot simple
+% t-test comparisons between the experimental group compared to each of the
+% parental control groups, so we can see the areas in which the
+% experimental data may differ significantly as a result of the manipulations. 
+% The significant temps and direction of difference will then be saved into
+% a data structure that will be saved for later comparison with other
+% genetic manipulations without needing to load all of the data
+
+% 0) Select the type of data to show/compare
+% 1) Pull up the temp-tuning curve data
+% 2) Plot the data
+% 3) Run statistical comparisons btwn the exp and parental lines
+% 4) Plot significance lines for temps that have single parental difference
+% 5) Plot sig. locations for both parental lines
+
+clearvars('-except',initial_vars{:})
+
+% blkbgd = false;
+% fig_type = '-pdf';
+
+autoLim = false;
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
+
+plot_err = true; % plot SEM
+plot_high_null = true; % plot the low or high null occupancy for empty trials
+foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
+
+narrow_fig = true;
+narrow_fig_size = [700 680];
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(true,false,false);
+
+switch questdlg('Plot error?','','True','False', 'Cancel','True')
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
+
+% set figure folder
+fig_dir = createFolder([saveDir, dir_end]);
+
+% set region selection for trials that have subregions to select between
+null_quad = 'high'; % highest occupancy quadrant
+food_quad = 'food'; % quadrant with food
+
+% Plotting Parameters
+LW = 0.5; % line width
+hLW = 1.5; % highlight line width for empty trials (to indicate that it is plotting highest occupancy region, not the food quadrant) 
+buff = 0.5; % linewidth buffer to match the non null to null width...
+dataString = cell([1,num.exp]); % for adding a legend -- to fill with group names
+nPlots = 2; % warming and then cooling
+r = 1;          % rows  
+c = nPlots; % columns (one for cooling and one for heating)
+xlimits = []; % initialize empty x for finding uniform x axis scaling later
+FA = 0.35; % fill opacity for the error shading
+
+% Empty structure for the later data comparison
+statsD = struct;
+
+% FIGURE:
+fig = getfig('',true);
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    dataString{i} = grouped(i).name; % save name of the group in plot order
+    % determine if this is a food or null trial
+    if data(i).emptytrial 
+        subfield = null_quad; 
+        hColor = foreColor;
+        highlight = false; % set to true if you want this highlighted
+    else 
+        subfield = food_quad;
+        highlight = false;
+    end
+    % pull the subfield data structure from the grouped data set
+    if quad_regions % sub regions (requires '.food' or '.low' extension etc)
+        yy = grouped(i).(pName).(subfield);
+    else
+        yy = grouped(i).(pName); % no subregions in the metric (e.g., ring)
+    end
+
+    % Pull the heating and cooling data for this experiment
+    x = yy.temps; % temperature bins
+    YC = yy.decreasing.raw;
+    YH = yy.increasing.raw;
+
+    statsD(i).YC = YC;
+    statsD(i).YH = YH;
+    statsD(i).temps = x;
+
+    % cooling
+    subplot(r,c,1); hold on
+    y = mean(YC,2,'omitnan')*scaler;
+    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+    if highlight
+        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+    end
+    plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')
+    % xlimits = [xlimits, xlim];
+    % heating
+    subplot(r,c,2); hold on
+    y = mean(YH,2,'omitnan')*scaler;
+    y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+    if highlight
+        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+    end
+    plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')    
+     % xlimits = [xlimits, xlim];
+end
+
+% find the xlimits
+% xlimits = [min(xlimits), max(xlimits)];
+
+% FORMATING AND LABELS
+formatFig(fig,blkbgd,[r,c]);
+matchAxis(fig, true); % match the x and y axis ranges between the subplots
+for i = 1:c
+    subplot(r,c,i); hold on
+    h_line(nullD,foreColor,'--',1) % plot the null distribution value if it exists...
+    ylabel(y_lab)
+    xlabel('temp (\circC)')
+    if ~autoLim
+        xlim(manual_xlims)
+    end
+    if i == 1
+        title('Cooling','color', foreColor)
+    elseif i==2
+        title('Warming', 'color', foreColor)
+        set(gca, 'ycolor', 'none')
+    end    
+end
+
+% % adjust the figure size if selected
+if narrow_fig
+    cur_pos = fig.Position;
+    new_pos = [cur_pos(1:2), narrow_fig_size];
+    fig.Position = new_pos;
+end
 
 
+% Test for significant differences between each of the trial types for each
+% of the temperature bins
+
+% for each temp bin -- test 
+
+% set up comparison pairs: 
+switch expGroup
+    case 'Berlin LTS 15-35 no food mechanical removal comparisons'
+        comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
+end
+
+% get y values for where to plot significance markers on the plots
+offset_perc = 10; % what y-value percent above current axis limits are desired for plotting significance
+nTests = statsD(g1).YC; % this is just the number of temp bins 
+[y1, offset_range] = rangeLine(fig,offset_perc,false);
+spacing_offset = offset_range / (nTests + 1); % interval spacing for the significance lines
+
+
+
+nComps = size(comp_pairs,1);
+for i = 1:nComps
+    y_point = y1 - (spacing_offset*(i-1));
+    g1 = comp_pairs(i,1);
+    g2 = comp_pairs(i,2);
+    kolor = grouped(comp_pairs(i,3));
+
+    x = statsD(g1).YC;
+    y = statsD(g2).YC;
+    p = nan(nTests,1); % set empty matrix for the p-value to populate (so we can do mlt. comp. corr. on it)
+
+    for tt = 1:nTests % for each of the temperature bins make this comparison
+        [~,p(tt)] = ttest2(x(tt,:),y(tt,:)); % T-TEST COMPARISON
+    end
+    
+    % multiple comparison correction on p-value
+    ogAlpha = 0.05; %baseline alpha level for significance
+    adjAlpha = ogAlpha / nTests; % adjusted alpha level for significance
+    h = p < adjAlpha; % points that ARE significant = true
+    
+    % need to find an easy way to quickly loop and test across these as well as
+    % finding a way to throw sig points onto the graphs appropriately
+    y_point % this is the new y value location to plot if the comparison is significant 
+    % WORKING HERE 9.15
+end
+    
+    
+
+
+
+
+
+
+    
+
+
+
+
+save_figure(fig,[fig_dir title_str ' tuning curves separated heating and cooling'],fig_type);
 
 
 
