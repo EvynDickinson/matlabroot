@@ -4290,7 +4290,7 @@ plot_high_null = true; % plot the low or high null occupancy for empty trials
 foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
 
 narrow_fig = true;
-narrow_fig_size = [700 680];
+narrow_fig_size = [600 680];
 
 % Select the type of information to plot: 
 [title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(true,false,false);
@@ -4314,7 +4314,7 @@ null_quad = 'high'; % highest occupancy quadrant
 food_quad = 'food'; % quadrant with food
 
 % Plotting Parameters
-LW = 0.5; % line width
+LW = 1; % line width
 hLW = 1.5; % highlight line width for empty trials (to indicate that it is plotting highest occupancy region, not the food quadrant) 
 buff = 0.5; % linewidth buffer to match the non null to null width...
 dataString = cell([1,num.exp]); % for adding a legend -- to fill with group names
@@ -4323,6 +4323,7 @@ r = 1;          % rows
 c = nPlots; % columns (one for cooling and one for heating)
 xlimits = []; % initialize empty x for finding uniform x axis scaling later
 FA = 0.35; % fill opacity for the error shading
+sz = 50; % significance star plotting size
 
 % Empty structure for the later data comparison
 statsD = struct;
@@ -4418,51 +4419,110 @@ end
 switch expGroup
     case 'Berlin LTS 15-35 no food mechanical removal comparisons'
         comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1 2]; % these are the comparisons that must have significance for the 'test' trial to be significan
 end
+nComps = size(comp_pairs,1);
 
 % get y values for where to plot significance markers on the plots
-offset_perc = 10; % off
-nTests = statsD(g1).YC; % this is just the number of temp bins 
-y1 = rangeLine(fig,10,false);
+offset_perc = 10; % what y-value percent above current axis limits are desired for plotting significance
+nTests = length(statsD(1).temps); % this is just the number of temp bins 
+[y1, offset_range] = rangeLine(fig,offset_perc,false);
+spacing_offset = offset_range / (nComps + 1); % interval spacing for the significance lines
 
+stats_comp = struct;
 
-
-nComps = size(comp_pairs,1);
 for i = 1:nComps
+    y_point = y1 - (spacing_offset*(i-1));
     g1 = comp_pairs(i,1);
     g2 = comp_pairs(i,2);
-    kolor = grouped(comp_pairs(i,3));
+    kolor = grouped(comp_pairs(i,3)).color;
+    
+    % save stats comparison information for later processing / display
+    stats_comp(i).comp = [g1, g2];
+    stats_comp(i).names = {grouped(g1).name, grouped(g2).name};
+    stats_comp(i).temp = statsD(g1).temps;
 
-    x = statsD(g1).YC;
-    y = statsD(g2).YC;
-    p = nan(nTests,1); % set empty matrix for the p-value to populate (so we can do mlt. comp. corr. on it)
+    for type = 1:2 % heating and cooling
+        switch type
+            case 1 % cooling
+                x = statsD(g1).YC;
+                y = statsD(g2).YC;
+                type_name = 'cooling';
+            case 2 % warming
+                x = statsD(g1).YH;
+                y = statsD(g2).YH;
+                type_name = 'heating';
+        end
 
-    for tt = 1:nTests % for each of the temperature bins make this comparison
-        [~,p(tt)] = ttest2(x(tt,:),y(tt,:)); % T-TEST COMPARISON
+        p = nan(nTests,1); % set empty matrix for the p-value to populate (so we can do mlt. comp. corr. on it)
+    
+        for tt = 1:nTests % for each of the temperature bins make this comparison
+            [~,p(tt)] = ttest2(x(tt,:),y(tt,:)); % T-TEST COMPARISON
+        end
+        % find number of comparisons that were made: 
+        numberTests = max([sum(~all(isnan(x),2)), sum(~all(isnan(y),2))]);
+        % multiple comparison correction on p-value
+        ogAlpha = 0.05; %baseline alpha level for significance
+        adjAlpha = ogAlpha / numberTests; % adjusted alpha level for significance
+        h = p < adjAlpha; % points that ARE significant = true
+       
+        % save the significance location and direction for later use: 
+        stats_comp(i).(type_name) = h;
+       
+        % make a list of locations that are significant to be later scale to
+        % the appropriate y height to plot above the tuning curve
+        plotYloc = nan(size(h));
+        plotYloc(h) = 1; % 
+        
+        % need to find an easy way to quickly loop and test across these as well as
+        % finding a way to throw sig points onto the graphs appropriately
+        plotX = statsD(g1).temps;
+        plotY = y_point*(plotYloc);
+        % loc = isnan(plotY) | isnan(plotX');
+        % X = plotX(~loc);
+        % Y = plotY(~loc);
+    
+        % plot the significant markers onto the graph
+        subplot(r,c,type); hold on
+        scatter(plotX, plotY, sz, kolor, 'filled', 'square')
+      
+        % adjust y limits to not exclude the new peak data: 
+        curr_ylim = ylim;
+        ylim([curr_ylim(1), y1+spacing_offset])
     end
-    
-    % multiple comparison correction on p-value
-    ogAlpha = 0.05; %baseline alpha level for significance
-    adjAlpha = ogAlpha / nTests; % adjusted alpha level for significance
-    h = p < adjAlpha; % points that ARE significant = true
-    
-    % need to find an easy way to quickly loop and test across these as well as
-    % finding a way to throw sig points onto the graphs appropriately
+end
+
+% format the text size
+for i = 1:2
+    subplot(r,c,i)
+    set(gca,'fontsize',22,'FontWeight','normal')
+    labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
+    set(labelHandles,'FontSize', 28, 'color', foreColor)
+    set(gca,'XTickLabelRotationMode', 'manual', 'XTickLabelRotation', 0)
+end
+subplot(r,c,2)
+ylabel('')
+
+save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
+
+% Now make a thing for trials that might be comparing between two parental
+% crosses and a test one to show which areas are significantly different
+% from both controls aka which regions are actually being affected by the
+% genetic manipulations
+
+% TODO: find regions across the metrics that are both significant and save
+% into a simple figure: 
+
+% check if there is a common comparison value: 
+
+
 
     
-    
 
 
 
 
 
-
-    
-
-
-
-
-save_figure(fig,[fig_dir title_str ' tuning curves separated heating and cooling'],fig_type);
 
 
 
