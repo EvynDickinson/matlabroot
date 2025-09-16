@@ -636,6 +636,12 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 response = questdlg('Are there persistent extra tracks that need deleting?','','Yes','No','No');
 switch response
     case 'Yes'
+        % Create folder for saving figs:
+                figDir = [baseFolder folder '/Extra point deletion/'];
+                if ~isfolder(figDir)
+                    mkdir(figDir) 
+                end
+
         % Check flycount offset by arena:
         arena = 4; % Arena D
         n = 1; % how many miscounted frames to look at
@@ -682,6 +688,7 @@ switch response
                 end
         end
         
+        % ------------------------------------------ Start for loop here for each point ------------------------------------------------
         % How many tracks are within the sphere around the point?
         flyCount = [];
         % Pull variables:
@@ -696,11 +703,7 @@ switch response
         % Y(~loc) = nan;
         % flyNum = sum(loc,2); % how many points are found within that area
         
-        % % Create folder for saving figs:
-        % figDir = [baseFolder folder '/Extra point deletion/'];
-        % if ~isfolder(figDir)
-        %     mkdir(figDir) 
-        % end
+   
         
         % % FIGURE: Compare extra point to #tracks - #flies
         % sSpan = 360; 
@@ -741,7 +744,11 @@ switch response
         T.X = X;
         T.Y = Y;    
         
-        disp('Extra track(s) deleted. Go rerun sections 6-9 (Determine...)')
+        % Stop further processing if tracks deleted
+        if strcmp(response,'Yes')
+            disp('Extra track(s) deleted. Go rerun sections 6-9 (Determine...)')
+            return
+        end
 end
 
 %% Find number of flies within each well sphere & fly distance to wells
