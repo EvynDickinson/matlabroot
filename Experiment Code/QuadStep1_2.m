@@ -630,6 +630,72 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 
 % clearvars('-except',initial_vars{:})
 
+%%
+
+arena = 4; % Arena D
+n = 1; % how many miscounted frames to look at
+offset = flyCount(:,arena)-nflies(arena);
+[~,idx] = sort(offset);
+highIDX = idx(end-n+1:end); % highest fly count frame index
+% lowIDX = idx(1:n); % lowest fly count frame index
+
+% Identify point to be erased
+frame = highIDX;
+vidNum = T.vidNums(frame);
+vidframe = T.vidFrame(frame);
+movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
+img = read(movieInfo,vidframe);
+fig = figure;
+    imshow(img); set(fig,'color', 'k')
+    hold on
+    x = T.X(frame,:);
+    y = T.Y(frame,:);
+    scatter(x,y, 10, 'y')
+    % Draw arena circle
+    kolor = arenaData(arena).color;
+    centre = arenaData(arena).centre;
+    viscircles(centre', r, 'color', kolor);
+    xlim([(centre(1)-450) (centre(1)+450)])
+    ylim([(centre(2)-450) (centre(2)+450)])
+    % Cross hairs to select point
+    [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
+    pointloc = [xi, yi];
+
+% How many tracks are within the sphere around the point?
+X = T.X;
+Y = T.Y;
+c1 = pointloc(1);
+c2 = pointloc(2);
+
+% Find points within area:
+pointNum = [];
+sSpan = 360; 
+fig = getfig;
+for pr = [1,5:5:30]
+    hold on
+    loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance formula)
+    % X(~loc) = nan;
+    % Y(~loc) = nan;
+    pointNum = autoCat(pointNum,sum(loc,2),false); % how many points are found within that area  
+    x = T.time;
+    y = smooth(pointNum,sSpan,'moving');
+    % plot(x,y)
+end
+
+% find out why x and y are different sizes, cant plot without
+
+
+
+
+
+
+
+
+
+
+
+
+
 %% Delete persistent extra tracks in arena D
 % TODO how to decide what to make radius, not sure how to make it not too stringent
 
@@ -641,7 +707,8 @@ switch response
                 if ~isfolder(figDir)
                     mkdir(figDir) 
                 end
-
+end
+             
         % Check flycount offset by arena:
         arena = 4; % Arena D
         n = 1; % how many miscounted frames to look at
@@ -654,7 +721,7 @@ switch response
         
         % Identify point to be erased
         redo = true;
-        while redo == true
+        while redo
             frame = highIDX;
             vidNum = T.vidNums(frame);
             vidframe = T.vidFrame(frame);
@@ -675,7 +742,7 @@ switch response
                 % Cross hairs to select point
                 [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
                 pointloc = [xi, yi];
-                % Display circle around selected point
+                % % Display circle around selected point
                 viscircles(pointloc,pr,'LineWidth',0.5);
         
                 response = questdlg('Okay point selection?','','Yes','No','Yes');
@@ -690,7 +757,7 @@ switch response
         
         % ------------------------------------------ Start for loop here for each point ------------------------------------------------
         % How many tracks are within the sphere around the point?
-        flyCount = [];
+        flyCount = []; %unused later on?? maybe delete
         % Pull variables:
         X = T.X;
         Y = T.Y;
@@ -699,25 +766,23 @@ switch response
         
         % Find points within area:
         loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance formula)
-        % X(~loc) = nan;
-        % Y(~loc) = nan;
-        % flyNum = sum(loc,2); % how many points are found within that area
+        X(~loc) = nan;
+        Y(~loc) = nan;
+        flyNum = sum(loc,2); % how many points are found within that area
         
-   
         
-        % % FIGURE: Compare extra point to #tracks - #flies
+        % FIGURE: Compare extra point to #tracks - #flies
         % sSpan = 360; 
         % fig = getfig;
         %     hold on
         %     x = T.time;
-        %     % y = smooth(offset,sSpan,'moving');
         %     y = smooth(offset,sSpan,'moving');
         %     y = smooth(y,sSpan,'moving');
         %     plot(x,y)
         %     yy = smooth(flyNum,sSpan,'moving');
         %     plot(x,yy)
         % save_figure(fig, [figDir expName ' Extra Point Comparison'],'-png');
-        % 
+
         % % FIGURE: Look at different radii around the extra point
         % fig = figure;
         %     imshow(img); set(fig,'color', 'k')
@@ -737,7 +802,7 @@ switch response
         %     % point radius +4
         %     viscircles(pointloc, pr+4,'color', "m");
         % save_figure(fig, [figDir expName ' Radius Comparison'],'-png');
-        
+       
         % DELETE EXTRA TRACK(S)
         X(loc) = nan;
         Y(loc) = nan;
@@ -749,7 +814,7 @@ switch response
             disp('Extra track(s) deleted. Go rerun sections 6-9 (Determine...)')
             return
         end
-end
+% end
 
 %% Find number of flies within each well sphere & fly distance to wells
 % THIS SECTION WOULD NEED TO BE RERUN FOR ALL TRIALS
