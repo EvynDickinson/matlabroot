@@ -631,6 +631,10 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 % clearvars('-except',initial_vars{:})
 
 %%
+figDir = [baseFolder folder '/Extra point deletion/'];
+if ~isfolder(figDir)
+    mkdir(figDir) 
+end
 
 arena = 4; % Arena D
 n = 1; % how many miscounted frames to look at
@@ -661,28 +665,147 @@ fig = figure;
     [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
     pointloc = [xi, yi];
 
+%%
+
 % How many tracks are within the sphere around the point?
 X = T.X;
 Y = T.Y;
-c1 = pointloc(1);
-c2 = pointloc(2);
+Xd = arenaData(arena).x_loc;
+Yd = arenaData(arena).y_loc;
+c1 = pointloc(1); % point x value
+c2 = pointloc(2); % point y value
+full_list = 3:30;
+plot_list = 3:3:30;
 
-% Find points within area:
-pointNum = [];
-sSpan = 360; 
-fig = getfig;
-for pr = [1,5:5:30]
-    hold on
-    loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance formula)
-    % X(~loc) = nan;
-    % Y(~loc) = nan;
-    pointNum = autoCat(pointNum,sum(loc,2),false); % how many points are found within that area  
-    x = T.time;
-    y = smooth(pointNum,sSpan,'moving');
-    % plot(x,y)
+
+% Extract and organize data
+plotData = [];
+for pr = full_list
+    loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle, relative to all arenas (distance formula)
+    plotData(pr).inside = sum(loc,2);
+    notloc = sqrt((Xd-c1).^2 + (Yd-c2).^2)>=pr; % tracked points outside circle, relative to only chosen arena
+    plotData(pr).outside = sum(notloc,2);
+    plotData(pr).in_std = std(plotData(pr).inside);
+    plotData(pr).in_mean = mean(plotData(pr).inside);
+    plotData(pr).in_mean_dist = abs(1-plotData(pr).in_mean);
+    plotData(pr).overcount = size(plotData(pr).inside(plotData(pr).inside >= 2),1);
+    % plotData(pr).out_mean = mean(plotData(pr).outside);
+    % plotData(pr).norm_in_std = zscore(plotData(pr).in_std);
+    % plotData(pr).norm_in_mean = zscore(plotData(pr).in_mean);
+    % plotData(pr).norm_out_mean = zscore(plotData(pr).out_mean);
 end
 
-% find out why x and y are different sizes, cant plot without
+% FIGURE
+sSpan = 360;
+labels = [];
+r = 3;
+c = 5;
+sb(1).idx = [1:2,6:7]; 
+sb(2).idx = 3; 
+sb(3).idx = 4; 
+sb(5).idx = 8; 
+sb(6).idx = 9; 
+sb(7).idx = 11:12; 
+sb(8).idx = 13; 
+sb(9).idx = 14; 
+sb(10).idx = [5,10,15]; 
+
+fig = getfig;
+for pr = radius_list
+    if any(pr == plot_list) % skip radii not in plot_list
+    labels = [labels,string(pr)];
+    % Points INSIDE radius
+    subplot(r, c, sb(1).idx)
+        hold on
+        x = T.time;
+        y = smooth(plotData(pr).inside,sSpan,'moving');
+        yy = smooth(y,sSpan,'moving');
+        plot(x,yy)
+        ylabel('Number of points inside')
+        set(gca,'FontSize',10)
+    % Points OUTSIDE radius
+    subplot(r, c, sb(7).idx)
+        hold on
+        y = smooth(plotData(pr).outside,sSpan,'moving');
+        yy = smooth(y,sSpan,'moving');
+        plot(x,yy)
+        xlabel('Time (min)')
+        ylabel('Number of points outside')
+        set(gca,'FontSize',10)
+    end
+    % Variance of # points inside each radius
+    subplot(r, c, sb(2).idx)
+        hold on
+        x = pr;
+        y = plotData(pr).in_std;
+        scatter(x,y,'filled')
+        ylabel('Variance inside')
+        set(gca,'FontSize',10)
+    % Mean # points inside each radius
+    subplot(r, c, sb(5).idx)
+        hold on
+        x = pr;
+        y = plotData(pr).in_mean_dist;
+        scatter(x,y,'filled')
+        ylabel('Average inside')
+        set(gca,'FontSize',10)
+    % Mean # points inside each radius
+    subplot(r, c, sb(8).idx)
+        hold on
+        x = pr;
+        y = plotData(pr).overcount;
+        scatter(x,y,'filled')
+        xlabel('Radius size (pixels)')
+        ylabel('Average outside')
+        set(gca,'FontSize',10)
+    % Normalized variance inside radius
+    subplot(r, c, sb(3).idx)
+        hold on
+        x = pr;
+        y = plotData(pr).in_std / max([plotData(3:end).in_std],[],'all');
+        scatter(x,y,'filled')
+        ylabel('Norm. variance inside')
+        set(gca,'FontSize',10)
+    % Plot normalized mean # inside
+    subplot(r, c, sb(6).idx)
+        hold on
+        x = pr;
+        y = plotData(pr).in_mean_dist / max([plotData(3:end).in_mean],[],'all');
+        scatter(x,y,'filled')
+        ylabel('Norm. average inside')
+        set(gca,'FontSize',10)
+    % Normalized mean # outside
+    subplot(r, c, sb(9).idx)
+        hold on
+        x = pr;
+        y = plotData(pr).overcount / max([plotData(3:end).overcount],[],'all');
+        scatter(x,y,'filled')
+        xlabel('Radius size (pixels)')
+        ylabel('Norm. average outside')
+        set(gca,'FontSize',10)
+    % % Cumulative prediction
+    % subplot(r, c, sb(10).idx)
+    %     hold on
+    %     cumulative_sum = plotData(pr).norm_in_std + plotData(pr).norm_in_mean + plotData(pr).norm_out_mean;
+    %     x = pr;
+    %     y = cumulative_sum;
+    %     scatter(x,y,'filled')
+    %     xlabel('Radius size (pixels)')
+    %     ylabel('Norm....')
+    %     set(gca,'FontSize',10)
+end
+formatFig(fig,true,[r,c],sb);
+% set(gca,'FontSize',10)
+legend(labels,'TextColor', 'white', 'location', 'northwest', 'box', 'off','fontsize', 15)
+% save_figure(fig,[figDir expName ' points contained in radius over time'],'-png')
+
+
+
+
+
+
+
+
 
 
 
