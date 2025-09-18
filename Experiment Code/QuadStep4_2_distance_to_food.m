@@ -4278,6 +4278,23 @@ save_figure(fig,[saveDir 'Max Ring Occupancy cooling'],fig_type);
 
 clearvars('-except',initial_vars{:})
 
+% set up comparison pairs: 
+output = pullGroupInfo(expGroup);
+if ~isempty(output)
+    comp_pairs = output.comp_pairs; % what pairs of lines are being tested against each other
+    nComps = output.nComps; % how many comparison pairs are there
+    required_comp_pairs = output.required_comp_pairs; % what comparison pairs must be true for significance
+    if ~isempty(required_comp_pairs)
+        nReqComp = size(required_comp_pairs,1);
+    else 
+        nReqComp = 0;
+    end 
+    clear output
+else 
+    warndlg('add stats comparison information to ''pullGroupInfo.m''')
+    return
+end
+
 % blkbgd = false;
 % fig_type = '-pdf';
 
@@ -4326,7 +4343,8 @@ FA = 0.35; % fill opacity for the error shading
 sz = 50; % significance star plotting size
 
 % Empty structure for the later data comparison
-statsD = struct;
+statsD = struct; % for later export
+stats_comp = struct; % for later export
 
 % FIGURE:
 fig = getfig('',true);
@@ -4357,21 +4375,25 @@ for i = 1:num.exp
     statsD(i).YC = YC;
     statsD(i).YH = YH;
     statsD(i).temps = x;
+    statsD(i).name = grouped(i).name;
 
     % cooling
     subplot(r,c,1); hold on
     y = mean(YC,2,'omitnan')*scaler;
     y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    statsD(i).YC_plot = [x',y,y_err]; % save the plotting data for later use if needed
     plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
     if highlight
         plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
     end
     plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')
+
     % xlimits = [xlimits, xlim];
     % heating
     subplot(r,c,2); hold on
     y = mean(YH,2,'omitnan')*scaler;
     y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    statsD(i).YH_plot = [x',y,y_err]; % save the plotting data for later use if needed
     plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
     if highlight
         plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
@@ -4415,21 +4437,11 @@ end
 
 % for each temp bin -- test 
 
-% set up comparison pairs: 
-switch expGroup
-    case 'Berlin LTS 15-35 no food mechanical removal comparisons'
-        comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
-        required_comp_pairs = [1 2]; % these are the comparisons that must have significance for the 'test' trial to be significant (demo here) 
-end
-nComps = size(comp_pairs,1);
-
 % get y values for where to plot significance markers on the plots
 offset_perc = 10; % what y-value percent above current axis limits are desired for plotting significance
 nTests = length(statsD(1).temps); % this is just the number of temp bins 
 [y1, offset_range] = rangeLine(fig,offset_perc,false);
 spacing_offset = offset_range / (nComps + 1); % interval spacing for the significance lines
-
-stats_comp = struct;
 
 for i = 1:nComps
     y_point = y1 - (spacing_offset*(i-1));
@@ -4505,18 +4517,50 @@ ylabel('')
 
 save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
 
-% Now make a thing for trials that might be comparing between two parental
-% crosses and a test one to show which areas are significantly different
-% from both controls aka which regions are actually being affected by the
-% genetic manipulations
 
-% TODO: find regions across the metrics that are both significant and save
-% into a simple figure: 
+% Find regions across the metrics that are both significant and save into a simple figure: 
+sz = 150;
+ylimits  = [15 35];
 
-% check if there is a common comparison value: 
+if nReqComp > 0
+    for i = 1:nReqComp
+        % pull the two comparisons: 
+        comp1 = required_comp_pairs(i,1);
+        comp2 = required_comp_pairs(i,2);
+        
+        % plot outline of temp locations
+        fig = getfig('', true, [150 614]); hold on
+            for type = 1:2 % cooling then heating
+                switch type
+                    case 1
+                        typeName = 'cooling';
+                        kolor = Color('dodgerblue');
+                    case 2
+                        typeName = 'heating';
+                        kolor = Color('red');
+                end
+                sig_diff = stats_comp(comp1).(typeName) & stats_comp(comp2).(typeName);
+                x = type * ones(size(sig_diff));
+                y = stats_comp(comp1).temp;
+                
+                scatter(x, y, sz, kolor, 'square','markeredgecolor', kolor,'linewidth', 0.5)
+                scatter(x(sig_diff), y(sig_diff), sz, kolor, 'square', 'markerfacecolor', foreColor)                
+                % formatting
+                formatFig(fig, blkbgd);
+                set(gca, 'xcolor', 'none')
+                xlim([0,3])
+                ylim(ylimits)
+                ylabel('temperature (\circC)')
+                set(gca,'fontsize',18,'FontWeight','normal')
+                title({title_str;''},'color', foreColor,'fontsize', 12)
+            end
+        % Save the figure
+        save_figure(fig,[fig_dir title_str ' tuning curves comparison for  ' statsD(required_comp_pairs(i,3)).name],fig_type);
+    end
+end
 
-
-
+% Save the output data for later comparisons across genotypes ...
+save([saveDir title_str ' tuning curve statistics.mat'], 'stats_comp', 'statsD')
     
 
 

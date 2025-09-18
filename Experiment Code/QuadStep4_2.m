@@ -396,63 +396,13 @@ fig_type = '-png';
 blkbgd = true;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'conversion';'blkbgd']; % changed pix2mm to conversion
 initial_vars = unique(initial_vars);
-% f2m = 3*60; %fps*min = number of frames in a minute -- this is now held
-% in the getTempRate function
 grouped = struct;
 
-% Color selections
-switch expGroup
-   case 'Berlin LTS 15-35 caviar vs empty'
-        expOrder = 1:2;
-        colors = {'DodgerBlue', 'Gray'};
-     case 'Berlin LTS 15-35 plate 1 vs plate 2'
-        expOrder = 1:4;
-        colors = {'Tomato', 'Dodgerblue', 'Peachpuff', 'Powderblue'};  
-    case 'Berlin LTS 15-35 intact vs no antenna no food'
-        expOrder = 1:2;
-        colors = {'dodgerblue', 'peachpuff'};
-    case 'Berlin F LRR 25-17 caviar intact vs wax vs hold'
-        expOrder = 1:4;
-        colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
-    case 'Berlin temp rate caviar'
-        expOrder = [5, 3, 2, 1, 4]; % slow to fast
-        colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
-    case 'Berlin LTS 15-35 no food mechanical removal comparisons'
-        expOrder = [1,2,3]; % berlin, no antenna, no arista? 
-        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
-    case 'Berlin temperature holds' % includes food and empty trials
-        expOrder = 1:num.exp;
-        kolor1 = Color('Blue', 'LightGrey', 5); % ultimately 5 (with all temp trials added)
-        kolor2 = Color('LightGrey', 'Red', 5);  % ultimately 5 (with all temp trials added)
-        colors = nan([18, 3]); % ultimately 18x3 (with all temp trials added)
-        colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
-        colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
-        % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
-    case {'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food','TrpA1-gal4 LTS 15-35 no food'}
-        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
-        colors = {'Peachpuff', 'Powderblue','Magenta'};
-    case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
-        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
-        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
-    case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food'
-        expOrder = 1:2; % intact vs antenna-less
-        colors = {'Grey', 'DodgerBlue'};
-    case 'Berlin vs UAS-Kir2.1 caviar background comparison'
-        expOrder = 1:num.exp;
-        colors = {'turquoise', 'DarkOrchid'};
-    case 'IR25a-gal4 x Kir2.1 and controls LTS 15-25 caviar'
-        expOrder = 1:3;
-        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
-    case 'R77C10-gal4 x Kir2.1 and controls F LRR 17-25 caviar'
-        expOrder = 1:3; % gal4 control, UAS control, 
-        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
-    case 'IR40a_TM2-gal4 x Kir2.1 and controls F LRR 17-25 caviar'
-        expOrder = 1:3; % gal4 control, UAS control, 
-        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
-    case 'IR40a_TM2-gal4 x Kir2.1 no arista LTS 15-35 empty'
-        expOrder = 1:3;
-        colors = {'magenta', 'grey', 'dodgerblue'};
-
+% GET COLORS AND STATS INFO FOR EACH GROUP: 
+output = pullGroupInfo(expGroup);
+if ~isempty(output)
+    expOrder = output.expOrder;
+    colors = output.color;
 end
 
 % % Reset colors if needed
@@ -476,11 +426,6 @@ for exp = 1:num.exp
     i = expOrder(exp);
     disp(expNames{i})
 end
-
-% % update color map without running the rest of the data: 
-% for i = 1:num.exp
-%     grouped(expOrder(i)).color = Color(colors{(i)});
-% end
 
 for i = 1:num.exp % FOR EACH DATA GROUP
     % GENERAL
