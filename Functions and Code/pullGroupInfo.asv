@@ -7,7 +7,6 @@ function output = pullGroupInfo(expGroup)
 % *** expOrder -- the preferred plotting order of the subgroups
 % *** colors -- the colors for the groups based on their expOrder 
 %
-%
 % includes stats comparison for temp tuning curves: 
 % ------------------------------------------------------------------------
 % *** comp_pairs -- what pairs of data should be compared 
@@ -36,15 +35,21 @@ switch expGroup
         expOrder = 1:4;
         colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
 
+    case 'Berlin F LRR caviar mechanical removal comparisons' %%% becca made
+        expOrder = [1,2,3]; % berlin, no antenna, no arista
+        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
+        comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1,1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+
     case 'Berlin temp rate caviar'
         expOrder = [5, 3, 2, 1, 4]; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
 
     case 'Berlin LTS 15-35 no food mechanical removal comparisons'
-        expOrder = [1,2,3]; % berlin, no antenna, no arista? 
+        expOrder = [1,2,3]; % berlin, no antenna, no arista
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
         comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
-        required_comp_pairs = [1 2]; % these are the comparisons that must have significance for the 'test' trial to be significant (demo here) 
+        required_comp_pairs = [1,1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
@@ -56,14 +61,20 @@ switch expGroup
 
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
     case {'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food','TrpA1-gal4 LTS 15-35 no food'}
-        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
-        colors = {'Peachpuff', 'Powderblue','Magenta'};
+        expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
+        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+        comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
     case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
-        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
+        expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
     
-    case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food'
+    case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food' %%% becca made
+        expOrder = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+
+    case 'TrpA1-Gal4 x UAS-Kir2.1_A1  LTS 15-35 no food mechanical removal comparisons' %%% becca made
         expOrder = 1:2; % intact vs antenna-less
         colors = {'Grey', 'DodgerBlue'};
    
@@ -75,6 +86,13 @@ switch expGroup
         expOrder = 1:3; % UAS, GAL, UAS-GAL
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
         comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+
+    case 'IR25a-gal4 x Kir2.1 and controls F LRR caviar'
+        expOrder = 1:3; % UAS, GAL, UAS-GAL
+        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+        comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
     
     case 'R77C10-gal4 x Kir2.1 and controls F LRR 17-25 caviar'
         expOrder = 1:3; % gal4 control, UAS control, 
@@ -91,19 +109,25 @@ switch expGroup
 end
 
 % set default experiment pairs to be 1 and 2 for statistical significance
-if exist(comp_pairs,'var') 
+if exist('comp_pairs','var') 
     nComps = size(comp_pairs,1);
-    if ~exist(required_comp_pairs,'var') 
-        required_comp_pairs = nComps;
+    if ~exist('required_comp_pairs','var') 
+        required_comp_pairs = [];
     end
     %  save statistical comparison pairs to the output function
     output.required_comp_pairs = required_comp_pairs;
     output.comp_pairs = comp_pairs;
+    output.nComps = nComps;
 end
 
-
-output.expOrder = expOrder;
-output.color = colors;
+% test that the group struct exists in the switch: 
+if exist('expOrder', 'var')
+    output.expOrder = expOrder;
+    output.color = colors;
+else 
+    disp('Group structure not yet in ''pullGroupInfo.m''')
+    output = [];
+end
 
 
 

@@ -35,6 +35,12 @@ switch expGroup
         expOrder = 1:4;
         colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
 
+    case 'Berlin F LRR caviar mechanical removal comparisons' %%% becca made
+        expOrder = [1,2,3]; % berlin, no antenna, no arista
+        colors = {'Grey', 'MediumSlateBlue', 'Gold'};
+        comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1,1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+
     case 'Berlin temp rate caviar'
         expOrder = [5, 3, 2, 1, 4]; % slow to fast
         colors = {'Deeppink','Gold','MediumSpringGreen','mediumslateblue', 'dodgerblue'};
@@ -64,7 +70,11 @@ switch expGroup
         expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
     
-    case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food'
+    case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food' %%% becca made
+        expOrder = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+
+    case 'TrpA1-Gal4 x UAS-Kir2.1_A1  LTS 15-35 no food mechanical removal comparisons' %%% becca made
         expOrder = 1:2; % intact vs antenna-less
         colors = {'Grey', 'DodgerBlue'};
    
