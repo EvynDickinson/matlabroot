@@ -55,11 +55,13 @@ switch expGroup
 
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
     case {'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food','TrpA1-gal4 LTS 15-35 no food'}
-        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
-        colors = {'Peachpuff', 'Powderblue','Magenta'};
+        expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
+        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+        comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
     case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
-        expOrder = 1:num.exp; % UAS control, GAL4 control, GAL4>UAS
+        expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
     
     case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food'
@@ -71,6 +73,12 @@ switch expGroup
         colors = {'turquoise', 'DarkOrchid'};
     
     case 'IR25a-gal4 x Kir2.1 and controls LTS 15-25 caviar'
+        expOrder = 1:3; % UAS, GAL, UAS-GAL
+        colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+        comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+
+    case 'IR25a-gal4 x Kir2.1 and controls F LRR caviar'
         expOrder = 1:3; % UAS, GAL, UAS-GAL
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
         comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in

@@ -4297,6 +4297,8 @@ end
 
 % blkbgd = false;
 % fig_type = '-pdf';
+% blkbgd = true;
+% fig_type = '-png';
 
 autoLim = false;
 manual_xlims = [13, 37];
