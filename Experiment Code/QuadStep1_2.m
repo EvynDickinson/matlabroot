@@ -675,7 +675,7 @@ Yd = arenaData(arena).y_loc;
 c1 = pointloc(1); % point x value
 c2 = pointloc(2); % point y value
 full_list = 3:30;
-plot_list = 3:3:30;
+plot_list = 3:6:30;
 
 
 % Extract and organize data
@@ -689,29 +689,26 @@ for pr = full_list
     plotData(pr).in_mean = mean(plotData(pr).inside);
     plotData(pr).in_mean_dist = abs(1-plotData(pr).in_mean);
     plotData(pr).overcount = size(plotData(pr).inside(plotData(pr).inside >= 2),1);
-    % plotData(pr).out_mean = mean(plotData(pr).outside);
-    % plotData(pr).norm_in_std = zscore(plotData(pr).in_std);
-    % plotData(pr).norm_in_mean = zscore(plotData(pr).in_mean);
-    % plotData(pr).norm_out_mean = zscore(plotData(pr).out_mean);
 end
 
 % FIGURE
 sSpan = 360;
 labels = [];
+cumulative_sum = [];
 r = 3;
 c = 5;
 sb(1).idx = [1:2,6:7]; 
 sb(2).idx = 3; 
 sb(3).idx = 4; 
-sb(5).idx = 8; 
-sb(6).idx = 9; 
-sb(7).idx = 11:12; 
-sb(8).idx = 13; 
-sb(9).idx = 14; 
-sb(10).idx = [5,10,15]; 
+sb(4).idx = 8; 
+sb(5).idx = 9; 
+sb(6).idx = 11:12; 
+sb(7).idx = 13; 
+sb(8).idx = 14; 
+sb(9).idx = [5,10,15]; 
 
 fig = getfig;
-for pr = radius_list
+for pr = full_list
     if any(pr == plot_list) % skip radii not in plot_list
     labels = [labels,string(pr)];
     % Points INSIDE radius
@@ -722,16 +719,14 @@ for pr = radius_list
         yy = smooth(y,sSpan,'moving');
         plot(x,yy)
         ylabel('Number of points inside')
-        set(gca,'FontSize',10)
     % Points OUTSIDE radius
-    subplot(r, c, sb(7).idx)
+    subplot(r, c, sb(6).idx)
         hold on
         y = smooth(plotData(pr).outside,sSpan,'moving');
         yy = smooth(y,sSpan,'moving');
         plot(x,yy)
         xlabel('Time (min)')
         ylabel('Number of points outside')
-        set(gca,'FontSize',10)
     end
     % Variance of # points inside each radius
     subplot(r, c, sb(2).idx)
@@ -740,67 +735,82 @@ for pr = radius_list
         y = plotData(pr).in_std;
         scatter(x,y,'filled')
         ylabel('Variance inside')
-        set(gca,'FontSize',10)
     % Mean # points inside each radius
-    subplot(r, c, sb(5).idx)
+    subplot(r, c, sb(4).idx)
         hold on
         x = pr;
         y = plotData(pr).in_mean_dist;
         scatter(x,y,'filled')
         ylabel('Average inside')
-        set(gca,'FontSize',10)
     % Mean # points inside each radius
-    subplot(r, c, sb(8).idx)
+    subplot(r, c, sb(7).idx)
         hold on
         x = pr;
         y = plotData(pr).overcount;
         scatter(x,y,'filled')
         xlabel('Radius size (pixels)')
-        ylabel('Average outside')
-        set(gca,'FontSize',10)
+        ylabel('Overcount')
     % Normalized variance inside radius
     subplot(r, c, sb(3).idx)
         hold on
         x = pr;
-        y = plotData(pr).in_std / max([plotData(3:end).in_std],[],'all');
-        scatter(x,y,'filled')
+        y1 = plotData(pr).in_std / max([plotData(3:end).in_std],[],'all');
+        scatter(x,y1,'filled')
         ylabel('Norm. variance inside')
-        set(gca,'FontSize',10)
     % Plot normalized mean # inside
-    subplot(r, c, sb(6).idx)
+    subplot(r, c, sb(5).idx)
         hold on
         x = pr;
-        y = plotData(pr).in_mean_dist / max([plotData(3:end).in_mean],[],'all');
-        scatter(x,y,'filled')
+        y2 = plotData(pr).in_mean_dist / max([plotData(3:end).in_mean],[],'all');
+        scatter(x,y2,'filled')
         ylabel('Norm. average inside')
-        set(gca,'FontSize',10)
     % Normalized mean # outside
+    subplot(r, c, sb(8).idx)
+        hold on
+        x = pr;
+        y3 = plotData(pr).overcount / max([plotData(3:end).overcount],[],'all');
+        scatter(x,y3,'filled')
+        xlabel('Radius size (pixels)')
+        ylabel('Norm. overcount')
+    % Cumulative prediction
     subplot(r, c, sb(9).idx)
         hold on
+        csum = y1 + y2 + y3;
+        cumulative_sum = [cumulative_sum,csum];
         x = pr;
-        y = plotData(pr).overcount / max([plotData(3:end).overcount],[],'all');
+        y = csum;
         scatter(x,y,'filled')
         xlabel('Radius size (pixels)')
-        ylabel('Norm. average outside')
-        set(gca,'FontSize',10)
-    % % Cumulative prediction
-    % subplot(r, c, sb(10).idx)
-    %     hold on
-    %     cumulative_sum = plotData(pr).norm_in_std + plotData(pr).norm_in_mean + plotData(pr).norm_out_mean;
-    %     x = pr;
-    %     y = cumulative_sum;
-    %     scatter(x,y,'filled')
-    %     xlabel('Radius size (pixels)')
-    %     ylabel('Norm....')
-    %     set(gca,'FontSize',10)
+        ylabel('Cumulative score')
 end
 formatFig(fig,true,[r,c],sb);
 % set(gca,'FontSize',10)
-legend(labels,'TextColor', 'white', 'location', 'northwest', 'box', 'off','fontsize', 15)
-% save_figure(fig,[figDir expName ' points contained in radius over time'],'-png')
+subplot(r,c,sb(1).idx)
+    set(gca,'FontSize',10)
+    legend(labels,'TextColor', 'white', 'location', 'northwest', 'box', 'off','fontsize', 5)
+subplot(r,c,sb(2).idx)
+    set(gca,'FontSize',10)
+subplot(r,c,sb(3).idx)
+    set(gca,'FontSize',10)
+    ylim([0 1])
+subplot(r,c,sb(4).idx)
+    set(gca,'FontSize',10)
+subplot(r,c,sb(5).idx)
+    ylim([0 1])
+    set(gca,'FontSize',10)
+subplot(r,c,sb(6).idx)
+    set(gca,'FontSize',10)
+subplot(r,c,sb(7).idx)
+    set(gca,'FontSize',10)
+subplot(r,c,sb(8).idx)
+    ylim([0 1])
+    set(gca,'FontSize',10)
+subplot(r,c,sb(9).idx)
+    set(gca,'FontSize',10)
+save_figure(fig,[figDir expName ' radius selection figure'],'-png')
 
-
-
+disp(min(cumulative_sum));
+% TODO figure out how to display the radius size that produces this minimum sum
 
 
 
