@@ -35,11 +35,11 @@ switch expGroup
         expOrder = 1:4;
         colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
 
-    case 'Berlin F LRR caviar mechanical removal comparisons' %%% becca made
+    case 'Berlin F LRR caviar mechanical removal comparisons'
         expOrder = [1,2,3]; % berlin, no antenna, no arista
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
         comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
-        required_comp_pairs = [1,1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+        required_comp_pairs = [1, 1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
     case 'Berlin temp rate caviar'
         expOrder = [5, 3, 2, 1, 4]; % slow to fast
@@ -49,7 +49,7 @@ switch expGroup
         expOrder = [1,2,3]; % berlin, no antenna, no arista
         colors = {'Grey', 'MediumSlateBlue', 'Gold'};
         comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
-        required_comp_pairs = [1,1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+        required_comp_pairs = [1, 1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
@@ -58,8 +58,8 @@ switch expGroup
         colors = nan([18, 3]); % ultimately 18x3 (with all temp trials added)
         colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
-
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
+        
     case {'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food','TrpA1-gal4 LTS 15-35 no food'}
         expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
@@ -69,6 +69,8 @@ switch expGroup
     case {'TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','TrpA1-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'}
         expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+        comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3 
     
     case 'TrpA1-gal4 x Kir2.1 no antenna LTS 15-35 no food' %%% becca made
         expOrder = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
