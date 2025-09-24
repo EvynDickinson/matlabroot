@@ -2,7 +2,8 @@
 
 %% Parallelized version: 
 clc; clear
-% TODO -- update this to read from the HighRes Experiments.xlsx file
+% TODO -- update this to read from t
+% he HighRes Experiments.xlsx file
 % specifically: have it pick up the files that have 'R' for ready and then
 % turn them to a 'Y' when it's done
 % TODO: have this copy the tracking files into each of the folders! 

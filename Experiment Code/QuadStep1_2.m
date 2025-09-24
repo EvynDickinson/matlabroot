@@ -631,323 +631,310 @@ save_figure(fig, [analysisDir expName ' Fly Count over time'],'-png',false,true,
 % clearvars('-except',initial_vars{:})
 
 %%
-figDir = [baseFolder folder '/Extra point deletion/'];
-if ~isfolder(figDir)
-    mkdir(figDir) 
-end
-
-arena = 4; % Arena D
-n = 1; % how many miscounted frames to look at
-offset = flyCount(:,arena)-nflies(arena);
-[~,idx] = sort(offset);
-highIDX = idx(end-n+1:end); % highest fly count frame index
-% lowIDX = idx(1:n); % lowest fly count frame index
-
-% Identify point to be erased
-frame = highIDX;
-vidNum = T.vidNums(frame);
-vidframe = T.vidFrame(frame);
-movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
-img = read(movieInfo,vidframe);
-fig = figure;
-    imshow(img); set(fig,'color', 'k')
-    hold on
-    x = T.X(frame,:);
-    y = T.Y(frame,:);
-    scatter(x,y, 10, 'y')
-    % Draw arena circle
-    kolor = arenaData(arena).color;
-    centre = arenaData(arena).centre;
-    viscircles(centre', r, 'color', kolor);
-    xlim([(centre(1)-450) (centre(1)+450)])
-    ylim([(centre(2)-450) (centre(2)+450)])
-    % Cross hairs to select point
-    [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
-    pointloc = [xi, yi];
+% figDir = [baseFolder folder '/Extra point deletion/'];
+% if ~isfolder(figDir)
+%     mkdir(figDir) 
+% end
+% 
+% arena = 4; % Arena D
+% n = 1; % how many miscounted frames to look at
+% offset = flyCount(:,arena)-nflies(arena);
+% [~,idx] = sort(offset);
+% highIDX = idx(end-n+1:end); % highest fly count frame index
+% % lowIDX = idx(1:n); % lowest fly count frame index
+% 
+% % Identify point to be erased
+% frame = highIDX;
+% vidNum = T.vidNums(frame);
+% vidframe = T.vidFrame(frame);
+% movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
+% img = read(movieInfo,vidframe);
+% fig = figure;
+%     imshow(img); set(fig,'color', 'k')
+%     hold on
+%     x = T.X(frame,:);
+%     y = T.Y(frame,:);
+%     scatter(x,y, 10, 'y')
+%     % Draw arena circle
+%     kolor = arenaData(arena).color;
+%     centre = arenaData(arena).centre;
+%     viscircles(centre', r, 'color', kolor);
+%     xlim([(centre(1)-450) (centre(1)+450)])
+%     ylim([(centre(2)-450) (centre(2)+450)])
+%     % Cross hairs to select point
+%     [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
+%     pointloc = [xi, yi];
 
 %%
 
-% How many tracks are within the sphere around the point?
-X = T.X;
-Y = T.Y;
-Xd = arenaData(arena).x_loc;
-Yd = arenaData(arena).y_loc;
-c1 = pointloc(1); % point x value
-c2 = pointloc(2); % point y value
-full_list = 3:30;
-plot_list = 3:6:30;
-
-
-% Extract and organize data
-plotData = [];
-for pr = full_list
-    loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle, relative to all arenas (distance formula)
-    plotData(pr).inside = sum(loc,2);
-    notloc = sqrt((Xd-c1).^2 + (Yd-c2).^2)>=pr; % tracked points outside circle, relative to only chosen arena
-    plotData(pr).outside = sum(notloc,2);
-    plotData(pr).in_std = std(plotData(pr).inside);
-    plotData(pr).in_mean = mean(plotData(pr).inside);
-    plotData(pr).in_mean_dist = abs(1-plotData(pr).in_mean);
-    plotData(pr).overcount = size(plotData(pr).inside(plotData(pr).inside >= 2),1);
-end
-
-% FIGURE
-sSpan = 360;
-labels = [];
-cumulative_sum = [];
-r = 3;
-c = 5;
-sb(1).idx = [1:2,6:7]; 
-sb(2).idx = 3; 
-sb(3).idx = 4; 
-sb(4).idx = 8; 
-sb(5).idx = 9; 
-sb(6).idx = 11:12; 
-sb(7).idx = 13; 
-sb(8).idx = 14; 
-sb(9).idx = [5,10,15]; 
-
-fig = getfig;
-for pr = full_list
-    if any(pr == plot_list) % skip radii not in plot_list
-    labels = [labels,string(pr)];
-    % Points INSIDE radius
-    subplot(r, c, sb(1).idx)
-        hold on
-        x = T.time;
-        y = smooth(plotData(pr).inside,sSpan,'moving');
-        yy = smooth(y,sSpan,'moving');
-        plot(x,yy)
-        ylabel('Number of points inside')
-    % Points OUTSIDE radius
-    subplot(r, c, sb(6).idx)
-        hold on
-        y = smooth(plotData(pr).outside,sSpan,'moving');
-        yy = smooth(y,sSpan,'moving');
-        plot(x,yy)
-        xlabel('Time (min)')
-        ylabel('Number of points outside')
-    end
-    % Variance of # points inside each radius
-    subplot(r, c, sb(2).idx)
-        hold on
-        x = pr;
-        y = plotData(pr).in_std;
-        scatter(x,y,'filled')
-        ylabel('Variance inside')
-    % Mean # points inside each radius
-    subplot(r, c, sb(4).idx)
-        hold on
-        x = pr;
-        y = plotData(pr).in_mean_dist;
-        scatter(x,y,'filled')
-        ylabel('Average inside')
-    % Mean # points inside each radius
-    subplot(r, c, sb(7).idx)
-        hold on
-        x = pr;
-        y = plotData(pr).overcount;
-        scatter(x,y,'filled')
-        xlabel('Radius size (pixels)')
-        ylabel('Overcount')
-    % Normalized variance inside radius
-    subplot(r, c, sb(3).idx)
-        hold on
-        x = pr;
-        y1 = plotData(pr).in_std / max([plotData(3:end).in_std],[],'all');
-        scatter(x,y1,'filled')
-        ylabel('Norm. variance inside')
-    % Plot normalized mean # inside
-    subplot(r, c, sb(5).idx)
-        hold on
-        x = pr;
-        y2 = plotData(pr).in_mean_dist / max([plotData(3:end).in_mean],[],'all');
-        scatter(x,y2,'filled')
-        ylabel('Norm. average inside')
-    % Normalized mean # outside
-    subplot(r, c, sb(8).idx)
-        hold on
-        x = pr;
-        y3 = plotData(pr).overcount / max([plotData(3:end).overcount],[],'all');
-        scatter(x,y3,'filled')
-        xlabel('Radius size (pixels)')
-        ylabel('Norm. overcount')
-    % Cumulative prediction
-    subplot(r, c, sb(9).idx)
-        hold on
-        csum = y1 + y2 + y3;
-        cumulative_sum = [cumulative_sum,csum];
-        x = pr;
-        y = csum;
-        scatter(x,y,'filled')
-        xlabel('Radius size (pixels)')
-        ylabel('Cumulative score')
-end
-formatFig(fig,true,[r,c],sb);
-% set(gca,'FontSize',10)
-subplot(r,c,sb(1).idx)
-    set(gca,'FontSize',10)
-    legend(labels,'TextColor', 'white', 'location', 'northwest', 'box', 'off','fontsize', 5)
-subplot(r,c,sb(2).idx)
-    set(gca,'FontSize',10)
-subplot(r,c,sb(3).idx)
-    set(gca,'FontSize',10)
-    ylim([0 1])
-subplot(r,c,sb(4).idx)
-    set(gca,'FontSize',10)
-subplot(r,c,sb(5).idx)
-    ylim([0 1])
-    set(gca,'FontSize',10)
-subplot(r,c,sb(6).idx)
-    set(gca,'FontSize',10)
-subplot(r,c,sb(7).idx)
-    set(gca,'FontSize',10)
-subplot(r,c,sb(8).idx)
-    ylim([0 1])
-    set(gca,'FontSize',10)
-subplot(r,c,sb(9).idx)
-    set(gca,'FontSize',10)
-save_figure(fig,[figDir expName ' radius selection figure'],'-png')
-
-disp(min(cumulative_sum));
-% TODO figure out how to display the radius size that produces this minimum sum
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%% Delete persistent extra tracks in arena D
-% TODO how to decide what to make radius, not sure how to make it not too stringent
-
-response = questdlg('Are there persistent extra tracks that need deleting?','','Yes','No','No');
-switch response
-    case 'Yes'
-        % Create folder for saving figs:
-                figDir = [baseFolder folder '/Extra point deletion/'];
-                if ~isfolder(figDir)
-                    mkdir(figDir) 
-                end
-end
-             
-        % Check flycount offset by arena:
-        arena = 4; % Arena D
-        n = 1; % how many miscounted frames to look at
-        offset = flyCount(:,arena)-nflies(arena);
-        [~,idx] = sort(offset);
-        highIDX = idx(end-n+1:end); % highest fly count frame index
-        % lowIDX = idx(1:n); % lowest fly count frame index
-        
-        pr = 8; % radius around point
-        
-        % Identify point to be erased
-        redo = true;
-        while redo
-            frame = highIDX;
-            vidNum = T.vidNums(frame);
-            vidframe = T.vidFrame(frame);
-            movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
-            img = read(movieInfo,vidframe);
-            fig = figure;
-                imshow(img); set(fig,'color', 'k')
-                hold on
-                x = T.X(frame,:);
-                y = T.Y(frame,:);
-                scatter(x,y, 10, 'y')
-                % Draw arena circle
-                kolor = arenaData(arena).color;
-                centre = arenaData(arena).centre;
-                viscircles(centre', r, 'color', kolor);
-                xlim([(centre(1)-450) (centre(1)+450)])
-                ylim([(centre(2)-450) (centre(2)+450)])
-                % Cross hairs to select point
-                [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
-                pointloc = [xi, yi];
-                % % Display circle around selected point
-                viscircles(pointloc,pr,'LineWidth',0.5);
-        
-                response = questdlg('Okay point selection?','','Yes','No','Yes');
-                switch response
-                    case 'Yes'
-                        redo = false;
-                        save_figure(fig, [figDir expName ' Selection of point on arena'],'-png',true,true,'-r80');
-                    case 'No'
-                        redo = true;
-                end
-        end
-        
-        % ------------------------------------------ Start for loop here for each point ------------------------------------------------
-        % How many tracks are within the sphere around the point?
-        flyCount = []; %unused later on?? maybe delete
-        % Pull variables:
-        X = T.X;
-        Y = T.Y;
-        c1 = pointloc(1);
-        c2 = pointloc(2);
-        
-        % Find points within area:
-        loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance formula)
-        X(~loc) = nan;
-        Y(~loc) = nan;
-        flyNum = sum(loc,2); % how many points are found within that area
-        
-        
-        % FIGURE: Compare extra point to #tracks - #flies
-        % sSpan = 360; 
-        % fig = getfig;
-        %     hold on
-        %     x = T.time;
-        %     y = smooth(offset,sSpan,'moving');
-        %     y = smooth(y,sSpan,'moving');
-        %     plot(x,y)
-        %     yy = smooth(flyNum,sSpan,'moving');
-        %     plot(x,yy)
-        % save_figure(fig, [figDir expName ' Extra Point Comparison'],'-png');
-
-        % % FIGURE: Look at different radii around the extra point
-        % fig = figure;
-        %     imshow(img); set(fig,'color', 'k')
-        %     hold on
-        %     x = T.X(frame,:);
-        %     y = T.Y(frame,:);
-        %     scatter(x,y, 10, 'y')
-        %     % draw arena circle
-        %     kolor = arenaData(arena).color;
-        %     centre = arenaData(arena).centre;
-        %     viscircles(centre', r, 'color', kolor);
-        %     % draw circle around point
-        %     % point radius
-        %     viscircles(pointloc, pr,'color', "g");
-        %     % point radius + 2
-        %     viscircles(pointloc, pr+2,'color', "b");
-        %     % point radius +4
-        %     viscircles(pointloc, pr+4,'color', "m");
-        % save_figure(fig, [figDir expName ' Radius Comparison'],'-png');
-       
-        % DELETE EXTRA TRACK(S)
-        X(loc) = nan;
-        Y(loc) = nan;
-        T.X = X;
-        T.Y = Y;    
-        
-        % Stop further processing if tracks deleted
-        if strcmp(response,'Yes')
-            disp('Extra track(s) deleted. Go rerun sections 6-9 (Determine...)')
-            return
-        end
+% % How many tracks are within the sphere around the point?
+% X = T.X;
+% Y = T.Y;
+% Xd = arenaData(arena).x_loc;
+% Yd = arenaData(arena).y_loc;
+% c1 = pointloc(1); % point x value
+% c2 = pointloc(2); % point y value
+% full_list = 3:30;
+% plot_list = 3:6:30;
+% 
+% 
+% % Extract and organize data
+% plotData = [];
+% for pr = full_list
+%     loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle, relative to all arenas (distance formula)
+%     plotData(pr).inside = sum(loc,2);
+%     notloc = sqrt((Xd-c1).^2 + (Yd-c2).^2)>=pr; % tracked points outside circle, relative to only chosen arena
+%     plotData(pr).outside = sum(notloc,2);
+%     plotData(pr).in_std = std(plotData(pr).inside);
+%     plotData(pr).in_mean = mean(plotData(pr).inside);
+%     plotData(pr).in_mean_dist = abs(1-plotData(pr).in_mean);
+%     plotData(pr).overcount = size(plotData(pr).inside(plotData(pr).inside >= 2),1);
 % end
+% 
+% % FIGURE
+% sSpan = 360;
+% labels = [];
+% cumulative_sum = [];
+% r = 3;
+% c = 5;
+% sb(1).idx = [1:2,6:7]; 
+% sb(2).idx = 3; 
+% sb(3).idx = 4; 
+% sb(4).idx = 8; 
+% sb(5).idx = 9; 
+% sb(6).idx = 11:12; 
+% sb(7).idx = 13; 
+% sb(8).idx = 14; 
+% sb(9).idx = [5,10,15]; 
+% 
+% fig = getfig;
+% for pr = full_list
+%     if any(pr == plot_list) % skip radii not in plot_list
+%     labels = [labels,string(pr)];
+%     % Points INSIDE radius
+%     subplot(r, c, sb(1).idx)
+%         hold on
+%         x = T.time;
+%         y = smooth(plotData(pr).inside,sSpan,'moving');
+%         yy = smooth(y,sSpan,'moving');
+%         plot(x,yy)
+%         ylabel('Number of points inside')
+%     % Points OUTSIDE radius
+%     subplot(r, c, sb(6).idx)
+%         hold on
+%         y = smooth(plotData(pr).outside,sSpan,'moving');
+%         yy = smooth(y,sSpan,'moving');
+%         plot(x,yy)
+%         xlabel('Time (min)')
+%         ylabel('Number of points outside')
+%     end
+%     % Variance of # points inside each radius
+%     subplot(r, c, sb(2).idx)
+%         hold on
+%         x = pr;
+%         y = plotData(pr).in_std;
+%         scatter(x,y,'filled')
+%         ylabel('Variance inside')
+%     % Mean # points inside each radius
+%     subplot(r, c, sb(4).idx)
+%         hold on
+%         x = pr;
+%         y = plotData(pr).in_mean_dist;
+%         scatter(x,y,'filled')
+%         ylabel('Average inside')
+%     % Mean # points inside each radius
+%     subplot(r, c, sb(7).idx)
+%         hold on
+%         x = pr;
+%         y = plotData(pr).overcount;
+%         scatter(x,y,'filled')
+%         xlabel('Radius size (pixels)')
+%         ylabel('Overcount')
+%     % Normalized variance inside radius
+%     subplot(r, c, sb(3).idx)
+%         hold on
+%         x = pr;
+%         y1 = plotData(pr).in_std / max([plotData(3:end).in_std],[],'all');
+%         scatter(x,y1,'filled')
+%         ylabel('Norm. variance inside')
+%     % Plot normalized mean # inside
+%     subplot(r, c, sb(5).idx)
+%         hold on
+%         x = pr;
+%         y2 = plotData(pr).in_mean_dist / max([plotData(3:end).in_mean],[],'all');
+%         scatter(x,y2,'filled')
+%         ylabel('Norm. average inside')
+%     % Normalized mean # outside
+%     subplot(r, c, sb(8).idx)
+%         hold on
+%         x = pr;
+%         y3 = plotData(pr).overcount / max([plotData(3:end).overcount],[],'all');
+%         scatter(x,y3,'filled')
+%         xlabel('Radius size (pixels)')
+%         ylabel('Norm. overcount')
+%     % Cumulative prediction
+%     subplot(r, c, sb(9).idx)
+%         hold on
+%         csum = y1 + y2 + y3;
+%         cumulative_sum = [cumulative_sum,csum];
+%         x = pr;
+%         y = csum;
+%         scatter(x,y,'filled')
+%         xlabel('Radius size (pixels)')
+%         ylabel('Cumulative score')
+% end
+% formatFig(fig,true,[r,c],sb);
+% % set(gca,'FontSize',10)
+% subplot(r,c,sb(1).idx)
+%     set(gca,'FontSize',10)
+%     legend(labels,'TextColor', 'white', 'location', 'northwest', 'box', 'off','fontsize', 5)
+% subplot(r,c,sb(2).idx)
+%     set(gca,'FontSize',10)
+% subplot(r,c,sb(3).idx)
+%     set(gca,'FontSize',10)
+%     ylim([0 1])
+% subplot(r,c,sb(4).idx)
+%     set(gca,'FontSize',10)
+% subplot(r,c,sb(5).idx)
+%     ylim([0 1])
+%     set(gca,'FontSize',10)
+% subplot(r,c,sb(6).idx)
+%     set(gca,'FontSize',10)
+% subplot(r,c,sb(7).idx)
+%     set(gca,'FontSize',10)
+% subplot(r,c,sb(8).idx)
+%     ylim([0 1])
+%     set(gca,'FontSize',10)
+% subplot(r,c,sb(9).idx)
+%     set(gca,'FontSize',10)
+% save_figure(fig,[figDir expName ' radius selection figure'],'-png')
+% 
+% disp(min(cumulative_sum));
+% % TODO figure out how to display the radius size that produces this minimum sum
+
+
+
+
+
+%%
+% % TODO how to decide what to make radius, not sure how to make it not too stringent
+% 
+% response = questdlg('Are there persistent extra tracks that need deleting?','','Yes','No','No');
+% switch response
+%     case 'Yes'
+%         % Create folder for saving figs:
+%                 figDir = [baseFolder folder '/Extra point deletion/'];
+%                 if ~isfolder(figDir)
+%                     mkdir(figDir) 
+%                 end
+% end
+% 
+%         % Check flycount offset by arena:
+%         arena = 4; % Arena D
+%         n = 1; % how many miscounted frames to look at
+%         offset = flyCount(:,arena)-nflies(arena);
+%         [~,idx] = sort(offset);
+%         highIDX = idx(end-n+1:end); % highest fly count frame index
+%         % lowIDX = idx(1:n); % lowest fly count frame index
+% 
+%         pr = 8; % radius around point
+% 
+%         % Identify point to be erased
+%         redo = true;
+%         while redo
+%             frame = highIDX;
+%             vidNum = T.vidNums(frame);
+%             vidframe = T.vidFrame(frame);
+%             movieInfo = VideoReader([baseFolder folder '/' expName '_' num2str(vidNum) '.avi']); %read in video
+%             img = read(movieInfo,vidframe);
+%             fig = figure;
+%                 imshow(img); set(fig,'color', 'k')
+%                 hold on
+%                 x = T.X(frame,:);
+%                 y = T.Y(frame,:);
+%                 scatter(x,y, 10, 'y')
+%                 % Draw arena circle
+%                 kolor = arenaData(arena).color;
+%                 centre = arenaData(arena).centre;
+%                 viscircles(centre', r, 'color', kolor);
+%                 xlim([(centre(1)-450) (centre(1)+450)])
+%                 ylim([(centre(2)-450) (centre(2)+450)])
+%                 % Cross hairs to select point
+%                 [xi, yi] = crosshairs(1,{'black','black','yellow','yellow'});
+%                 pointloc = [xi, yi];
+%                 % % Display circle around selected point
+%                 viscircles(pointloc,pr,'LineWidth',0.5);
+% 
+%                 response = questdlg('Okay point selection?','','Yes','No','Yes');
+%                 switch response
+%                     case 'Yes'
+%                         redo = false;
+%                         save_figure(fig, [figDir expName ' Selection of point on arena'],'-png',true,true,'-r80');
+%                     case 'No'
+%                         redo = true;
+%                 end
+%         end
+% 
+%         % ------------------------------------------ Start for loop here for each point ------------------------------------------------
+%         % How many tracks are within the sphere around the point?
+%         flyCount = []; %unused later on?? maybe delete
+%         % Pull variables:
+%         X = T.X;
+%         Y = T.Y;
+%         c1 = pointloc(1);
+%         c2 = pointloc(2);
+% 
+%         % Find points within area:
+%         loc = sqrt((X-c1).^2 + (Y-c2).^2)<=pr; % tracked points within circle (distance formula)
+%         X(~loc) = nan;
+%         Y(~loc) = nan;
+%         flyNum = sum(loc,2); % how many points are found within that area
+% 
+% 
+%         % FIGURE: Compare extra point to #tracks - #flies
+%         % sSpan = 360; 
+%         % fig = getfig;
+%         %     hold on
+%         %     x = T.time;
+%         %     y = smooth(offset,sSpan,'moving');
+%         %     y = smooth(y,sSpan,'moving');
+%         %     plot(x,y)
+%         %     yy = smooth(flyNum,sSpan,'moving');
+%         %     plot(x,yy)
+%         % save_figure(fig, [figDir expName ' Extra Point Comparison'],'-png');
+% 
+%         % % FIGURE: Look at different radii around the extra point
+%         % fig = figure;
+%         %     imshow(img); set(fig,'color', 'k')
+%         %     hold on
+%         %     x = T.X(frame,:);
+%         %     y = T.Y(frame,:);
+%         %     scatter(x,y, 10, 'y')
+%         %     % draw arena circle
+%         %     kolor = arenaData(arena).color;
+%         %     centre = arenaData(arena).centre;
+%         %     viscircles(centre', r, 'color', kolor);
+%         %     % draw circle around point
+%         %     % point radius
+%         %     viscircles(pointloc, pr,'color', "g");
+%         %     % point radius + 2
+%         %     viscircles(pointloc, pr+2,'color', "b");
+%         %     % point radius +4
+%         %     viscircles(pointloc, pr+4,'color', "m");
+%         % save_figure(fig, [figDir expName ' Radius Comparison'],'-png');
+% 
+%         % DELETE EXTRA TRACK(S)
+%         X(loc) = nan;
+%         Y(loc) = nan;
+%         T.X = X;
+%         T.Y = Y;    
+% 
+%         % Stop further processing if tracks deleted
+%         if strcmp(response,'Yes')
+%             disp('Extra track(s) deleted. Go rerun sections 6-9 (Determine...)')
+%             return
+%         end
+% % end
 
 %% Find number of flies within each well sphere & fly distance to wells
 % THIS SECTION WOULD NEED TO BE RERUN FOR ALL TRIALS

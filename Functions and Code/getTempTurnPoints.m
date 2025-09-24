@@ -23,6 +23,94 @@ switch TempProtocolString
         tempPoints.threshLow = 39;
         tempPoints.threshHigh = 41;
         tempPoints.holdexp = true;
+        
+    case 'survival_hold_with_recovery_40-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [];
+        tempPoints.down = [723601 729000];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = -0.5; 
+        tempPoints.threshLow = 24;
+        tempPoints.threshHigh = 41;
+        tempPoints.holdexp = false;
+
+   case 'survival_hold_with_recovery_35-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [];
+        tempPoints.down = [723601 729000];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = -0.333; 
+        tempPoints.threshLow = 24;
+        tempPoints.threshHigh = 36;
+        tempPoints.holdexp = false;
+
+   case 'survival_hold_with_recovery_30-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [];
+        tempPoints.down = [723601 729000];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = -0.167; 
+        tempPoints.threshLow = 24;
+        tempPoints.threshHigh = 31;
+        tempPoints.holdexp = false;
+
+    case 'survival_hold_with_recovery_25-25'
+        tempPoints.hold = [1000 745200];
+        tempPoints.up = [];
+        tempPoints.down = [];
+        tempPoints.nRates = 1; 
+        tempPoints.rates = 0; 
+        tempPoints.threshLow = 24;
+        tempPoints.threshHigh = 26;
+        tempPoints.holdexp = false; % does this count as a hold?
+
+    case 'survival_hold_with_recovery_20-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [723601 729000];
+        tempPoints.down = [];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = 0.167; 
+        tempPoints.threshLow = 19;
+        tempPoints.threshHigh = 26;
+        tempPoints.holdexp = false;
+
+        case 'survival_hold_with_recovery_15-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [723601 729000];
+        tempPoints.down = [];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = 0.333; 
+        tempPoints.threshLow = 14;
+        tempPoints.threshHigh = 26;
+        tempPoints.holdexp = false;
+
+    case 'survival_hold_with_recovery_10-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [723601 729000];
+        tempPoints.down = [];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = 0.5; 
+        tempPoints.threshLow = 9;
+        tempPoints.threshHigh = 26;
+        tempPoints.holdexp = false;
+
+    case 'survival_hold_with_recovery_5-25'
+        tempPoints.hold = [1000 723600;...
+                                          729001 745200];
+        tempPoints.up = [723601 729000];
+        tempPoints.down = [];
+        tempPoints.nRates = 2; 
+        tempPoints.rates = 0.667; 
+        tempPoints.threshLow = 4;
+        tempPoints.threshHigh = 26;
+        tempPoints.holdexp = false;
+
     % =======================================
    case 'Hold35C'
         tempPoints.hold = [1000 159935];
