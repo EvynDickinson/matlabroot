@@ -4420,6 +4420,7 @@ for i = 1:c
     end
     if i == 1
         title('Cooling','color', foreColor)
+        set(gca, 'xdir', 'reverse')
     elseif i==2
         title('Warming', 'color', foreColor)
         set(gca, 'ycolor', 'none')
