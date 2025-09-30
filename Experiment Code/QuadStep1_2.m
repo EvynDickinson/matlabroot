@@ -110,6 +110,8 @@ copyfile(well_loc_file, [analysisDir expName ' well_locations.mat']);
 % Load the well location data 
 well_coor_file = [baseFolder folder '/' expName ' arena coordinates.mat'];
 load(well_coor_file);
+well_loc_file = [baseFolder folder '/' expName ' well_locations.mat'];
+load(well_loc_file);
 copyfile(well_coor_file, [analysisDir expName ' arena coordinates.mat']);% copy the files to the new analysis folder
 
 % Tidy variables / environment 
