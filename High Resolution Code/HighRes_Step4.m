@@ -71,8 +71,6 @@ switch response
                 disp(size(data(vid).tracks,4))
             end
         end
-    case 'No'
-        return
 end
 
 for vid = 1:length(proofedFlag)
