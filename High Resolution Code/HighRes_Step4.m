@@ -427,61 +427,68 @@ end
 response = questdlg('Double check for track switches?', '','Yes', 'No', 'Yes');
 switch response
     case 'Yes'
-    row = 2;
-    col = 4;
-    nfigs = ceil(parameters.nVids/col);
-    
-    frame = [];
-    vid = 0;
-    
-    for figs = 1:nfigs
-        fig = getfig;
-        for pics = 1:col
-            vid = vid + 1;
-            if vid > parameters.nVids
-                return
+        row = 2;
+        col = 4;
+        nfigs = ceil(parameters.nVids/col);
+        
+        frame = [];
+        vid = 0;
+        
+        for figs = 1:nfigs
+            fig = getfig;
+            for pics = 1:col
+                vid = vid + 1;
+                if vid > parameters.nVids
+                    return
+                end
+                vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
+                vidh = VideoReader(vidname);
+                frame = randi(vidh.NumFrames); 
+                % mnotrack = isnan(m.pos(exp_frame,2,1));
+                % fnotrack = isnan(f.pos(exp_frame,2,1)); 
+                % while mnotrack == true | fnotrack == true
+                % frame = randi(vidh.NumFrames); 
+                % mnotrack = isnan(m.pos(exp_frame,2,1));
+                % fnotrack = isnan(f.pos(exp_frame,2,1)); 
+                % end
+                % if mnotrack == true | fnotrack == true
+                %     frame = randi(vidh.NumFrames);
+                % end
+                img = read(vidh,frame);
+                a = T.vidNums == vid;
+                b = T.vidFrame == frame;
+                exp_frame = T.frame(find(a & b));
+                
+                % Male fly
+                subplot(row, col, pics)
+                    imshow(img)
+                    plotFlySkeleton(fig, m.pos(exp_frame,:,1),m.pos(exp_frame,:,2),Color('dodgerblue'),0); 
+                    % Zoom in on fly
+                    xlimits = m.pos(exp_frame,2,1);
+                    ylimits = m.pos(exp_frame,2,2);
+                    buff = 75;
+                    xlim([xlimits-buff, xlimits+buff])
+                    ylim([ylimits-buff, ylimits+buff])
+                    title(['video ', num2str(vid), ', frame ', num2str(exp_frame)])
+                % Female fly
+                subplot(row, col, (pics + col))
+                    imshow(img)
+                    plotFlySkeleton(fig, f.pos(exp_frame,:,1),f.pos(exp_frame,:,2),Color('pink'),0);
+                    % Zoom in on pink fly
+                    xlimits = f.pos(exp_frame,2,1);
+                    ylimits = f.pos(exp_frame,2,2);
+                    buff = 75;
+                    xlim([xlimits-buff, xlimits+buff])
+                    ylim([ylimits-buff, ylimits+buff])
             end
-            vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
-            vidh = VideoReader(vidname);
-            frame = randi(vidh.NumFrames); 
-            % mnotrack = isnan(m.pos(exp_frame,2,1));
-            % fnotrack = isnan(f.pos(exp_frame,2,1)); 
-            % while mnotrack == true | fnotrack == true
-            % frame = randi(vidh.NumFrames); 
-            % mnotrack = isnan(m.pos(exp_frame,2,1));
-            % fnotrack = isnan(f.pos(exp_frame,2,1)); 
-            % end
-            % if mnotrack == true | fnotrack == true
-            %     frame = randi(vidh.NumFrames);
-            % end
-            img = read(vidh,frame);
-            a = T.vidNums == vid;
-            b = T.vidFrame == frame;
-            exp_frame = T.frame(find(a & b));
-            
-            % Male fly
-            subplot(row, col, pics)
-                imshow(img)
-                plotFlySkeleton(fig, m.pos(exp_frame,:,1),m.pos(exp_frame,:,2),Color('dodgerblue'),0); 
-                % Zoom in on fly
-                xlimits = m.pos(exp_frame,2,1);
-                ylimits = m.pos(exp_frame,2,2);
-                buff = 75;
-                xlim([xlimits-buff, xlimits+buff])
-                ylim([ylimits-buff, ylimits+buff])
-                title(['video ', num2str(vid), ', frame ', num2str(exp_frame)])
-            % Female fly
-            subplot(row, col, (pics + col))
-                imshow(img)
-                plotFlySkeleton(fig, f.pos(exp_frame,:,1),f.pos(exp_frame,:,2),Color('pink'),0);
-                % Zoom in on pink fly
-                xlimits = f.pos(exp_frame,2,1);
-                ylimits = f.pos(exp_frame,2,2);
-                buff = 75;
-                xlim([xlimits-buff, xlimits+buff])
-                ylim([ylimits-buff, ylimits+buff])
         end
-    end
+        response2 = questdlg('All good?','','Yes','Double check','No','Yes');
+            switch response2
+                case 'Yes'
+                    close all
+                case 'Double check' | 'No'
+                    return
+            end
     case 'No'
         return
 end
