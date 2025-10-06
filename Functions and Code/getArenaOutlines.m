@@ -100,8 +100,11 @@ fig = figure;
     end
     tltstr = strsplit(savePath,'\');
     titlestr = tltstr{end};
+    titlestr = strrep(tltstr,'_', ' ');
     title(titlestr,'color','w')
 figure(fig)
+
+
 % Does the arena fit work???
 answer = questdlg('Okay arena alignment?');
 switch answer

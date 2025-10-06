@@ -230,9 +230,9 @@ save_figure(fig,[figDir, 'Percentage still flies overtime'], fig_type);
 
 %% LOAD: Manual data for ground truthing
 % baseFolder = getDataPath(2,2);
-clearvars('-except',initial_vars{:})
+% clearvars('-except',initial_vars{:})
 
-blkbnd = true;
+blkbnd = false;
 fig_type = '-png';
 
 % Load excel file
@@ -254,17 +254,17 @@ if isempty(fileIdx)
 end
 
 
-% % FOR MULTIPLE TEMP COMPARISON
-% % Path data structures folder
-% baseFolder = getDataPath(5,2);
-% pathNames = getPathNames;
-% % ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
-% % ExpGroup = ExpGroup{:};
-% 
-% % If survival curves folder isn't made yet, make it
-% ExpGroup = 'Berlin survival comparisons no food';
-% rootDir = createFolder([baseFolder pathNames.group_comparision ExpGroup '/']);
-% figDir = createFolder([rootDir 'Figures/']);
+% FOR MULTIPLE TEMP COMPARISON
+% Path data structures folder
+baseFolder = getDataPath(5,2);
+pathNames = getPathNames;
+% ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
+% ExpGroup = ExpGroup{:};
+
+% If survival curves folder isn't made yet, make it
+ExpGroup = 'Berlin survival comparisons no food';
+rootDir = createFolder([baseFolder pathNames.group_comparision ExpGroup '/']);
+figDir = createFolder([rootDir 'Figures/']);
 
 nexps = length(fileIdx);
 

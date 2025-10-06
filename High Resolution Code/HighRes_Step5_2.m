@@ -242,7 +242,7 @@ save_figure(fig,[figDir 'wing extension positions M fly'],fig_type);
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
 if strcmp(parameters.protocol,'high_res_LTS_35-15')
-    skip = 100;
+    skip = 400;
 else
     skip = 20;
 end
@@ -1304,5 +1304,3 @@ save_figure(fig,[figDir 'Body angle between M and F'],fig_type);
 % figure;
 % polarhistogram(angleDegrees)
 %%
-
-x
