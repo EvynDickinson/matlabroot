@@ -4304,6 +4304,9 @@ autoLim = false;
 manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
+manual_y = true;
+manual_ylims = [0, 70];
+
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
 foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
@@ -4424,7 +4427,7 @@ for i = 1:c
     elseif i==2
         title('Warming', 'color', foreColor)
         set(gca, 'ycolor', 'none')
-    end    
+    end   
 end
 
 % % adjust the figure size if selected
@@ -4514,6 +4517,10 @@ for i = 1:2
     labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
     set(labelHandles,'FontSize', 28, 'color', foreColor)
     set(gca,'XTickLabelRotationMode', 'manual', 'XTickLabelRotation', 0)
+
+    if strcmp(title_str, 'ring') && manual_y
+        ylim(manual_ylims)
+    end
 end
 subplot(r,c,2)
 ylabel('')
