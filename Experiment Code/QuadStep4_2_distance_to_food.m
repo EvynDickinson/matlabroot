@@ -386,8 +386,8 @@ clearvars('-except',initial_vars{:})
 % fig_type = '-pdf';
 
 autoLim = false;
-% manual_xlims = [13, 37];
-manual_xlims = [15, 27];
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -4301,8 +4301,8 @@ end
 % fig_type = '-png';
 
 autoLim = false;
-% manual_xlims = [13, 37];
-manual_xlims = [15, 27];
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials

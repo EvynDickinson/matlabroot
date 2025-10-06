@@ -772,26 +772,26 @@ end
 
 %% Visual test of arena alignment and overlay ... make sure the alignment actually worked! 
 
-field_label = 'position_high';
-
-[c, r] = subplot_numbers(num.exp);
-fig = getfig(field_label,1);
-for exp = 1:num.exp
-    subplot(r,c,exp)
-    % plot the well positions as a '+'
-    barX1 = grouped(exp).(field_label).well_pos.x([1,3],:);
-    barX2 = grouped(exp).(field_label).well_pos.x([2,4],:);
-    barY1 = grouped(exp).(field_label).well_pos.y([1,3],:);
-    barY2 = grouped(exp).(field_label).well_pos.y([2,4],:);
-    centreX = grouped(exp).(field_label).well_pos.x(5,:);
-    centreY = grouped(exp).(field_label).well_pos.y(5,:);
-    hold on
-        plot(barX1, barY1,'Marker','.','MarkerSize',15)
-        plot(barX2, barY2,'Marker','.','MarkerSize',15)
-        scatter(centreX, centreY,35,'filled')
-        title(grouped(exp).name,'color', 'w')
-end
-formatFig(fig, true,[r,c]);
+% field_label = 'position_high';
+% 
+% [c, r] = subplot_numbers(num.exp);
+% fig = getfig(field_label,1);
+% for exp = 1:num.exp
+%     subplot(r,c,exp)
+%     % plot the well positions as a '+'
+%     barX1 = grouped(exp).(field_label).well_pos.x([1,3],:);
+%     barX2 = grouped(exp).(field_label).well_pos.x([2,4],:);
+%     barY1 = grouped(exp).(field_label).well_pos.y([1,3],:);
+%     barY2 = grouped(exp).(field_label).well_pos.y([2,4],:);
+%     centreX = grouped(exp).(field_label).well_pos.x(5,:);
+%     centreY = grouped(exp).(field_label).well_pos.y(5,:);
+%     hold on
+%         plot(barX1, barY1,'Marker','.','MarkerSize',15)
+%         plot(barX2, barY2,'Marker','.','MarkerSize',15)
+%         scatter(centreX, centreY,35,'filled')
+%         title(grouped(exp).name,'color', 'w')
+% end
+% formatFig(fig, true,[r,c]);
 
 %% ANALYSIS: calculate group occupancy for food circle
 % this is fairly legacy at this point (8/4/25) and the new quad occupancy
