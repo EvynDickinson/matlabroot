@@ -241,15 +241,23 @@ save_figure(fig,[figDir 'wing extension positions M fly'],fig_type);
 
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
-if strcmp(parameters.protocol,'high_res_LTS_35-15')
-    skip = 400;
-else
-    skip = 20;
+tic
+frames = find(T.court_chase==1);
+targetn = 10;
+skip = floor(length(frames)/targetn);
+if skip <1
+    skip = 1;
 end
+
+% if strcmp(parameters.protocol,'high_res_LTS_35-15')
+%     skip = 400;
+% else
+%     skip = 20;
+% end
 zoom = [-250,250];
 
 % screening = close_dist;
-frames = find(T.court_chase==1);
+
 if isempty(frames)
     disp('no bouts of chase found')
     return
@@ -262,7 +270,7 @@ else
     y = mY(1:skip:end,[body.head,body.center]);
     plot(x',y','color',kolor)
     scatter(x(:,1),y(:,1),15,kolor,"filled","^")
-    % axis equal square
+    axis equal square
     formatFig(fig,blkbnd);
     set(gca,'XColor','none','YColor','none')
     
@@ -281,8 +289,8 @@ else
     % scatter(x(:,1),y(:,1),15,kolor,"filled","^")
     
     % Plot female body
-    x = fX(1:skip:end,[body.head,body.center,body.abdomen]);
-    y = fY(1:skip:end,[body.head,body.center,body.abdomen]);
+    x = fX(1:5,[body.head,body.center,body.abdomen]);
+    y = fY(1:5,[body.head,body.center,body.abdomen]);
     plot(x',y','color',foreColor, 'LineWidth', 2)
     % xlim([-2000,1500]); ylim([-2000,2000])
     
@@ -302,7 +310,7 @@ else
     % Save figure
     save_figure(fig,[figDir 'chase positions M fly'],fig_type);
 end
-
+toc
 
 
 

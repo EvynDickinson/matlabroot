@@ -233,7 +233,7 @@ save_figure(fig,[figDir, 'Percentage still flies overtime'], fig_type);
 % clearvars('-except',initial_vars{:})
 
 blkbnd = false;
-fig_type = '-png';
+fig_type = '-pdf';
 
 % Load excel file
 [excelfile, Excel, xlFile] = load_SurvivalQuadCounts;
@@ -389,7 +389,7 @@ formatFig(fig, blkbnd);
     xlabel('Time (hours)')
     ylabel('Percentage of incapaciated flies')
 
-save_figure(fig,[figDir, '/' ExpGroup ' death overtime'], fig_type);
+save_figure(fig,[figDir, '/' ExpGroup ' % death overtime'], fig_type);
 
 %% MANUAL FIGURE: Plot number of alive flies overtime
 % numflies = cell2mat([excelfile(temptrials,10)]);
