@@ -194,7 +194,7 @@ figFolder = createFolder([figDir 'timecourse/']);
 LW = 1.5; %linewidth for plotting
 plot_err = true; % plot the error on the graph?
 fig_type = '-png';
-sSpan = 5*fly(1).fps;
+sSpan = 15*fly(1).fps;
 
 opt_list = {'distance to food', 'inter-fly-distance', 'eccentricity', 'food quadrant', 'food circle', 'turning','sleep','outer ring','courtship index', 'flies on food'}; 
 list_idx = listdlg('promptstring','Select the variable to plot', 'ListString',opt_list,'ListSize',[200,180]);
@@ -350,10 +350,26 @@ subplot(r,c,sb(2).idx);
     ylabel(y_label)
     xlabel('time (min)')
     set(gca, 'YDir',axis_dir)
+     ylims = ylim;
+    if ylims(1)<0
+        ylims(1) = 0;
+    end
+    if ylims(2) >100
+        ylims(2) = 100;
+    end
+    ylim(ylims)
 subplot(r,c,sb(3).idx);
     ylabel(y_label)
     xlabel('temp (\circC)')
     set(gca, 'YDir',axis_dir)
+     ylims = ylim;
+    if ylims(1)<0
+        ylims(1) = 0;
+    end
+    if ylims(2) >100
+        ylims(2) = 100;
+    end
+    ylim(ylims)
 
 save_figure(fig, [figFolder opt_list{list_idx}],fig_type);
 
@@ -1305,65 +1321,6 @@ end
 
 save_figure(fig, [figDir 'total time for each behavior'],fig_type);
 
-%% TODO: Plot out the trajectories of the flies from before to after they visit the food
-% define the time periods that want to be plotted before and after the food
-% visit
-preD = 15; % pre period to plot in seconds
-postD = preD; % post period to plot in seconds;
-%convert to frames
-preD = preD * fps; % 
-postD = postD * fps; %
-
-% how many frames can be skipped before a sustained fly on food period is ended
-frameDropAllowance = 10;  % 1/3 of a second
-
-% find instances of the flies on the food
-% test for a single fly first: 
-trial = 1;
-sex = M;
-frames = find(data.FlyOnFood(:,sex,trial));
-% find periods of sustained time on the food aka, when there are long
-% periods of adjactent frames with flies on the food 
-onFood = diff(frames)<=frameDropAllowance; % allow for a small gap in frames (dropped etc)
-
-% 0->1 (+1): start on food; 1->0 (-1): off food 
-frame_loc_start = find(diff(onFood)==1); %location in 'frames' for flies getting to food
-frame_loc_stop = find(diff(onFood)==-1); %location in 'frames' for flies leaving the food
-
-% find starts to stop pairings
-% if they aren't the same length -- how to account for this
-% if a fly starts on the food -- the first frame will be #1 -- this means
-% we need to add the first frame to our start_loc list
-if frames(1)==1
-    frame_loc_start = [1; frame_loc_start];
-end
-
-% if a fly ends on the food -- the last frame will be true -- we need to
-% add the last frame to the frame location places 
-if frames(end)==size(data.temperature,1)
-    frame_loc_stop = [frame_loc_stop; length(frames)];
-end
-
-% set up the paired fly on to off food locations: 
-onfoodROI = [frames(frame_loc_start), frames(frame_loc_stop)];
-nOnFood = size(onfoodROI,1); % how many times is the fly on the food
-
-% what is the avg duration of this fly on the food?
-diff(onfoodROI,1,2)
-
-
-figure; plot(onFood)
-
-
-% set the pre and post duration 
-
-% use time and location aligned data to plot x-y position for that duration
-% zero the data to the start of the point on the food
-
-
-
-
-%% TODO: What is the avg duration of a visit to the food and does it change across temps?
 
 %% TODO: What are the speeds within each region of the arena? on avg and by temperature
 
