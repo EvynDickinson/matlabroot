@@ -4301,7 +4301,7 @@ end
 % fig_type = '-png';
 
 plot_all = true;
-exps_to_plot = [3];
+exps_to_plot = 3;
 
 autoLim = false;
 manual_xlims = [13, 37];
@@ -4311,6 +4311,7 @@ manual_xlims = [13, 37];
 manual_y = true;
 ring_y = [0, 70];
 FoF_y = [0 16.5];
+inquad_y = [10 89];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -4532,6 +4533,8 @@ for i = 1:2
                 manual_ylims = ring_y;
             case 'fliesonfood'
                 manual_ylims = FoF_y;
+            case 'innerquad'
+                manual_ylims = inquad_y;
         end
         ylim(manual_ylims)
     end
