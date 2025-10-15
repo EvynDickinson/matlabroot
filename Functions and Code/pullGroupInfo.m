@@ -81,7 +81,7 @@ switch expGroup
     case 'TrpA1-Gal4 x UAS-Kir2.1_A1  LTS 15-35 no food mechanical removal comparisons' 
         expOrder = 1:2; % intact vs antenna-less
         colors = {'Grey', 'DodgerBlue'};
-         comp_pairs = [2 1 1]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        comp_pairs = [2, 1, 1]; % n1 & n2 : exp groups to compare, n3: color to plot in
         required_comp_pairs = [1, 1, 2]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3 
 
    case 'TrpA1-Gal4 x UAS-Kir2.1_A1  LTS 15-35 food vs no food' 

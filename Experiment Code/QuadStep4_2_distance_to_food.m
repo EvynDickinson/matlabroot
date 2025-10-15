@@ -4300,12 +4300,17 @@ end
 % blkbgd = true;
 % fig_type = '-png';
 
+plot_all = true;
+exps_to_plot = [3];
+
 autoLim = false;
 manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
+% Y-axis limits
 manual_y = true;
-manual_ylims = [0, 70];
+ring_y = [0, 70];
+FoF_y = [0 16.5];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -4381,30 +4386,32 @@ for i = 1:num.exp
     statsD(i).YH = YH;
     statsD(i).temps = x;
     statsD(i).name = grouped(i).name;
-
-    % cooling
-    subplot(r,c,1); hold on
-    y = mean(YC,2,'omitnan')*scaler;
-    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-    statsD(i).YC_plot = [x',y,y_err]; % save the plotting data for later use if needed
-    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
-    if highlight
-        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+    
+    if [~plot_all & any(i==exps_to_plot)] | plot_all 
+        % cooling
+        subplot(r,c,1); hold on
+        y = mean(YC,2,'omitnan')*scaler;
+        y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+        statsD(i).YC_plot = [x',y,y_err]; % save the plotting data for later use if needed
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+        if highlight
+            plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+        end
+        plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')
+    
+        % xlimits = [xlimits, xlim];
+        % heating
+        subplot(r,c,2); hold on
+        y = mean(YH,2,'omitnan')*scaler;
+        y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+        statsD(i).YH_plot = [x',y,y_err]; % save the plotting data for later use if needed
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
+        if highlight
+            plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
+        end
+        plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')    
+         % xlimits = [xlimits, xlim];
     end
-    plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')
-
-    % xlimits = [xlimits, xlim];
-    % heating
-    subplot(r,c,2); hold on
-    y = mean(YH,2,'omitnan')*scaler;
-    y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-    statsD(i).YH_plot = [x',y,y_err]; % save the plotting data for later use if needed
-    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, FA);
-    if highlight
-        plot(x,y,'LineWidth',LW+hLW,'Color',hColor,'LineStyle','-')
-    end
-    plot(x,y,'color',kolor,'linewidth',LW + buff,'linestyle', '-')    
-     % xlimits = [xlimits, xlim];
 end
 
 % find the xlimits
@@ -4499,14 +4506,15 @@ for i = 1:nComps
         % loc = isnan(plotY) | isnan(plotX');
         % X = plotX(~loc);
         % Y = plotY(~loc);
-    
-        % plot the significant markers onto the graph
-        subplot(r,c,type); hold on
-        scatter(plotX, plotY, sz, kolor, 'filled', 'square')
-      
-        % adjust y limits to not exclude the new peak data: 
-        curr_ylim = ylim;
-        ylim([curr_ylim(1), y1+spacing_offset])
+        if plot_all
+            % plot the significant markers onto the graph
+            subplot(r,c,type); hold on
+            scatter(plotX, plotY, sz, kolor, 'filled', 'square')
+          
+            % adjust y limits to not exclude the new peak data: 
+            curr_ylim = ylim;
+            ylim([curr_ylim(1), y1+spacing_offset])
+        end
     end
 end
 
@@ -4518,14 +4526,29 @@ for i = 1:2
     set(labelHandles,'FontSize', 28, 'color', foreColor)
     set(gca,'XTickLabelRotationMode', 'manual', 'XTickLabelRotation', 0)
 
-    if strcmp(title_str, 'ring') && manual_y
+    if manual_y
+        switch title_str
+            case 'ring'
+                manual_ylims = ring_y;
+            case 'fliesonfood'
+                manual_ylims = FoF_y;
+        end
         ylim(manual_ylims)
     end
+        
 end
 subplot(r,c,2)
 ylabel('')
 
-save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
+if plot_all
+    save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
+else
+    numberstr =[];
+    for i = 1:length(exps_to_plot)
+        numberstr = [numberstr ' ' num2str(exps_to_plot(i))];
+    end
+    save_figure(fig,[fig_dir title_str ' tuning curves with statistics' numberstr],fig_type);
+end
 
 
 % Find regions across the metrics that are both significant and save into a simple figure: 
