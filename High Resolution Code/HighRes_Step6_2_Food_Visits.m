@@ -4,6 +4,8 @@ initial_var{end+1} = 'FV';
 initial_var{end+1} = 'maxTime';
 initial_var{end+1} = 'fps';
 
+
+
 %% Extract the periods for food visits
 clearvars('-except',initial_var{:})
 
