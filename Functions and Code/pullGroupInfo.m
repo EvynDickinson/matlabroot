@@ -117,7 +117,14 @@ switch expGroup
     case 'IR40a_TM2-gal4 x Kir2.1 no arista LTS 15-35 empty'
         expOrder = 1:3;
         colors = {'magenta', 'grey', 'dodgerblue'};
-
+        
+    case {'Orco-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar','Orco-Gal4 x UAS-Kir2.1_A1 LTS 15-35 caviar plate 1'} %no uas control yet
+        % expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS
+        % colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+        % comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        % required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3 
+        expOrder = 1:2; % GAL4 control, GAL4>UAS
+        colors = {'LightPink', 'DodgerBlue'};
 end
 
 % set default experiment pairs to be 1 and 2 for statistical significance
