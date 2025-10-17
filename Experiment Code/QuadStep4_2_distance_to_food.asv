@@ -4300,8 +4300,8 @@ end
 % blkbgd = true;
 % fig_type = '-png';
 
-plot_all = false;
-exps_to_plot = [3];
+plot_all = true;
+exps_to_plot = 3;
 
 autoLim = false;
 manual_xlims = [13, 37];
@@ -4311,6 +4311,7 @@ manual_xlims = [13, 37];
 manual_y = true;
 ring_y = [0, 70];
 FoF_y = [0 16.5];
+inquad_y = [10 89];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -4506,14 +4507,15 @@ for i = 1:nComps
         % loc = isnan(plotY) | isnan(plotX');
         % X = plotX(~loc);
         % Y = plotY(~loc);
-        if 
-        % plot the significant markers onto the graph
-        subplot(r,c,type); hold on
-        scatter(plotX, plotY, sz, kolor, 'filled', 'square')
-      
-        % adjust y limits to not exclude the new peak data: 
-        curr_ylim = ylim;
-        ylim([curr_ylim(1), y1+spacing_offset])
+        if plot_all
+            % plot the significant markers onto the graph
+            subplot(r,c,type); hold on
+            scatter(plotX, plotY, sz, kolor, 'filled', 'square')
+          
+            % adjust y limits to not exclude the new peak data: 
+            curr_ylim = ylim;
+            ylim([curr_ylim(1), y1+spacing_offset])
+        end
     end
 end
 
@@ -4531,6 +4533,8 @@ for i = 1:2
                 manual_ylims = ring_y;
             case 'fliesonfood'
                 manual_ylims = FoF_y;
+            case 'innerquad'
+                manual_ylims = inquad_y;
         end
         ylim(manual_ylims)
     end
@@ -4539,7 +4543,15 @@ end
 subplot(r,c,2)
 ylabel('')
 
-save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
+if plot_all
+    save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
+else
+    numberstr =[];
+    for i = 1:length(exps_to_plot)
+        numberstr = [numberstr ' ' num2str(exps_to_plot(i))];
+    end
+    save_figure(fig,[fig_dir title_str ' tuning curves with statistics' numberstr],fig_type);
+end
 
 
 % Find regions across the metrics that are both significant and save into a simple figure: 
