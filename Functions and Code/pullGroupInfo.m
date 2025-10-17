@@ -125,6 +125,8 @@ switch expGroup
         % required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3 
         expOrder = 1:2; % GAL4 control, GAL4>UAS
         colors = {'LightPink', 'DodgerBlue'};
+        comp_pairs = [2 1 1]; 
+        required_comp_pairs = [1 3]; 
 end
 
 % set default experiment pairs to be 1 and 2 for statistical significance
