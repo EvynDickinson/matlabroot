@@ -1,10 +1,7 @@
 
-
 initial_var{end+1} = 'FV';
 initial_var{end+1} = 'maxTime';
 initial_var{end+1} = 'fps';
-
-
 
 %% Extract the periods for food visits
 clearvars('-except',initial_var{:})
@@ -48,7 +45,6 @@ for trial = 1:num.trials
         % if start of food visit is during a temp regime it counts probably
         % could add a buffer to the turn points later, but this will suffice for now
         temp_regimes = {'cooling', 'warming', 'hold'};
-        temp_types = {'hot', 'cold'};
        
         hot_temp = find(data.temperature(:,trial)>25); % when is the temp warmer than neutral
         cold_temp = find(data.temperature(:,trial)<25); % when is the temp cooler than neutral
@@ -83,7 +79,7 @@ for trial = 1:num.trials
     end
 end
 
-%% TODO: group trends across the flies for the full experiment to see how they trend
+%% FIGURE: Group trends across the flies for the full experiment to see how they trend
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 
@@ -182,7 +178,7 @@ type_str = {'hot_and_warming','hot_and_cooling', 'cold_and_cooling', 'cold_and_w
 % type_str = {'hot_and_cooling', 'cold_and_cooling', 'cold_and_warming', 'hot_and_warming', 'hold'};
 xlims = [min(x_locs)-1, max(x_locs)+1];
 
-for t = 1:length(x_locs) % (H&C, C&C, C&W, H&W, H)
+for t = 1:length(x_locs) % (H&W, H&C, C&C, C&W, H)
     str = type_str{t};
     for sex = 1:2
         kolor = data.color(sex,:);
@@ -218,8 +214,6 @@ for t = 1:length(x_locs) % (H&C, C&C, C&W, H&W, H)
     end
 end
 
-
-
 % formatting
 formatFig(fig, blkbgd, [r c]);
 subplot(r, c, 1)
@@ -233,7 +227,7 @@ subplot(r, c, 2)
     set(gca, 'XTick', x_locs, 'XTickLabel', strrep(type_str,'_',' '))
     xlim(xlims)
 
-save_figure(fig, [figDir 'food visit by temp regime duration and CDF'],fig_type)
+save_figure(fig, [figDir 'food visit by temp regime duration and CDF'],fig_type);
 
 % check significance?
 % quick t-test
@@ -247,7 +241,7 @@ fig = figure;
     h_line(25, 'grey', '--', 1)
     ylabel('temperature (\circC)')
     set(gca, 'FontSize', 25)
-    save_figure(fig, [figDir 'food visit temp regime temp plot'],fig_type)
+    save_figure(fig, [figDir 'food visit temp regime temp plot'],fig_type);
 
 
 %% How does visit duration change over time? [only for LTS currently]
@@ -300,7 +294,7 @@ subplot(r,c,sb(2).idx)
     v_line(data.warming_idx./(fps*60), 'red')
     v_line(data.cooling_idx./(fps*60), 'dodgerblue')
 
-save_figure(fig, [figDir 'food visit duration over time'],fig_type)
+save_figure(fig, [figDir 'food visit duration over time'],fig_type);
 
 
 % Food visit duration simply by temperature not time
@@ -365,55 +359,81 @@ for fit_val = 0:6
     % save_figure(fig, [figDir 'food visit duration over temp with best fit ' num2str(fit_val)],fig_type,1,0);
 end
 
+% ***** Frequency overlay??? *****
+foreColor = formattingColors(blkbgd); % get background colors
 
+% find all the time points in which flies went to the food: 
+x = []; y = [];
+for sex = 1:2
+    for trial = 1:num.trials
+        % find the frequency for each trial (since we need to be able to norm by fly number...?
+        x = FV(trial, sex).ROI(:,1);
+        
 
-% 1. Create some sample data with noise
-x = 0:0.1:4;
-y = 1.5*x.^2 + 2*x + 1 + randn(size(x))*5;
-
-% 2. Try different polynomial degrees
-degrees = 1:5; % Test degrees from 1 to 5
-figure;
-hold on;
-plot(x, y, 'o'); % Plot original data
-
-best_n = -1;
-min_rmse = inf;
-
-for n = degrees
-    % Perform the polynomial fit
-    p = polyfit(x, y, n);
-    
-    % Evaluate the polynomial over the same x-range
-    y_fit = polyval(p, x);
-    
-    % Calculate Root Mean Square Error (RMSE)
-    rmse = sqrt(mean((y - y_fit).^2));
-    
-    % Track the best degree and RMSE
-    if rmse < min_rmse
-        min_rmse = rmse;
-        best_n = n;
+        x = [x; FV(trial, sex).ROI(:,1)];
+        y = [y; FV(trial, sex).duration];
     end
-    
-    % Plot each polynomial fit
-    plot(x, y_fit, 'DisplayName', ['Degree ', num2str(n), ', RMSE: ', num2str(rmse, 2)]);
 end
 
-hold off;
-legend show;
-title('Polynomial Fits of Different Degrees');
-xlabel('x');
-ylabel('y');
-disp(['The best degree based on lowest RMSE on the training data is: ', num2str(best_n)]);
+
+[X,I] = sort(x);
+Y = y(I);
+X = X./(fps*60);
+scatter(X, Y, 35, Color('grey'),'filled', 'MarkerFaceAlpha', 0.6)
+plot(X, smooth(Y, 500, 'moving'), 'color', foreColor, 'linewidth', 1.5)
 
 
 
 
 
+r = 5;
+c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:r;
 
+x = []; y = [];
+fig = getfig('',1);
+subplot(r,c,sb(1).idx)
+    plot(data.time, data.temp, 'color', foreColor, 'linewidth', 1.5)
+    xlims = xlim;
+    ylabel('(\circC)')
 
+subplot(r,c,sb(2).idx)
+    hold on
+    for sex = 1:2
+        for trial = 1:num.trials
+            x = [x; FV(trial, sex).ROI(:,1)];
+            y = [y; FV(trial, sex).duration];
+        end
+    end
 
+    % plot the points and the rolling avg of the duration
+    [X,I] = sort(x);
+    Y = y(I);
+    X = X./(fps*60);
+    scatter(X, Y, 35, Color('grey'),'filled', 'MarkerFaceAlpha', 0.6)
+    plot(X, smooth(Y, 500, 'moving'), 'color', foreColor, 'linewidth', 1.5)
+
+    set(gca, 'yscale', 'log')
+    ylabel('food visit duration (s)')
+    xlabel('time (min)')
+    r1 = corrcoef(x,y);
+    xlims = [xlims,xlim];
+    xlims = [min(xlims), max(xlims)];
+    xlim(xlims);
+
+formatFig(fig, blkbgd,[r,c], sb);
+subplot(r,c,sb(1).idx)
+    set(gca, 'xcolor', 'none')
+    xlim(xlims);
+    ylim([15,35])
+    set(gca, 'YTick', [15,25,35])
+    title(['duration-to-time pearson corr coef: ' num2str(r1(1,2))],'color', foreColor)
+subplot(r,c,sb(2).idx)
+    v_line(data.warming_idx./(fps*60), 'red')
+    v_line(data.cooling_idx./(fps*60), 'dodgerblue')
+
+save_figure(fig, [figDir 'food visit duration over time'],fig_type);
 
 
 
@@ -469,6 +489,52 @@ postD = postD * fps; %
 
 %% TODO: what is the inter-eating-bout frequency? How does this change or
 % not change across temperature?
+
+% Frequency of visits within the temp regions....?
+
+
+
+
+
+
+%% Plot the inner quad ring occupancy over time with temp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
