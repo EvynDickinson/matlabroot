@@ -4300,12 +4300,8 @@ end
 % blkbgd = true;
 % fig_type = '-png';
 
-plot_all = true;
-<<<<<<< Updated upstream
+plot_all = false;
 exps_to_plot = 3;
-=======
-exps_to_plot = 2;
->>>>>>> Stashed changes
 
 autoLim = false;
 manual_xlims = [13, 37];
@@ -4314,14 +4310,9 @@ manual_xlims = [13, 37];
 % Y-axis limits
 manual_y = true;
 ring_y = [0, 70];
-<<<<<<< Updated upstream
-FoF_y = [0 16.5];
-inquad_y = [10 89];
-=======
-qring_y = [0 12.5];
+qring_y = [0 13.9];
 FoF_y = [0 29];
 inquad_y = [10 90];
->>>>>>> Stashed changes
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -4545,11 +4536,8 @@ for i = 1:2
                 manual_ylims = FoF_y;
             case 'innerquad'
                 manual_ylims = inquad_y;
-<<<<<<< Updated upstream
-=======
             case 'quadring'
                 manual_ylims = qring_y;
->>>>>>> Stashed changes
         end
         ylim(manual_ylims)
     end
@@ -4967,3 +4955,77 @@ save([saveDir title_str ' tuning curve statistics.mat'], 'stats_comp', 'statsD')
 
 
 
+%% WORKING HERE 10.20: all locations of flies within the arena
+% plot a total distribution of flies within the different regions of the
+% arena
+clearvars('-except',initial_vars{:})
+
+% location based summary
+dn_smple = 5; % minutes for downsampling
+sSpan = dn_smple * (fps*60); % smoothing for reduced sampling (to ease computational limits)
+
+loc_list = {'food', 'right', 'opp', 'left'};
+for exp = 1:num.exp
+    pd = [];
+    x = grouped(exp).time;
+    % 1) pull the data for the quad rings
+    for i = 1:length(loc_list)
+        y = smooth(grouped(exp).quadring.(loc_list{i}).avg',sSpan, 'moving');
+        pd = [pd; y];
+    end
+    % 2) pull the data for the quad regions 
+    y1 = smooth(grouped(exp).fliesonfood.avg',sSpan, 'moving');
+    y2 = smooth(grouped(exp).innerquad.food.avg', sSpan, 'moving');
+    y2 = y2 - y1; % remove the number of flies from the food from the food quadrant arena
+    pd = [pd; y1; y2;];
+    for i = 2:length(loc_list)
+        y = smooth(grouped(exp).quadring.(loc_list{i}).avg',sSpan, 'moving');
+        pd = [pd; y];
+    end
+
+    % Plot the position data over time: 
+    fig = getfig('',1);
+        area(x(1:sSpan:end),pd(:,1:sSpan:end))
+
+
+x = [10 11 12];
+Y = [21.6 25.4; 70.8 66.1; 58.0 43.6];
+area(x,Y)
+xlabel('Dealership ID')
+ylabel('Sales')
+legend({'Model A','Model B'})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%
