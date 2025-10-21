@@ -4974,6 +4974,43 @@ for exp = 1:num.exp
         pd = [pd, y];
     end
     % 2) pull the data for the quad regions 
+    % y1 = smooth(grouped(exp).fliesonfood.avg,sSpan, 'moving');
+    y2 = smooth(grouped(exp).innerquad.food.avg, sSpan, 'moving');
+    % y2 = y2 - y1; % remove the number of flies from the food from the food quadrant arena
+    pd = [pd, y2;];
+    % pd = [pd, y1, y2;];
+    for i = 2:length(loc_list)
+        y = smooth(grouped(exp).quadring.(loc_list{i}).avg,sSpan, 'moving');
+        pd = [pd, y];
+    end
+    X = x(1:sSpan:end)';
+    Y = pd(1:sSpan:end,:)';
+
+    % Plot the position data over time: 
+    fig = getfig('',1);
+        area(X,Y')
+
+end
+
+
+
+
+
+loc_list = {'food', 'right', 'opp', 'left'};
+for exp = 1:num.exp
+    pd = [];
+    x = grouped(exp).time;
+    % 1) pull the data for the quad rings
+    for i = 1:length(loc_list)
+        y = smooth(grouped(exp).innerquad.(loc_list{i}).avg,sSpan, 'moving');
+        pd = [pd, y];
+    end
+    y1 = smooth(grouped(exp).ring.avg,sSpan, 'moving');
+    pd = [pd, y1];
+
+    % y1 = smooth(grouped(exp).fliesonfood.avg,sSpan, 'moving');
+
+    % 2) pull the data for the quad regions 
     y1 = smooth(grouped(exp).fliesonfood.avg,sSpan, 'moving');
     y2 = smooth(grouped(exp).innerquad.food.avg, sSpan, 'moving');
     y2 = y2 - y1; % remove the number of flies from the food from the food quadrant arena
@@ -4989,23 +5026,7 @@ for exp = 1:num.exp
     fig = getfig('',1);
         area(X,Y')
 
-
-x = [10 11 12];
-Y = [21.6 25.4; 70.8 66.1; 58.0 43.6];
-area(x,Y)
-xlabel('Dealership ID')
-ylabel('Sales')
-legend({'Model A','Model B'})
-
-
-
-
-
-
-
-
-
-
+end
 
 
 
