@@ -4302,7 +4302,11 @@ end
 
 plot_all = true;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 exps_to_plot = 3;
+=======
+exps_to_plot = 2;
+>>>>>>> Stashed changes
 =======
 exps_to_plot = 2;
 >>>>>>> Stashed changes
@@ -4315,8 +4319,14 @@ manual_xlims = [13, 37];
 manual_y = true;
 ring_y = [0, 70];
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 FoF_y = [0 16.5];
 inquad_y = [10 89];
+=======
+qring_y = [0 12.5];
+FoF_y = [0 29];
+inquad_y = [10 90];
+>>>>>>> Stashed changes
 =======
 qring_y = [0 12.5];
 FoF_y = [0 29];
@@ -4546,6 +4556,11 @@ for i = 1:2
             case 'innerquad'
                 manual_ylims = inquad_y;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+            case 'quadring'
+                manual_ylims = qring_y;
+>>>>>>> Stashed changes
 =======
             case 'quadring'
                 manual_ylims = qring_y;
