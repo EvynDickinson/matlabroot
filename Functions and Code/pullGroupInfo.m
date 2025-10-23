@@ -151,5 +151,11 @@ else
 end
 
 
-
-
+%     case 'Wild Types S LRR 23-15 caviar'
+%         expOrder = 1:3; % UAS, GAL, UAS-GAL
+%         colors = {'LightPink', 'HotPink', 'DodgerBlue'};
+%         comp_pairs = [3 1 1; 3 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+%         required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
+% 
+% % lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
+% % latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];

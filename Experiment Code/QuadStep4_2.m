@@ -171,6 +171,10 @@ switch questdlg('Load existing data?','Quad Step 4 data processing','Yes','No','
             end
 end
 
+% TODO 10.24.25:  update the update structure function to not trigger full rebuild if the
+% structure has actually been updated -- use the WT comparison as a good test case for this
+% (ESD 10.20.25)
+
 % CHECK FOR DATA UPDATES OF INCLUDED STRUCTURES        
 % Find the files within each data set and compare to the existing base 
 % data structure for missing data & then updata any missing data if possible
@@ -1302,7 +1306,7 @@ if strcmp('Yes', questdlg('Show demo image of arena regions of interest?','','Ye
         viscircles(center',R,'color',foreColor);
         scatter(FW(1),FW(2),30, foreColor)
     end
-    formatFig(fig,false,[r,c]);
+    formatFig(fig,blkbgd,[r,c]);
     for i = 1:n
         subplot(r,c,i)
         set(gca,'xcolor', 'none', 'ycolor','none');

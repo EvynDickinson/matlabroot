@@ -386,8 +386,9 @@ clearvars('-except',initial_vars{:})
 % fig_type = '-pdf';
 
 autoLim = false;
-manual_xlims = [13, 37];
+% manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
+manual_xlims = [13, 25];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -5109,11 +5110,8 @@ formatFig(fig,blkbgd);
 ylabel('fly sleep (min/hour)')
 xlabel('fly speed (mm/sec)')
 h = lsline; % least squared fit line for all scatterplots
-xlim([1,9])
+xlim([0,10])
 
-for exp = 1:num.exp
-    h(exp).Color = grouped(exp).color;
-end
 save_figure(fig,[saveDir 'Sleep\' expGroup ' sleep vs movement by exp'],'-png',true,false);
 
 scatter(X,Y, SZ, foreColor, 'filled')
@@ -5146,3 +5144,141 @@ h = lsline; % least squared fit line for all scatterplots
 
 
 
+
+
+%%
+%% FIGURE: [not plug and chug -- adjust #s] FOOD | RING OCCUPATION PROBABILITY scatter heating and cooling
+% load data from QuadStep4.2 first (specifically, data with waxed antenna / MP vs
+% control caviar data ('Berlin F LRR 25-17 sensory components')
+clearvars('-except',initial_vars{:})
+% blkbgd = true;  fig_type = '-png'; 
+% fig_type = '-pdf'; blkbgd = false;
+buff = 0.1;
+sz = 50;
+autoLim = true;
+y_lim = [0,1];
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+switch questdlg('Plot food occupation or ring occupation?','', 'Food', 'Ring', 'Speed', 'Food')
+    case 'Food'
+        ylab = 'flies in food quadrant (%)';
+        fig_title = ['Food occupancy 15-23 scatter'];
+        data_name = 'occ';
+        data_scaling = 100;
+        null_line = 14.4;
+    case 'Ring'
+        ylab = 'flies in outer ring (%)';
+        fig_title = ['Ring occupancy 15-23 scatter'];
+        data_name = 'ring';
+        data_scaling = 1;
+        null_line = 25;
+    case 'Speed'
+        ylab = 'fly movement speed (mm/s)';
+        fig_title = ['Fly speed 15-23 scatter'];
+        data_name = 'speed';
+        data_scaling = 1;
+        % null_line = 50;
+    case ''
+        return
+end
+        
+% Find the max temp and min temp of all the experiments 
+buff = 0.25;
+sz = 50;
+LW = 3;
+
+% temperatures to plot for each group -- aim for min and max temperatures
+% expList = [2, 2, 4, 4, 1, 5]; % experiment group order
+% tempList = [17, 25, 17, 25, 17, 25]; % temperatures for each data set
+% cList = {'dodgerblue', 'red', 'dodgerblue', 'red', 'dodgerblue', 'red'};
+expList = [5 5 1 1 4 4 2 2 7 7 3 3 6 6]; % experiment group order
+tempList = [15 17]; % temperatures for each data set
+tempList = repmat(tempList, [1, length(expList)/2]);
+
+cList = {'dodgerblue', 'red'};
+cList = repmat(cList, [1, length(expList)/2]);
+
+nExp = length(expList);
+
+pixWidth = 60; % additional figure pixel size for image for each extra experiment group
+figSize = [pixWidth + (pixWidth*nExp),590];
+
+% FIGURE:
+fig = getfig('',true,figSize); hold on
+testData = []; % save data here for statistical comparisons
+for i = 1:length(expList)
+    
+    kolor = Color(cList{i});
+    exp = expList(i); 
+    dataString{i} =  [grouped(exp).name '-' num2str(tempList(i))];
+    x = shuffle_data(i + linspace(-buff,buff,num.trial(exp)));
+    tempLoc = find(grouped(exp).(data_name).temps==tempList(i));
+    y = mean([grouped(exp).(data_name).increasing.raw(tempLoc,:);...
+           grouped(exp).(data_name).decreasing.raw(tempLoc,:)]).*data_scaling; % mean per trial of warming and cooling
+    % y = grouped(exp).occ.decreasing.raw(tempLoc,:).*data_scaling; % mean per trial of warming and cooling
+    testData = autoCat(testData, y', false);
+    y_avg = mean(y, 'omitnan');
+    scatter(x,y,sz,kolor,'filled')
+    plot([min(x)-0.1,max(x)+0.1],[y_avg,y_avg],'Color',kolor,'linewidth', LW,'HandleVisibility','off')
+end
+
+% FORMATING AND LABELS
+% if ~strcmp(data_name,'speed')
+%     h_line(null_line,'grey','--',1)
+%     ylim([0, 100])
+% end
+xlim([0,length(expList)+1])
+ylim([-3, 70])
+formatFig(fig,blkbgd);
+set(gca, 'TickDir', 'out') 
+ylabel(ylab)
+set(gca, 'xtick', 1:length(expList), 'xticklabel', tempList)
+legend(dataString,'FontSize',7,'box', 'off', 'textcolor', foreColor)
+
+save_figure(fig,[saveDir fig_title],fig_type);
+
+% STATS
+datastats.all = testData;
+datastats.id = dataString; %{'intact cold', 'intact warm', 'blocked cold', 'blocked warm'};
+
+% determine which groups differ from each other
+[~,~,stats] = anova1(datastats.all,datastats.id,'off');
+alpha = 0.05; %significance level
+[c,~,~,~] = multcompare(stats,alpha,'off');
+
+% bonferonni multiple comparisons correction
+m = size(c,1); %number of hypotheses
+sigThreshold = alpha/m;
+%find p-values that fall under the threshold
+significantHypotheses = c(:,6)<=sigThreshold;
+fprintf('\n\nAverage occupancy statistics\n\n')
+[Group1,Group2, P_Value] = deal([]);
+idx = 0;
+
+if ~any(significantHypotheses)
+    disp('No statistical differences in avg speed between groups')
+else
+    for i = 1:length(significantHypotheses)
+        if significantHypotheses(i)
+            idx = idx+1;
+            Group1{idx,1} = datastats.id{c(i,1)};
+            Group2{idx,1} = datastats.id{c(i,2)};
+            P_Value(idx,1) = c(i,6);
+        end
+    end
+    sig_comp = table(Group1,Group2,P_Value);
+    disp(sig_comp)
+end
+
+% ttest comparisons within group
+g1 = testData(:,1:2:end);
+g2 = testData(:,2:2:end);
+
+for exp = 1:num.exp
+    y1 = g1(:,exp);
+    y2 = g2(:,exp);
+    loc = isnan(y1) | isnan(y2);
+    y1(loc) = [];
+    y2(loc) = 
+
+    [y1, y2] = rmnan(g1(:,exp), g2(:,exp), dim, bidirectional)
