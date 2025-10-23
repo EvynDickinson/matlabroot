@@ -1934,7 +1934,7 @@ save_figure(fig,[saveDir 'Sleep\' expGroup ' sleep onset CDF'],fig_type);
 
 %% FIGURE: avg sleep per hour per fly
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd);
+[foreColor,~] = formattingColors(blkbgd);
 buffer = 0.25;
 SZ = 50;
 LW = 2;

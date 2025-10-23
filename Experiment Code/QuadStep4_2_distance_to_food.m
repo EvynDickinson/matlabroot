@@ -526,7 +526,13 @@ if narrow_fig
     fig.Position = new_pos;
 end
 
-save_figure(fig,[fig_dir 'Multimetric tuning curves'],fig_type);
+% save name of parameters being plotted as well: 
+param_names = pName{1};
+for i = 2:length(pName)
+    param_names = [param_names, '_',  pName{i}];
+end
+
+save_figure(fig,[fig_dir 'Multimetric tuning curves ' param_names],fig_type);
 
 %% FIGURE: WORKING highlight specific trials within the grouped data:
 
@@ -4300,19 +4306,21 @@ end
 % blkbgd = true;
 % fig_type = '-png';
 
-plot_all = false;
+plot_all = true;
 exps_to_plot = 3;
 
-autoLim = false;
+autoLim = false; % is x limit manual or autodetermined
 manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
 % Y-axis limits
-manual_y = true;
+manual_y = false;
 ring_y = [0, 70];
 qring_y = [0 13.9];
 FoF_y = [0 29];
 inquad_y = [10 90];
+sleep_y = [0 70];
+% speed_y = 
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
@@ -4538,6 +4546,8 @@ for i = 1:2
                 manual_ylims = inquad_y;
             case 'quadring'
                 manual_ylims = qring_y;
+            case 'sleep'
+                manual_ylims = sleep_y;
         end
         ylim(manual_ylims)
     end
@@ -4955,7 +4965,7 @@ save([saveDir title_str ' tuning curve statistics.mat'], 'stats_comp', 'statsD')
 
 
 
-%% WORKING HERE 10.20: all locations of flies within the arena
+%% WORKING HERE 10.20: all locations of flies within the arena in a stacked area plot
 % plot a total distribution of flies within the different regions of the
 % arena
 clearvars('-except',initial_vars{:})
@@ -5051,4 +5061,85 @@ end
 
 
 
-%%
+%% WORKING HERE 10.23.25: sleep vs movement correlation
+% Does the amount of sleep that a fly gets correspond to the amount of
+% movement it experienced in the preceeding time period? 
+
+% simplest metric: total sum of sleep across time vs speed over time
+% (movement metric) 
+
+clearvars('-except',initial_vars{:})
+[foreColor,~] = formattingColors(blkbgd);
+buffer = 0.25;
+SZ = 50;
+LW = 2;
+total_sleep = [];
+fig_H = 220 + (100*num.exp);
+
+fig = getfig('',1,[fig_H,680]); hold on
+X = []; Y = []; R = [];
+for exp = 1:num.exp
+    tp = getTempTurnPoints(data(exp).temp_protocol);
+    fps = tp.fps;
+    roi = [tp.DownROI, tp.UpROI, tp.HoldROI];
+    roi_min = length(roi)/(fps*60);
+    % sleep data
+    y = sum(sleep(exp).num(roi,:));
+    y = y ./ data(exp).T.NumFlies'; % frames of sleep per fly
+    y = y ./ fps; % seconds of sleep per fly
+    y = y ./ 60; % minutes of sleep per fly
+    y = (y ./ roi_min) * 60; % mins sleep per hour of the experiment
+    % speed data
+    x = mean(grouped(exp).speed.all(roi,:),1,'omitnan'); % total movement speed (mm/s) per fly
+    
+    r = corrcoef(x,y); 
+    R(exp) = r(1,2); 
+
+    % combo data
+    X = [X, x];
+    Y = [Y, y];
+
+    % plot data
+    k = grouped(exp).color;
+    scatter(x,y,SZ,k,'filled')
+    
+end
+
+formatFig(fig,blkbgd);
+ylabel('fly sleep (min/hour)')
+xlabel('fly speed (mm/sec)')
+h = lsline; % least squared fit line for all scatterplots
+xlim([0,10])
+
+save_figure(fig,[saveDir 'Sleep\' expGroup ' sleep vs movement by exp'],'-png',true,false);
+
+scatter(X,Y, SZ, foreColor, 'filled')
+h = lsline; % least squared fit line for all scatterplots
+
+
+
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
