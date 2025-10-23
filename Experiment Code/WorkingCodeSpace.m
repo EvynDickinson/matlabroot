@@ -41,7 +41,7 @@ parameters.ArenaC.sex = 'Mixed';
 parameters.ArenaD.sex = 'Mixed';
 
 %% change temp protocol
-parameters.protocol = 'Large_temp_sweep_15_35';
+parameters.protocol = 'survival_hold_with_recovery_35-25';
 
 %% get base folder pathway
 % baseFolder = getCloudPath;
