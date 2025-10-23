@@ -4955,3 +4955,100 @@ save([saveDir title_str ' tuning curve statistics.mat'], 'stats_comp', 'statsD')
 
 
 
+%% WORKING HERE 10.20: all locations of flies within the arena
+% plot a total distribution of flies within the different regions of the
+% arena
+clearvars('-except',initial_vars{:})
+
+% location based summary
+dn_smple = 5; % minutes for downsampling
+sSpan = dn_smple * (fps*60); % smoothing for reduced sampling (to ease computational limits)
+
+loc_list = {'food', 'right', 'opp', 'left'};
+for exp = 1:num.exp
+    pd = [];
+    x = grouped(exp).time;
+    % 1) pull the data for the quad rings
+    for i = 1:length(loc_list)
+        y = smooth(grouped(exp).quadring.(loc_list{i}).avg,sSpan, 'moving');
+        pd = [pd, y];
+    end
+    % 2) pull the data for the quad regions 
+    % y1 = smooth(grouped(exp).fliesonfood.avg,sSpan, 'moving');
+    y2 = smooth(grouped(exp).innerquad.food.avg, sSpan, 'moving');
+    % y2 = y2 - y1; % remove the number of flies from the food from the food quadrant arena
+    pd = [pd, y2;];
+    % pd = [pd, y1, y2;];
+    for i = 2:length(loc_list)
+        y = smooth(grouped(exp).quadring.(loc_list{i}).avg,sSpan, 'moving');
+        pd = [pd, y];
+    end
+    X = x(1:sSpan:end)';
+    Y = pd(1:sSpan:end,:)';
+
+    % Plot the position data over time: 
+    fig = getfig('',1);
+        area(X,Y')
+
+end
+
+
+
+
+
+loc_list = {'food', 'right', 'opp', 'left'};
+for exp = 1:num.exp
+    pd = [];
+    x = grouped(exp).time;
+    % 1) pull the data for the quad rings
+    for i = 1:length(loc_list)
+        y = smooth(grouped(exp).innerquad.(loc_list{i}).avg,sSpan, 'moving');
+        pd = [pd, y];
+    end
+    y1 = smooth(grouped(exp).ring.avg,sSpan, 'moving');
+    pd = [pd, y1];
+
+    % y1 = smooth(grouped(exp).fliesonfood.avg,sSpan, 'moving');
+
+    % 2) pull the data for the quad regions 
+    y1 = smooth(grouped(exp).fliesonfood.avg,sSpan, 'moving');
+    y2 = smooth(grouped(exp).innerquad.food.avg, sSpan, 'moving');
+    y2 = y2 - y1; % remove the number of flies from the food from the food quadrant arena
+    pd = [pd, y1, y2;];
+    for i = 2:length(loc_list)
+        y = smooth(grouped(exp).quadring.(loc_list{i}).avg,sSpan, 'moving');
+        pd = [pd, y];
+    end
+    X = x(1:sSpan:end)';
+    Y = pd(1:sSpan:end,:)';
+
+    % Plot the position data over time: 
+    fig = getfig('',1);
+        area(X,Y')
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%

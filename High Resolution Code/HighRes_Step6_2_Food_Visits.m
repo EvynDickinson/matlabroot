@@ -366,9 +366,10 @@ foreColor = formattingColors(blkbgd); % get background colors
 x = []; y = [];
 for sex = 1:2
     for trial = 1:num.trials
-        % find the frequency for each trial (since we need to be able to norm by fly number...?
-        x = FV(trial, sex).ROI(:,1);
+        % find the frequency for each trial (since we need to be able to norm by fly number...?)
+        x = FV(trial, sex).ROI(:,1); % time point at the start of the feeding
         
+        % WORKING HERE
 
         x = [x; FV(trial, sex).ROI(:,1)];
         y = [y; FV(trial, sex).duration];
