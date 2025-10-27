@@ -4282,7 +4282,6 @@ save_figure(fig,[saveDir 'Max Ring Occupancy cooling'],fig_type);
 % 3) Run statistical comparisons btwn the exp and parental lines
 % 4) Plot significance lines for temps that have single parental difference
 % 5) Plot sig. locations for both parental lines
-
 clearvars('-except',initial_vars{:})
 
 % set up comparison pairs: 
@@ -4315,17 +4314,17 @@ manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
 % Y-axis limits
-manual_y = false;
-ring_y = [0, 70];
+manual_y = true;
+ring_y = [0, 65];%[0, 70];
 qring_y = [0 13.9];
 FoF_y = [0 29];
 inquad_y = [10 90];
-sleep_y = [0 70];
-% speed_y = 
+sleep_y = %[-2 40];[-3,70];
+speed_y = [0 20];
 
 plot_err = true; % plot SEM
 plot_high_null = true; % plot the low or high null occupancy for empty trials
-foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
+[~,~,foreColor] = formattingColors(blkbgd,1); % get foreground color for current background configuration
 
 narrow_fig = true;
 narrow_fig_size = [600 680];
@@ -4435,7 +4434,11 @@ for i = 1:c
     subplot(r,c,i); hold on
     h_line(nullD,foreColor,'--',1) % plot the null distribution value if it exists...
     ylabel(y_lab)
-    xlabel('temp (\circC)')
+    % xlabel('temp (\circC)')
+
+    % presentation code updates: (to be removed later)
+    set(gca, 'xtick', 15:10:35)
+
     if ~autoLim
         xlim(manual_xlims)
     end
@@ -4446,6 +4449,7 @@ for i = 1:c
         title('Warming', 'color', foreColor)
         set(gca, 'ycolor', 'none')
     end   
+
 end
 
 % % adjust the figure size if selected
@@ -4472,7 +4476,7 @@ for i = 1:nComps
     g1 = comp_pairs(i,1);
     g2 = comp_pairs(i,2);
     kolor = grouped(comp_pairs(i,3)).color;
-    
+
     % save stats comparison information for later processing / display
     stats_comp(i).comp = [g1, g2];
     stats_comp(i).names = {grouped(g1).name, grouped(g2).name};
@@ -4491,7 +4495,7 @@ for i = 1:nComps
         end
 
         p = nan(nTests,1); % set empty matrix for the p-value to populate (so we can do mlt. comp. corr. on it)
-    
+
         for tt = 1:nTests % for each of the temperature bins make this comparison
             [~,p(tt)] = ttest2(x(tt,:),y(tt,:)); % T-TEST COMPARISON
         end
@@ -4501,15 +4505,15 @@ for i = 1:nComps
         ogAlpha = 0.05; %baseline alpha level for significance
         adjAlpha = ogAlpha / numberTests; % adjusted alpha level for significance
         h = p < adjAlpha; % points that ARE significant = true
-       
+
         % save the significance location and direction for later use: 
         stats_comp(i).(type_name) = h;
-       
+
         % make a list of locations that are significant to be later scale to
         % the appropriate y height to plot above the tuning curve
         plotYloc = nan(size(h));
         plotYloc(h) = 1; % 
-        
+
         % need to find an easy way to quickly loop and test across these as well as
         % finding a way to throw sig points onto the graphs appropriately
         plotX = statsD(g1).temps;
@@ -4521,7 +4525,7 @@ for i = 1:nComps
             % plot the significant markers onto the graph
             subplot(r,c,type); hold on
             scatter(plotX, plotY, sz, kolor, 'filled', 'square')
-          
+
             % adjust y limits to not exclude the new peak data: 
             curr_ylim = ylim;
             ylim([curr_ylim(1), y1+spacing_offset])
@@ -4549,6 +4553,8 @@ for i = 1:2
                 manual_ylims = qring_y;
             case 'sleep'
                 manual_ylims = sleep_y;
+            case 'speed'
+                manual_ylims = speed_y;
         end
         ylim(manual_ylims)
     end
@@ -4560,7 +4566,7 @@ ylabel('')
 if plot_all
     save_figure(fig,[fig_dir title_str ' tuning curves with statistics'],fig_type);
 else
-    numberstr =[];
+    numberstr = [];
     for i = 1:length(exps_to_plot)
         numberstr = [numberstr ' ' num2str(exps_to_plot(i))];
     end
@@ -5191,8 +5197,17 @@ LW = 3;
 % expList = [2, 2, 4, 4, 1, 5]; % experiment group order
 % tempList = [17, 25, 17, 25, 17, 25]; % temperatures for each data set
 % cList = {'dodgerblue', 'red', 'dodgerblue', 'red', 'dodgerblue', 'red'};
-expList = [5 5 1 1 4 4 2 2 7 7 3 3 6 6]; % experiment group order
-tempList = [15 17]; % temperatures for each data set
+
+% expList = [5 5 1 1 4 4 2 2 7 7 3 3 6 6]; % experiment group order
+% tempList = [17 25]; % temperatures for each data set
+% tempList = repmat(tempList, [1, length(expList)/2]);
+
+% expList = [1 1 3 3 2 2]; % experiment group order
+% tempList = [15 35]; % temperatures for each data set
+% tempList = repmat(tempList, [1, length(expList)/2]);
+
+expList = [1 1 2 2 3 3]; % experiment group order
+tempList = [15 35]; % temperatures for each data set
 tempList = repmat(tempList, [1, length(expList)/2]);
 
 cList = {'dodgerblue', 'red'};
@@ -5274,11 +5289,14 @@ end
 g1 = testData(:,1:2:end);
 g2 = testData(:,2:2:end);
 
+p = [];
 for exp = 1:num.exp
-    y1 = g1(:,exp);
-    y2 = g2(:,exp);
-    loc = isnan(y1) | isnan(y2);
-    y1(loc) = [];
-    y2(loc) = 
+    [y1, y2] = rmnan(g1(:,exp), g2(:,exp), 1, true);
+    [~, p(exp)] = ttest(y1,y2);
+end
+% TODO: bonferonni correction of the p-value
+alpha = 0.05;
+corrected_alpha = alpha/num.exp;
+h = p<=corrected_alpha;
+disp(expNames(h)')
 
-    [y1, y2] = rmnan(g1(:,exp), g2(:,exp), dim, bidirectional)

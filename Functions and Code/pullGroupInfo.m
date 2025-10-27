@@ -158,4 +158,5 @@ end
 %         required_comp_pairs = [1, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 % 
 % % lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
-% % latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];
+% % latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];..
+%                    
