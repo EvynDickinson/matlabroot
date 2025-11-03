@@ -2130,6 +2130,88 @@ hold on
 save([saveDir expGroup ' temp distance correlation ramps only'],'plotData');
 save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-png',true,false);
 save_figure(fig,[saveDir expGroup ' temp distance correlation ramps only'],'-pdf',true,true);
+%%
+%% FIGURE: Temp - outer ring ramps only correlation
+% correlation ONLY during ramps
+
+% expOrder = [5, 1, 4, 2, 7, 3, 6]; % WT strains...
+
+clearvars('-except',initial_vars{:})
+
+[foreColor,backColor] = formattingColors(blkbgd);
+ylimits = [-0.8,0.1];
+autoLim = true;
+corr_coef = [];
+buff = 0.2;
+SZ = 50;
+LW = 1.5;
+
+pixWidth = 60; % additional pixel size for image for each extra experiment group
+figSize = [pixWidth + (pixWidth*num.exp),590];
+
+% get correlation data
+plotData = struct;
+for exp = 1:num.exp
+    i = expOrder(exp);
+    disp(expNames{i})
+    if data(i).hold_exp
+        [plotData(exp).rho, plotData(exp).pval]  = deal(nan);
+        plotData(exp).groupName = expNames(i);
+        plotData(exp).color =  grouped(i).color;
+        continue
+    end
+    pooled_temp = [];
+    pooled_dist = [];
+    % get speed / distance information
+    for trial = 1:num.trial(i)
+        x = data(i).data(trial).occupancy.temp;
+        y = grouped(i).ecent.all(:,trial);
+        pooled_temp = autoCat(pooled_temp,x,false);
+        pooled_dist = autoCat(pooled_dist,y,false);
+    end
+    % screen out control periods (recovery holds and start/end of exp)
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    loc = [tp.UpROI, tp.DownROI];
+    loc = sort(loc);
+
+    temp = pooled_temp(loc,:);
+    dist = pooled_dist(loc,:);
+    [rho,pval] = corr(temp,dist);
+
+    plotData(exp).rho = rho(logical(eye(num.trial(i))));
+    plotData(exp).pval = pval(logical(eye(num.trial(i))));
+    plotData(exp).groupName = expNames(i);
+    plotData(exp).color =  grouped(i).color;
+end
+
+% correlation coefficients
+fig = getfig('',true,figSize);
+hold on
+ for i = 1:num.exp
+   disp(plotData(i).groupName)
+   kolor = plotData(i).color;
+   xlow = i-buff-0.1;
+   xhigh = i+buff+0.1;
+   y = plotData(i).rho;
+   y_avg = mean(plotData(i).rho);
+   x = shuffle_data(linspace(i-buff,i+buff,length(y)));
+
+   scatter(x,y,SZ,kolor,'filled')
+   plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',LW)
+ end
+ xlim([0.5,num.exp+.5])
+ ylabel('temp-distance corr. coef.')
+ h_line(0,foreColor,':',1)
+ formatFig(fig,blkbgd);
+ set(gca,'xcolor',backColor)
+ if ~autoLim
+     ylim(ylimits)
+ end
+
+% save figure
+save([saveDir expGroup ' temp edge distance correlation ramps only'],'plotData');
+save_figure(fig,[saveDir expGroup ' temp edge distance correlation ramps only'],'-png',true,false);
+save_figure(fig,[saveDir expGroup ' temp edge distance correlation ramps only'],'-pdf',true,true);
 
 %% FIGURE: surface map of distance-temp tuning curve
 clearvars('-except',initial_vars{:})
@@ -2876,11 +2958,11 @@ clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd);
 corr_coef = [];
 buff = 0.2;
-SZ = 50;
+SZ = 75;
 LW = 1.5;
 
-lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','Malawi', 'Zimbabwe'};
-latitudes = [60.1282,  52.5200,    43.8041,   40.7989, -13.2543, -19.0154];
+lat_list = {'Swedish', 'Berlin', 'Oregon','Canton','W1118','Malawi', 'Zimbabwe'};
+latitudes = [60.1282,  52.5200,    43.8041,   40.7989,40.7989, -13.2543, -19.0154];
 
 % get correlation data
 for i = 1:num.exp
@@ -2888,7 +2970,7 @@ for i = 1:num.exp
     % get speed / distance information
     for trial = 1:num.trial(i)
         x = data(i).data(trial).occupancy.temp;
-        y = grouped(i).dist.all(:,trial);
+        y = grouped(i).ecent.all(:,trial); %dist
         temp = [];
         temp = autoCat(temp,x,false);%temp for each trial within the exp.
         temp = autoCat(temp,y,false);%dist for each trial within the exp
@@ -2911,7 +2993,11 @@ fig = getfig('',true,[453 590]); hold on
 hold on
  for ii = 1:num.exp
    i = find(contains(expNames,lat_list(ii)));
-   kolor = grouped(i).color;
+   if contains('W1118',lat_list(ii))
+       continue
+   end
+   % kolor = grouped(i).color;
+   kolor = foreColor;
    lat = abs(latitudes(ii));
    xlow = lat-2;
    xhigh = lat+2;
@@ -2919,15 +3005,15 @@ hold on
    x = lat*ones(1,num.trial(i));
    y = corr_coef(i).all;
    y_avg = mean(corr_coef(i).all);
-   scatter(x,y,SZ,kolor,'filled')
+   scatter(x,y,SZ,kolor,'filled','xjitter','density')
 %    plot([xlow,xhigh],[corr_coef(i).group,corr_coef(i).group],'color',kolor,'linestyle',':','linewidth',LW)
 %    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
  end
  xlim([-5,65])
- ylabel('temperature-distance correlation')
- h_line(0,foreColor,':',1)
+ ylabel('temperature-edge correlation')
+ h_line(0,'grey','--',1.5)
  formatFig(fig,blkbgd);
- set(gca,'xcolor',foreColor)
+ set(gca,'xcolor',foreColor,'fontsize', 23)
  xlabel('latitude (\circ)')
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],fig_type);
@@ -4306,8 +4392,8 @@ end
 % blkbgd = true;
 % fig_type = '-png';
 
-plot_all = true;
-exps_to_plot = 3;
+plot_all = false;
+exps_to_plot = [1 2];
 
 autoLim = false; % is x limit manual or autodetermined
 manual_xlims = [13, 37];
