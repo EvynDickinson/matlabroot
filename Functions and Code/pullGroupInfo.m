@@ -51,6 +51,10 @@ switch expGroup
         comp_pairs = [1 2 2; 1 3 3]; % n1 & n2 : exp groups to compare, n3: color to plot in
         required_comp_pairs = [1, 1, 2; 2, 2, 3]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
+    case 'Berlin temperature hold caviar'
+        expOrder = [1 2 3 8 4 5 9 6 7]; %out of order bc 23C and 30C were added later
+        % colors = {'Dodgerblue', 'Tomato', 'Grey', 'Grey'};
+
     case 'Berlin temperature holds' % includes food and empty trials
         expOrder = 1:num.exp;
         kolor1 = Color('Blue', 'LightGrey', 5); % ultimately 5 (with all temp trials added)
