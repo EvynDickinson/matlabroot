@@ -645,7 +645,18 @@ switch response
                 end
         redo = true;
         while redo        
-            arena = 4; % Arena D
+            % response = listdlg('Which arena?','','A','B','C','D','D');
+            % switch response
+            %     case 'A'
+            %         arena = 1;
+            %     case 'B'
+            %         arena = 2;
+            %     case 'C'
+            %         arena = 3;
+            %     case 'D'
+            %         arena = 4;
+            % end
+            arena = 4;
             n = 1; % how many miscounted frames to look at
             offset = flyCount(:,arena)-nflies(arena);
             [~,idx] = sort(offset);
