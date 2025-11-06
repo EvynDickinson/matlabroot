@@ -2955,7 +2955,7 @@ save_figure(fig,[saveDir 'Min max temp aligned proximity to food'],fig_type);
 
 %% FIGURE: [WT comp] latutide organized
 clearvars('-except',initial_vars{:})
-[foreColor,~] = formattingColors(blkbgd);
+foreColor = formattingColors(blkbgd);
 corr_coef = [];
 buff = 0.2;
 SZ = 75;
@@ -3010,13 +3010,14 @@ hold on
 %    plot([xlow,xhigh],[y_avg,y_avg],'color',kolor,'linewidth',1.5)
  end
  xlim([-5,65])
- ylabel('temperature-edge correlation')
+ ylabel('temperature-escape correlation')
  h_line(0,'grey','--',1.5)
  formatFig(fig,blkbgd);
  set(gca,'xcolor',foreColor,'fontsize', 23)
  xlabel('latitude (\circ)')
 % save figure
 save_figure(fig,[saveDir expGroup ' temp distance correlation by latitude 2'],fig_type);
+
 
 %% FIGURE: [temperature rate experiments] surf plot tuning curve
 clearvars('-except',initial_vars{:})
@@ -5530,4 +5531,14 @@ end
 % save figure
 save_figure(fig,[saveDir expGroup ' food quadrant hysteresis summary'],'-pdf',true, false);
 save_figure(fig,[saveDir expGroup ' food quadrant hysteresis summary'],fig_type);
+
+%% Sleep, food quad occupancy, and ring occ overlaid
+
+for i = 1:3
+    subplot(1,3,i)
+    ylim([0,70])
+    xlim([13.5, 24])
+end
+save_figure(fig,[saveDir expGroup ' food escape sleep tuning curves'],fig_type);
+
 

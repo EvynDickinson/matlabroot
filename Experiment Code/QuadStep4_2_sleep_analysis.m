@@ -1582,10 +1582,12 @@ clearvars('-except',initial_vars{:})
 % kolor = Color('White');
 
 % Pull data
-[sleepDuration, thermalThreat] = deal([]);
+[sleepDuration, thermalThreat, avgSleep] = deal([]);
 for i = 1:num.exp
     thermalThreat(i) = sleep(i).thermalThreat;
     sleepDuration = autoCat(sleepDuration,sleep(i).avg_quant',false);
+
+    avgSleep = autoCat(avgSleep, mean(grouped(i).sleep.percent,1)',false);
 end
 
 
@@ -1597,11 +1599,11 @@ for i = 1:num.exp
     kolor = grouped(i).color;
     y = sleepDuration(:,i);
     y(isnan(y)) = [];
-    y_avg = mean(y);
+    y_avg = median(y);
     x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
 %     x = ones(1,length(y))*thermalThreat(i));
     scatter(x,y,SZ,kolor,"filled","o")
-    plot([thermalThreat(i)-buff,thermalThreat(i)+buff],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+    plot([thermalThreat(i)-(buff*1.75),thermalThreat(i)+(buff*1.75)],[y_avg,y_avg],'Color',kolor,'linewidth',2)
 end
 
 xlabel('Thermal Stress')
