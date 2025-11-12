@@ -388,6 +388,7 @@ formatFig(fig, blkbnd);
     set(gca,"YTick", 0:25:100, 'XTick', 0:6:48, 'FontSize', 15)
     xlabel('Time (hours)')
     ylabel('Percentage of incapaciated flies')
+    xlim([0 12])
 
 save_figure(fig,[figDir, '/' ExpGroup ' % death overtime'], fig_type);
 
