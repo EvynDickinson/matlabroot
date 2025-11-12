@@ -5,10 +5,13 @@
 
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colors
 
 % plot the data:
-lw = 0.25;
-sSpan = 5*fly(1).fps; %  5 second smoothing
+lw = 1;
+plotSkip = 120;
+sSpan = plotSkip*fly(1).fps; %  60 second smoothing
+
 
 % fig = getfig('',1); hold on
 % for sex = 1:2
@@ -22,23 +25,39 @@ sSpan = 5*fly(1).fps; %  5 second smoothing
 % formatFig(fig);
 % save_figure(fig, [figDir 'test fly distance to food all trials'],fig_type)
 
+
 % Plot the average distance to food across the trials: 
+r = 5;
+c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:r;
 fig = getfig('',1); 
-subplot()
-hold on
-for sex = 1:2
-    % plot all the trials
-    x = data.time;
-    y = squeeze(data.dist2food(:,sex,:));
-    y_avg = mean(y,2,'omitnan');
-    y_err = std(y,0,2,'omitnan')/sqrt(num.trials);
-    h = plot_error_fills(true, x, y_avg, y_err, data.color(sex,:),  '-png');
-    plot(x,y_avg,'color', data.color(sex,:),'LineWidth',lw)
-end
-xlabel('time (min)')
-ylabel('distance to food (mm)')
-formatFig(fig,blkbgd);
-save_figure(fig, [figDir 'avg distance to food M and F'],fig_type)
+    subplot(r,c,sb(1).idx);
+        plot(data.time,data.temp,'color', foreColor, 'linewidth', 1)
+        ylabel('temp (\circC)')
+    subplot(r,c,sb(2).idx);
+        hold on
+        for sex = 1:2
+            % plot all the trials
+            x = data.time;
+            y = squeeze(data.dist2food(:,sex,:));
+            y_avg = mean(y,2,'omitnan');
+            y_avg = smooth(y_avg, sSpan, 'moving');
+            y_err = std(y,0,2,'omitnan')/sqrt(num.trials);
+            y_err = smooth(y_err, sSpan, 'moving');
+            h = plot_error_fills(true, x(1:plotSkip:end), y_avg(1:plotSkip:end), y_err(1:plotSkip:end), data.color(sex,:),fig_type);
+            plot(x(1:plotSkip:end),y_avg(1:plotSkip:end),'color', data.color(sex,:),'LineWidth',lw)
+        end
+        xlabel('time (min)')
+        ylabel('distance to food (mm)')
+    formatFig(fig,blkbgd,[r c],sb);
+    subplot(r,c,sb(1).idx)
+    set(gca, 'xcolor', 'none')
+    if strcmp(groupName, 'Berlin LTS caviar')
+        ylim([15,35])
+        set(gca, 'ytick', 15:10:35)
+    end
+save_figure(fig, [figDir 'avg distance to food M and F'],fig_type);
 
 
 % % TODO: 5.13 MAKE A THING TO PLOT TEMP, FOOD METRIC, AND THEN THE
@@ -143,7 +162,6 @@ save_figure(fig, [figDir 'avg distance to food M and F'],fig_type)
 % 
 % % save figure
 % save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
-
 
 
 
@@ -541,17 +559,17 @@ save_figure(fig, [figFolder opt_list{list_idx}],fig_type);
 %% Courtship frequency figure: TODO-check that this is aligned time! 
 clearvars('-except',initial_var{:})
 % when and where is the concentration of courtship over experimental time?
-[foreColor, ~] = formattingColors(blkbgd); % get background colors
+foreColor = formattingColors(blkbgd); % get background colors
 sex = 1;
 % compile the data: 
 [pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
 for i = 1:num.trials
-    % for sex = 1:2
+
         x = fly(i).time;
         y = fly(i).T.CI;
         pD(sex).x = [pD(sex).x, x];
         pD(sex).y = [pD(sex).y, y];
-    % end
+
 end
 
 % set up figure aligments
@@ -587,7 +605,9 @@ formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx);
 set(gca, 'xcolor', 'none')
 
-
+% TODO: 
+% plot out by temp region (improving vs worsening) the avg 
+% plot out the avg over time -- running avg. 
 
 %% Courtship Index: 
 % TODO: update this to work with the current data...
@@ -711,6 +731,64 @@ for i = 1:r
 end
 
 save_figure(fig, [figDir 'courtship behaviors over time'],fig_type);
+
+
+%%  FIGURE: courtship temp tuning curves
+% TODO: turn this into a temperature tuning curve for each of these metrics
+ntemps = length(data.tempbin.temps);
+[TC.CI.avg, TC.CI.std] = deal(nan(ntemps,2)); % warming then cooling for columns
+for t = 1:ntemps
+    for type = 1:2 %warming then cooling
+        switch type 
+            case 1 
+                ROI = data.tempbin.warming(:,t);
+            case 2
+                ROI = data.tempbin.cooling(:,t);
+        end
+        y = (sum(data.CI(ROI,:),2)./num.trials)*100; % percent of flies doing 'official' courtship
+        y_avg = mean(y,'omitnan');
+        y_err = std(y, 0,1,'omitnan');
+        TC.CI.avg(t,type) = y_avg;
+        TC.CI.std(t,type) = y_err;
+    end
+end
+
+% Plot
+sSpan = 8;
+
+fig = getfig('', 1,[486 680]);
+hold on
+    x = data.tempbin.temps';
+    for type = 1:2
+        switch type
+            case 1
+                kolor = Color('red');
+            case 2
+                kolor = Color('dodgerblue');
+        end
+        % smooth / format
+        y = smooth(TC.CI.avg(:,type),sSpan,'moving');
+        y_err = smooth(TC.CI.std(:,type),sSpan,'moving')./sqrt(num.trials); % SEM     
+        y_low = y-y_err;
+        y_high = y+y_err;
+        y_low(y_low<0) = 0; % threshold error to zero
+        % plot 
+        plot_error_fills(blkbgd, x, y, y_err, kolor,fig_type, 0.35);
+        if ~blkbgd
+            plot(x, y_low, 'color', kolor, 'linewidth',0.25)
+            plot(x, y_high, 'color', kolor, 'linewidth',0.25)
+        end
+        plot(x, y, 'color', kolor, 'linewidth',1)
+    end
+
+ %   formatting
+ formatFig(fig, blkbgd);
+ xlabel('temperature (\circC)')
+ ylabel('flies courting (%)')
+
+ save_figure(fig, [figDir 'courtship CI index temp tuning curve'],fig_type);
+
+ 
 
 
 %% TODO: behavior probabilities for states that happen before sleep & how long it took between them...
@@ -933,10 +1011,7 @@ ylabel([strrep(data_type,'_', '-') ' frequency (#/min)'])
 formatFig(fig, blkbgd);
 save_figure(fig, [figDir 'temp regime binned frequency of ' data_type],fig_type);
 
-%% TODO: Singly fly number of trips to food during each temperature region & duration of that 'visit'
-
 %% FIGURE: rasterplot of frequency of courtship-like events over the timecourse
-
 
 % bin by time?
 
@@ -1107,9 +1182,6 @@ for i = 1:c
 end
 
 % so far not 
-
-
-%% 
 
 %% FIGURE:  plot major components of courtship behavior over time just raw numbers
 clearvars('-except',initial_var{:})
@@ -1324,15 +1396,323 @@ save_figure(fig, [figDir 'total time for each behavior'],fig_type);
 
 %% TODO: What are the speeds within each region of the arena? on avg and by temperature
 
-%% TODO: 
+%%  FIGURE: overlay of courtship, sleep, escape, and food attraction
+clearvars('-except',initial_var{:})
+[foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+ntemps = length(data.tempbin.temps);
+[TC.CI.avg, TC.CI.std] = deal(nan(ntemps,2)); % cooling then warming for columns
+[TC.sleep.avg, TC.sleep.std] = deal(nan(ntemps,2)); 
+[TC.food.avg, TC.food.std] = deal(nan(ntemps,2)); 
+[TC.escape.avg, TC.escape.std] = deal(nan(ntemps,2)); 
+
+paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing'};
+colors = {'purple', 'dodgerblue', 'gold', 'red'}; % CI, sleep, food, escape
+roi = 1:640000;
+
+for t = 1:ntemps
+    for type = 1:2 % cooling then warming
+        switch type 
+            case 1 
+                ROI = data.tempbin.cooling(roi,t);
+            case 2
+                ROI = data.tempbin.warming(roi,t);
+        end
+        % Courtship Index
+        y = (sum(data.CI(ROI,:),2)./num.trials)*100; % percent of flies doing 'official' courtship
+        y_avg = mean(y,'omitnan');
+        y_err = std(y, 0,1,'omitnan');
+        TC.CI.avg(t,type) = y_avg;
+        TC.CI.std(t,type) = y_err;
+        % sleep, food, escape
+        for i = 2:4 % for the other three parameter metrics
+            y = squeeze(mean(data.(paramList{i})(ROI,:,:),2,'omitnan'));
+            y = mean(y*100,1); % convert to percent of flies per trial that are sleeping
+            y_avg = mean(y,'omitnan');
+            y_err = std(y, 0,2,'omitnan');
+            TC.(paramList{i}).avg(t,type) = y_avg;
+            TC.(paramList{i}).std(t,type) = y_err;
+        end
+    end
+end
+
+% Plot
+plotErr = false;
+sSpan = 8;
+r = 1;
+c = 2; 
+
+x = data.tempbin.temps';
+
+fig = getfig('', 1,[774 680]);
+% cooling
+for type = 1:2
+    subplot(r,c,type); hold on
+    for param = length(paramList):-1:1
+        % if param == 1
+        %     yyaxis right
+        % else 
+        %     yyaxis left
+        % end
+        kolor = Color(colors{param});
+        % smooth / format
+        y = smooth(TC.(paramList{param}).avg(:,type),sSpan,'moving');
+        y_err = smooth(TC.(paramList{param}).std(:,type),sSpan,'moving')./sqrt(num.trials); % SEM     
+        y_low = y-y_err;
+        y_high = y+y_err;
+        y_low(y_low<0) = 0; % threshold error to zero
+        % plot 
+        plot_error_fills(blkbgd, x, y, y_err, kolor,fig_type, 0.35);
+        if ~blkbgd
+            plot(x, y_low, 'color', kolor, 'linewidth',0.25)
+            plot(x, y_high, 'color', kolor, 'linewidth',0.25)
+        end
+        plot(x, y, 'color', kolor, 'linewidth',1)
+    end
+end
+% formatting
+formatFig(fig, blkbgd, [r,c]);
+matchAxis(fig, true);
+subplot(r,c,2)
+set(gca, 'ycolor', 'none')
+xlabel('temperature (\circC)')
+title('warming','color', foreColor,'fontname', 'Arial','FontAngle','italic')
+subplot(r,c,1)
+ylabel('flies (%)')
+set(gca, 'xdir', 'reverse')
+xlabel('temperature (\circC)')
+title('cooling','color', foreColor,'fontname','Arial','FontAngle','italic')
+if strcmp(groupName, 'Berlin LTS caviar')
+    for i = 1:2
+        subplot(r,c,i)
+        set(gca, 'xtick', 15:5:35)
+        xlim([13, 37])
+    end
+end
 
 
+ % save_figure(fig, [figDir 'courtship CI index temp tuning curve'],fig_type);
 
 
+%%  FIGURE: z-score overlay of courtship, sleep, escape, and food attraction
+clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colors
+paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing'};
+colors = {'purple', 'dodgerblue', 'gold', 'red'}; % CI, sleep, food, escape
+ntemps = length(data.tempbin.temps);
+nParams = length(paramList);
+TC = struct;
+for i = 1:nParams
+    [TC.(paramList{i}).avg, TC.(paramList{i}).std] = deal(nan(ntemps,2)); % cooling then warming for columns
+end
 
+roi = 1:640000; % eliminate the last bit of the experiment since they fall off the food...for the LTS trials
 
+% preformat the z-score for the data that will be extracted and used: 
+Zdata = [];
+Zdata(:,1) = (sum(data.CI,2)./num.trials)*100; % courtship index
+for i = 2:4
+    Zdata(:,i) = sum(sum(data.(paramList{i}),2),3)./(num.trials*2)*100;
+end
+Zdata(isnan(Zdata)) = 0;
+Zdata = zscore(Zdata);
 
+% % dirty time course plot of the zscores
+% figure;
+% hold on
+% for i = 1:4
+%     y = smooth(Zdata(:,i),5000,'moving');
+%     plot(y(1:100:end))
+%     disp(i)
+% end
 
+for t = 1:ntemps
+    for type = 1:2 % cooling then warming
+        switch type 
+            case 1 
+                ROI = data.tempbin.cooling(roi,t);
+            case 2
+                ROI = data.tempbin.warming(roi,t);
+        end
+        
+        for i = 1:nParams % courtship, sleep, food, escape
+            y = Zdata(ROI,i);
+            y_avg = mean(y,'omitnan');
+            TC.(paramList{i}).avg(t,type) = y_avg;
+            if ~isempty(y)
+                y_err = std(y, 0,1,'omitnan');
+                TC.(paramList{i}).std(t,type) = y_err;
+            end
+        end
+    end
+end
+
+% Plot
+plotErr = false;
+sSpan = 8;
+r = 1;
+c = 2; 
+
+x = data.tempbin.temps';
+
+fig = getfig('', 1,[774 680]);
+% cooling
+for type = 1:2
+    subplot(r,c,type); hold on
+    for param = 1: nParams
+        % if param == 1
+        %     yyaxis right
+        % else 
+        %     yyaxis left
+        % end
+        kolor = Color(colors{param});
+        % smooth / format
+        y = smooth(TC.(paramList{param}).avg(:,type),sSpan,'moving');
+        y_err = smooth(TC.(paramList{param}).std(:,type),sSpan,'moving')./sqrt(num.trials); % SEM     
+        y_low = y-y_err;
+        y_high = y+y_err;
+        % plot 
+        plot_error_fills(blkbgd, x, y, y_err, kolor,fig_type, 0.35);
+        if ~blkbgd
+            plot(x, y_low, 'color', kolor, 'linewidth',0.25)
+            plot(x, y_high, 'color', kolor, 'linewidth',0.25)
+        end
+        plot(x, y, 'color', kolor, 'linewidth',1)
+    end
+end
+% formatting
+formatFig(fig, blkbgd, [r,c]);
+matchAxis(fig, true);
+subplot(r,c,2)
+set(gca, 'ycolor', 'none')
+xlabel('temperature (\circC)')
+title('warming','color', foreColor,'fontname', 'Arial','FontAngle','italic')
+subplot(r,c,1)
+ylabel('zscore')
+set(gca, 'xdir', 'reverse')
+xlabel('temperature (\circC)')
+title('cooling','color', foreColor,'fontname','Arial','FontAngle','italic')
+if strcmp(groupName, 'Berlin LTS caviar')
+    for i = 1:2
+        subplot(r,c,i)
+        set(gca, 'xtick', 15:5:35)
+        xlim([13, 37])
+    end
+end
+
+%% FIGURE: normalized 0 to max temp tuning curves for the four essential behaviors
+clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colors
+paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing'};
+colors = {'purple', 'dodgerblue', 'gold', 'red'}; % CI, sleep, food, escape
+ntemps = length(data.tempbin.temps);
+nParams = length(paramList);
+TC = struct;
+for i = 1:nParams
+    [TC.(paramList{i}).avg, TC.(paramList{i}).std] = deal(nan(ntemps,2)); % cooling then warming for columns
+end
+
+% roi = 1:640000; % eliminate the last bit of the experiment since they fall off the food...for the LTS trials
+
+% preformat the z-score for the data that will be extracted and used: 
+Zdata = [];
+Zdata(:,1) = (sum(data.CI,2)./num.trials); % courtship index
+for i = 2:nParams
+    Zdata(:,i) = sum(sum(data.(paramList{i}),2),3)./(num.trials*2);
+end
+Zdata(isnan(Zdata)) = 0;
+% for i = 1:nParams
+%     Zdata(:,i) = smooth(Zdata(:,i),200,'moving');
+%     Zdata(:,i) = rescale(Zdata(:,i));
+% end
+% mVal = max(Zdata);
+% Zdata = Zdata./mVal; % normalize on a [0-1] scale
+
+% % dirty time course plot of the zscores
+% figure;
+% hold on
+% for i = 1:4
+%     % y = smooth(Zdata(:,i),5000,'moving');
+%     y = Zdata(:,i);
+%     plot(y(1:100:end))
+% end
+
+for t = 1:ntemps
+    for type = 1:2 % cooling then warming
+        switch type 
+            case 1 
+                ROI = data.tempbin.cooling(:,t);
+            case 2
+                ROI = data.tempbin.warming(:,t);
+        end
+        
+        for i = 1:nParams % courtship, sleep, food, escape
+            y = Zdata(ROI,i);
+            y_avg = mean(y,'omitnan');
+            TC.(paramList{i}).avg(t,type) = y_avg;
+            if ~isempty(y)
+                y_err = std(y, 0,1,'omitnan');
+                TC.(paramList{i}).std(t,type) = y_err;
+            end
+        end
+    end
+end
+
+% Plot
+plotErr = false;
+sSpan = 8;
+r = 1;
+c = 2; 
+
+x = data.tempbin.temps';
+
+% fig = getfig('', 1,[774 680]);
+% for param = 1: nParams
+%     raw_y = TC.(paramList{param}).avg;
+%     for i = 1:size(raw_y,2)
+%         raw_y(:,i) = smooth(raw_y(:,i), sSpan, 'moving');
+%     end
+%     scaleY = rescale(raw_y);
+%     for type = 1:2
+%         subplot(r,c,type); hold on
+%         kolor = Color(colors{param});
+%         y = scaleY(:,type);
+%         plot(x, y, 'color', kolor, 'linewidth',2)
+%     end
+% end
+
+fig = getfig('', 0,[1344 680]);
+for type = 1:2
+    subplot(r,c,type); hold on
+    for param = 1: nParams
+        raw_y = smooth(TC.(paramList{param}).avg(:,type), sSpan, 'moving');
+        scaleY = rescale(raw_y);
+        kolor = Color(colors{param});
+        plot(x, scaleY, 'color', kolor, 'linewidth',2)
+    end
+end
+
+% formatting
+formatFig(fig, blkbgd, [r,c]);
+matchAxis(fig, true);
+subplot(r,c,2)
+set(gca, 'ycolor', 'none')
+xlabel('temperature (\circC)')
+title('warming','color', foreColor,'fontname', 'Arial','FontAngle','italic')
+subplot(r,c,1)
+ylabel('flies (norm %)')
+set(gca, 'xdir', 'reverse')
+xlabel('temperature (\circC)')
+title('cooling','color', foreColor,'fontname','Arial','FontAngle','italic')
+if strcmp(groupName, 'Berlin LTS caviar')
+    for i = 1:2
+        subplot(r,c,i)
+        set(gca, 'xtick', 15:5:35)
+        xlim([13, 37])
+    end
+end
+
+save_figure(fig, [figDir 'normalized behavior for timing temp tuning curve'],fig_type);
 
 
 

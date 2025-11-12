@@ -739,6 +739,175 @@ end
 save_figure(fig,[saveDir expGroup ' hysteresis summary'],fig_type);
 
 
+%%
+
+%% FIGURE & STATS: Hysteresis for each genotype / trial for FOOD OCCUPANCY QUADRANT
+clearvars('-except',initial_vars{:})
+LW = 0.75;
+buff = 0.2;
+SZ = 50;
+r = 1; %rows
+c = 3; %columns
+plot_err = false;
+plotSig = true; %plot significance stars
+[foreColor,backColor] = formattingColors(blkbgd);
+
+type = 'fullquad';
+subtype = 'food';
+
+
+% FIGURE:
+fig = getfig('',true);
+% Hystersis
+subplot(r,c,1)
+hold on
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    %increasing
+    x = grouped(i).(type).(subtype).temps;
+    y = grouped(i).(type).(subtype).increasing.avg;
+    y_err = grouped(i).(type).(subtype).increasing.std;
+    loc = isnan(y) | isnan(y_err);% remove nans
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
+    plot(x,y,'LineWidth',LW+0.5,'Color',kolor,'linestyle','-')
+    %decreasing
+    x = grouped(i).(type).(subtype).temps;
+    y = grouped(i).(type).(subtype).decreasing.avg;
+    y_err = grouped(i).(type).(subtype).decreasing.std;
+    loc = isnan(y) | isnan(y_err);% remove nans
+    y(loc) = []; x(loc) = []; y_err(loc) = [];
+
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.2);
+    plot(x,y,'LineWidth',LW+.5,'Color',kolor,'linestyle','--','HandleVisibility','off');
+
+    % Names and Colors of included data
+    dataString{i} = grouped(i).name;
+end
+subplot(r,c,1)
+ylabel('flies in food quad (%)')
+xlabel('temp (\circC)')
+
+% Pull difference in distance heating-cooling
+subplot(r,c,2)
+hold on
+for i = 1:num.exp
+    x = repmat(grouped(i).(type).(subtype).temps,[num.trial(i),1])';
+    y = grouped(i).(type).(subtype).decreasing.raw-grouped(i).(type).(subtype).increasing.raw;
+    kolor = grouped(i).color;
+%     plot(x,y,'color',kolor,'LineWidth',LW);
+    plot(mean(x,2),mean(y,2),'color',kolor,'LineWidth',2)
+end
+h_line(0,foreColor,':',1)
+xlabel('temp (\circC)')
+ylabel('heat-cooling diff (%)')
+
+
+% Cumulative difference in proximity
+subplot(r,c,3)
+hold on
+for ii = 1:num.exp
+    i = expOrder(ii);
+
+    kolor = grouped(i).color;
+    y = grouped(i).(type).(subtype).decreasing.raw-grouped(i).(type).(subtype).increasing.raw;
+    plotY = sum(y,1,'omitnan');
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(i)));
+    scatter(x,plotY,SZ,kolor,"filled","o")
+    plot([ii-(buff*1.5),ii+(buff*1.5)],[mean(plotY),mean(plotY)],'color',foreColor,'LineWidth',2)
+end
+xlim([0.5,num.exp+0.5])
+h_line(0,foreColor,':',1)
+ylabel('cumulative difference (mm)')
+
+formatFig(fig,blkbgd,[r,c]);
+set(gca,'XTick',[],'xcolor',backColor)
+xlabel('Group','color',foreColor)
+
+
+% Formatting
+
+% for SFN poster
+% 'DarkOrchid','Gold','dodgerblue'
+for i = 1:2
+    subplot(r,c,i)
+    v_line(17.5, 'DarkOrchid',':')
+    v_line(19.5, 'Gold',':')
+    v_line(21.5, 'dodgerblue',':')
+end
+% peak diff is 2.5 degrees after warming onset
+
+
+
+% STATS: are the means of any groups different from zero?
+[p, mlt, id] = deal([]);
+for ii = 1:num.exp
+    i = expOrder(ii);
+    y = grouped(i).(type).(subtype).decreasing.raw-grouped(i).(type).(subtype).increasing.raw;
+    plotY = sum(y,1,'omitnan');
+    [~,p(ii)] = ttest(plotY);
+    group_name{ii} = expNames{i};
+    %multicompare
+    mlt = autoCat(mlt, plotY',false);
+    id = autoCat(id,i*ones(length(plotY),1),false);
+end
+%Bonferonni correction:
+alpha = 0.05;
+m = num.exp;
+p_limit = alpha/m;
+h = p<=p_limit;
+stats_tbl = table(group_name',h',p','VariableNames',{'group','significant','p value'});
+disp(stats_tbl)
+
+% add significance stars to the figure:
+if plotSig
+    y_pos = rangeLine(fig,1);
+    subplot(r,c,3); hold on
+    for ii = 1:num.exp
+        if h(ii)
+            scatter(ii,y_pos,100,foreColor,'*')
+        end
+    end
+end
+
+% Multicompare across the groups for significance
+% STATS:
+% TODO -- update all other stats to reflect this vv
+% determine which groups differ from each other
+if num.exp>1
+    [~,~,stats] = anova1(mlt(:),id(:),'off');
+    alpha = 0.05; %significance level
+    [c,~,~,~] = multcompare(stats,alpha,'off');
+    % bonferonni multiple comparisons correction
+    m = size(c,1); %number of hypotheses
+    sigThreshold = alpha/m;
+    %find p-values that fall under the threshold
+    significantHypotheses = c(:,6)<=sigThreshold;
+    fprintf('\n\nPosition hysteresis cross group comparison statistics\n\n')
+    [Group1,Group2,P_Value] = deal([]);
+    idx = 0;
+    for i = 1:length(significantHypotheses)
+        if significantHypotheses(i)
+            idx = idx+1;
+            Group1{idx,1} = expNames{c(i,1)};
+            Group2{idx,1} = expNames{c(i,2)};
+            P_Value(idx,1) = c(i,6);
+        end
+    end
+    sig_comp = table(Group1,Group2,P_Value);
+    disp(sig_comp)
+end
+
+% save figure
+save_figure(fig,[saveDir expGroup ' quadroi hysteresis summary'],fig_type);
+
+
+%% FIGURE: hystersis time measurement of how much more time can be spent at the food with this strategy 
+
+% temp rate 
+
+
+
 %% FIGURE & STATS: Food occupation hysteresis for each genotype / trial
 clearvars('-except',initial_vars{:})
 LW = 0.75;
