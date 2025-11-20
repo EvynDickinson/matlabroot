@@ -88,7 +88,7 @@ switch computerName
         serverPath = paths.EvynMacServerPath;
         %TODO (3/1)
     case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
-        % 
+        permanentPath = paths.EvynMacLocalPath;
     case 'DENALI'
         serverPath = paths.denaliServerPath;
     case 'MWMJ0LY4WH' %becca's computer
@@ -99,8 +99,10 @@ switch computerName
         serverTwoPath = paths.SGServerTwoPath;
 end 
 
-if isfolder(serverPath)
-    serverDrive = true;
+if ~isempty(serverPath)
+    if isfolder(serverPath)
+        serverDrive = true;
+    end
 end
 % TODO: sort out the time delay on the server two function call
 % Reinstate this function when server2 is being actively used

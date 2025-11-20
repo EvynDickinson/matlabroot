@@ -30,6 +30,13 @@ if strcmp(questdlg('Load premade data structure?'),'Yes')
         figDir = createFolder([groupDir 'Figures/']);
 
         disp('Data structure finished loading')
+
+        % build indexes for warm threat, cool threat, warm safe, cool safe
+        data.tempbin.WT = data.tempbin.h_idx & data.temp>25; % warm threat
+        data.tempbin.WS = data.tempbin.c_idx & data.temp>25; % warm safe
+        data.tempbin.CT = data.tempbin.c_idx & data.temp<25; % cool threat
+        data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
+
         return % downloading the data
     end
 else
@@ -793,6 +800,17 @@ if ~hold_exp
         end
     end
 end
+
+
+%% Build new indexes for temperature regimes 
+% TODO: update this to include a static temperuture hold region 
+
+% build indexes for warm threat, cool threat, warm safe, cool safe
+data.tempbin.WT = data.tempbin.h_idx & data.temp>25; % warm threat
+data.tempbin.WS = data.tempbin.c_idx & data.temp>25; % warm safe
+data.tempbin.CT = data.tempbin.c_idx & data.temp<25; % cool threat
+data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
+
 
 %% Create new comparisons of distances for the group
 

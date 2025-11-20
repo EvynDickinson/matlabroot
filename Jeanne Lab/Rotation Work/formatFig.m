@@ -14,6 +14,13 @@ function figHandle = formatFig(figHandle, BandWoption, sbplots, subplotInd)
 % ES Dickinson,
 % University of Washington, 2020
 
+% Adjust the font sizes dynamically by the computer and version of matlab 
+if ismac 
+    labelSize = 15; 
+else 
+    labelSize = 10; 
+end
+
 
 % If black color is requested set background first:
 % adjust colors to blk&white
@@ -56,9 +63,10 @@ if nargin >= 3
 
         % set the label sizes and color
         labelHandles = findall(ax, 'type', 'text', 'handlevisibility', 'off');
-        set(labelHandles,'FontSize', 10, 'color', labelColor)
+        set(labelHandles,'FontSize', labelSize, 'color', labelColor)
+        set(gca, 'FontSize', labelSize)
     end    
-else
+else % just a single plot
    % get plot handles
     ax = gca(figHandle);
     ax.LineWidth = 1; %change axes lines to width of 1
@@ -70,7 +78,9 @@ else
     
     % set the label sizes and color
     labelHandles = findall(ax, 'type', 'text', 'handlevisibility', 'off');
-    set(labelHandles,'FontSize', 10, 'color', labelColor)
+    set(labelHandles,'FontSize', labelSize, 'color', labelColor)
+    set(gca, 'FontSize', labelSize)
+
 end
 
 clear ax

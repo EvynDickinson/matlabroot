@@ -331,8 +331,9 @@ for sex = 1:2
             x = D2.pos(:,2,1);
             y = D2.pos(:,2,2);
     end
-    S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2)).*pix2mm; % male speed
-    speed(sex).speed = [0;(S./(1/fps))];
+    % distance traveled from frame to frame by the fly
+    S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2)).*pix2mm; 
+    speed(sex).speed = [0;(S./(1/fps))]; % mm per second
 end
 
 

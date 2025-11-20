@@ -1666,20 +1666,32 @@ c = 2;
 
 x = data.tempbin.temps';
 
-fig = getfig('', 1,[774 680]);
-for param = 1: nParams
-    raw_y = TC.(paramList{param}).avg;
-    for i = 1:size(raw_y,2)
-        raw_y(:,i) = smooth(raw_y(:,i), sSpan, 'moving');
-    end
-    scaleY = rescale(raw_y);
-    for type = 1:2
-        subplot(r,c,type); hold on
+% fig = getfig('', 1,[774 680]);
+% for param = 1: nParams
+%     raw_y = TC.(paramList{param}).avg;
+%     for i = 1:size(raw_y,2)
+%         raw_y(:,i) = smooth(raw_y(:,i), sSpan, 'moving');
+%     end
+%     scaleY = rescale(raw_y);
+%     for type = 1:2
+%         subplot(r,c,type); hold on
+%         kolor = Color(colors{param});
+%         y = scaleY(:,type);
+%         plot(x, y, 'color', kolor, 'linewidth',2)
+%     end
+% end
+
+fig = getfig('', 0,[1344 680]);
+for type = 1:2
+    subplot(r,c,type); hold on
+    for param = 1: nParams
+        raw_y = smooth(TC.(paramList{param}).avg(:,type), sSpan, 'moving');
+        scaleY = rescale(raw_y);
         kolor = Color(colors{param});
-        y = scaleY(:,type);
-        plot(x, y, 'color', kolor, 'linewidth',2)
+        plot(x, scaleY, 'color', kolor, 'linewidth',2)
     end
 end
+
 % formatting
 formatFig(fig, blkbgd, [r,c]);
 matchAxis(fig, true);
@@ -1688,7 +1700,7 @@ set(gca, 'ycolor', 'none')
 xlabel('temperature (\circC)')
 title('warming','color', foreColor,'fontname', 'Arial','FontAngle','italic')
 subplot(r,c,1)
-ylabel('zscore')
+ylabel('flies (norm %)')
 set(gca, 'xdir', 'reverse')
 xlabel('temperature (\circC)')
 title('cooling','color', foreColor,'fontname','Arial','FontAngle','italic')
@@ -1700,16 +1712,261 @@ if strcmp(groupName, 'Berlin LTS caviar')
     end
 end
 
+save_figure(fig, [figDir 'normalized behavior for timing temp tuning curve'],fig_type);
+
+%% ANALYSIS AND FIGURE: correlation between cumulative speed and sleep per fly
+
+clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colors
+
+% 1) (Y) CUMULATIVE SLEEP vs (X) CUMULATIVE MOVEMENT PER FLY
+fps = fly(1).parameters.FPS;
+[dist, sleep] = deal(nan(num.trials,2)); % empty struct for fly speed & sleep values
+% 
+sexList = {'m','f'};
+for i = 1:num.trials
+    for sex = 1:2
+        
+        % total distance traveled
+        speed = fly(i).(sexList{sex}).speed; % in mm/s
+        dist(i,sex) = (sum(speed,'omitnan')/fps)/1000; % meters traveled over full experiment
+        % total sleep
+        raw_sleep = fly(i).(sexList{sex}).sleep; % logical of sleep over time
+        sleep(i,sex) = (sum(raw_sleep)/fps)/60; % total sleep in minutes
+        
+    end
+end
 
 
+% Comparison of total sleep vs movement between males and females
+sz = 75;
+fig = getfig('',1,[400 647]); hold on
+    hold on
+    for sex = 1:2
+        scatter(dist(:,sex),sleep(:,sex), sz, data.color(sex,:), 'filled')
+    end
+    xlabel('distance traveled (m)')
+    ylabel('total sleep (min)')
+formatFig(fig,blkbgd);
+
+fig_title = 'total distance vs total sleep';
+save_figure(fig, [figDir fig_title],fig_type);
+
+% Quick stats on male vs female total sleep quantity
+buff = 0.2;
+fig = getfig('',1,[400 560]); hold on
+for sex = 1:2
+    x = linspace(sex-buff, sex+buff, num.trials);
+    x = shuffle_data(x);
+    y = sleep(:,sex);
+    scatter(x,y,sz,data.color(sex,:), 'filled', 'MarkerFaceAlpha', 0.8)
+    y_avg = mean(y, 'omitnan');
+    plot([sex-(buff*1.5), sex+(buff*1.5)], [y_avg, y_avg], 'color',...
+        data.color(sex,:), 'linewidth', 1.5)
+end
+formatFig(fig, blkbgd);
+xlim([0, 3])
+set(gca, 'xtick', 1:2, 'xticklabel', {'M','F'})
+set(gca, 'xcolor', 'none')
+ylabel('total sleep per fly (min)')
+[h,p,~,stats] = ttest(sleep(:,1), sleep(:,2));
+fprintf('Sleep: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% display a significance bar and star if the two are different...
+fig_title = 'total sleep by sex';
+save_figure(fig, [figDir fig_title],fig_type);
 
 
+% Quick stats on male vs female total movememt quantity
+buff = 0.2;
+fig = getfig('',1,[400 560]); hold on
+for sex = 1:2
+    x = linspace(sex-buff, sex+buff, num.trials);
+    x = shuffle_data(x);
+    y = dist(:,sex);
+    scatter(x,y,sz,data.color(sex,:), 'filled', 'MarkerFaceAlpha', 0.8)
+    y_avg = mean(y, 'omitnan');
+    plot([sex-(buff*1.5), sex+(buff*1.5)], [y_avg, y_avg], 'color',...
+        data.color(sex,:), 'linewidth', 1.5)
+end
+formatFig(fig, blkbgd);
+xlim([0, 3])
+set(gca, 'xtick', 1:2, 'xticklabel', {'M','F'})
+set(gca, 'xcolor', 'none')
+ylabel('total distance traveled per fly (m)')
+[h,p,~,stats] = ttest(sleep(:,1), sleep(:,2));
+fprintf('Distance: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% display a significance bar and star if the two are different...
+fig_title = 'total distance by sex';
+save_figure(fig, [figDir fig_title],fig_type);
 
+%% ANALYSIS: What is the relationship between avg speed and total distance traveled?
 
+% what is the avg speed of flies in the period of time before they
+% sleep? And does that correlate to how long they sleep during that bout?
+clearvars('-except',initial_var{:})
+fps = fly(1).fps;
+foreColor = formattingColors(blkbgd); % get background colors
+sleepData = struct; % new structure for the sleep data...
 
+% 1) find the start time for each sleep bout
+% 2) find the avg speed in the time bin leading up to the sleep
+% 3) look at a range of timebins preceeding the sleep onset
+% 4) check the relationship between avg speed vs sleep duration
 
+% 0) find the onset of each sleep bout
 
+sleep_buffer = fps; % buffer for sleep continuity
+sleep = struct;
+sleep(1).duration = []; % empty to start concatenating the new data
+sleep(2).duration = []; % empty to start concatenating the new data
 
+for trial = 1:num.trials
+    for sex = 1:2
+        x = data.sleep(:,sex,trial);
+        sleepOnset = find(diff(x)==1)+1; % sleep start
+        sleepOffset = find(diff(x)==-1)+1; % sleep end
+        if ~isempty(sleepOffset)
+            % find sleep bouts back to back that fall into the same bout with the
+            % time between bouts under the sleep buffer 1/2 second limit
+            merge_end = [((sleepOnset(2:end)-sleepOffset(1:end-1))<sleep_buffer);false];
+            merge_loc = [false; merge_end(1:end-1)];
+            if any(merge_loc)
+                sleepOnset(merge_loc) = [];
+                sleepOffset(merge_end) = [];
+            end
+            % % Quick visual check of the sleep start and stops
+            % figure;
+            % hold on 
+            % plot(x)
+            % v_line(sleepOnset,'green')
+            % v_line(sleepOffset,'red')
+
+            % sleep duration in frames->sec->mins
+            sleepDuration = ((sleepOffset-sleepOnset)/fps)/60;
+            fly(trial).data(sex).sleep.ON_OFFidx = [sleepOnset, sleepOffset];
+            fly(trial).data(sex).sleep.duration = sleepDuration;
+            sleep(sex).duration = [sleep(sex).duration; sleepDuration];
+            sleep(sex).nBouts(trial) = length(sleepDuration);
+        else
+            fly(trial).data(sex).sleep.ON_OFFidx = [];
+            fly(trial).data(sex).sleep.duration = [];
+        end
+    end
+end
+        
+% FIGURE: quick look at the duration of sleep bouts between the sexes
+% Quick stats on male vs female sleep duration
+sz = 75;
+buff = 0.2;
+fig = getfig('',1,[400 560]); hold on
+for sex = 1:2
+    y = sleep(sex).duration;
+    x = linspace(sex-buff, sex+buff, length(y));
+    x = shuffle_data(x);
+    scatter(x,y,sz,data.color(sex,:), 'filled', 'MarkerFaceAlpha', 0.8)
+    y_avg = mean(y, 'omitnan');
+    plot([sex-(buff*1.5), sex+(buff*1.5)], [y_avg, y_avg], 'color',...
+        data.color(sex,:), 'linewidth', 1.5)
+end
+formatFig(fig, blkbgd);
+xlim([0, 3])
+set(gca, 'xtick', 1:2, 'xticklabel', {'M','F'})
+set(gca, 'xcolor', 'none')
+ylabel('sleep bout duration per fly (min)')
+[h,p,~,stats] = ttest2(sleep(M).duration, sleep(F).duration);
+fprintf('Sleep Duration: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% display a significance bar and star if the two are different...
+fig_title = 'sleep bout duration by sex';
+save_figure(fig, [figDir fig_title],fig_type);
+
+% FIGURE: look at the number of sleep bouts in male and female flies
+sz = 75;
+buff = 0.2;
+fig = getfig('',1,[400 560]); hold on
+for sex = 1:2
+    y = sleep(sex).nBouts;
+    x = sex*ones([num.trials, 1]);
+    x = linspace(sex-buff, sex+buff, length(y));
+    x = shuffle_data(x);
+    scatter(x,y,sz,data.color(sex,:), 'filled', 'MarkerFaceAlpha', 0.8,'xjitter', 'density')
+    y_avg = mean(y, 'omitnan');
+    plot([sex-(buff*1.5), sex+(buff*1.5)], [y_avg, y_avg], 'color',...
+        data.color(sex,:), 'linewidth', 1.5)
+end
+formatFig(fig, blkbgd);
+xlim([0, 3])
+set(gca, 'xtick', 1:2, 'xticklabel', {'M','F'})
+set(gca, 'xcolor', 'none')
+ylabel('number of sleep bouts per fly')
+[h,p,~,stats] = ttest2(sleep(M).nBouts, sleep(F).nBouts);
+fprintf('Num Sleep Bouts: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% display a significance bar and star if the two are different...
+fig_title = 'number of sleep bouts by sex';
+save_figure(fig, [figDir fig_title],fig_type);
+
+% FIGURE: sleep instances per temperature regime type
+% pull the sleep data
+types = {'WT', 'WS', 'CT', 'CS'}; % different temperature regimes
+tb = data.tempbin;
+for sex = 1:2
+    % initialize empty variables for the data
+    [y_avg, y_sem] = deal(nan([4,1]));
+    y = nan([num.trials, 4]);
+    for i = 1:4 % for each of the temp regime types
+        roi = tb.(types{i});
+        y_raw = squeeze(data.sleep(roi,sex,:));
+        y(:,i) = (mean(y_raw,'omitnan')./fps)*100; % avg sleep (% of time)
+        y_avg(i) = mean(y(:,i),'omitnan');
+        y_sem(i) = std(y(:,i),'omitnan')/sqrt(num.trials);
+    end
+    switch sex
+        case 1
+            m.y = y;
+            m.y_raw = y_raw;
+            m.y_avg = y_avg;
+            m.y_sem = y_sem;
+        case 2
+            f.y = y;
+            f.y_raw = y_raw;
+            f.y_avg = y_avg;
+            f.y_sem = y_sem;
+    end
+end
+
+% plot the sleep data
+% Create a bar plot for the average sleep data across temperature regimes
+labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
+sz = 40;
+sex_buff = 0.2;
+[xM, xF] = deal(1:4);
+xM = xM-sex_buff;
+xF = xF+sex_buff;
+
+figure; hold on;
+% Male Sleep:
+    bar(xM,m.y_avg, 'FaceColor', data.color(M,:),'barwidth', 0.4);
+    errorbar(xM, m.y_avg, m.y_sem, 'color', foreColor, 'linestyle', 'none', 'LineWidth', 1.5);
+    x = repmat(xM,[num.trials, 1]);
+    scatter(x(:), m.y(:), sz, foreColor, 'filled', 'xjitter',...
+        'density','MarkerFaceAlpha', 0.75,'xjitterwidth', 0.25,'markeredgecolor',data.color(M,:));
+
+    bar(xF,f.y_avg, 'FaceColor', data.color(F,:),'barwidth', 0.4);
+    errorbar(xF, f.y_avg, f.y_sem, 'color', foreColor, 'linestyle', 'none', 'LineWidth', 1.5);
+    x = repmat(xF,[num.trials, 1]);
+    scatter(x(:), f.y(:), sz, foreColor, 'filled', 'xjitter',...
+        'density','MarkerFaceAlpha', 0.75,'xjitterwidth', 0.25,...
+        'markeredgecolor', data.color(F,:));
+
+    set(gca, 'XTickLabel', labels,'xtick', 1:4, 'XTickLabelRotation',40);
+    ylabel('Sleep per minute (%)');
+    % title('Courtship Behavior During Thermal Threats');
+    formatFig(gcf, blkbgd);
+save_figure(gcf, [figDir 'sleep per temp regime'], fig_type);
+    
+% Stats: 
+% Safe vs threaet 
+[h,p,~,stats] = ttest2(m.y(:,1), m.y(:,2)); % safe vs unsafe Warm Male
+fprintf('Num Sleep Bouts: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
 
 

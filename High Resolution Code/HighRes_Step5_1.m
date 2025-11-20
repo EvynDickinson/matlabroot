@@ -819,7 +819,7 @@ fmoving = f.speed >= 0.1; % min speed up for debate
 % Identify when male is moving
 mmoving = m.speed >= 0.01; % min speed diff than F in order to include true chase bouts
 
-chase = (mbehindf & close_dist & fmoving & mmoving);
+chase = (mbehindf & close_dist & fmoving & mmoving); % requirements for 'chase all'
 a = diff(chase); 
 % Add the first chase value to the list to account for the starting condition
 b = [chase(1); a]; 
