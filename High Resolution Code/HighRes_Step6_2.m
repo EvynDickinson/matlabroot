@@ -2054,7 +2054,16 @@ fprintf('Male unsafe vs safe: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat,
 fprintf('Female unsafe vs safe: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
 
+%% TODO: What are the rates of sleep given the immediately preceeding period of time for behavior?
 
+
+
+%% TODO: What are the time delays from the start of a temperature change to each behavior?
+
+
+%% TODO: Timecourse of behavior states for a given fly in a given trial
+% What is the distribution of behavioral states within a temperature regime
+% -- try a chord plot for each 
 
 
 

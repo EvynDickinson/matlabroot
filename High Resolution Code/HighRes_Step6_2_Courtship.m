@@ -419,6 +419,13 @@ fprintf('court rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tsta
 
 %% TODO: what is the correlation between male chase and male vs female speed? 
 
+
+
+
+
 %% TODO: What are the locations of the different courtship behaviors? 
+
+
+
 
 %% TODO: 
