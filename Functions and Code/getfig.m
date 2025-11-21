@@ -14,12 +14,17 @@ else
     if strcmp(getenv('COMPUTERNAME'), '')||strcmp(getenv('COMPUTERNAME'), 'DENALI') %mac laptop -- display on computer as second display
         idx = find(monitorPositions(:,1)==1);
         secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
-    else
+    else % other computers with 2 monitors
         idx = find(monitorPositions(:,1)<0);
         secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
+        if strcmp(version('-release'),'2025b') % updates for new version of figure positioning
+            secondscreen_pos(2) = 50;
+        end
     end
 end
 
+
+ % [-1069 15 1064 680]
 
 primary_pos = [50,50]; %position from left, position from bottom
 primary_size = [1450, 900];
