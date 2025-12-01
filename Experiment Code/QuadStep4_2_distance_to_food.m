@@ -4562,7 +4562,7 @@ end
 % blkbgd = true;
 % fig_type = '-png';
 
-plot_all = false;
+plot_all = true;
 exps_to_plot = [1 2];
 
 autoLim = false; % is x limit manual or autodetermined
@@ -4570,7 +4570,7 @@ manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
 % Y-axis limits
-manual_y = true;
+manual_y = false;
 ring_y = [0, 65];%[0, 70];
 qring_y = [0 13.9];
 FoF_y = [0 29];
