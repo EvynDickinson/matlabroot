@@ -2594,7 +2594,9 @@ for idx = 1:length(expList)
     x_roi = min(trange):max(trange);
     subplot(r,c,1) % quadrant
     hold on
-    y = mean(grouped(i).sleep.quad.all(x_roi,:),'omitnan');
+    y = mean(grouped(i).sleep.fullquad.food.sleepflies.all(x_roi,:),'omitnan');
+    % y = mean(grouped(i).sleep.inner75.sleepflies.all(x_roi,:),'omitnan');
+    
     x = idx*ones(length(y),1); 
     boxchart(x, y',"BoxFaceColor",k,"BoxFaceAlpha",1,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
         'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
@@ -2606,7 +2608,7 @@ for idx = 1:length(expList)
 
     subplot(r,c,2) % ring
     hold on
-    y = mean(grouped(i).sleep.ring.percent(x_roi,:),'omitnan');
+    y = mean(grouped(i).sleep.ring.sleepflies.all(x_roi,:),'omitnan');
 
      boxchart(x, y',"BoxFaceColor",k,"BoxFaceAlpha",1,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
         'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
@@ -2626,13 +2628,56 @@ for ii = 1:2
     h_line(25,'grey', '--',1.5)
 end
 
-save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-png',true,false);
-save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-pdf',true,true);
+% save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-png',true,false);
+% save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-pdf',true,true);
+
 
 %%
 
+%% FIGURE: Flies sleeping in food quadrant
 
-% check significantly different from the null distribution. 
+% load data from QuadStep4.2 first (specifically, data with waxed antenna / MP vs
+% control caviar data ('Berlin F LRR 25-17 sensory components')
+clearvars('-except',initial_vars{:})
+% blkbgd = true;  fig_type = '-png'; 
+% fig_type = '-pdf'; blkbgd = false;
+buff = 0.1;
+sz = 50;
+autoLim = true;
+y_lim = [0,100];
+[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+
+pixWidth = 60; % additional figure pixel size for image for each extra experiment group
+figSize = [pixWidth + (pixWidth*num.exp),590];
+        
+% Find the max temp and min temp of all the experiments 
+buff = 0.25;
+sz = 50;
+LW = 3;
+
+fig = getfig('',1,figSize); hold on
+hold on
+for exp = 1:num.exp
+    y_raw = grouped(exp).sleep.fullquad.food.sleepflies.all;
+    y_mean = mean(y_raw,1,'omitnan');
+    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(exp)));
+    scatter(x,y_mean,sz,grouped(exp).color,'filled')
+    boxchart(exp*ones([length(y_mean),1]), y_mean',"BoxFaceColor", grouped(exp).color,"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
+        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
+end
+ylabel('flies sleeping in food quad (%)')
+ylim(y_lim)
+formatFig(fig, blkbgd);
+set(gca, 'xcolor', 'none')
+
+save_figure(fig,[saveDir 'sleeping flies in food quad'],'-png',true,false);
+save_figure(fig,[saveDir 'sleeping flies in food quad'],'-pdf',true,true);
+
+
+
+
+
+
 
 
 

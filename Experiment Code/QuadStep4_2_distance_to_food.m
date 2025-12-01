@@ -4557,12 +4557,10 @@ else
     return
 end
 
-% blkbgd = false;
-% fig_type = '-pdf';
-% blkbgd = true;
-% fig_type = '-png';
+% blkbgd = false; fig_type = '-pdf';
+% blkbgd = true; fig_type = '-png';
 
-plot_all = false;
+plot_all = true;
 exps_to_plot = [1 2];
 
 autoLim = false; % is x limit manual or autodetermined
@@ -4570,12 +4568,12 @@ manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
 % Y-axis limits
-manual_y = true;
+manual_y = false;
 ring_y = [0, 65];%[0, 70];
 qring_y = [0 13.9];
 FoF_y = [0 29];
 inquad_y = [10 90];
-sleep_y = [-2 40];%[-3,70];
+sleep_y = [-3,70];%[-2 40];
 speed_y = [0 20];
 
 plot_err = true; % plot SEM
@@ -5462,8 +5460,12 @@ LW = 3;
 % tempList = [15 35]; % temperatures for each data set
 % tempList = repmat(tempList, [1, length(expList)/2]);
 
-expList = [1 1 2 2 3 3]; % experiment group order
-tempList = [15 35]; % temperatures for each data set
+% expList = [1 1 2 2 3 3]; % experiment group order
+% tempList = [15 35]; % temperatures for each data set
+% tempList = repmat(tempList, [1, length(expList)/2]);
+
+expList = [1 1 2 2]; % experiment group order
+tempList = [17 25]; % temperatures for each data set
 tempList = repmat(tempList, [1, length(expList)/2]);
 
 cList = {'dodgerblue', 'red'};
@@ -5709,5 +5711,7 @@ for i = 1:3
     xlim([13.5, 24])
 end
 save_figure(fig,[saveDir expGroup ' food escape sleep tuning curves'],fig_type);
+
+
 
 

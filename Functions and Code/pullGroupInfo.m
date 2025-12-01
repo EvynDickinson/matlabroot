@@ -30,6 +30,8 @@ switch expGroup
     case 'Berlin LTS 15-35 intact vs no antenna no food'
         expOrder = 1:2;
         colors = {'dodgerblue', 'peachpuff'};
+        comp_pairs = [1 2 2]; % n1 & n2 : exp groups to compare, n3: color to plot in
+        required_comp_pairs = [1, 1, 2]; % comp pairs (n1 n2; above) that must both be true for the test significance in n3
 
     case 'Berlin F LRR 25-17 caviar intact vs wax vs hold'
         expOrder = 1:4;
