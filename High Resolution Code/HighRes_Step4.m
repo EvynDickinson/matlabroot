@@ -188,7 +188,7 @@ for vid = 1:nvids-1
     eROI = frame_end-buff:frame_end;
     sROI = 1:1+buff;
     
-    fig = getfig(['Vid ' num2str(vid)],0,[882 694]);
+    fig = getfig(['Vid ' num2str(vid)],0,[882 694]); 
     hold on
     for i = eROI
         plotFlySkeleton(fig, data(vid).tracks(i,:,1,1),data(vid).tracks(i,:,2,1),Color('dodgerblue'),true);
