@@ -1294,12 +1294,13 @@ end
 % get the avg distance over the whole experiment
 roi = [1000 159935];
 [dist_mean, dist_err] = deal([]);
+
 for i = 1:num.exp
     dist_all = mean(grouped(i).dist.all(roi(1):roi(2),:),1,'omitnan');
     dist_err(i) = std(dist_all);
     dist_mean(i) = mean(dist_all);
 end
-
+figure;
 e = errorbar([17,20,23,25],dist_mean,dist_err);
 e.Marker  = 'o';
 e.Color = 'r';
@@ -1561,7 +1562,6 @@ for i = 2:length(excelfile)
 end
     
 
-%% 
 
 %% test the difference in start times for an experiment
 startDir = uigetdir;
@@ -1703,6 +1703,7 @@ sum(bad_idx)
 
 % what are the trials that we would need to scrap: 
 badTrials = [excelfile([false; bad_idx],Excel.trialID), excelfile([false; bad_idx],Excel.genotype)];
+
 
 
 

@@ -65,6 +65,15 @@ switch expGroup
         colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
         colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
         % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
+
+    case 'Berlin Temp Holds Caviar' % includes food and empty trials
+        expOrder = [1,2,3,8,4,5,9,6,7];
+        kolor1 = Color('Blue', 'LightGrey', 5); % ultimately 5 (with all temp trials added)
+        kolor2 = Color('LightGrey', 'Red', 5);  % ultimately 5 (with all temp trials added)
+        colors = nan([18, 3]); % ultimately 18x3 (with all temp trials added)
+        colors(1:2:end,:) = [kolor1(1:end-1,:); kolor2];
+        colors(2:2:end,:) = [kolor1(1:end-1,:); kolor2];
+        % figure; scatter(1:num.exp, 1:num.exp, 50, colors(1:num.exp,:), 'filled'); % color test
         
     case {'TrpA1-Gal4 x UAS-Kir2.1 LTS 15-35 no food','TrpA1-gal4 LTS 15-35 no food'}
         expOrder = 1:3; % UAS control, GAL4 control, GAL4>UAS

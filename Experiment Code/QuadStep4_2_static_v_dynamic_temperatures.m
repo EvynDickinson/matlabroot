@@ -1473,15 +1473,95 @@ for exp = dynm_idx
 end
 
 
+%% Testing: compare the movement speeds from dynamic to static trials to start disambiguating the metabolic effects from the 'threat' effects
+
+% load speed data from the different experiment types: 
+
+warning off % turn off the warnings about the oversized figures & how they might be slow to save
+format shortG
+clear; close all; clc
+paths = getPathNames; % get the appropriate file path names
+baseFolder = getDataPath(5,0,'Select where you want to find the grouped data structures');
+% baseFolder = getCloudPath;
+structFolder = [baseFolder paths.group_comparision];
+
+figDir = [structFolder 'Berlin Static Vs Dynamic/Caviar '];
 
 
+% load the trials data: 
+temp = load([structFolder, 'Berlin Temp Holds Caviar/speed data.mat']);
+static = temp.y;
+output = pullGroupInfo('Berlin Temp Holds Caviar');
+static_ord = output.expOrder; % experiment order from lowest to highest temp
+
+temp = load([structFolder, 'Berlin LTS 15-35 caviar vs empty/speed data.mat']);
+dynamic = temp.y;
+exp = 1; % caviar trial within dynamic group
+
+%  Find the avg speed for each of the static temperatures
+tempList = [15, 17, 20, 23, 25, 27, 30, 33, 35]; % list of temps that will be compared between static and dynamic conditions
 
 
+% avg speed for first two hours of the experiment:
+roi = 360:(3*3*60*60);
+
+% pull the avg speed for each temperature
+speed  = struct;
+temps = [];
+[speed.raw(1).all,speed.raw(2).all,speed.raw(3).all] = deal([]);
+for i = 1:length(static) 
+    % temperature for this group: 
+    temp = strsplit(static(static_ord(i)).name);
+    temp = str2double(temp{3});
+    temps(i) = temp;
+
+    % static data group (col 1)
+    y_all = static(static_ord(i)).speed.all(roi,:);
+    y = mean(y_all, 'omitnan');
+    y_avg = mean(y);
+    y_sem = std(y, 0,2,'omitnan')/sqrt(length(y));
+    speed.raw(1).all = autoCat(speed.raw(1).all,y',false);
+    speed.avg(i,1) = y_avg;
+    speed.sem(i,1) = y_sem;
+    % dynamic temperature data group
+    % find the correct temperature bin: 
+    idx = find(dynamic(exp).speed.temps==temp);
+    
+    % WARMING DATA (col 2)
+    y = dynamic(exp).speed.increasing.raw(idx,:);
+    speed.raw(2).all = autoCat(speed.raw(2).all,y',false);
+    y_avg = mean(y);
+    y_sem = std(y, 0,2,'omitnan')/sqrt(length(y));
+    speed.avg(i,2) = y_avg;
+    speed.sem(i,2) = y_sem;
+
+    % COOLING DATA (col 3)
+    y = dynamic(exp).speed.decreasing.raw(idx,:);
+    speed.raw(3).all = autoCat(speed.raw(3).all,y',false);
+    y_avg = mean(y);
+    y_sem = std(y, 0,2,'omitnan')/sqrt(length(y));
+    speed.avg(i,3) = y_avg;
+    speed.sem(i,3) = y_sem;
+end
+
+colors = {'grey', 'red', 'dodgerblue'};
+sz = 75;
+LW = 2;
+fig = getfig('',1,[872 900]); hold on
+for i = 1:3
+    errorbar(temps,speed.avg(:,i),speed.sem(:,1),'linestyle', ':','color', Color(colors{i}), 'linewidth',LW)
+    scatter(temps, speed.avg(:,i),sz, Color(colors{i}),'filled')
+end
+formatFig(fig, false);
+xlabel('temperature (\circC)')
+ylabel('speed (mm/sec)')
+xlim([14,36])
+ylim([-0.6,12])
+
+save_figure(fig,[figDir  'avg speed across temps']);
 
 
-
-
-
+% 
 
 
 
