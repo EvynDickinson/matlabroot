@@ -5,6 +5,7 @@ function fig = getfig(name,secondscreen,new_size)
 
 % Get monitor positions
 monitorPositions = get(0, 'MonitorPositions');
+backColor = 'w'; % figure background color
 
 % Check if there is more than one monitor
 if size(monitorPositions, 1) < 2
@@ -19,6 +20,7 @@ else
         secondscreen_pos = monitorPositions(idx(1),1:2)+[1,50]; %50 point offset for home bar on the screen
         if strcmp(version('-release'),'2025b') % updates for new version of figure positioning
             secondscreen_pos(2) = 50;
+            % backColor = 'k';
         end
     end
 end
@@ -67,8 +69,15 @@ if nargin==3
     figsize = new_size;
 end
 
-fig = figure; 
-    set(fig, 'color', 'w', 'pos', [fig_pos figsize],'name', name) 
-    box off
+% adjust the background color for the type of matlab...
 
+
+fig = figure; 
+    set(fig, 'color', backColor, 'pos', [fig_pos figsize],'name', name) 
+    % box off
+
+
+% fig = figure; 
+%     set(fig, 'color', 'k') 
+%     % box off
 
