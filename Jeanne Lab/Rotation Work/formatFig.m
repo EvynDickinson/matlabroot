@@ -20,8 +20,12 @@ if ismac
 else
     if strcmp(version('-release'),'2025b')
         labelSize = 15;
+        axWidth = 2;
+        tickDir = 'out';
     else
         labelSize = 10; 
+        axWidth = 1;
+        tickDir = 'out';
     end
 end
 
@@ -58,10 +62,10 @@ if nargin >= 3
         subplot(nrow, ncol, ii)
         % get plot handles
         ax = gca(figHandle);
-        ax.LineWidth = 1; %change axes lines to width of 1
+        ax.LineWidth = axWidth; %change axes lines to width of 1
         box off
         % set the subplot axes to the selected color scheme
-        set(ax, 'color', backColor, 'YColor', labelColor, 'XColor', labelColor)
+        set(ax, 'color', backColor, 'YColor', labelColor, 'XColor', labelColor,'tickdir', tickDir)
         % set the font: 
         set(ax, 'FontName', 'Arial');
 
@@ -73,10 +77,10 @@ if nargin >= 3
 else % just a single plot
    % get plot handles
     ax = gca(figHandle);
-    ax.LineWidth = 1; %change axes lines to width of 1
+    ax.LineWidth = axWidth; %change axes lines to width of 1
     box off
     % set the subplot axes to the selected color scheme
-    set(ax, 'color', backColor, 'YColor', labelColor, 'XColor', labelColor)
+    set(ax, 'color', backColor, 'YColor', labelColor, 'XColor', labelColor,'tickdir', tickDir)
     % set the font: 
     set(ax, 'FontName', 'Arial');
     

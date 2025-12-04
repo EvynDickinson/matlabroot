@@ -2,7 +2,9 @@
 function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig, fig_quality)
 % 
 % results = save_figure(fig_handle, figure_name, type, autoSave, closeFig, figure_quality)
-% 
+%
+% UPDATE 12.4.25: AUTO SAVE BOTH A PDF AND A PNG FILE 
+%
 % Export the input figure to the given location and name
 % with the following settings: 
 % '-png', '-nocrop', '-r300' , '-painters', '-rgb'
@@ -23,9 +25,6 @@ function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig
 % % ES Dickinson, University of Washington, Jan 2019    
 
 % Defaults:
-if nargin == 2
-    type = '-pdf'; % pdf filetype
-end
 if nargin < 4
     autoSave = false; % manually choose to save/not save
 end
@@ -40,13 +39,13 @@ if ismac && nargin<6
     fig_quality = '-r100'; %this massively increases the image saving time
 end
 
-
-
-
+warning off
 
 % Save figure:
 if autoSave==true
-    export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');
+    % save PDF first: 
+    export_fig(fig_handle, [figure_name '.pdf'], '-pdf', '-nocrop', fig_quality , '-painters', '-rgb');
+    export_fig(fig_handle, [figure_name '.png'], '-png', '-nocrop', fig_quality , '-painters', '-rgb');
     if closeFig
         close(fig_handle)
     end
@@ -56,7 +55,8 @@ if autoSave==true
 elseif autoSave == false
     switch questdlg('Save Image?', 'Figure', 'Save Figure', 'Close Figure', 'Cancel', 'Save Figure')
         case 'Save Figure'
-            export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');
+            export_fig(fig_handle, [figure_name '.pdf'], '-pdf', '-nocrop', fig_quality , '-painters', '-rgb');
+            export_fig(fig_handle, [figure_name '.png'], '-png', '-nocrop', fig_quality , '-painters', '-rgb');
             if closeFig
                 close(fig_handle)
             end
@@ -73,6 +73,67 @@ elseif autoSave == false
     end
 end
 
+
+
+% PRE 12/4/25 CODE: 
+% ------------------------------------------------------------------------------------------------------------
+% % Defaults:
+% if nargin == 2
+%     type = '-pdf'; % pdf filetype
+% end
+% if nargin < 4
+%     autoSave = false; % manually choose to save/not save
+% end
+% if nargin<5
+%     closeFig = true;
+% end
+% if nargin<6
+%     fig_quality = '-r300';
+% end
+% 
+% if ismac && nargin<6
+%     fig_quality = '-r100'; %this massively increases the image saving time
+% end
+% 
+% 
+% 
+% 
+% 
+% % Save figure:
+% if autoSave==true
+%     export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');
+%     if closeFig
+%         close(fig_handle)
+%     end
+%     fprintf('\nSaved:')
+%     disp(figure_name) 
+%     results = true;
+% elseif autoSave == false
+%     switch questdlg('Save Image?', 'Figure', 'Save Figure', 'Close Figure', 'Cancel', 'Save Figure')
+%         case 'Save Figure'
+%             export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', fig_quality , '-painters', '-rgb');
+%             if closeFig
+%                 close(fig_handle)
+%             end
+%             fprintf('\nSaved:')
+%             disp(figure_name) 
+%             results = true;
+%         case 'Close Figure'
+%             if closeFig
+%                 close(fig_handle)
+%             end
+%             results = false;
+%         case 'Cancel'
+%             results = 'Cancel';
+%     end
+% end
+
+% ------------------------------------------------------------------------------------------------------------
+
+
+
+
+% %  OLLLLLLD: 
 
 % export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', '-r300' , '-painters', '-rgb');
 % close(fig_handle)

@@ -397,7 +397,7 @@ initial_vars{end+1} = 'figDir';
 %% ANALYSIS: organize data for each group
 clearvars('-except',initial_vars{:})
 fig_type = '-png'; 
-blkbgd = true;
+blkbgd = false;
 initial_vars = [initial_vars(:); 'initial_vars'; 'grouped'; 'expGroup'; 'saveDir'; 'mat';'expOrder'; 'fig_type';'f2m';'conversion';'blkbgd']; % changed pix2mm to conversion
 initial_vars = unique(initial_vars);
 grouped = struct;
@@ -2648,7 +2648,7 @@ close all
 clearvars('-except',initial_vars{:})
 
 % find out if they already exist
-save_list = {'ring', 'inner75', 'fullquad', 'innerquad', 'quadring', 'circle10', 'circle7', 'circle5', 'fliesonfood', 'sleep'};
+save_list = {'ring', 'inner75', 'fullquad', 'innerquad', 'quadring', 'circle10', 'circle7', 'circle5', 'fliesonfood', 'sleep','speed'};
 if isfile([saveDir, save_list{1} ' data.mat'])
     add_str = 'ps, data already exists';
 else 

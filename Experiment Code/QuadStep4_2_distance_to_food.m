@@ -4568,12 +4568,12 @@ manual_xlims = [13, 37];
 % manual_xlims = [15, 27];
 
 % Y-axis limits
-manual_y = false;
+manual_y = true;
 ring_y = [0, 65];%[0, 70];
 qring_y = [0 13.9];
 FoF_y = [0 29];
 inquad_y = [10 90];
-sleep_y = [-3,70];%[-2 40];
+sleep_y = [-3,60];%[-2 40];
 speed_y = [0 20];
 
 plot_err = true; % plot SEM
