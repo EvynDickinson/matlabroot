@@ -22,7 +22,7 @@
 % courtship index vs temperature
 
 % Prep data
-if ~strcmp(questdlg('Is data from 5.1 already loaded?'),'Yes')
+if ~strcmp(questdlg('Is data from 5.1.1 already loaded?'),'Yes')
     clear; clc;
     startloc = getDataPath(6,0);
     if isempty(startloc)
@@ -36,7 +36,7 @@ if ~strcmp(questdlg('Is data from 5.1 already loaded?'),'Yes')
         mkdir(figDir)
     end
     
-    load([baseDir, 'post-5.1 data.mat']) % load the parameters and temp table
+    load([baseDir, 'post-5.1.1 data.mat']) % load the parameters and temp table
     disp('data loaded')
 end
 
@@ -114,7 +114,7 @@ fig =  getfig('',1);
             % plot the smoothed average distance
             plot(time, smooth(T.dist2food(:,sex),sSpan, 'moving'), 'color', data(sex).color,'linewidth', lw)
         end
-        y_base = rangeLine(fig, 5, false);
+        y_base = rangeLine(fig, 5);
         for sex = 1:2 
             % plot raster of when the fly is on the food
             x = time(T.FlyOnFood(:,sex));
@@ -140,6 +140,14 @@ fig =  getfig('',1);
 % diff to see if extension lasts > 1sec
 
 clearvars('-except',initial_var{:})
+
+tic
+frames = find(T.court_chase==1);
+targetn = 10;
+skip = floor(length(frames)/targetn);
+if skip <1
+    skip = 1;
+end
 
 % demo images of wing extension:
 frames = find(T.wing_ext==1);
