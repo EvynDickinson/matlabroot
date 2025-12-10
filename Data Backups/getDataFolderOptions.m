@@ -87,7 +87,7 @@ switch computerName
     case 'Yale VPN' % VPN into Yale on Mac
         serverPath = paths.EvynMacServerPath;
         %TODO (3/1)
-    case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
+    case {'Evyns-M3-MacBook-Pro.local','Evyns-M3-MBP.home'} % Mac, no VPN thus no server
         permanentPath = paths.EvynMacLocalPath;
     case 'DENALI'
         serverPath = paths.denaliServerPath;

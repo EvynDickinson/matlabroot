@@ -15,7 +15,7 @@ paths.storageDrive = 'Data Storage';
 paths.removableDrive = 'OnTheGoData';
 
 % root directory locations
-paths.fixedDriveLocations  = {'ACADIA','EVYNPC','Evyns-M3-MacBook-Pro.local'}; % computer names that have permanent local drives
+paths.fixedDriveLocations  = {'ACADIA','EVYNPC','Evyns-M3-MacBook-Pro.local','Evyns-M3-MBP.home'}; % computer names that have permanent local drives
 paths.acadiaServerPath = 'S:\Evyn\DATA\';
 paths.togiakServerPath = 'S:\Evyn\DATA\';
 paths.EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\DATA\';
