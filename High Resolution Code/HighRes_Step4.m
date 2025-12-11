@@ -198,7 +198,7 @@ for vid = 1:nvids-1
         plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,1),data(vid+1).tracks(i,:,2,1),Color('blue'),false);
         plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,2),data(vid+1).tracks(i,:,2,2),Color('pink'),false); 
     end
-    axis square
+    % axis square
     switch questdlg('Are the tracks aligned?')
         case 'Yes'
         vid_align(vid+1) = true;
@@ -225,6 +225,7 @@ switch questdlg('Were all the tracks correctly answered?')
         disp('Video alignments updated')
 end
 
+% Run from here if manually fixing track alignment
 state_switch = false;
 state = true;
 for i = 2:nvids
