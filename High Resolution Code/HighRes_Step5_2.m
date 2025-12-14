@@ -736,7 +736,7 @@ end
 formatFig(fig,blkbnd);
 set(gca, 'xcolor', 'none', 'ycolor', 'none')
 
-save_figure(fig, [figDir, 'Wing extension example 1'],'-png');
+save_figure(fig, [figDir, 'Wing extension example 1'],'-png'); % fix name of saved figure - possible override of wg ext figs
 % 
 % xlim(xlims)
 % ylim(ylims)
