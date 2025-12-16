@@ -17,6 +17,8 @@ function figHandle = formatFig(figHandle, BandWoption, sbplots, subplotInd)
 % Adjust the font sizes dynamically by the computer and version of matlab 
 if ismac 
     labelSize = 15; 
+    axWidth = 2;
+    tickDir = 'out';
 else
     if strcmp(version('-release'),'2025b')
         labelSize = 15;
