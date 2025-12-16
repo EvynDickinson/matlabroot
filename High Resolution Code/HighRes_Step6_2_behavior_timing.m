@@ -153,7 +153,7 @@ switch groupName
 end
 
 
-% MALE FLY BEHAVIOR SEQUENCE 
+%  FLY BEHAVIOR SEQUENCE 
 fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
 kolors = {'gold', 'red', 'dodgerblue', 'green'}; % colors for the diff behaviors
 
@@ -177,11 +177,16 @@ for sex = 1:2
         end
         title(trans_cat{i},'Color',foreColor)
     end
+    % formatting
     formatFig(fig, blkbgd,[r,c]);
     matchAxis(fig, true);
     for i = 1:nTrans
         subplot(r,c,i)
         set(gca, 'ycolor', 'none')
+    end
+    for i = 1:nTrans
+        subplot(r,c,i)
+        xlabel('onset (min)')
     end
     
     save_figure(fig, [figDir sexList{sex} ' behavior_onset per region'],fig_type);
@@ -230,6 +235,12 @@ fig = getfig;
 
 formatFig(fig, blkbgd,[r,c]);
 matchAxis(fig,true);
+for i = 2:c
+    subplot(r,c,i)
+    set(gca, 'ycolor', 'none')
+end
+subplot(r,c,1)
+ylabel('time to first event (min)')
 
 save_figure(fig, [figDir 'behavior_onset per sex scatter'],fig_type);
 
@@ -294,6 +305,55 @@ save_figure(fig, [figDir 'behavior_onset scatter'],fig_type);
 %% TODO: Plot out the sequence of behaviors color coded and then sort them
 % by the the most of one behavior, then the next ext. so that it shows as a
 % continuum 
+
+% ------------------------------ DATA VISUALIZATION -----------------------------
+% scatter plot of the onset timing within each of the regions
+switch groupName
+    case 'Berlin LTS caviar'
+        r = 2; 
+        c = 4;
+end
+
+
+
+
+% BEHAVIOR SEQUENCE 
+fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
+kolors = {'gold', 'red', 'dodgerblue', 'green'}; % colors for the diff behaviors
+
+sz = 75; 
+y = 1:num.trials;
+sexList = {'male', 'female'};
+for sex = 1:2
+    fig = getfig; 
+    for i = 1 : nTrans
+        subplot(r,c,i)
+        hold on
+        % time to onset vs row = fly
+        for f = 1:length(fields)
+            % skip the courtship plot points for the female fly
+            if sex == F && strcmp(fields{f},'CI')
+                continue
+            end
+            x = behavior_onset(sex).(fields{f})(:,i); % length of time to behavior start
+            x = (x/30)/60; % convert to minutes
+            scatter(x,y,sz, Color(kolors{f}),'filled', 'square')
+        end
+        title(trans_cat{i},'Color',foreColor)
+    end
+    % labes and formatting
+    formatFig(fig, blkbgd,[r,c]);
+    matchAxis(fig, true);
+    for i = 1:nTrans
+        subplot(r,c,i)
+        set(gca, 'ycolor', 'none')
+    end
+    
+    
+    save_figure(fig, [figDir sexList{sex} ' behavior_onset per region'],fig_type);
+end
+
+
 
 
 %% TODO: sex based differences in the onset of different behavior times? 
