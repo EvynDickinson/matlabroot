@@ -4,7 +4,7 @@
 
 %% Time delay to each behavior
 clearvars('-except',initial_var{:})
-foreColor = formattingColors(blkbgd); % get background colors
+[foreColor, backColor] = formattingColors(blkbgd); % get background colors
 
 % from each transition point (temp regime type) how long does it take for
 % each behavior to emerge?  [female flies won't have courtship as a
@@ -318,42 +318,144 @@ end
 
 
 % BEHAVIOR SEQUENCE 
-fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
-kolors = {'gold', 'red', 'dodgerblue', 'green'}; % colors for the diff behaviors
-
-sz = 75; 
-y = 1:num.trials;
-sexList = {'male', 'female'};
-for sex = 1:2
-    fig = getfig; 
-    for i = 1 : nTrans
-        subplot(r,c,i)
-        hold on
-        % time to onset vs row = fly
-        for f = 1:length(fields)
-            % skip the courtship plot points for the female fly
-            if sex == F && strcmp(fields{f},'CI')
-                continue
-            end
-            x = behavior_onset(sex).(fields{f})(:,i); % length of time to behavior start
-            x = (x/30)/60; % convert to minutes
-            scatter(x,y,sz, Color(kolors{f}),'filled', 'square')
-        end
-        title(trans_cat{i},'Color',foreColor)
-    end
-    % labes and formatting
-    formatFig(fig, blkbgd,[r,c]);
-    matchAxis(fig, true);
-    for i = 1:nTrans
-        subplot(r,c,i)
-        set(gca, 'ycolor', 'none')
-    end
-    
-    
-    save_figure(fig, [figDir sexList{sex} ' behavior_onset per region'],fig_type);
+fields = {'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
+% set up a color code for each behavior
+kolors = {'purple','yellow','orange', 'green', 'dodgerblue'}; % colors for the diff behaviors
+cmap = backColor;
+for i = 1:length(kolors)
+    cmap = [cmap; Color(kolors{i})];
 end
 
 
+% find the time start and stops of each behavior in sequence...this
+% minimizes the number of symbols that need to be plotted 
+beh_timing = struct;
+for sex = 1:2
+    raw_image = nan(size(exc_data.CI));
+    for trial = 1:num.trials
+        % for f = 1:length(fields)
+        %     % find the start and stop of each conscutive behavior
+        %     raw = exc_data.(fields{f})(:,trial);
+        %     start_loc = find([false; (diff(raw)==1)]); % behavior onset
+        %     stop_loc = find([false; (diff(raw)==-1)]); % behavior offset
+        %     % save timing indexes to a new data structure
+        %     beh_timing(trial,sex).(fields{f}) = [start_loc,stop_loc];
+        % end
+        
+        for f = 1:length(fields)
+            raw = exc_data.(fields{f});
+            if size(raw,2) == 2 % double data
+                loc = exc_data.(fields{f})(:,sex,trial);
+            else
+                loc = exc_data.(fields{f})(:,trial);
+            end
+            loc = logical(replaceNaN(loc, false));
+            raw_image(loc,trial) = f;
+        end
+    end
+
+
+    %depends on the specific temp protocol
+    r = 2;
+    c = 4;
+
+    fig = getfig;
+    for i = 1:nTrans
+        subplot(r, c, i)
+        
+        imagesc(raw_image') %imagesc([r_image'; r_image'])
+
+        title(trans_cat{i},'color', foreColor,'FontSize',12)
+
+        set(gca, 'xtick', [],'ytick', [])
+        xlabel('time','FontSize',12)
+        ylabel('fly','FontSize',12)
+        C = colorbar;
+        inc = (length(fields)/size(cmap,1))*0.5;
+        tickLoc = linspace(1+inc,length(fields)-inc,size(cmap,1));
+        C.Ticks = tickLoc(1:size(cmap,1));
+        C.TickLabels = ['inner arena', fields];
+        C.Color = foreColor;
+ 
+        % zoom into different transition sections using xlims
+        xlim([transitions(i), transitions(i+1)])
+    end
+    colormap(cmap) % set the image colors by behavior
+    set(fig, 'color', backColor)
+        % % set up labels
+        % i = nTrans+1;
+        % subplot(r, c, i)
+        % imagesc(zeros(size(raw_image')))
+        % C = colorbar;
+        % inc = (length(fields)/size(cmap,1))*0.5;
+        % tickLoc = linspace(1+inc,length(fields)-inc,size(cmap,1));
+        % C.Ticks = tickLoc(1:size(cmap,1));
+        % C.TickLabels = ['inner arena', fields];
+        % C.Color = foreColor;
+        % 
+        % set(gca, 'xtick', [],'ytick', [])
+        % set(gca,'xcolor', 'none','ycolor', 'none')
+
+    
+    end
+
+
+
+% Could make the figure as an imagesc where each 'pixel' is a discrete
+% point in time and it color coded by the behavior that is being
+% displayed... would still want to chunk these and order them by the
+% durations of each behavior
+
+
+
+% how much of each behavior is there time wise for each temp regime?
+totals = nan([length(fields),nTrans,num.trials,sex]);
+for sex = 1:2
+  for f = 1:length(fields) %for each behavior
+    raw = exc_data.(fields{f}); 
+    for t = 1:nTrans % for each temp regime
+        if sex==2 & strcmp(fields{f},'CI')
+            continue
+        end
+        if size(raw,2)==2 % for each sex
+            totals(f,t,:,sex) = squeeze([sum(raw(transitions(t):transitions(t+1),sex,:))]);
+        else % courtship related behaviors
+            totals(f,t,:,sex) = squeeze([sum(raw(transitions(t):transitions(t+1),:))]);
+        end
+    end
+  end
+end
+
+% figure showing relative amounts of each behavior or location for each
+% temp regime
+for sex = 1:2
+    fig = getfig;
+    
+    for t = 1:nTrans
+        subplot(r,c,t); hold on
+        % plot the raw time sums for each behavior in a given temp regime
+        raw = squeeze(totals(:,t,:,sex))./(30*60); % add conversion to minutes
+        x = repmat((1:length(fields))',[1,num.trials]);
+        scatter(x,raw,35,foreColor,"filled",'MarkerFaceAlpha', 0.6,...
+            'XJitter', 'density','XJitterWidth', 0.3)
+        % plot the avg across flies
+        x_avg = 1:length(fields);
+        y_avg = mean(raw,2,'omitnan');
+        scatter(x_avg, y_avg, 75, cmap(2:end,:), 'filled')
+        title(trans_cat{t}) 
+    end
+    formatFig(fig, blkbgd, [r,c]);
+    for t = 1:nTrans
+         subplot(r,c,t); hold on
+        % set(gca, 'xcolor', 'none')
+        set(gca, 'xtick', 1:length(fields),'xticklabel', fields)
+        ylabel('duration of behavior (min)')
+    end
+    matchAxis(fig, true);
+        
+    save_figure(fig, [figDir sexList{sex} ' behavior duration per region'],fig_type);
+
+end
 
 
 %% TODO: sex based differences in the onset of different behavior times? 
