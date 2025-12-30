@@ -302,6 +302,20 @@ ylabel('Time to first behavior (min)')
 save_figure(fig, [figDir 'behavior_onset scatter'],fig_type);
 
 
+%% TODO 12/30 Do more flies eat before sleep in each temp regime?
+% Figure: percent of flies that eat before sleeping vs percent of flies
+% that sleep before eating within each temperature regime
+
+% follow up:  what is the time delay between sleeping and eating or eating
+% then sleeping?
+
+% how to do this: for each regime look at the trials that have both eating
+% and sleeping within the regime and then see which comes first -- add to
+% the tally for that behavior type
+
+
+
+
 %% TODO: Plot out the sequence of behaviors color coded and then sort them
 % by the the most of one behavior, then the next ext. so that it shows as a
 % continuum 
