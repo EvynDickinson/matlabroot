@@ -884,74 +884,81 @@ save_figure(fig,[figDir 'Fly turning over time'],fig_type);
 % update the figure to plot both male and female sleep over time
 clearvars('-except',initial_var{:})
 
-bout = 5*60*parameters.FPS;
-dummy = [];
+frames = find(m.sleep==1 & f.sleep==1);
 
-% Extract sleep bouts from position data
-for sex = 1:2
-    switch sex
-        case 1
-            x = m.pos(:,2,1); % male center
-        case 2
-            x = f.pos(:,2,1); % female center
-    end
-    % Calculate difference between all x values
-    x_diff = diff(x); 
-    % Identify when position is not changing
-    u = abs(x_diff)<= 1;
-    % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-    a = diff(u);
-    % Add the first position value to the list to account for the starting condition
-    b = [u(1); a]; 
-    % Frames where 'position-no-change' period starts/end
-    slp_start = find(b == 1); 
-    slp_stop = find(b == -1);
-    % If sleep doesn't stop by end, add stop location at end of slp_stop
-    if u(end)
-        slp_stop(end + 1) = length(time);
-    end
-    % Calculate the length of each 'position-no-change' bout
-    slp_dur = slp_stop - slp_start;
-    % Find where bout lasts longer than 5min (when is sleep)
-    slp_loc = find(slp_dur > bout);
-
-    % Create dummy matrix with only true sleep bouts
-    mt = false(size(time));
-    for i = 1:length(slp_loc)
-        ii = slp_loc(i);
-        mt(slp_start(ii):slp_stop(ii)) = true;
-    end
-    dummy(sex).sleep = mt;
-end
-
-% Save sleep data
-m.sleep = dummy(1).sleep;
-f.sleep = dummy(2).sleep;
-
-% Figure
-lw = 2;
-
-fig = getfig('',1);
-hold on
-    sSpan = fps; % single second smoothing
-    y1 = smooth(m.sleep,sSpan,'moving'); % male
-    y2 = smooth(f.sleep,sSpan,'moving'); % female
-    % plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
-    plot(time, y2, 'color', Color('deeppink'),'LineWidth', lw)
-    plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
-    xlabel('time (min)')
-formatFig(fig);
-ylim([-0.2,1.2])
-set(gca, 'ytick', [0,1],'YTickLabel', {'Awake', 'Sleep'})
-
-save_figure(fig,[figDir 'Fly sleep over time'],fig_type);
-
-g = find(m.sleep);
-h = find(f.sleep);
-if isempty(g) && isempty(h)
-    disp('no male or female sleep found')
-else
+if isempty(frames)
+    disp('no bouts of sleep found')
     return
+else
+    bout = 5*60*parameters.FPS;
+    dummy = [];
+    
+    % Extract sleep bouts from position data
+    for sex = 1:2
+        switch sex
+            case 1
+                x = m.pos(:,2,1); % male center
+            case 2
+                x = f.pos(:,2,1); % female center
+        end
+        % Calculate difference between all x values
+        x_diff = diff(x); 
+        % Identify when position is not changing
+        u = abs(x_diff)<= 1;
+        % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
+        a = diff(u);
+        % Add the first position value to the list to account for the starting condition
+        b = [u(1); a]; 
+        % Frames where 'position-no-change' period starts/end
+        slp_start = find(b == 1); 
+        slp_stop = find(b == -1);
+        % If sleep doesn't stop by end, add stop location at end of slp_stop
+        if u(end)
+            slp_stop(end + 1) = length(time);
+        end
+        % Calculate the length of each 'position-no-change' bout
+        slp_dur = slp_stop - slp_start;
+        % Find where bout lasts longer than 5min (when is sleep)
+        slp_loc = find(slp_dur > bout);
+    
+        % Create dummy matrix with only true sleep bouts
+        mt = false(size(time));
+        for i = 1:length(slp_loc)
+            ii = slp_loc(i);
+            mt(slp_start(ii):slp_stop(ii)) = true;
+        end
+        dummy(sex).sleep = mt;
+    end
+    
+    % Save sleep data
+    m.sleep = dummy(1).sleep;
+    f.sleep = dummy(2).sleep;
+    
+    % Figure
+    lw = 2;
+    
+    fig = getfig('',1);
+    hold on
+        sSpan = fps; % single second smoothing
+        y1 = smooth(m.sleep,sSpan,'moving'); % male
+        y2 = smooth(f.sleep,sSpan,'moving'); % female
+        % plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
+        plot(time, y2, 'color', Color('deeppink'),'LineWidth', lw)
+        plot(time, y1, 'color', Color('dodgerblue'),'LineWidth', lw)
+        xlabel('time (min)')
+    formatFig(fig);
+    ylim([-0.2,1.2])
+    set(gca, 'ytick', [0,1],'YTickLabel', {'Awake', 'Sleep'})
+    
+    save_figure(fig,[figDir 'Fly sleep over time'],fig_type);
+    
+    g = find(m.sleep);
+    h = find(f.sleep);
+    if isempty(g) && isempty(h)
+        disp('no male or female sleep found')
+    else
+        return
+    end
 end
 
 %% FIGURE: (WORKING 1/15) simple summary of fly positions across the trial...
