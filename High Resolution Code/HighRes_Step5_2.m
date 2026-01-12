@@ -28,15 +28,19 @@ if ~strcmp(questdlg('Is data from 5.1.1 already loaded?'),'Yes')
     if isempty(startloc)
         return
     end
-    baseFolder = [startloc,'Trial Data/'];
-    trialDir = selectFolder(baseFolder); 
-    baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+    baseFolder_1 = [startloc,'Trial Data/'];
+    trialDir_1 = selectFolder(baseFolder_1); 
+    baseDir_1 = [baseFolder_1, trialDir_1{:} '/']; % full folder directory for that trial
+    
+    load([baseDir_1, 'post-5.1.1 data.mat']) % load the parameters and temp table
+    baseDir = baseDir_1;
+    baseFolder = baseFolder_1;
+    trialDir = trialDir_1;
+    clear("baseDir_1","trialDir_1","baseFolder_1")
     figDir = [baseDir,'Figures/']; 
     if ~exist(figDir, 'dir')
         mkdir(figDir)
     end
-    
-    load([baseDir, 'post-5.1.1 data.mat']) % load the parameters and temp table
     disp('data loaded')
 end
 
