@@ -368,6 +368,68 @@ ylabel('Time to first behavior (min)')
 
 save_figure(fig, [figDir 'behavior_onset scatter'],fig_type);
 
+%% FIGURE : time delays to each behavior, combined across sex for each temperature regime
+% currently only set up for this temp protocol
+
+if ~strcmp(groupName,'Berlin LTS caviar')
+    return
+end
+
+fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
+field_names = {'Food', 'Escape', 'Sleep', 'Courtship'};
+c = length(fields);
+r = 1;
+
+temp_regimes = unique(trans_cat);
+kolor = Color('dodgerblue');
+offset = 0.1;
+FA = 0.4; % scatter plot face alpha level
+
+fig = getfig('time to first behavior', 1, [ 991 900]); 
+for i = 1:length(temp_regimes) % subplot for each of the temp regime types
+    subplot(r,c,i)
+
+    for f = 1:length(fields)
+        fieldName = fields{f};
+        hold on       
+    
+        loc = find(strcmp(trans_cat,temp_regimes{i}));
+        % pull the data for all regions with the same type
+        plotData = [];
+        for sex = 1:2
+            if strcmp(fieldName,'CI') & sex==2 %skip courtship for female flies
+                continue
+            end
+            for t = 1:length(loc) % for each of the different temp regimes
+                plotData = [plotData; behavior_onset(sex).(fieldName)(:,loc(t))];
+            end
+        end
+        % plot the data for this temp regime: 
+        x = f*ones(size(plotData));
+        y = plotData/(30*60); % convert to minutes
+        scatter(x-offset, y, 35, foreColor, 'filled','XJitter', 'density',...
+            'XJitterWidth',0.2,'MarkerFaceAlpha',FA)
+        scatter(f+offset, mean(y,1,'omitnan'),100, kolor, "filled")
+        errorbar(f+offset, mean(y,1,'omitnan'),std(y,0,1,'omitnan')./(sqrt(num.trials)),'color', ...
+            kolor,'linewidth', 1.5,'linestyle', 'none')
+    end
+    % Labels
+    set(gca, 'xtick', 1:length(fields),'XTickLabel',field_names)
+    xlim([0.5,length(fields)+0.5])
+    title(temp_regimes{i})
+end
+formatFig(fig, blkbgd, [r,c]);
+for f = 2:length(temp_regimes)
+    subplot(r,c,f)
+    set(gca, 'ycolor', 'none')
+end
+matchAxis(fig, true);
+subplot(r,c,1)
+ylabel('Time to first behavior (min)')
+
+save_figure(fig, [figDir 'behavior_onset scatter by temp regime'],fig_type);
+
+
 
 %% TODO 12/30 Do more flies eat before sleep in each temp regime?
 % Figure: percent of flies that eat before sleeping vs percent of flies
@@ -405,7 +467,7 @@ for t = 1:nTrans
     nflies = length(food_time); % number of flies in the set
     % is there sleep in this regime for any of the flies?
     conditions = {'S>F', 'F>S', 'S', 'F', '--'}; 
-    perc = []; % fraction of flies that are in each category 
+    perc = []; % fraction of flies that are in each category (perc short for percent) 
     perc(1) = sum(onsetDiff<0)/nflies; % no food before sleep
     perc(2) = sum(onsetDiff>0)/nflies; % food before sleep
     perc(3) = sum(isnan(food_time) & ~isnan(sleep_time))/nflies; % flies that didn't go to food but slept
