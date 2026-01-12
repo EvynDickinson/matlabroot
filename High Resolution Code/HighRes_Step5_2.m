@@ -730,7 +730,8 @@ for ff = 1:length(roi)
         y = data(sex).rawY(frame,:);
         kolor = data(sex).color;
         if T.circling_all(frame) && sex==M
-            plotFlySkeleton(fig, x,y,kolor,false);%foreColor,false);
+            plotFlySkeleton(fig, x,y,foreColor,false);
+            %plotFlySkeleton(fig, x,y,kolor,false); %plot all frames same color regardless of all vs 1sec category
         else
            plotFlySkeleton(fig, x,y,kolor,false);
         end
