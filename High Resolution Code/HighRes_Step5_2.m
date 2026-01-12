@@ -28,15 +28,19 @@ if ~strcmp(questdlg('Is data from 5.1.1 already loaded?'),'Yes')
     if isempty(startloc)
         return
     end
-    baseFolder = [startloc,'Trial Data/'];
-    trialDir = selectFolder(baseFolder); 
-    baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+    baseFolder_1 = [startloc,'Trial Data/'];
+    trialDir_1 = selectFolder(baseFolder_1); 
+    baseDir_1 = [baseFolder_1, trialDir_1{:} '/']; % full folder directory for that trial
+    
+    load([baseDir_1, 'post-5.1.1 data.mat']) % load the parameters and temp table
+    baseDir = baseDir_1;
+    baseFolder = baseFolder_1;
+    trialDir = trialDir_1;
+    clear("baseDir_1","trialDir_1","baseFolder_1")
     figDir = [baseDir,'Figures/']; 
     if ~exist(figDir, 'dir')
         mkdir(figDir)
     end
-    
-    load([baseDir, 'post-5.1.1 data.mat']) % load the parameters and temp table
     disp('data loaded')
 end
 
@@ -706,10 +710,12 @@ skip = 20;
 zoom = [-250,250];
 
 % find the longest circling behavior example: 
-[~,idx] = max(smooth(T.circling_all,30,'moving'));
+[~,idx] = max(smooth(T.circling_all,fps,'moving'));
 roi = idx-fps:idx+fps;
-figure; plot(roi,T.circling_all(roi))
-roi = 94845:94845+fps;
+% figure; plot(roi,T.circling_all(roi))
+
+% roi = 81961:82022+fps; % uncomment for manual frame targeted display
+
 % 
 % frames = find(T.wing_ext==1);
 % endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
@@ -725,6 +731,7 @@ for ff = 1:length(roi)
         kolor = data(sex).color;
         if T.circling_all(frame) && sex==M
             plotFlySkeleton(fig, x,y,foreColor,false);
+            %plotFlySkeleton(fig, x,y,kolor,false); %plot all frames same color regardless of all vs 1sec category
         else
            plotFlySkeleton(fig, x,y,kolor,false);
         end
