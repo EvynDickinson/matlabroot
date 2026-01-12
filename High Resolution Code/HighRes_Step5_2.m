@@ -706,10 +706,12 @@ skip = 20;
 zoom = [-250,250];
 
 % find the longest circling behavior example: 
-[~,idx] = max(smooth(T.circling_all,30,'moving'));
+[~,idx] = max(smooth(T.circling_all,fps,'moving'));
 roi = idx-fps:idx+fps;
-figure; plot(roi,T.circling_all(roi))
-roi = 94845:94845+fps;
+% figure; plot(roi,T.circling_all(roi))
+
+% roi = 81961:82022+fps; % uncomment for manual frame targeted display
+
 % 
 % frames = find(T.wing_ext==1);
 % endidx = (find(diff(frames)>1)); % where the does first 'extension' bout end?
@@ -724,7 +726,7 @@ for ff = 1:length(roi)
         y = data(sex).rawY(frame,:);
         kolor = data(sex).color;
         if T.circling_all(frame) && sex==M
-            plotFlySkeleton(fig, x,y,foreColor,false);
+            plotFlySkeleton(fig, x,y,kolor,false);%foreColor,false);
         else
            plotFlySkeleton(fig, x,y,kolor,false);
         end
