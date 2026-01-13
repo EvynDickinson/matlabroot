@@ -137,10 +137,10 @@ for i = 1:length(d_fields) % for each different behavior
         behavior_onset(sex).(field_name) = nan([num.trials,nTrans]); 
         for roi = 1:nTrans % loop all temperature regions
             locs = raw(transitions(roi):transitions(roi+1),:); % all locations within the ROI that the behavior is seen
-            for fly = 1:num.trials % find the first event time in this regime for each fly (if there are any)
-                idx = find(locs(:,fly));
+            for f = 1:num.trials % find the first event time in this regime for each fly (if there are any)
+                idx = find(locs(:,f));
                 if ~isempty(idx)
-                    behavior_onset(sex).(field_name)(fly,roi) = idx(1);
+                    behavior_onset(sex).(field_name)(f,roi) = idx(1);
                 end
             end
         end
@@ -155,10 +155,10 @@ for i = 1:length(s_fields)
     behavior_onset(sex).(field_name) = nan([num.trials,nTrans]);
     for roi = 1:nTrans % loop all temperature regions
         locs = raw(transitions(roi):transitions(roi+1),:); % all locations within the ROI that the behavior is seen
-        for fly = 1:num.trials % find the first event time in this regime for each fly (if there are any)
-            idx = find(locs(:,fly));
+        for f = 1:num.trials % find the first event time in this regime for each fly (if there are any)
+            idx = find(locs(:,f));
             if ~isempty(idx)
-                behavior_onset(sex).(field_name)(fly,roi) = idx(1);
+                behavior_onset(sex).(field_name)(f,roi) = idx(1);
             end
         end
     end

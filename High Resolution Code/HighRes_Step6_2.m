@@ -59,7 +59,6 @@ fig = getfig('',1);
     end
 save_figure(fig, [figDir 'avg distance to food M and F'],fig_type);
 
-
 % % TODO: 5.13 MAKE A THING TO PLOT TEMP, FOOD METRIC, AND THEN THE
 % TEMP-TUNING CURVE
 
@@ -162,6 +161,35 @@ save_figure(fig, [figDir 'avg distance to food M and F'],fig_type);
 % 
 % % save figure
 % save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
+
+%% FIGURE: generate temperature-tuning curves for metrics of your selection
+clearvars('-except',initial_var{:})
+
+
+% select data metric to plot
+fields = {'OutterRing', 'sleep',  'foodQuad','dist2food', 'FlyOnFood', 'foodcircle', 'eccentricity', 'CI',  'circling_1sec', 'circling_all', 'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
+idx = listdlg("PromptString",'Select data type', 'SelectionMode','single', 'ListSize',[200, 300], 'ListString',fields);
+sel_field = fields{idx};
+
+% TODO TODAY 1/13/2026
+
+
+
+% find averages for each fly for each temperature bin
+
+
+% plot the data
+
+data.tempbin.
+
+
+
+
+
+
+
+
+
 
 
 
