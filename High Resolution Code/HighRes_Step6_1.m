@@ -40,7 +40,7 @@ if strcmp(questdlg('Load premade data structure?'),'Yes')
         return % downloading the data
     end
 else
-    % Find trials that are groupready in the excel file: 
+    % Find trials that are group ready in the excel file: 
     switch questdlg('Load options from excel?')
         case 'Yes'
                 loc = cellfun(@isnan,excelfile(2:end,Excel.groupready));

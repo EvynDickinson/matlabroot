@@ -2,6 +2,13 @@
 % Generate figures to compare different behaviors and frequencies of
 % behaviors over time:
 
+%% Run this if you want to look at speed! 
+clearvars('-except',initial_var{:})
+data.speed = nan(size(data.sleep));
+for trial = 1:num.trials
+    data.speed(:,F,trial) = fly(trial).f.speed;
+    data.speed(:,M,trial) = fly(trial).m.speed;
+end
 
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
@@ -165,25 +172,93 @@ save_figure(fig, [figDir 'avg distance to food M and F'],fig_type);
 %% FIGURE: generate temperature-tuning curves for metrics of your selection
 clearvars('-except',initial_var{:})
 
-
-% select data metric to plot
-fields = {'OutterRing', 'sleep',  'foodQuad','dist2food', 'FlyOnFood', 'foodcircle', 'eccentricity', 'CI',  'circling_1sec', 'circling_all', 'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
+% select data metric to plot 
+% TODO: make this it's own function that has the appropriate information
+% tied to each of the different data types (e.g. sex split, percent or
+% distance based etc.)
+fields = {'OutterRing', 'sleep',  'foodQuad','speed','dist2food', 'FlyOnFood', 'foodcircle', 'eccentricity', 'CI',  'circling_1sec', 'circling_all', 'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
 idx = listdlg("PromptString",'Select data type', 'SelectionMode','single', 'ListSize',[200, 300], 'ListString',fields);
 sel_field = fields{idx};
+double_field = size(data.(sel_field),2)==2; % if there are two fields for both sexes
+maxRoi = 730000; % cutoff for food quality loss in the smaller plate
 
-% TODO TODAY 1/13/2026
-
-
+% TODO: make an inner quad for the food region for comparison with the
+% grouped data 1/14/2026
 
 % find averages for each fly for each temperature bin
+temps = data.tempbin.temps;
+nTemps = length(temps);
+[pData.cooling.avg,pData.cooling.sem, pData.warming.avg,pData.warming.sem]  = deal(nan([nTemps,1]));
+typeNames = {'cooling', 'warming'};
+
+for type = 1:2 % heating and cooling
+    type_name = typeNames{type};
+    for t = 1:nTemps
+        roi = data.tempbin.(type_name)(:,t);
+        roi(maxRoi:end) = false;
+        if double_field
+            raw = [squeeze(data.(sel_field)(roi,1,:)), squeeze(data.(sel_field)(roi,2,:))];
+        else 
+            raw = data.(sel_field)(roi,:);
+        end
+        processed =  mean(raw,1,'omitnan');
+        pData.(type_name).avg(t) = mean(processed,'omitnan');
+         pData.(type_name).sem(t) = std(processed,'omitnan')/sqrt(length(processed));
+    end
+end
 
 
 % plot the data
+if strcmp(groupName,'Berlin LTS caviar')
+    xlimits = [13, 37];
+end
 
-data.tempbin.
+r = 1; 
+c = 2; 
+LW = 1;
+kolor = Color('dodgerBlue'); %foreColor;
+plot_err = true;
 
+switch sel_field
+    case 'OutterRing'
+        scaler = 100;
+        ylabel_str = 'edge occupancy (% flies)';
+        ylimits = [0, 50];
+    case 'speed'
+        scaler = 1;
+        ylabel_str = 'speed (cm/s)';
+        ylimits = [0 18];
+    case 'foodQuad'
+        scaler = 100;
+        ylabel_str = 'food quadrant (% flies)';
+        ylimits = [0 90];
+end
 
-
+fig = getfig([sel_field ' Tuning Curve'], 1);
+for type = 1:2 % cooling and warming
+    subplot(r, c, type)
+    hold on
+    x = temps;
+    y = pData.(typeNames{type}).avg .* scaler;
+    y_err = pData.(typeNames{type}).sem .* scaler;
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
+    plot(x,y,'color',kolor,'linewidth',LW+1)
+    
+    % formatting
+    if type == 1
+        set(gca, 'xdir', 'reverse')
+        ylabel(ylabel_str)
+    else
+        set(gca, 'ycolor', 'none')
+    end
+    xlabel('temp (\circC)')
+    xlim(xlimits)
+    ylim(ylimits)
+    title(typeNames{type})
+end
+formatFig(fig, blkbgd,[r,c]);
+            
+save_figure(fig, [figDir sel_field ' tuning curve'])
 
 
 
