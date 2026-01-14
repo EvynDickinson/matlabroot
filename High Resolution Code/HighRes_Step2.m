@@ -47,6 +47,18 @@ for ramp = 1:size(rampName,2)
     nVids = parameters.nVids;
     vROI = parameters.vROI;
     
+    % find videos that have already been compiled and extract them from the processing list
+    present_vid_dir = dir([vidBase 'compiled_video_*.avi']);
+    nameList = {present_vid_dir(:).name};
+    run_idx = true([nVids,1]);
+    if ~isempty(nameList) % only run this if there are already compiled videos
+        for i = 1:length(nameList)
+            dummy = strsplit(nameList{i},{'_','.'});
+            vidNum = str2double(dummy{3});
+            run_idx(vidNum) = false;
+        end
+    end
+
     % Start parallel pool if it's not already running
     if isempty(gcp('nocreate'))
         if strcmpi(getenv('COMPUTERNAME'), 'SLEEPINGGIANT')
@@ -57,13 +69,16 @@ for ramp = 1:size(rampName,2)
     end
     
     %  loop for parallel processing
-    iStart = vROI(:,1);
-    iEnd = vROI(:,2);
-    N = (iEnd-iStart)+1;
+    iStart = vROI(:,1); % file number that starts the compiling
+    iEnd = vROI(:,2); % file number that ends the compiling list
+    N = (iEnd-iStart)+1; % total number of files to compile
     hz = parameters.FPS; 
+    videoList = (find(run_idx))';
+    nVids = length(videoList);
     
     tic
-    parfor vid = 1:nVids
+    parfor idx = 1:nVids
+        vid = videoList(idx);
         % Each compiled video is processed independently in parallel
         vidPath = [vidBase 'compiled_video_' num2str(vid)];
         % Convert matrix to video file
@@ -71,8 +86,9 @@ for ramp = 1:size(rampName,2)
         v.Quality = 95;
         v.FrameRate = hz;
         open(v);
+        % loop through all the files and compile them to the new video file
         for ii = 1:N(vid)
-            ROI = iStart(vid):iEnd(vid);
+            ROI = iStart(vid):iEnd(vid); % current 'file' to compile
             i = ROI(ii);
             % Load data matrix
             data = load([baseDir, 'file' num2str(i) '.mat']); 
