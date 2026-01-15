@@ -197,7 +197,7 @@ figure;
     ylabel('Courtship Index All');
     % title('Courtship Behavior During Thermal Threats');
     formatFig(gcf, blkbgd);
-save_figure(gcf, [figDir 'CI safe vs threat'], fig_type);
+save_figure(gcf, [figDir 'CI_all safe vs threat'], fig_type);
     
 % run statistical comparisions between safe and threatening for hot/cold
 % respectively 
@@ -294,7 +294,7 @@ save_figure(gcf, [figDir 'Courtship behaviors across temp regions'], fig_type);
 % encounters: male fly within 3 body lengths of the female fly
 clearvars('-except',initial_var{:})
 
-IFD = 7; % mm distance that counts as an encounter
+IFD = 12; % mm distance that counts as an encounter
 
 % frame locations of any courtship behavior:
 courtship_locs = replaceNaN(data.wing_ext_all,false) | ...
