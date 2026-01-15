@@ -208,7 +208,6 @@ set(gca,'ydir','reverse')
 save_figure(fig,[saveDir expGroup ' timecourse summary no speed food only'],fig_type);
 
 %% FIGURE: Time Course for single parameter -- select your metric
-% TODO (8/5) make this work with subregions
 clearvars('-except',initial_vars{:})
 
 plot_err = true;
@@ -378,6 +377,119 @@ end
 
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
+
+%% TODO (1/15/26) FIGURE: Heating & Cooling separated single parameter tuning curves -- select your metric
+clearvars('-except',initial_vars{:})
+[foreColor, ~] = formattingColors(blkbgd); % get background colors
+
+plot_err = true;
+autoLim = true;
+xlim_auto = true; % change the time range for the x axis
+time_limits = [0,900]; % time limits if manual control over x-axis range
+nMax =  num.exp; 
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(true);
+plot_err = true;
+
+if isempty(title_str)
+    return
+end
+fig_dir = [saveDir, 'temp tuning curves/'];
+% set figure folder
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+% % set up figure aligments
+r = 1; %rows
+c = 2; %columns
+
+if contains(expGroup,'LTS 15-35')
+    xlimits = [13, 37];
+    xPos = [14.5, 25]; 
+end
+
+typeNames = {'cooling', 'warming'};
+LW = 1.25;
+% sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',true);
+for i = num.exp:-1:1
+    kolor = grouped(i).color;
+    switch ext
+        case true % subregions exist
+            yy = grouped(i).(pName).food;
+        case false % no subregions
+            yy = grouped(i).(pName);
+    end
+
+    hold on
+    if strcmp(pName, 'dist')
+        x = grouped(i).(pName).distavgbytemp(:,1);
+        YC = grouped(i).decreasing.all;
+        YH = grouped(i).increasing.all;
+    else
+        x = yy.temps;
+        YC = yy.decreasing.raw;
+        YH = yy.increasing.raw;
+    end
+    % cooling
+    subplot(r,c,1); hold on
+    y = mean(YC,2,'omitnan')*scaler;
+    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    plot(x,y,'color',kolor,'linewidth',LW)
+    % heating
+     subplot(r,c,2); hold on
+    y = mean(YH,2,'omitnan')*scaler;
+    y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    plot(x,y,'color',kolor,'linewidth',LW)          
+
+     dataString{i} = grouped(i).name;
+end
+
+% FORMATTING
+for type = 1:2
+    subplot(r, c, type)
+    % formatting
+    if type == 1
+        set(gca, 'xdir', 'reverse')
+        ylabel(y_lab)
+    else
+        set(gca, 'ycolor', 'none')
+    end
+    xlabel('temp (\circC)')
+    xlim(xlimits)
+    % ylim(ylimits)
+    title(typeNames{type},'color', foreColor)
+end
+matchAxis(fig, true); % match the y axes between heating and cooling
+formatFig(fig, blkbgd,[r,c]);
+
+for type = 1:2
+    subplot(r, c, type)
+    ylim([0,90])
+    h_line(nullD,'grey',':',2) %36.2
+    set(gca,'ydir',y_dir)
+    ylimits = ylim;
+    pos = [xPos(1,type), ylimits(1), 10, range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
+    h = rectangle('Position', pos, ...
+              'FaceColor', foreColor, ...   % RGB color
+              'FaceAlpha', 0.2, ...
+              'EdgeColor', 'none');
+    if type == 2
+        set(gca, 'ycolor', 'none')
+    end
+end
+legend(strrep(dataString,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsize', 12,'location', 'northwest')
+            
+% save figure
+save_figure(fig,[fig_dir  title_str],fig_type);
+
 
 %% FIGURE: Plot multiple tuning curves -- select your metric
 clearvars('-except',initial_vars{:})
@@ -738,9 +850,6 @@ end
 % save figure
 save_figure(fig,[saveDir expGroup ' hysteresis summary'],fig_type);
 
-
-%%
-
 %% FIGURE & STATS: Hysteresis for each genotype / trial for FOOD OCCUPANCY QUADRANT
 clearvars('-except',initial_vars{:})
 LW = 0.75;
@@ -902,7 +1011,7 @@ end
 save_figure(fig,[saveDir expGroup ' quadroi hysteresis summary'],fig_type);
 
 
-%% FIGURE: hystersis time measurement of how much more time can be spent at the food with this strategy 
+%% TODO -- FIGURE: hystersis time measurement of how much more time can be spent at the food with this strategy 
 
 % temp rate 
 

@@ -10,6 +10,16 @@ for trial = 1:num.trials
     data.speed(:,M,trial) = fly(trial).m.speed;
 end
 
+% make an inner food quad region ROI
+data.innerFoodQuad = data.foodQuad;
+loc = logical(replaceNaN(data.OutterRing,false));
+data.innerFoodQuad(loc) = false;
+
+% make a courtship all structure
+data.CI_all = [data.foodQuad;
+loc = logical(replaceNaN(data.OutterRing,false));
+data.innerFoodQuad(loc) = false;
+
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
@@ -176,11 +186,12 @@ clearvars('-except',initial_var{:})
 % TODO: make this it's own function that has the appropriate information
 % tied to each of the different data types (e.g. sex split, percent or
 % distance based etc.)
-fields = {'OutterRing', 'sleep',  'foodQuad','speed','dist2food', 'FlyOnFood', 'foodcircle', 'eccentricity', 'CI',  'circling_1sec', 'circling_all', 'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
+fields = {'OutterRing', 'sleep',  'foodQuad','speed','innerFoodQuad','dist2food', 'FlyOnFood', 'foodcircle',...
+              'eccentricity', 'CI',  'circling_1sec', 'circling_all', 'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
 idx = listdlg("PromptString",'Select data type', 'SelectionMode','single', 'ListSize',[200, 300], 'ListString',fields);
 sel_field = fields{idx};
 double_field = size(data.(sel_field),2)==2; % if there are two fields for both sexes
-maxRoi = 613757; % cutoff for food quality loss in the smaller plate
+maxRoi = 730000; % cutoff for food quality loss in the smaller plate
 
 % find averages for each fly for each temperature bin
 temps = data.tempbin.temps;
@@ -192,7 +203,7 @@ for type = 1:2 % heating and cooling
     type_name = typeNames{type};
     for t = 1:nTemps
         roi = data.tempbin.(type_name)(:,t);
-        roi 
+        roi(maxRoi:end) = false;
         if double_field
             raw = [squeeze(data.(sel_field)(roi,1,:)), squeeze(data.(sel_field)(roi,2,:))];
         else 
@@ -229,39 +240,49 @@ switch sel_field
         scaler = 100;
         ylabel_str = 'food quadrant (% flies)';
         ylimits = [0 90];
+    case 'innerFoodQuad'
+        scaler = 100;
+        ylabel_str = 'inner food quadrant (% flies)';
+        ylimits = [0 90];
+    case 'foodcircle'
+        scaler = 100;
+        ylabel_str = 'food circle (% flies)';
+        ylimits = [0 65];
+    case 'sleep'
+        scaler = 100;
+        ylabel_str = 'sleeping (% flies)';
+        ylimits = [0 60];
+    case 'CI'
+        scaler = 100;
+        ylabel_str = 'sleeping (% flies)';
+        ylimits = [0 60];
 end
 
 fig = getfig([sel_field ' Tuning Curve'], 1);
-for type = 1:2 % cooling and warming
-    subplot(r, c, type)
-    hold on
-    x = temps;
-    y = pData.(typeNames{type}).avg .* scaler;
-    y_err = pData.(typeNames{type}).sem .* scaler;
-    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
-    plot(x,y,'color',kolor,'linewidth',LW+1)
-    
-    % formatting
-    if type == 1
-        set(gca, 'xdir', 'reverse')
-        ylabel(ylabel_str)
-    else
-        set(gca, 'ycolor', 'none')
+    for type = 1:2 % cooling and warming
+        subplot(r, c, type)
+        hold on
+        x = temps;
+        y = pData.(typeNames{type}).avg .* scaler;
+        y_err = pData.(typeNames{type}).sem .* scaler;
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+        
+        % formatting
+        if type == 1
+            set(gca, 'xdir', 'reverse')
+            ylabel(ylabel_str)
+        else
+            set(gca, 'ycolor', 'none')
+        end
+        xlabel('temp (\circC)')
+        xlim(xlimits)
+        ylim(ylimits)
+        title(typeNames{type})
     end
-    xlabel('temp (\circC)')
-    xlim(xlimits)
-    ylim(ylimits)
-    title(typeNames{type})
-end
 formatFig(fig, blkbgd,[r,c]);
             
 save_figure(fig, [figDir sel_field ' tuning curve'])
-
-
-
-
-
-
 
 
 

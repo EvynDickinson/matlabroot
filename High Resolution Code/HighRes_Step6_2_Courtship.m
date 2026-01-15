@@ -411,10 +411,111 @@ fprintf('court rate warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tsta
 [h,p,~,stats] = ttest(court_rate(:,3), court_rate(:,4)); 
 fprintf('court rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
+%% COURTSHIP TUNING CURVES
+clearvars('-except',initial_var{:})
+
+currFigDir = createFolder([figDir, 'courtship tuning curves/']);
+
+[foreColor, ~] = formattingColors(blkbgd); % get background colors
+r = 1; 
+c = 2; 
+LW = 1;
+kolor = Color('dodgerBlue'); % foreColor
+plot_err = true;
+if strcmp(groupName,'Berlin LTS caviar')
+    xlimits = [13, 37];
+    xPos = [14.5, 25]; 
+end
+ylabel_str = '% flies';
+typeNames = {'cooling', 'warming'};
+
+fields = {'CI', 'CI_all', 'circling_1sec', 'circling_all', 'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
+scaler = 100; % convert fractions to percentages of flies
+
+idx = listdlg("PromptString",'Select data types', 'SelectionMode','multiple', 'ListSize', [200, 300], 'ListString',fields);
+nParams = length(idx);
+legend_str = cell(1,nParams);
+colorList = {'DarkOrchid','Gold','dodgerblue','magenta', 'turquoise','lime','red','Orange'};
+
+
+fig = getfig('Tuning Curve', 1);
+for p = 1:nParams
+    kolor = Color(colorList{p});
+    % EXTRACT THE DATA
+    sel_field = fields{idx(p)};
+    legend_str{p} =  sel_field;
+    double_field = size(data.(sel_field),2)==2; % if there are two fields for both sexes
+    % maxRoi = 730000; % cutoff for food quality loss in the smaller plate
+    % find averages for each fly for each temperature bin
+    temps = data.tempbin.temps;
+    nTemps = length(temps);
+    [pData.cooling.avg,pData.cooling.sem, pData.warming.avg,pData.warming.sem]  = deal(nan([nTemps,1]));    
+    for type = 1:2 % heating and cooling
+        type_name = typeNames{type};
+        for t = 1:nTemps
+            roi = data.tempbin.(type_name)(:,t);
+            % roi(maxRoi:end) = false;
+            if double_field
+                raw = [squeeze(data.(sel_field)(roi,1,:)), squeeze(data.(sel_field)(roi,2,:))];
+            else 
+                raw = data.(sel_field)(roi,:);
+            end
+            processed =  mean(raw,1,'omitnan');
+            pData.(type_name).avg(t) = mean(processed,'omitnan');
+            pData.(type_name).sem(t) = std(processed,'omitnan')/sqrt(length(processed));
+        end
+    end
+
+    % PLOT THE DATA
+    for type = 1:2 % cooling and warming
+        subplot(r, c, type)
+        hold on
+        x = temps;
+        y = pData.(typeNames{type}).avg .* scaler;
+        y_err = pData.(typeNames{type}).sem .* scaler;
+        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
+        plot(x,y,'color',kolor,'linewidth',LW+1)
+    end
+end
+
+% FORMATTING
+for type = 1:2
+    subplot(r, c, type)
+    % formatting
+    if type == 1
+        set(gca, 'xdir', 'reverse')
+        ylabel(ylabel_str)
+    else
+        set(gca, 'ycolor', 'none')
+    end
+    xlabel('temp (\circC)')
+    xlim(xlimits)
+    % ylim(ylimits)
+    title(typeNames{type},'color', foreColor)
+end
+matchAxis(fig, true); % match the y axes between heating and cooling
+formatFig(fig, blkbgd,[r,c]);
+
+for type = 1:2
+    subplot(r, c, type)
+    ylimits = ylim;
+    pos = [xPos(1,type), ylimits(1), 10, range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
+    h = rectangle('Position', pos, ...
+              'FaceColor', foreColor, ...   % RGB color
+              'FaceAlpha', 0.2, ...
+              'EdgeColor', 'none');
+end
+legend(strrep(legend_str,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsize', 12,'location', 'northwest')
+            
+save_figure(fig, [currFigDir strjoin(legend_str,' ') ' courtship tuning curve'])
 
 
 
 
+%% TODO: what is the correlation between courtship-all & courtship by temperature?
+% z-score them?
+% or time-series correlation
+% or temp by temp bin comparison?
 
 
 %% TODO: what is the correlation between male chase and male vs female speed? 
