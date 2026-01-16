@@ -1705,6 +1705,12 @@ sum(bad_idx)
 badTrials = [excelfile([false; bad_idx],Excel.trialID), excelfile([false; bad_idx],Excel.genotype)];
 
 
+%% 
+uiopen
+fig = gcf;
+fig_name  = 'MA25_PSTH_summary';
+save_figure(fig, ['C:\Users\evynd\Downloads\' fig_name],'-pdf');
+
 
 
 

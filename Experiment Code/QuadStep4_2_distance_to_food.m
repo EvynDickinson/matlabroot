@@ -382,14 +382,13 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 clearvars('-except',initial_vars{:})
 [foreColor, ~] = formattingColors(blkbgd); % get background colors
 
-plot_err = true;
 autoLim = true;
+ylim = [0 100]; % if manually adjusting the axis limits for the y-axis 
 xlim_auto = true; % change the time range for the x axis
-time_limits = [0,900]; % time limits if manual control over x-axis range
 nMax =  num.exp; 
 
 % Select the type of information to plot: 
-[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(true);
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
 plot_err = true;
 
 if isempty(title_str)
@@ -417,7 +416,7 @@ dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true);
-for i = num.exp:-1:1
+for i = 1:num.exp % num.exp:-1:1
     kolor = grouped(i).color;
     switch ext
         case true % subregions exist

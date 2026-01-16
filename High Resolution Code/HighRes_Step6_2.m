@@ -26,6 +26,20 @@ initial_var{end+1} = 'encounters';
 initial_var{end+1} = 'foreColor';
 foreColor = formattingColors(blkbgd); % get background colors
 
+% build indexes for warm threat, cool threat, warm safe, cool safe
+threshTemp = 25; % 'neutral temp'
+data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp; % warm threat
+data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp; % warm safe
+data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp; % cool threat
+data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp; % cool safe
+data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx; % static safe
+
+% adjust the overshoot temps in F LRR to not count towards a temp region
+if contains(groupName, 'F LRR 25-17')
+    data.tempbin.WT(data.tempbin.WT) = false;
+    data.tempbin.WS(data.tempbin.WS) = false;
+end
+
 
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
