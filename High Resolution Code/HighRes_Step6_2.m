@@ -2,8 +2,10 @@
 % Generate figures to compare different behaviors and frequencies of
 % behaviors over time:
 
-%% Run this if you want to look at speed! 
+%% RUN THIS SECTION BEFORE PROCEEDING
 clearvars('-except',initial_var{:})
+
+% ADD SPEED TO THE DATA STRUCTURE
 data.speed = nan(size(data.sleep));
 for trial = 1:num.trials
     data.speed(:,F,trial) = fly(trial).f.speed;
@@ -19,6 +21,11 @@ data.innerFoodQuad(loc) = false;
 data.CI_all = replaceNaN(data.wing_ext_all,false) |...
                         replaceNaN(data.chase_all,false) |...
                         replaceNaN(data.circling_all,false);
+
+initial_var{end+1} = 'encounters';
+initial_var{end+1} = 'foreColor';
+foreColor = formattingColors(blkbgd); % get background colors
+
 
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
@@ -854,7 +861,7 @@ end
 save_figure(fig, [figDir 'courtship behaviors over time'],fig_type);
 
 
-%%  FIGURE: courtship temp tuning curves
+%% FIGURE: courtship temp tuning curves
 % TODO: turn this into a temperature tuning curve for each of these metrics
 ntemps = length(data.tempbin.temps);
 [TC.CI.avg, TC.CI.std] = deal(nan(ntemps,2)); % warming then cooling for columns
@@ -1517,7 +1524,7 @@ save_figure(fig, [figDir 'total time for each behavior'],fig_type);
 
 %% TODO: What are the speeds within each region of the arena? on avg and by temperature
 
-%%  FIGURE: overlay of courtship, sleep, escape, and food attraction
+%% FIGURE: overlay of courtship, sleep, escape, and food attraction
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
 
@@ -1615,7 +1622,7 @@ end
  % save_figure(fig, [figDir 'courtship CI index temp tuning curve'],fig_type);
 
 
-%%  FIGURE: z-score overlay of courtship, sleep, escape, and food attraction
+%% FIGURE: z-score overlay of courtship, sleep, escape, and food attraction
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing'};

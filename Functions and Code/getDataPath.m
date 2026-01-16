@@ -39,6 +39,9 @@ function [path, location_name] = getDataPath(dataType, dataLocation, promptStrin
 % path = []; % empty so that in the end, there is something assigned
 % %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
 
+% +++ TO UPDATE PATH NAMES EDIT THIS ONE +++
+% getDataFolderOptions **edit list near the bottom**
+% getPathNames **edit around line 18 where the names of the paths are**
 
 paths = getPathNames; 
 path = [];

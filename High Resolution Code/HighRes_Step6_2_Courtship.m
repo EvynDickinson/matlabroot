@@ -206,7 +206,6 @@ save_figure(gcf, [figDir 'CI_all safe vs threat'], fig_type);
 [h,p,~,stats] = ttest(y(:,1), y(:,2)); 
 fprintf('CI_all safe vs threat: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
-
 %% FIGURE: Distribution of courtship behaviors by temperature regime
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
@@ -288,17 +287,14 @@ xlim([0.5,length(types)+0.5])
 save_figure(gcf, [figDir 'Courtship behaviors across temp regions'], fig_type);
 
 
-%% Courtship Attempts per Encounters
+%% ANALYSIS: Courtship Attempts per Encounters
 % define when a male came within courthship proximity to the female
 % on how many of those encounters did he try to court?
 % encounters: male fly within 3 body lengths of the female fly
 clearvars('-except',initial_var{:})
+initial_var{end+1} = 'encounters';
 
 IFD = 12; % mm distance that counts as an encounter
-
-% frame locations of any courtship behavior:
-courtship_locs = replaceNaN(data.wing_ext_all,false) | ...
-        replaceNaN(data.chase_all,false) | replaceNaN(data.circling_all,false);
 
 % initialize parameters for saving the data
 encounters = struct;
@@ -326,7 +322,7 @@ for trial = 1:num.trials
     pos_en = false([total_encounters,1]);
     for i = 1:total_encounters
         roi = (en_locs(i,1):en_locs(i,2)); % frames for this encounter
-        pos_en(i) = any(courtship_locs(roi));
+        pos_en(i) = any(data.CI_all(roi));
     end
     en_locs = [en_locs,pos_en]; % add y/n encounter success to location index
 
@@ -361,18 +357,24 @@ fig = getfig('',1,[230 620]); hold on
 
 save_figure(gcf, [figDir 'Courtship attempts of encounters total dist ' num2str(IFD)], fig_type);
 
+%% FIGURE: Rate of encounters across temperature regions
+clearvars('-except',initial_var{:})
+
+% % ------------------------------------------------------------------------
 % How does the courtship-per-encounter rate change across different
 % temperature regimes?
 
-
 types = {'WT', 'WS', 'CT', 'CS'};
 labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
+nTypes = length(types);
 
 tb = data.tempbin;
-[tot_encounters,tot_courtship,court_rate] = deal(nan([num.trials,4]));
+[tot_encounters,tot_courtship,court_rate, encounter_rate] = deal(nan([num.trials,4]));
 
-for i = 1:4 % for each of the temp regime types
-    roi = find(tb.(types{i}));
+for i = 1:nTypes % for each of the temp regime types
+    roi = find(tb.(types{i})); % find the frames within the region
+    time_period = length(roi); % how many frames possible could there be for encounters (to normalize in case there are difference in the time periods of the diff temp regimess
+    % disp(time_period)
     % which encounter locations are within the temp regime
     for trial = 1:num.trials
         % encounters within this temperature regime
@@ -381,8 +383,64 @@ for i = 1:4 % for each of the temp regime types
         tot_courtship(trial,i) = sum(encounters(trial).locs(encounter_locs,3));
         court_rate(trial,i) = (tot_courtship(trial,i)/tot_encounters(trial,i))*100;
     end
+    encounter_rate(:,i) = (tot_encounters(:,i)/time_period).*100;
 end
 
+% PLOT THE PERCENTAGE OF FRAMES WITH AN ENCOUNTER PER TEMP REGIME
+y_avg = median(encounter_rate,1,'omitnan');
+y_sem = std(encounter_rate,0,1,'omitnan')./sqrt(num.trials);
+% plot the encounter rate data (bar graph)
+% Create a bar plot for the average CI data across temperature regimes
+sz = 75;
+fig = getfig('', 1, [436 620]);
+    bar(y_avg, 'FaceColor', foreColor);
+    hold on;
+    errorbar(1:nTypes, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
+    % scatter plot points
+    x = repmat(1:nTypes,[num.trials, 1]);
+    scatter(x(:), encounter_rate(:), sz, Color('grey'), 'filled', ...
+        'xjitter','density','xjitterwidth', 0.3, 'MarkerFaceAlpha', 0.75);
+    set(gca, 'XTickLabel', labels,'XTickLabelRotation',30);
+    ylabel('Rate of encounters (% of total time)');
+    % title('Courtship Behavior During Thermal Threats');
+    formatFig(gcf, blkbgd);
+    % ylim([-3,70])
+save_figure(gcf, [figDir 'rate of encounters across temp regimes'], fig_type);
+
+% run simple stats:
+% Warm threat vs warm safe
+[h,p,~,stats] = ttest(encounter_rate(:,1), encounter_rate(:,2)); 
+fprintf('encounter rate warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% cool threat vs cool safe
+[h,p,~,stats] = ttest(encounter_rate(:,3), encounter_rate(:,4)); 
+fprintf('encounter rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+
+%%  FIGURE: (todo) PERCENT OF FRAMES WITH AN ENCOUNTER COLLAPSED TO SAFE AND THREAT
+clearvars('-except',initial_var{:})
+
+%  ------------------------------------------------------------------------
+y_avg = median(encounter_rate,1,'omitnan');
+y_sem = std(encounter_rate,0,1,'omitnan')./sqrt(num.trials);
+% plot the encounter rate data (bar graph)
+% Create a bar plot for the average CI data across temperature regimes
+sz = 75;
+fig = getfig('', 1, [436 620]);
+    bar(y_avg, 'FaceColor', foreColor);
+    hold on;
+    errorbar(1:nTypes, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
+    % scatter plot points
+    x = repmat(1:nTypes,[num.trials, 1]);
+    scatter(x(:), encounter_rate(:), sz, Color('grey'), 'filled', ...
+        'xjitter','density','xjitterwidth', 0.3, 'MarkerFaceAlpha', 0.75);
+    set(gca, 'XTickLabel', labels,'XTickLabelRotation',30);
+    ylabel('Rate of encounters (% of total time)');
+    % title('Courtship Behavior During Thermal Threats');
+    formatFig(gcf, blkbgd);
+    % ylim([-3,70])
+save_figure(gcf, [figDir 'rate of encounters across temp regimes'], fig_type);
+
+% ------------------------------------------------------------------------
+% PLOT THE COURTSHIP RATE FOR EACH TEMP REGIME
 y_avg = median(court_rate,1,'omitnan');
 y_sem = std(court_rate,0,1,'omitnan')./sqrt(num.trials);
 % plot the encounter rate data (bar graph)
@@ -411,7 +469,120 @@ fprintf('court rate warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tsta
 [h,p,~,stats] = ttest(court_rate(:,3), court_rate(:,4)); 
 fprintf('court rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
+
+%%  FIGURE: (TODO) duration of courtship encounters across each temperature regime
+clearvars('-except',initial_var{:})
+% ------------------------------------------------------------------------
+
+fps = fly(1).fps;
+% encounters(trial).locs = en_locs;
+types = {'WT', 'WS', 'CT', 'CS'};
+labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
+nTypes = length(types);
+
+tb = data.tempbin;
+[enc_duration] = deal(nan([num.trials,4]));
+
+% TODO: figure out the timing here -- recheck with encounters running only
+% for selective courtship metrics to see if the duration increases (it
+% should...)
+
+for i = 1:nTypes % for each of the temp regime types
+    roi = find(tb.(types{i})); % find the frames within the region
+    % find which encounters start within the region and their avg duration
+    for trial = 1:num.trials
+        % encounters within this temperature regime
+        loc = ismember(encounters(trial).locs(:,1),roi) & encounters(trial).locs(:,3)==1;
+        % encounter duration in seconds
+        enc_duration(trial,i) = mean(encounters(trial).locs(loc,2)-...
+                                encounters(trial).locs(loc,1),'omitnan')/fps;
+    end
+end
+
+% PLOT THE PERCENTAGE OF FRAMES WITH AN ENCOUNTER PER TEMP REGIME
+y_avg = median(encounter_rate,1,'omitnan');
+y_sem = std(encounter_rate,0,1,'omitnan')./sqrt(num.trials);
+% plot the encounter rate data (bar graph)
+% Create a bar plot for the average CI data across temperature regimes
+sz = 75;
+fig = getfig('', 1, [436 620]);
+    bar(y_avg, 'FaceColor', foreColor);
+    hold on;
+    errorbar(1:nTypes, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
+    % scatter plot points
+    x = repmat(1:nTypes,[num.trials, 1]);
+    scatter(x(:), encounter_rate(:), sz, Color('grey'), 'filled', ...
+        'xjitter','density','xjitterwidth', 0.3, 'MarkerFaceAlpha', 0.75);
+    set(gca, 'XTickLabel', labels,'XTickLabelRotation',30);
+    ylabel('Rate of encounters (% of total time)');
+    % title('Courtship Behavior During Thermal Threats');
+    formatFig(gcf, blkbgd);
+    % ylim([-3,70])
+save_figure(gcf, [figDir 'rate of encounters across temp regimes'], fig_type);
+
+% run simple stats:
+% Warm threat vs warm safe
+[h,p,~,stats] = ttest(encounter_rate(:,1), encounter_rate(:,2)); 
+fprintf('encounter rate warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% cool threat vs cool safe
+[h,p,~,stats] = ttest(encounter_rate(:,3), encounter_rate(:,4)); 
+fprintf('encounter rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+
+% ------------------------------------------------------------------------
+
+
+
+%% Fly speed for each temperature region
+clearvars('-except',initial_var{:})
+
+[foreColor, ~] = formattingColors(blkbgd); % get background colors
+
+types = {'WT', 'WS', 'CT', 'CS'};
+labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
+nTypes = length(types);
+
+% extract the speeds for each fly within the temp region
+tb = data.tempbin;
+[fly_speed] = deal(nan([num.trials*2,4]));
+for i = 1:nTypes % for each of the temp regime types
+    roi = find(tb.(types{i})); % find the frames within the region
+    all_speed = squeeze(mean(data.speed(roi,:,:),1,'omitnan'));
+    fly_speed(:,i) = all_speed(:); % combine across male and female flies here
+end
+   
+
+% PLOT THE avg speed for each region
+y_avg = median(fly_speed,1,'omitnan');
+y_sem = std(fly_speed,0,1,'omitnan')./sqrt(num.trials*2);
+% plot the encounter rate data (bar graph)
+% Create a bar plot for the average CI data across temperature regimes
+sz = 75;
+fig = getfig('', 1, [436 620]);
+    bar(y_avg, 'FaceColor', foreColor);
+    hold on;
+    errorbar(1:nTypes, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
+    % scatter plot points
+    x = repmat(1:nTypes,[num.trials*2, 1]);
+    scatter(x(:), fly_speed(:), sz, Color('grey'), 'filled', ...
+        'xjitter','density','xjitterwidth', 0.3, 'MarkerFaceAlpha', 0.75);
+    set(gca, 'XTickLabel', labels,'XTickLabelRotation',30);
+    ylabel('Avg fly speed (mm/s)');
+    % title('Courtship Behavior During Thermal Threats');
+    formatFig(gcf, blkbgd);
+    % ylim([-3,70])
+save_figure(gcf, [figDir 'fly speed per temp regime'], fig_type);
+
+% run simple stats:
+% Warm threat vs warm safe
+[h,p,~,stats] = ttest(fly_speed(:,1), fly_speed(:,2)); 
+fprintf('speed warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% cool threat vs cool safe
+[h,p,~,stats] = ttest(fly_speed(:,3), fly_speed(:,4)); 
+fprintf('speed cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+
+
 %% COURTSHIP TUNING CURVES
+
 clearvars('-except',initial_var{:})
 
 currFigDir = createFolder([figDir, 'courtship tuning curves/']);
