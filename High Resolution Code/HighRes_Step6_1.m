@@ -59,7 +59,6 @@ else
                         selectedFiles{i} = [eligible_files{fileIdx(i),1} '_' eligible_files{fileIdx(i),2}];
                     end
                 end
-    
                 
                 % pull the list of dates and arenas to be loaded
                 % TODO: need some way to pair these by group and ramp 

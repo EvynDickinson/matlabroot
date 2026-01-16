@@ -1,6 +1,6 @@
 
 
-%% FIGURE: Quantity of courtship during each thermal threat period by fly
+%% FIGURE: Quantity any type of courtship during each temperature region by fly
 % manually adjust for other temperature protocols outside the LTS
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
@@ -8,12 +8,22 @@ foreColor = formattingColors(blkbgd); % get background colors
 all_types =  {'WT', 'WS', 'CT', 'CS', 'SS'};
 all_labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe','Static Safe'};
 
+% Select the type of courtship data to plot:
+court_options = {'CI', 'CI_all', 'wing_ext', 'wing_ext_all', 'court_chase', 'chase_all', 'circling_1sec', 'circling_all'};
+court_string = {'Courtship Index', 'Unrestricted CI', 'Wing Extension', 'All Wing Extension', 'Chase', 'All Chase', 'Circling', 'All Circling'};
+idx = listdlg("PromptString","Select the type of data to plot","SelectionMode","single",...
+    "ListSize",[200, 300], 'ListString',court_options);
+param = court_options{idx};
+param_str = court_string{idx};
+
 % ADJUST HERE TO WORK FOR DIFFERENT DYNAMIC PROTOCOLS (1/16/2026) | make a
 % universal temp protocol loading function
 if contains(groupName, 'F LRR 25-17')
     type_sel = 3:5;
-elseif  contains(groupName, 'LTS 15-35')
+    temp_type = 1;
+elseif contains(groupName, 'LTS')
     type_sel = 1:4;
+    temp_type = 2;
 end
 
 types = all_types(type_sel);
@@ -27,7 +37,7 @@ y = nan([num.trials, nTypes]);
 tb = data.tempbin;
 for i = 1:nTypes % for each of the temp regime types
     roi = tb.(types{i});
-    y_raw = data.CI(roi,:); % raw data
+    y_raw = data.(param)(roi,:); % raw data
     y(:,i) = mean(y_raw,'omitnan');
     y_avg(i) = mean(y(:,i),'omitnan');
     y_sem(i) = std(y(:,i),'omitnan')/sqrt(num.trials);
@@ -36,7 +46,7 @@ end
 % plot the CI data
 % Create a bar plot for the average CI data across temperature regimes
 sz = 75;
-figure;
+fig = getfig('All threat vs safe', 1, [904 579]);
     bar(y_avg, 'FaceColor', foreColor);
     hold on;
     errorbar(1:nTypes, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
@@ -44,181 +54,89 @@ figure;
     x = repmat(1:nTypes,[num.trials, 1]);
     scatter(x(:), y(:), sz, Color('grey'), 'filled', 'xjitter','density','MarkerFaceAlpha', 0.75);
     set(gca, 'XTickLabel', labels);
-    ylabel('Courtship Index (CI)');
-    % title('Courtship Behavior During Thermal Threats');
+    ylabel(param_str);
+    title_str = [param_str ' per temp regions'];
+    % title(title_str);
     formatFig(gcf, blkbgd);
-save_figure(gcf, [figDir 'CI per temp regime'], fig_type);
-    
-% run statistical comparisions between safe and threatening for hot/cold
-% respectively 
-if contains(groupName, 'F LRR 25-17')
-    % Warm threat vs safe & cold threat vs safe
-    [h,p,~,stats] = ttest(y(:,1), y(:,2)); 
-    fprintf('CI warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
-    [h,p,~,stats] = ttest(y(:,3), y(:,4)); 
-    fprintf('CI cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
-elseif  contains(groupName, 'LTS 15-35')
-    % Warm threat vs safe & cold threat vs safe
-    [h,p,~,stats] = ttest(y(:,1), y(:,2)); 
-    fprintf('CI warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
-    [h,p,~,stats] = ttest(y(:,3), y(:,4)); 
-    fprintf('CI cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+save_figure(fig, [figDir title_str], fig_type);
+
+% run STATISTICAL comparisions between safe and threatening for hot/cold
+switch temp_type
+    case 1 % F LRR 25-17
+        % {'CT', 'CS', 'SS'} comparisons between these
+        n = 3; % number of comparisons
+        alpha = 0.05/n;
+        % Cold threat vs Cold Safe 
+        [~,p,~,stats] = ttest(y(:,1), y(:,2)); 
+        h = p<=alpha; % Bonferonni MCC for two comparisons
+        fprintf('cold threat vs safety: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+        % Cold threat vs Static Safe
+        [~,p,~,stats] = ttest(y(:,1), y(:,3)); 
+        h = p<=alpha; % Bonferonni MCC
+        fprintf('Cold threat vs Static Safe: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+        % Cold threat vs Static Safe
+        [~,p,~,stats] = ttest(y(:,2), y(:,3)); 
+        h = p<=alpha; % Bonferonni MCC
+        fprintf('Cold Safe vs Static Safe: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+
+    case 2 % LTS 15-35
+        % {'WT' VS 'WS' | 'CT' vs 'CS'} comparisons between these
+        % Warm threat vs safe & cold threat vs safe
+        n = 2;
+        alpha = 0.05/n; % Bonferonni lowering of significance level for a comparison
+        [~,p,~,stats] = ttest(y(:,1), y(:,2));
+        h = p<=alpha; % Bonferonni MCC
+        fprintf('warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+        [~,p,~,stats] = ttest(y(:,3), y(:,4)); 
+        h = p<=alpha; % Bonferonni MCC
+        fprintf('cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 end
-
-
-
 
 % Comparison binned across all thermal threats vs safe temps (regardless of
 % warm vs cold absolute temp)
-
-% pull the CI data
-[y_avg, y_sem] = deal(nan([2,1]));
-y = nan([num.trials, 2]);
-
-tb = data.tempbin;
-for i = 1:2 % for each of the temp regime types
-    switch i
-        case 1
-            roi = tb.(types{1}) | tb.(types{3}); % threat
-        case 2
-            roi = tb.(types{2}) | tb.(types{4}); % safe
+if temp_type==2 % LTS
+    % pull the CI data
+    [y_avg, y_sem] = deal(nan([2,1]));
+    y = nan([num.trials, 2]);
+    
+    tb = data.tempbin;
+    for i = 1:2 % for each of the temp regime types
+        switch i
+            case 1
+                roi = tb.(types{1}) | tb.(types{3}); % threat
+            case 2
+                roi = tb.(types{2}) | tb.(types{4}); % safe
+        end
+        y_raw = data.(param)(roi,:); % raw data
+        y(:,i) = mean(y_raw,'omitnan');
+        y_avg(i) = mean(y(:,i),'omitnan');
+        y_sem(i) = std(y(:,i),'omitnan')/sqrt(num.trials);
     end
-    y_raw = data.CI(roi,:); % raw data
-    y(:,i) = mean(y_raw,'omitnan');
-    y_avg(i) = mean(y(:,i),'omitnan');
-    y_sem(i) = std(y(:,i),'omitnan')/sqrt(num.trials);
-end
-
-% plot the CI data
-% Create a bar plot for the average CI data across temperature regimes
-labels = {'Threat', 'Safe'};
-sz = 75;
-figure;
-    bar(y_avg, 'FaceColor', foreColor);
-    hold on;
-    errorbar(1:2, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
-    % scatter plot points
-    x = repmat(1:2,[num.trials, 1]);
-    scatter(x(:), y(:), sz, Color('grey'), 'filled', 'xjitter','density','MarkerFaceAlpha', 0.75);
-    set(gca, 'XTickLabel', labels);
-    ylabel('Courtship Index (CI)');
-    % title('Courtship Behavior During Thermal Threats');
-    formatFig(gcf, blkbgd);
-save_figure(gcf, [figDir 'CI safe vs threat'], fig_type);
     
-% run statistical comparisions between safe and threatening for hot/cold
-% respectively 
-
-% Warm threat vs warm safe
-[h,p,~,stats] = ttest(y(:,1), y(:,2)); 
-fprintf('CI safe vs threat: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
-
-%% FIGURE: Quantity of all Courtship Measures during each thermal threat period by fly
-% manually adjust for other temperature protocols outside the LTS
-clearvars('-except',initial_var{:})
-foreColor = formattingColors(blkbgd); % get background colors
-
-% build indexes for warm threat, cool threat, warm safe, cool safe
-data.tempbin.WT = data.tempbin.h_idx & data.temp>25; % warm threat
-data.tempbin.WS = data.tempbin.c_idx & data.temp>25; % warm safe
-data.tempbin.CT = data.tempbin.c_idx & data.temp<25; % cool threat
-data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
-
-% pull the CI data
-[y_avg, y_sem] = deal(nan([4,1]));
-y = nan([num.trials, 4]);
-
-types = {'WT', 'WS', 'CT', 'CS'};
-tb = data.tempbin;
-for i = 1:4 % for each of the temp regime types
-    roi = tb.(types{i});
-    data.wing_ext_all(isnan(data.wing_ext_all)) = false;
-    data.chase_all(isnan(data.chase_all)) = false;
-    data.circling_all(isnan(data.circling_all)) = false;
-    y_raw = data.wing_ext_all | data.chase_all | data.circling_all;
-    y_raw = y_raw(roi,:); % raw data for the selected regime
-    y(:,i) = mean(y_raw,'omitnan');
-    y_avg(i) = mean(y(:,i),'omitnan');
-    y_sem(i) = std(y(:,i),'omitnan')/sqrt(num.trials);
-end
-
-% plot the CI data
-% Create a bar plot for the average CI data across temperature regimes
-labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
-sz = 75;
-figure;
-    bar(y_avg, 'FaceColor', foreColor);
-    hold on;
-    errorbar(1:4, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
-    % scatter plot points
-    x = repmat(1:4,[num.trials, 1]);
-    scatter(x(:), y(:), sz, Color('grey'), 'filled', 'xjitter','density','MarkerFaceAlpha', 0.75);
-    set(gca, 'XTickLabel', labels);
-    ylabel('Courtship Index All');
-    % title('Courtship Behavior During Thermal Threats');
-    formatFig(gcf, blkbgd);
-save_figure(gcf, [figDir 'CI_all per temp regime'], fig_type);
+    % plot the CI data
+    % Create a bar plot for the average CI data across temperature regimes
+    labels = {'Threat', 'Safe'};
+    sz = 75;
+    fig = getfig('All threat vs safe', 1, [469 579]);
+        bar(y_avg, 'FaceColor', foreColor);
+        hold on;
+        errorbar(1:2, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
+        % scatter plot points
+        x = repmat(1:2,[num.trials, 1]);
+        scatter(x(:), y(:), sz, Color('grey'), 'filled', 'xjitter','density','MarkerFaceAlpha', 0.75);
+        set(gca, 'XTickLabel', labels);
+        ylabel(param_str);
+        % title('Courtship Behavior During Thermal Threats');
+        formatFig(gcf, blkbgd);
+    save_figure(gcf, [figDir param_str ' safe vs threat'], fig_type);
+        
+    % run statistical comparisions between safe and threatening for hot/cold
     
-% run statistical comparisions between safe and threatening for hot/cold
-% respectively 
+    % Warm threat vs warm safe
+    [h,p,~,stats] = ttest(y(:,1), y(:,2)); 
+    fprintf('CI safe vs threat: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
-% Warm threat vs warm safe
-[h,p,~,stats] = ttest(y(:,1), y(:,2)); 
-fprintf('CI warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
-
-% cool threat vs cool safe
-[h,p,~,stats] = ttest(y(:,3), y(:,4)); 
-fprintf('CI cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
-
-
-% Comparison binned across all thermal threats vs safe temps (regardless of
-% warm vs cold absolute temp)
-
-% pull the CI data
-[y_avg, y_sem] = deal(nan([2,1]));
-y = nan([num.trials, 2]);
-
-tb = data.tempbin;
-for i = 1:2 % for each of the temp regime types
-    switch i
-        case 1
-            roi = tb.(types{1}) | tb.(types{3}); % threat
-        case 2
-            roi = tb.(types{2}) | tb.(types{4}); % safe
-    end
-    data.wing_ext_all(isnan(data.wing_ext_all)) = false;
-    data.chase_all(isnan(data.chase_all)) = false;
-    data.circling_all(isnan(data.circling_all)) = false;
-    y_raw = data.wing_ext_all | data.chase_all | data.circling_all;
-    y_raw = y_raw(roi,:); % raw data for the selected regime
-    y(:,i) = mean(y_raw,'omitnan');
-    y_avg(i) = mean(y(:,i),'omitnan');
-    y_sem(i) = std(y(:,i),'omitnan')/sqrt(num.trials);
 end
-
-% plot the CI data
-% Create a bar plot for the average CI data across temperature regimes
-labels = {'Threat', 'Safe'};
-sz = 75;
-figure;
-    bar(y_avg, 'FaceColor', foreColor);
-    hold on;
-    errorbar(1:2, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
-    % scatter plot points
-    x = repmat(1:2,[num.trials, 1]);
-    scatter(x(:), y(:), sz, Color('grey'), 'filled', 'xjitter','density','MarkerFaceAlpha', 0.75);
-    set(gca, 'XTickLabel', labels);
-    ylabel('Courtship Index All');
-    % title('Courtship Behavior During Thermal Threats');
-    formatFig(gcf, blkbgd);
-save_figure(gcf, [figDir 'CI_all safe vs threat'], fig_type);
-    
-% run statistical comparisions between safe and threatening for hot/cold
-% respectively 
-
-% Warm threat vs warm safe
-[h,p,~,stats] = ttest(y(:,1), y(:,2)); 
-fprintf('CI_all safe vs threat: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
 
 %% FIGURE: Distribution of courtship behaviors by temperature regime
 clearvars('-except',initial_var{:})
