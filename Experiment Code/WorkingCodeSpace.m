@@ -1708,8 +1708,36 @@ badTrials = [excelfile([false; bad_idx],Excel.trialID), excelfile([false; bad_id
 %% 
 uiopen
 fig = gcf;
-fig_name  = 'MA25_PSTH_summary';
+fig_name  = 'MA16_PSTH_summary';
 save_figure(fig, ['C:\Users\evynd\Downloads\' fig_name],'-pdf');
+
+% format the figures: 
+r= 2; % number of rows
+c = 12; % number of columns
+
+formatFig(fig,false,[r,c]);
+for i = 1:r*c
+    subplot(r,c,i)
+    box off
+    % recolor the voltage:
+    if i<=c
+        lines = findobj(gca, 'Type', 'Line');
+        lines.Color = Color('vaporwavepurple');
+    end
+    % recolor the PSTH
+     if i>c
+        lines = findobj(gca, 'Type', 'Line');
+        lines.Color = Color('floraldarkpink');
+        lines.LineWidth = 1.2;
+    end
+    % hide the outside y axes
+    if ~(i ==1) && ~(i==c+1)
+        set(gca, 'ycolor', 'none')
+    end
+    
+    % draw a box where the odor was delivered: 
+    
+end
 
 
 

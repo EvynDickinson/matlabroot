@@ -20,8 +20,7 @@ function color_output = Color(color_1, color_2, N)
 % 
 % ES Dickinson, University of Washington, Dec 2018
 
-
-load('color_palette')
+load('color_palette','colors')
 
 % Only one color requested:
 color_loc(:,1) = strcmpi(color_1, colors.names);
@@ -41,8 +40,8 @@ if nargin > 1
     end
 end
 
-% % HOW THE COLORS ARE UPDATED|CREATED:
-% xlFile = 'G:\My Drive\Data\FicTrac Raw Data\Color Palette.xlsx';      
+% % % HOW THE COLORS ARE UPDATED|CREATED:
+% xlFile = 'C:\Users\evynd\Documents\matlabroot\Functions and Code\Color Palette.xlsx';      
 % %load excel sheet data
 % [~,~,excelfile] = xlsread(xlFile);
 % 
@@ -65,10 +64,10 @@ end
 % % check that no colors exceed a value of 1
 % % or are less than 0
 % for ii = 1:length(excelfile)
-%     if colors.rgb(ii,rr) > 1  
+%     if any(colors.rgb(ii,:) > 1)
 %         fprintf(['\n value >1 in row: ' num2str(ii)])
 %     end 
-%     if colors.rgb(ii,rr) < 0  
+%     if any(colors.rgb(ii,:) < 0)  
 %         fprintf(['\n value <0 in row: ' num2str(ii)])
 %     end
 % end
