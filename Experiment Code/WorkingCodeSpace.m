@@ -1715,6 +1715,10 @@ save_figure(fig, ['C:\Users\evynd\Downloads\' fig_name],'-pdf');
 r= 2; % number of rows
 c = 12; % number of columns
 
+% odor params: 
+odorON = 4; % odor start time 
+odorOFF = 6; % odor end time
+
 formatFig(fig,false,[r,c]);
 for i = 1:r*c
     subplot(r,c,i)
