@@ -7,18 +7,19 @@ function output = Alphabet(input)
 % 'input' [letter in the alphabet, as character]
 % Output:
 % 'output' [letter, in char | number, in double]
-% 
+% e.g. : Alphabet(1) --> 'A'
 % 
 % ES Dickinson, University of Washington, Dec 2018
 
 alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+nLetters = length(alphabet);
 % determine if letter or number:
 if ischar(input)
     output = find(alphabet==input);
 else
-    if input > 26
-        start = fix(input/26);
-        last = rem(input,26);
+    if input > nLetters
+        start = fix(input/nLetters);
+        last = rem(input,nLetters);
         output = [alphabet(start) alphabet(last)];
     else
         output = alphabet(input);

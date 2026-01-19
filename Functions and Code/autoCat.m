@@ -1,16 +1,17 @@
 
 
 function newData = autoCat(data,newMat,rows,bottom,DimFlip)
-%
 % newData = autoCat(data,newMat,rows,bottom,DimFlip)
-%
-% automatically adds nans to the matrix to expand it to account for larger
-% data set sizes 
-%
-% rows selects how the matrix should be concatenated:
+% Function to concatenate data of different sizes by buffering the matrix
+% with nans, aka it automatically adds nans to the matrix to expand 
+% it to account for larger data set sizes 
+% ----- INPUTS -----
+% 'data' : the starting matrix that will be concatenated with 'newMat'
+% 'newMat' : matrix to add to the 'data' matrix
+% 'rows' : logical TF -- select how the matrix should be concatenated:
 % rows = true --> add rows to matrix --> [x ; y]
 % rows = false --> add columns to matrix --> [x , y]
-% bottom selects whether to add to the beginning or end of the matrix to make
+% 'bottom' : logical select whether to add to the beginning or end of the matrix to make
 % it all fit
 % bottom = true --> add to the end (bottom or right) of the matrix
 % bottom = false --> add to the beginning (top or left) of the matrix
