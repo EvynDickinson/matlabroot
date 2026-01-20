@@ -1,6 +1,8 @@
 
 function [nrows, ncols] = subplot_numbers(num_instances, maxCol)
 % [nrows, ncols] = subplot_numbers(num_instances, maxCol)
+%
+% PURPOSE
 % Get column and row dimensions for the desired number of 
 % subplots that are the most square
 % 

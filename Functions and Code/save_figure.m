@@ -3,12 +3,10 @@ function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig
 % 
 % results = save_figure(fig_handle, figure_name, type, autoSave, closeFig, figure_quality)
 %
-% UPDATE 12.4.25: AUTO SAVE BOTH A PDF AND A PNG FILE 
-%
+% PURPOSE
 % Export the input figure to the given location and name
 % with the following settings: 
 % '-png', '-nocrop', '-r300' , '-painters', '-rgb'
-% Default type is '-png' but can be specified
 %
 % INPUTS:
 %   'fig_handle' : handle for figure being saved
@@ -24,8 +22,10 @@ function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig
 %
 % OUTPUTS: 
 %   'results' : logical true|false if figure is saved
+%
+% UPDATE 12.4.25: AUTO SAVE BOTH A PDF AND A PNG FILE 
 %     
-% ES Dickinson, University of Washington, Jan 2019    
+% ES DICKINSON, 2019    
 
 %%
 

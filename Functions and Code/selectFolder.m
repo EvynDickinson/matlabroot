@@ -3,6 +3,7 @@
 function [folderSelected, fullPath] = selectFolder(path,mulitselect,promptString,default_search_names)
 % [folderSelected, fullPath] = selectFolder(path,mulitselect,promptString,default_search_names)
 % 
+% PURPOSE
 % select folder name(s) from the given directory or folder
 % 
 % INPUTS 

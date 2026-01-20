@@ -1,5 +1,7 @@
 function err = sem(data, dim, dim_num_samples)
 % err = sem(data, dim, dim_num_samples)
+%
+% PURPOSE
 % calculate the standard error of the mean for a set of data
 % 
 % INPUTS
