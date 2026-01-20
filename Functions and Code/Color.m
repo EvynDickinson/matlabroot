@@ -3,22 +3,32 @@ function color_output = Color(color_1, color_2, N)
 % 
 % color_matrix = Color(color_1, color_2, N)
 %
-% Give a color name and get out a double with 
-% the three color values
+% SINGLE COLOR:
+% Get RGB color vector from a color name based on the options in the
+% 'Color Palette.xlsx' excel file
 % OR 
-% Input two colors and an N and get a 
-% matrix with a color gradient between the two 
-% desired colors
+% MULTICOLOR:
+% Get a smooth RGB color vectors gradient (of length N) between two colors pulled from
+% the options in the 'Color Palette.xlsx' excel file
 %
-% Input:
-% 'x' [color name, string, e.g. 'Grey']
-% Output:
-% color_matrix = [R B G values]
+% INPUTS
+%   'color_1' : color name in string format, e.g. 'Grey'
+%           * for color gradients, this is the start color *
+%   'color_2' : end color for the color gradient, input as a string 
 %
+% OUTPUT
+%    'color_matrix' : matrix of color values (R B G) for each color 
+%           columns are the R, G, B value for a given color
+%           rows are each a different color in the gradient
+%
+% EXAMPLE:
 % e.g. [1, 0.5, 0] = Color('orange')
-% Find current colors in 'Color Palette' 
+%
+% ** requires the 'color_palette.m' file to be in the current matlab path**
 % 
-% ES Dickinson, University of Washington, Dec 2018
+% ES DICKINSON, Dec 2018
+
+%% Run the function
 
 load('color_palette','colors')
 
@@ -40,7 +50,7 @@ if nargin > 1
     end
 end
 
-% % % HOW THE COLORS ARE UPDATED|CREATED:
+%% HOW THE COLORS ARE UPDATED|CREATED:
 % xlFile = 'C:\Users\evynd\Documents\matlabroot\Functions and Code\Color Palette.xlsx';      
 % %load excel sheet data
 % [~,~,excelfile] = xlsread(xlFile);
@@ -72,6 +82,5 @@ end
 %     end
 % end
 % save('color_palette', 'colors')
-
 
 end

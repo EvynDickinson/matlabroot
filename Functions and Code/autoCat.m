@@ -2,29 +2,32 @@
 
 function newData = autoCat(data,newMat,rows,bottom,DimFlip)
 % newData = autoCat(data,newMat,rows,bottom,DimFlip)
+%
 % Function to concatenate data of different sizes by buffering the matrix
 % with nans, aka it automatically adds nans to the matrix to expand 
 % it to account for larger data set sizes 
-% ----- INPUTS -----
-% 'data' : the starting matrix that will be concatenated with 'newMat'
-% 'newMat' : matrix to add to the 'data' matrix
-% 'rows' : logical TF -- select how the matrix should be concatenated:
-% rows = true --> add rows to matrix --> [x ; y]
-% rows = false --> add columns to matrix --> [x , y]
-% 'bottom' : logical select whether to add to the beginning or end of the matrix to make
-% it all fit
-% bottom = true --> add to the end (bottom or right) of the matrix
-% bottom = false --> add to the beginning (top or left) of the matrix
+%
+% INPUTS
+%   'data' : the starting matrix that will be concatenated with 'newMat'
+%   'newMat' : matrix to add to the 'data' matrix
+%   'rows' : logical TF -- select how the matrix should be concatenated:
+%           rows = true --> add rows to matrix --> [x ; y]
+%           rows = false --> add columns to matrix --> [x , y]
+%    'bottom' : logical select whether to add to the beginning or end of the 
+%           matrix to make it all fit
+%           bottom = true --> add to the end (bottom or right) of the matrix
+%           bottom = false --> add to the beginning (top or left) of the matrix
 % 
-% DimFlip = true --> able to change the dimensions of the new matrix to
-% match the old matrix (e.g., a column vector can become a row vector)
+%    'DimFlip' : true --> able to change the dimensions of the new matrix to
+%           match the old matrix (e.g., a column vector can become a row vector)
 % 
-% data is the current matrix
-% newMat is the new data to be concatenated with 'data'
+% OUTPUT
+%   'newMat' : new concatenated data matrix with NaN buffers as needed
 %
 %
 % Evyn Dickinson, Yale University 2022
 
+%%
 % determine the dimensions:
 dataDim = size(data);
 addDim = size(newMat);
