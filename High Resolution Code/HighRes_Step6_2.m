@@ -22,6 +22,7 @@ data.CI_all = replaceNaN(data.wing_ext_all,false) |...
                         replaceNaN(data.chase_all,false) |...
                         replaceNaN(data.circling_all,false);
 
+% add new variables to the saved variable list
 initial_var{end+1} = 'encounters';
 initial_var{end+1} = 'foreColor';
 foreColor = formattingColors(blkbgd); % get background colors
@@ -42,7 +43,6 @@ end
 
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
-foreColor = formattingColors(blkbgd); % get background colors
 
 % plot the data:
 lw = 1;
