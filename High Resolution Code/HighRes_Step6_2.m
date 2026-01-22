@@ -40,7 +40,6 @@ if contains(groupName, 'F LRR 25-17')
     data.tempbin.WS(data.tempbin.WS) = false;
 end
 
-
 %% Simple comparison across flies: distance to food over time
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
@@ -235,7 +234,6 @@ for type = 1:2 % heating and cooling
          pData.(type_name).sem(t) = std(processed,'omitnan')/sqrt(length(processed));
     end
 end
-
 
 % plot the data
 if strcmp(groupName,'Berlin LTS caviar')

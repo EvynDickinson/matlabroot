@@ -1,10 +1,10 @@
 
 
-function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only,multiselect)
-% [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only,multiselect)
+function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext,ylimits] = PlotParamSelectionHR(plotType,dataType,multiselect)
+% [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext,ylimits] = PlotParamSelectionHR(plotType,dataType,multiselect)
 % 
 % PURPOSE
-% User selects a low resolution data type that returns parameters specific 
+% User selects a HIGH resolution data type that returns parameters specific 
 % to that type of data which are related to plotting the data
 %
 % INPUTS (all optional)
@@ -12,13 +12,13 @@ function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotPara
 %       true = user selects the type of data to plot
 %       false = the type of data is not returned
 %       (default : average)
-%   'location_only' : restrict the plotting data types to only those that
-%       are based on spatial location of the flies
-%       true = only spatially based parameters are desired (eg. not speed or sleep)
-%       false = all data types are available
+%   'dataType' : What subsection (or all) data types only
+%       'location' = only spatially based parameters are desired (eg. not speed or sleep)
+%       'all' = all data types [default value]
+%       'courtship' = only courtship behaviors
 %    'mutliselect' : user ability to select multiple data types
 %       true = more than one parameter can be selected for plotting
-%       false = returns only a single parameter 
+%       false = returns only a single parameter (default value)
 %
 % OUTPUTS
 %    'title_str' : Name of the selected parameter
@@ -33,12 +33,13 @@ function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotPara
 %    'fig_dir' : fig directory ending for subfolder of this plot type [string]
 %    'ext' : are there subgroups of the data that can be plotted [logical]
 %       (e.g., 'innerquad' has 4 extension subquadrants for each location)
+%    'ylimits' : suggested y limits for this parameter
 %
-% ES DICKINSON, 2024
+% ES DICKINSON, 2026
 
 %%
 % allow multiple parameters to be selected at a time or not
-if nargin > 2 && multiselect
+if exist('multiselect', 'var') && multiselect 
     selectionMode = 'multiple';
     prompt_str = 'Select MULTPLE types for comparison:';
 else
@@ -47,12 +48,20 @@ else
 end
 
 % Select the type of information to plot: 
-if nargin>1 && location_only
-    paramList = {'fullquad','quadring', 'innerquad','circle10', ...
-                 'circle7', 'circle5', 'ring', 'inner75'};
-else
-    paramList = {'fullquad', 'innerquad', 'quadring','circle10', 'circle7',...
-                 'circle5', 'fliesonfood','ring','speed','sleep','inner75'};
+if exist('dataType', 'var') 
+    switch dataType
+        case 'all'
+            paramList = {'Outer Ring', 'Sleep',  'Food Quadrant', 'Speed',...
+              'Inner Food Quadrant', 'Distance to Food', 'Fly On Food', ...
+              'Circling', 'Circling All', 'Chase', 'Chase All',...
+              'Food Circle', 'Eeccentricity', 'CI','Wing Extension', 'Wing Extension All'};
+        case 'location'
+            paramList = {'Outer Ring', 'foodQuad', 'innerFoodQuad',...
+              'FlyOnFood', 'foodcircle'};
+        case 'courtship'
+            paramList = {'CI','CI_all', 'circling_1sec', 'circling_all',...
+              'court_chase', 'chase_all', 'wing_ext', 'wing_ext_all'};
+    end
 end
 
 idx = listdlg('ListString', paramList,'PromptString', prompt_str,...
@@ -66,12 +75,86 @@ end
 
 % initialize empty parameters (need to do this for the cases where there
 % are multiple selection options available for the data)
-[title_str, pName, ext, y_dir, y_lab, nullD, scaler] = deal([]);
+[title_str, pName, ext, y_dir, y_lab, nullD, scaler] = deal([nan(numParams,1)]);
+ylimits = nan(numParams,2);
 
 % load data-specific parameters into each group
 for i = 1:numParams
     title_str{i} = paramList{idx(i)};
     switch title_str{i}
+        case 'Outer Ring'
+            pName{i} = 'OutterRing';
+            scaler(i) = 100;
+            y_lab{i} = 'edge occupancy (% flies)';
+            ylimits(i,:) = [0, 50];
+            nullD(i) = 25;
+            ext(i) = false; % no extended subregions
+        case 'Speed'
+            pName{i} = 'speed';
+            scaler(i) = 1;
+            ylabel_str = 'speed (cm/s)';
+            ylimits(i,:) = [0 18];
+        case 'foodQuad'
+            scaler(i) = 100;
+            ylabel_str = 'food quadrant (% flies)';
+            ylimits = [0 90];
+        case 'innerFoodQuad'
+            scaler(i) = 100;
+            ylabel_str = 'inner food quadrant (% flies)';
+            ylimits = [0 90];
+        case 'foodcircle'
+            scaler(i) = 100;
+            ylabel_str = 'food circle (% flies)';
+            ylimits = [0 65];
+        case 'sleep'
+            scaler(i) = 100;
+            ylabel_str = 'sleeping (% flies)';
+            ylimits = [0 60];
+        case 'CI'
+            scaler(i) = 100;
+            ylabel_str = 'sleeping (% flies)';
+            ylimits = [0 60];
+        case 'Eccentricity'
+            pName{i} = 'OutterRing';
+            scaler(i) = 100;
+            y_lab{i} = 'edge occupancy (% flies)';
+            ylimits(i,:) = [0, 50];
+            nullD(i) = 25;
+            ext(i) = false; 
+        case 
+            pName{i} = 'OutterRing';
+            scaler(i) = 100;
+            y_lab{i} = 'edge occupancy (% flies)';
+            ylimits(i,:) = [0, 50];
+            nullD(i) = 25;
+            ext(i) = false; 
+        case 
+            pName{i} = 'OutterRing';
+            scaler(i) = 100;
+            y_lab{i} = 'edge occupancy (% flies)';
+            ylimits(i,:) = [0, 50];
+            nullD(i) = 25;
+            ext(i) = false; 
+        case 
+            pName{i} = 'OutterRing';
+            scaler(i) = 100;
+            y_lab{i} = 'edge occupancy (% flies)';
+            ylimits(i,:) = [0, 50];
+            nullD(i) = 25;
+            ext(i) = false; 
+
+
+            
+            pName{i} = 'ring';
+            ext(i) = false; % no sub regions
+            y_dir{i} = 'normal';
+            y_lab{i} = [title_str{i} ' (%)'];
+            nullD(i) = 25;
+            scaler(i) = 1;
+
+
+
+
         case 'ring'
             pName{i} = 'ring';
             ext(i) = false; % no sub regions
@@ -191,95 +274,4 @@ else
     dType = 2;
     fig_dir = '';
 end
-
-%% 
-
-
-% % Select the type of information to plot: 
-% if nargin>1 && location_only
-%     paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy'};
-% else
-%     paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Proximity to Food','Speed','Sleep'};
-% end
-% 
-% idx = listdlg('ListString', paramList,'PromptString', 'Select the type of data you want to plot:','ListSize',[200,200]);
-% if isempty(idx)
-%     disp('No choice selected')
-%     return
-% end
-% title_str = paramList{idx};
-% switch title_str
-%     case 'Proximity to Food'
-%         pName = 'dist';
-%         y_dir = 'reverse';
-%         y_lab = [title_str ' (mm)'];
-%         nullD = 18.1;
-%         scaler = 1;
-%         % % Y limit ranges
-%         % dist_lim = [10,35];       %distance
-%         % dt_lim = [14, 32];        %distance-temp
-%     case 'Food Occupancy'
-%         pName = 'occ';
-%         y_dir = 'normal';
-%         y_lab = [title_str ' (%)'];
-%         nullD = 14.4;
-%         scaler = 100;
-%     case 'Food Circle Occupancy'
-%         pName = 'foodcircle';
-%         y_dir = 'normal';
-%         y_lab = [title_str ' (%)'];
-%         nullD = 10;
-%         scaler = 1;
-%     case 'Quadrant Occupancy'
-%         pName = 'quadrant';
-%         y_dir = 'normal';
-%         y_lab = [title_str ' (%)'];
-%         nullD = 25;
-%         scaler = 1;
-%     case 'Ring Occupancy'
-%         pName = 'ring';
-%         y_dir = 'normal';
-%         y_lab = [title_str ' (%)'];
-%         nullD = 25;
-%         scaler = 1;
-%     case 'Speed'
-%         pName = 'speed';
-%         y_dir = 'normal';
-%         y_lab = [title_str ' (mm/s)'];
-%         nullD = nan;
-%         scaler = 1;
-%     case 'Sleep'
-%         pName = 'sleep';
-%         y_dir = 'normal';
-%         y_lab = 'Sleeping flies (%)';
-%         nullD = nan;
-%         scaler = 1;
-% end
-% 
-% if plotType
-%     qList = {'Single trial lines', 'Average', 'Heating and Cooling'};
-%     idx = listdlg('ListString', qList,'PromptString', ['How do you want to plot the ' title_str ' data:'],'ListSize',[300,200]);
-%     if isempty(idx)
-%         disp('No choice selected')
-%         return
-%     end
-%     typeString = qList{idx};
-%     switch typeString
-%         case 'Single trial lines'
-%             dType = 1;
-%             fig_dir = '/all trial lines/';
-%         case 'Average'
-%             dType = 2;
-%             fig_dir = '/time course/';
-%         case 'Heating and Cooling'
-%             dType = 3;
-%             fig_dir = '/time course H and C/';
-%          case ''
-%             disp('')
-%             return
-%     end
-% else
-%     dType = 1;
-%     fig_dir = '';
-% end
 
