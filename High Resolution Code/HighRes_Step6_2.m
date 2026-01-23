@@ -81,91 +81,130 @@ sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
 
 LW = 0.75;
 sSpan = 180;
+kolor = Color('vaporwavepurple');
+% kolor = foreColor; %Color('vaporwavepurple');
 % dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true);
-for i = num.exp:-1:1
-    x = grouped(i).time;
-    kolor = grouped(i).color;
-    switch ext
-        case true % subregions exist
-            yy = grouped(i).(pName).food;
-        case false % no subregions
-            yy = grouped(i).(pName);
+    x =data.time;
+    yy = data.(pName);
+    if sexSep
+        y_all = [squeeze(yy(:,M,:)), squeeze(yy(:,F,:))];
+    else 
+        y_all = yy;
     end
-
+    nTrials = size(y_all,2);
     % temp
     subplot(r,c,sb(1).idx); hold on
-        y = grouped(i).temp;
+        y = data.temperature;
         plot(x,y,'LineWidth',2,'Color',kolor)
 
-   % selected parameter time course
+    % selected parameter time course
     subplot(r,c,sb(2).idx); hold on
         switch dType
             case 1 % single trial lines
-                for trial = 1:num.trial(i)
-                    y = smooth(yy.all(:,trial),sSpan, 'moving')*scaler;
+                for trial = 1:nTrials
+                    y = smooth(y_all(:,trial),sSpan, 'moving')*scaler;
                     plot(x,y,'LineWidth',LW,'Color',kolor)
                 end
-            case {2, 3} % avg line
-                y = smooth(yy.avg,sSpan, 'moving')*scaler;
+            case {2, 3} % avg line or heating/cooling
+                y_avg = mean(y_all,2,'omitnan');
+                y = smooth(y_avg,sSpan, 'moving')*scaler;
                 plot(x,y,'LineWidth',LW,'Color',kolor)
         end
 
-    %temp vs dependent variable tuning curve
+    % temp tuning curve for selected parameter
     subplot(r,c,sb(3).idx); hold on
+        x  = data.tempbin.temps; % temp bins
+        cIdx = data.tempbin.cooling; % logical locations for cooling data for each temp bin
+        hIdx = data.tempbin.warming; % logical locations for warming data for each temp bin
+        nTemps = length(x); % number of temperature bins
+        % create empty variables for the avg and error data
+        switch dType
+            case 1 % single trial avg lines
+                rawY = nan([nTemps,nTrials]);
+            case 2 % avg lines (combined heating and cooling)
+                rawY = nan([nTemps,2]); % first col = avg, second = sem
+            case 3 % heating and cooling averages separated
+                [rawYC, rawYH] = deal(nan([nTrials, 2])); % first col = avg, second = sem
+        end
+        % extract the information across the temperature bins
+        for tt = 1:nTemps
+            yC = yy(cIdx(:,tt),:); % all the cooling data across the flies that fits this temp bin
+            yH = yy(hIdx(:,tt),:); % all the heating data across the flies that fits this temp bin
+            % fill the temp bin data into the appropriate structure
+            switch dType
+                case 1 % single trial lines
+                    rawY(tt,:) = mean([yC; yH],'omitnan');
+                case 2 % averaged across heating and cooling
+                    raw = mean([yC; yH],'omitnan');
+                    rawY(tt,1) = mean(raw,'omitnan'); % get the avg for this temp bin
+                    rawY(tt,2) = sem(raw); % get the SEM
+                case 3 % heating and cooling averages
+                    raw = mean(yC,'omitnan'); % find cooling fly data 
+                    rawYC(tt,1) = mean(raw,'omitnan');
+                    rawYC(tt,2) = sem(raw);
+                    raw = mean(yH,'omitnan'); % find heating fly data
+                    rawYH(tt,1) = mean(raw,'omitnan');
+                    rawYH(tt,2) = sem(raw);
+            end
+        end
+        % plot the data from the temperature bins : 
+        % TODO 1/23/26: update this to plot the data based on the input type
+         switch dType
+             case 1 % single trial lines
+                    y = mean(rawY,2,'omitnan')*scaler;
+                    plot(x,y,'color',kolor,'linewidth',1.25)
+
+                for trial = 1:num.trial(i)
+                    if strcmp(pName, 'dist')
+                        x = grouped(i).(pName).distavgbytemp(:,1);
+                        rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
+                    else
+                        x = yy.temps;
+                        rawY = [yy.increasing.raw(:,trial),yy.decreasing.raw(:,trial)];
+                    end
+                    y = mean(rawY,2,'omitnan')*scaler;
+                    plot(x,y,'color',kolor,'linewidth',1.25)
+                end
     
-     switch dType
-         case 1 % single trial lines
-            for trial = 1:num.trial(i)
+             case 2 % avg lines (combined heating and cooling)
                 if strcmp(pName, 'dist')
                     x = grouped(i).(pName).distavgbytemp(:,1);
-                    rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
+                    rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
                 else
                     x = yy.temps;
-                    rawY = [yy.increasing.raw(:,trial),yy.decreasing.raw(:,trial)];
+                    rawY = [yy.increasing.raw,yy.decreasing.raw];
                 end
                 y = mean(rawY,2,'omitnan')*scaler;
+                y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
                 plot(x,y,'color',kolor,'linewidth',1.25)
-            end
-
-         case 2 % avg lines (combined heating and cooling)
-            if strcmp(pName, 'dist')
-                x = grouped(i).(pName).distavgbytemp(:,1);
-                rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
-            else
-                x = yy.temps;
-                rawY = [yy.increasing.raw,yy.decreasing.raw];
-            end
-            y = mean(rawY,2,'omitnan')*scaler;
-            y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-            plot(x,y,'color',kolor,'linewidth',1.25)
-            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-
-         case 3 % separated heating and cooling
-            if strcmp(pName, 'dist')
-                x = grouped(i).(pName).distavgbytemp(:,1);
-                YC = grouped(i).decreasing.all;
-                YH = grouped(i).increasing.all;
-            else
-                x = yy.temps;
-                YC = yy.decreasing.raw;
-                YH = yy.increasing.raw;
-            end
-            % cooling
-            y = mean(YC,2,'omitnan')*scaler;
-            y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
-            % heating
-            y = mean(YH,2,'omitnan')*scaler;
-            y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-            plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-            plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
-     end
+                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    
+             case 3 % separated heating and cooling
+                if strcmp(pName, 'dist')
+                    x = grouped(i).(pName).distavgbytemp(:,1);
+                    YC = grouped(i).decreasing.all;
+                    YH = grouped(i).increasing.all;
+                else
+                    x = yy.temps;
+                    YC = yy.decreasing.raw;
+                    YH = yy.increasing.raw;
+                end
+                % cooling
+                y = mean(YC,2,'omitnan')*scaler;
+                y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+                plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
+                % heating
+                y = mean(YH,2,'omitnan')*scaler;
+                y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+                plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
+         end
      dataString{i} = grouped(i).name;
-end
+
 
 % FORMATING AND LABELS
 nat_xlims = [];
