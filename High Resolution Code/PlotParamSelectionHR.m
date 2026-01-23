@@ -48,24 +48,24 @@ else
 end
 
 % Select the type of information to plot: 
-if exist('dataType', 'var') 
-    switch dataType
-        case 'all'
-            paramList = {'Outer Ring', 'Sleep',  'Food Quadrant', 'Speed',...
-              'Inner Food Quadrant', 'Distance to Food', 'Fly On Food', 'Turning', 'Courtship Index',...
-              'Courtship Index All', 'Circling', 'Circling All', 'Chase', 'Chase All',...
-              'Food Circle', 'Eccentricity','Wing Extension', 'Wing Extension All', 'Inter Fly Distance'};
-        case 'location' % behavior is determined by location in the arena (percent based ones) 
-            paramList = {'Outer Ring','Food Quadrant','Inner Food Quadrant', ...
-              'Fly On Food','Food Circle',};
-        case 'courtship' % courtship specific parameters
-            paramList = {'Courtship Index','Courtship Index All','Inter Fly Distance'...
-               'Circling', 'Circling All', 'Chase', 'Chase All','Wing Extension', 'Wing Extension All'};
-    end
+if ~exist('dataType', 'var') 
+    dataType = 'all';  % default to all options
 end
-
+switch dataType
+    case 'all'
+        paramList = {'Outer Ring', 'Sleep',  'Food Quadrant', 'Speed',...
+          'Inner Food Quadrant', 'Distance to Food', 'Fly On Food', 'Turning', 'Courtship Index',...
+          'Courtship Index All', 'Circling', 'Circling All', 'Chase', 'Chase All',...
+          'Food Circle', 'Eccentricity','Wing Extension', 'Wing Extension All', 'Inter Fly Distance'};
+    case 'location' % behavior is determined by location in the arena (percent based ones) 
+        paramList = {'Outer Ring','Food Quadrant','Inner Food Quadrant', ...
+          'Fly On Food','Food Circle',};
+    case 'courtship' % courtship specific parameters
+        paramList = {'Courtship Index','Courtship Index All','Inter Fly Distance'...
+           'Circling', 'Circling All', 'Chase', 'Chase All','Wing Extension', 'Wing Extension All'};
+end
 idx = listdlg('ListString', paramList,'PromptString', prompt_str,...
-              'ListSize',[200,200],'SelectionMode',selectionMode);
+              'ListSize',[200,400],'SelectionMode',selectionMode);
 if isempty(idx)
     disp('No choice selected')
     return
@@ -75,9 +75,10 @@ end
 
 % initialize empty parameters (need to do this for the cases where there
 % are multiple selection options available for the data)
-[title_str, pName, y_dir, y_lab, nullD, scaler] = deal([nan(numParams,1)]);
+[title_str, pName, y_lab, nullD, scaler] = deal([]); %nan(numParams,1)
 ylimits = nan(numParams,2);
 sexSep = true([numParams,1]); % default is true (that each fly has their own data)
+y_dir = repmat({'normal'},[numParams,1]); % set default to normal direction
 
 % load data-specific parameters into each group
 for i = 1:numParams
@@ -138,6 +139,7 @@ for i = 1:numParams
             scaler(i) = 100;
             y_lab{i} = 'distance to food (mm)';
             ylimits(i,:) = [0, 35];
+            y_dir{i} = 'reverse';
         case 'Flies on Food'
             pName{i} = 'FlyOnFood';
             scaler(i) = 100;
@@ -207,7 +209,7 @@ end
 if ~exist('plotType','var')
     plotType = false;
 end
-if plotType
+if plotType % if choice of options is desired
     qList = { 'Heating and Cooling','Average', 'Single trial lines'};
     idx = listdlg('ListString', qList,'PromptString', 'How do you want to plot the data:','ListSize',[300,200]);
     if isempty(idx)
@@ -229,7 +231,7 @@ if plotType
             disp('')
             return
     end
-else
+else % default option is average lines
     dType = 2;
     fig_dir = '';
 end

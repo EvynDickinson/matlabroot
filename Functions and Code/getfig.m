@@ -51,8 +51,8 @@ fig_pos = primary_pos; %hold over from previous verions
 figsize = primary_size;
 
 % set name option
-if nargin==0
-    name = 'Fancy Figure TM ¯\_(ツ)_/¯'; 
+if nargin==0 || strcmp(name,'')
+    name = 'Fancy Figure TM ¯\_(ツ)_/¯'; % hehe
 end
 
 % set second screen options
