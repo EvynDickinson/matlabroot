@@ -41,6 +41,7 @@ if nargin<6 % DETERMINE FIGURE QUALITY
         fig_quality = '-r100'; %this massively increases the image saving time
     else
         fig_quality = '-r300'; 
+    end
 end
 
 warning off

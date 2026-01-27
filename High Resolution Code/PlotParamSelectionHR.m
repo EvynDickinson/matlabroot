@@ -211,7 +211,8 @@ if ~exist('plotType','var')
 end
 if plotType % if choice of options is desired
     qList = { 'Heating and Cooling','Average', 'Single trial lines'};
-    idx = listdlg('ListString', qList,'PromptString', 'How do you want to plot the data:','ListSize',[300,200]);
+    idx = listdlg('ListString', qList, PromptString='How do you want to plot the data:',...
+        ListSize=[300,200], SelectionMode=selectionMode);
     if isempty(idx)
         disp('No choice selected')
         return

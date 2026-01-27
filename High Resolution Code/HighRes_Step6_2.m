@@ -42,8 +42,6 @@ if contains(groupName, 'F LRR 25-17')
 end
 
 %% Time course figure and temp-tuning curve for a selected variable
-% TODO 1/22 : have this largely replicate the format of the low
-% resolution data figures
 clearvars('-except',initial_var{:})
 
 autoLim = true; % matlab automatically determines the y limits if true
@@ -79,22 +77,23 @@ sb(1).idx = [1,2]; %temp timecourse
 sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
 sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
 
-LW = 0.75;
-sSpan = 180;
-kolor = Color('vaporwavepurple');
-% kolor = foreColor; %Color('vaporwavepurple');
-% dataString = cell([1,num.exp]);
+LW = 0.75; % single trial line widths
+sSpan = 300; % 10 second smoothing function
+kolor = foreColor;
+h_kolor = Color('googlered');
+c_kolor = Color('dodgerblue');
 
 % FIGURE:
 fig = getfig('',true);
-    x =data.time;
+    x = data.time;
     yy = data.(pName);
-    if sexSep
+    if sexSep % data separated per fly or per group of flies
         y_all = [squeeze(yy(:,M,:)), squeeze(yy(:,F,:))];
     else 
         y_all = yy;
     end
     nTrials = size(y_all,2);
+    
     % temp
     subplot(r,c,sb(1).idx); hold on
         y = data.temperature;
@@ -123,88 +122,58 @@ fig = getfig('',true);
         % create empty variables for the avg and error data
         switch dType
             case 1 % single trial avg lines
-                rawY = nan([nTemps,nTrials]);
+                % rawY = nan([nTemps,nTrials]);
+                [rawYC, rawYH] = deal(nan([nTemps, nTrials])); % first col = avg, second = sem
             case 2 % avg lines (combined heating and cooling)
                 rawY = nan([nTemps,2]); % first col = avg, second = sem
             case 3 % heating and cooling averages separated
-                [rawYC, rawYH] = deal(nan([nTrials, 2])); % first col = avg, second = sem
+                [rawYC, rawYH] = deal(nan([nTemps, 2])); % first col = avg, second = sem
         end
         % extract the information across the temperature bins
-        for tt = 1:nTemps
+        % TODO 1/26 : determine why the single trial lines arent plotting
+        % different values for the different trials
+        for tt = 1:nTemps 
             yC = yy(cIdx(:,tt),:); % all the cooling data across the flies that fits this temp bin
             yH = yy(hIdx(:,tt),:); % all the heating data across the flies that fits this temp bin
             % fill the temp bin data into the appropriate structure
             switch dType
                 case 1 % single trial lines
-                    rawY(tt,:) = mean([yC; yH],'omitnan');
+                    raw = mean(yC,'omitnan').*scaler; % find cooling fly data 
+                    rawYC(tt,:) = mean(raw,'omitnan');
+                    raw = mean(yH,'omitnan').*scaler; % find heating fly data
+                    rawYH(tt,:) = mean(raw,'omitnan');
                 case 2 % averaged across heating and cooling
-                    raw = mean([yC; yH],'omitnan');
+                    raw = mean([yC; yH],'omitnan').*scaler;
                     rawY(tt,1) = mean(raw,'omitnan'); % get the avg for this temp bin
                     rawY(tt,2) = sem(raw); % get the SEM
                 case 3 % heating and cooling averages
-                    raw = mean(yC,'omitnan'); % find cooling fly data 
+                    raw = mean(yC,'omitnan').*scaler; % find cooling fly data 
                     rawYC(tt,1) = mean(raw,'omitnan');
                     rawYC(tt,2) = sem(raw);
-                    raw = mean(yH,'omitnan'); % find heating fly data
+                    raw = mean(yH,'omitnan').*scaler; % find heating fly data
                     rawYH(tt,1) = mean(raw,'omitnan');
                     rawYH(tt,2) = sem(raw);
             end
         end
         % plot the data from the temperature bins : 
-        % TODO 1/23/26: update this to plot the data based on the input type
          switch dType
-             case 1 % single trial lines
-                    y = mean(rawY,2,'omitnan')*scaler;
-                    plot(x,y,'color',kolor,'linewidth',1.25)
+             case 1 % single trial combined heating and cooling lines % %TODO: make this H & C separated 
+                 all_x = repmat(x',[1,nTrials]); % make repeat x temp lines for each trial
+                 plot(x,rawYH,'color', h_kolor, 'LineWidth',LW) 
+                 plot(x,rawYC,'color', c_kolor, 'LineWidth',LW) 
 
-                for trial = 1:num.trial(i)
-                    if strcmp(pName, 'dist')
-                        x = grouped(i).(pName).distavgbytemp(:,1);
-                        rawY = [grouped(i).increasing.all(:,trial),grouped(i).decreasing.all(:,trial)];
-                    else
-                        x = yy.temps;
-                        rawY = [yy.increasing.raw(:,trial),yy.decreasing.raw(:,trial)];
-                    end
-                    y = mean(rawY,2,'omitnan')*scaler;
-                    plot(x,y,'color',kolor,'linewidth',1.25)
-                end
-    
              case 2 % avg lines (combined heating and cooling)
-                if strcmp(pName, 'dist')
-                    x = grouped(i).(pName).distavgbytemp(:,1);
-                    rawY = [grouped(i).increasing.all,grouped(i).decreasing.all];
-                else
-                    x = yy.temps;
-                    rawY = [yy.increasing.raw,yy.decreasing.raw];
-                end
-                y = mean(rawY,2,'omitnan')*scaler;
-                y_err = (std(rawY,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-                plot(x,y,'color',kolor,'linewidth',1.25)
-                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-    
+                 plot_error_fills(plot_err, x, rawY(:,1), rawY(:,2), kolor, fig_type, 0.35);
+                 plot(x,rawY(:,1),'color', kolor, 'LineWidth',LW*2)
+                
              case 3 % separated heating and cooling
-                if strcmp(pName, 'dist')
-                    x = grouped(i).(pName).distavgbytemp(:,1);
-                    YC = grouped(i).decreasing.all;
-                    YH = grouped(i).increasing.all;
-                else
-                    x = yy.temps;
-                    YC = yy.decreasing.raw;
-                    YH = yy.increasing.raw;
-                end
-                % cooling
-                y = mean(YC,2,'omitnan')*scaler;
-                y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '--')
-                % heating
-                y = mean(YH,2,'omitnan')*scaler;
-                y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
-                plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
-                plot(x,y,'color',kolor,'linewidth',1.25,'linestyle', '-')          
+                 % heating data
+                 plot_error_fills(plot_err, x, rawYH(:,1), rawYH(:,2), h_kolor, fig_type, 0.35);
+                 plot(x,rawYH(:,1),'color', h_kolor, 'LineWidth',LW*2)
+                 % cooling data
+                 plot_error_fills(plot_err, x, rawYC(:,1), rawYC(:,2), c_kolor, fig_type, 0.35);
+                 plot(x,rawYC(:,1),'color', c_kolor, 'LineWidth',LW*2)
          end
-     dataString{i} = grouped(i).name;
-
 
 % FORMATING AND LABELS
 nat_xlims = [];
@@ -215,63 +184,41 @@ ylabel('\circC')
 set(gca,"XColor",'none')
 nat_xlims = [nat_xlims, xlim];
 
-% distance
+% timecourse
 subplot(r,c,sb(2).idx)
 ylabel(y_lab)
 xlabel('time (min)')
 set(gca,'ydir',y_dir)
+h_line(nullD,'gray',':',2)
 nat_xlims = [nat_xlims, xlim];
 
-% temp-distance relationship
+% temp-tuning curve
 subplot(r,c,sb(3).idx)
 ylabel(y_lab)
 xlabel('temp (\circC)')
 % if ~autoLim
 %     ylim([0 60])
 % end
-h_line(nullD,'grey',':',2) %36.2
+h_line(nullD,'gray',':',2)
 set(gca,'ydir',y_dir)
 
-if ~xlim_auto
-    subplot(r,c,sb(1).idx)
-    xlim(time_limits)
-    subplot(r,c,sb(2).idx)
-    xlim(time_limits)
-    % ylim([0,100])
-    % ylim([20,100])
-else % make sure the x-axis matches on timecourse figs
+if xlim_auto
     xlimits = [min(nat_xlims), max(nat_xlims)];
     subplot(r,c,sb(1).idx)
     xlim(xlimits)
     subplot(r,c,sb(2).idx)
     xlim(xlimits)
+else
+    subplot(r,c,sb(1).idx) %#ok<UNRCH>
+    xlim(time_limits)
+    subplot(r,c,sb(2).idx)
+    xlim(time_limits)
+    % ylim([0,100])
+    % ylim([20,100])    
 end
-
-% legend(dataString,'textcolor', foreColor, 'location', 'southeast', 'box', 'off','fontsize', 5)
 
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 %% Simple comparison across flies: distance to food over time
