@@ -8,10 +8,15 @@ function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,sexSep,ylimits]
 % to that type of data which are related to plotting the data
 %
 % INPUTS (all optional)
-%     'plotType' : select the type of data to plot (avg, single trial, separated heating and cooling)
+%     'plotType' : (logical OR string) option to select the type of data to plot 
+%           (string) 
+%           input one of the following exactly: 
+%           'Heating and Cooling', 'Average', 'Single trial lines'
+%           (logical) 
 %           true = user selects the type of data to plot
 %           false = the type of data is not returned
 %           (default : average)
+%           
 %     'dataType' : What subsection (or all) data types only [all, location,courtship]
 %           'location' = only spatially based parameters are desired (eg. not speed or sleep)
 %           'all' = all data types [default value]
@@ -24,8 +29,8 @@ function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,sexSep,ylimits]
 %     'title_str' : Name of the selected parameter
 %           (e.g. 'Distance to Food', 'Food Occupancy', 'Food Circle', 'Occupancy')
 %     'pName' : parameter name in the grouped structure
-%     'y_dir' : y axis plotting direction ('normal' vs 'reverse')
-%     'y_lab' : y axis label 
+%     'y_dir' : y-axis plotting direction ('normal' vs 'reverse')
+%     'y_lab' : y-axis label 
 %           (e.g. 'Distance to Food (mm)', 'Food Occupancy (% flies)')
 %     'nullD' : null distribution value (e.g. 25 for 25% of the arena)
 %     'scaler' : multiplication scaler for the parameter (usually 1 or 100)
@@ -93,7 +98,7 @@ for i = 1:numParams
         case 'Speed'
             pName{i} = 'speed';
             scaler(i) = 1;
-            y_lab{i} = 'speed (cm/s)';
+            y_lab{i} = 'speed (mm/s)';
             ylimits(i,:) = [0 18];
         case 'Food Quadrant'
             pName{i} = 'foodQuad';
@@ -207,17 +212,27 @@ end
 
 % Select the type of data that will be plotted (e.g. avg, single, H&C)
 if ~exist('plotType','var')
-    plotType = false;
-end
-if plotType % if choice of options is desired
-    qList = { 'Heating and Cooling','Average', 'Single trial lines'};
-    idx = listdlg('ListString', qList, PromptString='How do you want to plot the data:',...
-        ListSize=[300,200], SelectionMode=selectionMode);
-    if isempty(idx)
-        disp('No choice selected')
-        return
+    % default option is average lines
+    dType = 2;
+    fig_dir = '';
+
+else % some type of input for plotType
+    % automatically pull the data type if provided as string
+    if ischar(plotType)
+        typeString = plotType;
+    % manually select the data type
+    elseif islogical(plotType) | isscalar(plotType)
+        qList = { 'Heating and Cooling','Average', 'Single trial lines'};
+        idx = listdlg('ListString', qList, PromptString='How do you want to plot the data:',...
+            ListSize=[300,200], SelectionMode=selectionMode);
+        if isempty(idx)
+            disp('No choice selected')
+            return
+        end
+        typeString = qList{idx};
     end
-    typeString = qList{idx};
+
+    % select the parameters for the datatype
     switch typeString
         case 'Single trial lines'
             dType = 1;
@@ -232,8 +247,32 @@ if plotType % if choice of options is desired
             disp('')
             return
     end
-else % default option is average lines
-    dType = 2;
-    fig_dir = '';
+
 end
+
+
+% if plotType % if choice of options is desired
+%     qList = { 'Heating and Cooling','Average', 'Single trial lines'};
+%     idx = listdlg('ListString', qList, PromptString='How do you want to plot the data:',...
+%         ListSize=[300,200], SelectionMode=selectionMode);
+%     if isempty(idx)
+%         disp('No choice selected')
+%         return
+%     end
+%     typeString = qList{idx};
+%     switch typeString
+%         case 'Single trial lines'
+%             dType = 1;
+%             fig_dir = 'all trial lines/';
+%         case 'Average'
+%             dType = 2;
+%             fig_dir = 'time course/';
+%         case 'Heating and Cooling'
+%             dType = 3;
+%             fig_dir = 'time course H and C/';
+%          case ''
+%             disp('')
+%             return
+%     end
+% end
 
