@@ -41,9 +41,12 @@ if contains(groupName, 'F LRR 25-17')
     data.tempbin.WS(data.tempbin.WS) = false;
 end
 
+% create variable for all other space in arena besides inner food quad and
+% outer ring
+innerEmptyQuad = true(size(data.OutterRing));
+innerEmptyQuad = 
+
 %% Time course figure and temp-tuning curve for a selected variable
-% TODO 1/22 : have this largely replicate the format of the low
-% resolution data figures
 clearvars('-except',initial_var{:})
 
 autoLim = true; % matlab automatically determines the y limits if true
@@ -80,23 +83,22 @@ sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
 sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
 
 LW = 0.75; % single trial line widths
-sSpan = 180;
-kolor = Color('vaporwavepurple');
-h_kolor = Color('vaporwavepink');
-
-% kolor = foreColor; %Color('vaporwavepurple');
-% dataString = cell([1,num.exp]);
+sSpan = 300; % 10 second smoothing function
+kolor = foreColor;
+h_kolor = Color('googlered');
+c_kolor = Color('dodgerblue');
 
 % FIGURE:
 fig = getfig('',true);
     x = data.time;
     yy = data.(pName);
-    if sexSep % data separeted per fly or per group of flies
+    if sexSep % data separated per fly or per group of flies
         y_all = [squeeze(yy(:,M,:)), squeeze(yy(:,F,:))];
     else 
         y_all = yy;
     end
     nTrials = size(y_all,2);
+    
     % temp
     subplot(r,c,sb(1).idx); hold on
         y = data.temperature;
@@ -125,20 +127,26 @@ fig = getfig('',true);
         % create empty variables for the avg and error data
         switch dType
             case 1 % single trial avg lines
-                rawY = nan([nTemps,nTrials]);
+                % rawY = nan([nTemps,nTrials]);
+                [rawYC, rawYH] = deal(nan([nTemps, nTrials])); % first col = avg, second = sem
             case 2 % avg lines (combined heating and cooling)
                 rawY = nan([nTemps,2]); % first col = avg, second = sem
             case 3 % heating and cooling averages separated
-                [rawYC, rawYH] = deal(nan([nTrials, 2])); % first col = avg, second = sem
+                [rawYC, rawYH] = deal(nan([nTemps, 2])); % first col = avg, second = sem
         end
         % extract the information across the temperature bins
-        for tt = 1:nTemps
+        % TODO 1/26 : determine why the single trial lines arent plotting
+        % different values for the different trials
+        for tt = 1:nTemps 
             yC = yy(cIdx(:,tt),:); % all the cooling data across the flies that fits this temp bin
             yH = yy(hIdx(:,tt),:); % all the heating data across the flies that fits this temp bin
             % fill the temp bin data into the appropriate structure
             switch dType
                 case 1 % single trial lines
-                    rawY(tt,:) = mean([yC; yH],'omitnan').*scaler;
+                    raw = mean(yC,'omitnan').*scaler; % find cooling fly data 
+                    rawYC(tt,:) = mean(raw,'omitnan');
+                    raw = mean(yH,'omitnan').*scaler; % find heating fly data
+                    rawYH(tt,:) = mean(raw,'omitnan');
                 case 2 % averaged across heating and cooling
                     raw = mean([yC; yH],'omitnan').*scaler;
                     rawY(tt,1) = mean(raw,'omitnan'); % get the avg for this temp bin
@@ -153,11 +161,11 @@ fig = getfig('',true);
             end
         end
         % plot the data from the temperature bins : 
-        % TODO 1/23/26: update this to plot the data based on the input type
          switch dType
              case 1 % single trial combined heating and cooling lines % %TODO: make this H & C separated 
                  all_x = repmat(x',[1,nTrials]); % make repeat x temp lines for each trial
-                 plot(all_x,rawY,'color',kolor,'linewidth',1.25)
+                 plot(x,rawYH,'color', h_kolor, 'LineWidth',LW) 
+                 plot(x,rawYC,'color', c_kolor, 'LineWidth',LW) 
 
              case 2 % avg lines (combined heating and cooling)
                  plot_error_fills(plot_err, x, rawY(:,1), rawY(:,2), kolor, fig_type, 0.35);
@@ -165,13 +173,11 @@ fig = getfig('',true);
                 
              case 3 % separated heating and cooling
                  % heating data
-                 kolor = Color('red');
-                 plot_error_fills(plot_err, x, rawYH(:,1), rawYH(:,2), kolor, fig_type, 0.35);
-                 plot(x,rawYH(:,1),'color', kolor, 'LineWidth',LW*2)
+                 plot_error_fills(plot_err, x, rawYH(:,1), rawYH(:,2), h_kolor, fig_type, 0.35);
+                 plot(x,rawYH(:,1),'color', h_kolor, 'LineWidth',LW*2)
                  % cooling data
-                 kolor = Color('dodgerblue');
-                 plot_error_fills(plot_err, x, rawYC(:,1), rawYC(:,2), kolor, fig_type, 0.35);
-                 plot(x,rawYC(:,1),'color', kolor, 'LineWidth',LW*2)
+                 plot_error_fills(plot_err, x, rawYC(:,1), rawYC(:,2), c_kolor, fig_type, 0.35);
+                 plot(x,rawYC(:,1),'color', c_kolor, 'LineWidth',LW*2)
          end
 
 % FORMATING AND LABELS

@@ -41,6 +41,12 @@ if contains(groupName, 'F LRR 25-17')
     data.tempbin.WS(data.tempbin.WS) = false;
 end
 
+% create variable for all other space in arena besides inner food quad and
+% outer ring
+data.innerEmptyQuad = true(size(data.OutterRing));
+loc = replaceNaN(data.OutterRing,0) | replaceNaN(data.innerFoodQuad,0);
+data.innerEmptyQuad(loc) = false;
+
 %% Time course figure and temp-tuning curve for a selected variable
 clearvars('-except',initial_var{:})
 
