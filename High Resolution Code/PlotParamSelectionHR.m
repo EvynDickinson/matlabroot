@@ -126,7 +126,7 @@ for i = 1:numParams
             pName{i} = 'CI';
             scaler(i) = 100;
             y_lab{i} = 'restrictive courtship index (% male flies)';
-            ylimits = [0 60];
+            ylimits = [0 2]; 
             sexSep(i) = false; 
         case 'Courtship Index All'
             pName{i} = 'CI_all';
