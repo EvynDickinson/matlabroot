@@ -2,49 +2,9 @@
 % Generate figures to compare different behaviors and frequencies of
 % behaviors over time:
 
-%% ANALYSIS: RUN THIS SECTION BEFORE PROCEEDING
+%% Ground set: 
 clearvars('-except',initial_var{:})
-
-% ADD SPEED TO THE DATA STRUCTURE
-data.speed = nan(size(data.sleep));
-for trial = 1:num.trials
-    data.speed(:,F,trial) = fly(trial).f.speed;
-    data.speed(:,M,trial) = fly(trial).m.speed;
-end
-
-% make an inner food quad region ROI
-data.innerFoodQuad = data.foodQuad;
-loc = logical(replaceNaN(data.OutterRing,false));
-data.innerFoodQuad(loc) = false;
-
-% make a courtship all (un-time-restricted) structure 
-data.CI_all = replaceNaN(data.wing_ext_all,false) |...
-                        replaceNaN(data.chase_all,false) |...
-                        replaceNaN(data.circling_all,false);
-
-% add new variables to the saved variable list
-initial_var{end+1} = 'encounters';
-initial_var{end+1} = 'foreColor';
 foreColor = formattingColors(blkbgd); % get background colors
-
-% build indexes for warm threat, cool threat, warm safe, cool safe
-threshTemp = 25; % 'neutral temp'
-data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp; % warm threat
-data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp; % warm safe
-data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp; % cool threat
-data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp; % cool safe
-data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx; % static safe
-
-% adjust the overshoot temps in F LRR to not count towards a temp region
-if contains(groupName, 'F LRR 25-17')
-    data.tempbin.WT(data.tempbin.WT) = false;
-    data.tempbin.WS(data.tempbin.WS) = false;
-end
-
-% new variable for spaces in the arena besides inner food quad and outer ring
-data.innerEmptyQuad = true(size(data.OutterRing));
-loc = replaceNaN(data.OutterRing,0) | replaceNaN(data.innerFoodQuad,0);
-data.innerEmptyQuad(loc) = false;
 
 %% FIGURE:  Time course figure and temp-tuning curve for a selected variable
 clearvars('-except',initial_var{:})

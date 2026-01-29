@@ -34,10 +34,17 @@ paths = getPathNames;
 if ismac
     [~, result] = system('hostname');
     computerName = strtrim(result);
-    if contains(computerName,'yale')
+
+    % find the current configuration of the computer
+    if contains(computerName, 'Evyns-M3-Macbook-Pro')
+        computerName = 'Evyns M3';
+    elseif contains(computerName, 'Evyns-M3-MBP')
+        computerName = 'Evyns M3 Yale';
+    elseif contains(computerName,'yale')
         computerName = 'Yale VPN';
     end
-else
+
+else % PC computers
     computerName = getenv('COMPUTERNAME');
 end
 paths.computerName = computerName;
@@ -84,10 +91,10 @@ switch computerName
         serverPath = paths.EvynPCServerPath;
         serverTwoPath = paths.EvynPCServerTwoPath;
         permanentPath = paths.EvynPCLocalPath;
-    case 'Yale VPN' % VPN into Yale on Mac
+    case {'Yale VPN', 'Evyns M3 Yale'} % VPN into Yale on Mac or local on Yale
         serverPath = paths.EvynMacServerPath;
-        %TODO (3/1)
-    case {'Evyns-M3-MacBook-Pro.local','Evyns-M3-MBP.home','Evyns-M3-MacBook-Pro-2.local'} % Mac, no VPN thus no server
+        permanentPath = paths.EvynMacLocalPath;
+    case 'Evyns M3' % Mac, no VPN thus no server
         permanentPath = paths.EvynMacLocalPath;
     case 'DENALI'
         serverPath = paths.denaliServerPath;

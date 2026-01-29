@@ -34,10 +34,17 @@ paths = getPathNames;
 if ismac
     [~, result] = system('hostname');
     computerName = strtrim(result);
-    if contains(computerName,'yale')
+
+    % find the current configuration of the computer
+    if contains(computerName, 'Evyns-M3-Macbook-Pro')
+        computerName = 'Evyns M3';
+    elseif contains(computerName, 'Evyns-M3-MBP')
+        computerName = 'Evyns M3 Yale';
+    elseif contains(computerName,'yale')
         computerName = 'Yale VPN';
     end
-else
+
+else % PC computers
     computerName = getenv('COMPUTERNAME');
 end
 paths.computerName = computerName;
@@ -56,7 +63,6 @@ else
 end
 
 % storage drive:
-% TODO (3/1) -- update this for possibilities of two drives found
 matchingDrives = findDriveByName(paths.storageDrive); % test if there is a removable drive attached
 if ~isempty(matchingDrives)
     storageDrive = true;
@@ -87,24 +93,32 @@ switch computerName
         permanentPath = paths.EvynPCLocalPath;
     case 'Yale VPN' % VPN into Yale on Mac
         serverPath = paths.EvynMacServerPath;
+        permanentPath = paths.EvynMacLocalPath;
         %TODO (3/1)
-    case 'Evyns-M3-MacBook-Pro.local' % Mac, no VPN thus no server
-        % 
+    case {'Evyns M3 MPB'} % Mac, no VPN thus no server
+        permanentPath = paths.EvynMacLocalPath;
+
     case 'DENALI'
         serverPath = paths.denaliServerPath;
     case 'MWMJ0LY4WH' %becca's computer
         serverPath = paths.chilkatServerPath;
         serverTwoPath = paths.chilkatServerTwoPath;
     case 'SLEEPINGGIANT'
-        serverPath = paths.EvynPCServerPath;
-        serverTwoPath = paths.EvynPCServerTwoPath;
+        serverPath = paths.SGServerPath;
+        serverTwoPath = paths.SGServerTwoPath;
 end 
-if exist(serverPath, 'dir') == 7
-    serverDrive = true;
+
+if ~isempty(serverPath)
+    if isfolder(serverPath)
+        serverDrive = true;
+    end
 end
-if exist(serverTwoPath, 'dir') == 7
-    serverTwoDrive = true;
-end
+% TODO: sort out the time delay on the server two function call
+% Reinstate this function when server2 is being actively used
+% if isfolder(serverTwoPath)
+    % serverTwoDrive = true;
+% end
+serverTwoDrive = false;
 
 % Output folder paths for available options
 

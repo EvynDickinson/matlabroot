@@ -36,10 +36,13 @@ if strcmp(questdlg('Load premade data structure?'),'Yes')
         data.tempbin.WS = data.tempbin.c_idx & data.temp>25; % warm safe
         data.tempbin.CT = data.tempbin.c_idx & data.temp<25; % cool threat
         data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
+        
+        % Final bit of post-processing
+        [data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var);
 
         return % downloading the data
     end
-else
+else % Generate a new data structure from trial-level-data
     % Find trials that are group ready in the excel file: 
     switch questdlg('Load options from excel?')
         case 'Yes'
@@ -844,6 +847,9 @@ data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
 %% TODO: create a save data in a structure thing here so that we can save figures etc to an idea
 clearvars('-except',initial_var{:})
 
+% New things to process before saving the data
+[data, initial_var] = post_6_1_processing(data, fly, num, groupName);
+
 % save the existing data (if desired): 
 clearvars('-except',initial_var{:})
 switch questdlg('Save data to grouped data structure?')
@@ -852,10 +858,57 @@ switch questdlg('Save data to grouped data structure?')
         disp('Data saved')
 end
 
+%% Uncomment and Run this section to run this local function
+% [data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var);
 
+%% Additional processing to occur before the data is processed in steps 6.2
 
+function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var)
 
+    
+    % ADD SPEED TO THE DATA STRUCTURE
+    data.speed = nan(size(data.sleep));
+    for trial = 1:num.trials
+        data.speed(:,2,trial) = fly(trial).f.speed;
+        data.speed(:,1,trial) = fly(trial).m.speed;
+    end
+    
+    % make an inner food quad region ROI
+    data.innerFoodQuad = data.foodQuad;
+    loc = logical(replaceNaN(data.OutterRing,false));
+    data.innerFoodQuad(loc) = false;
+    
+    % make a courtship all (un-time-restricted) structure 
+    data.CI_all = replaceNaN(data.wing_ext_all,false) |...
+                            replaceNaN(data.chase_all,false) |...
+                            replaceNaN(data.circling_all,false);
+    
+    % add new variables to the saved variable list
+    initial_var{end+1} = 'encounters';
+    initial_var{end+1} = 'foreColor';
+    
+    % build indexes for warm threat, cool threat, warm safe, cool safe
+    threshTemp = 25; % 'neutral temp'
+    data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp; % warm threat
+    data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp; % warm safe
+    data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp; % cool threat
+    data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp; % cool safe
+    data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx; % static safe
+    
+    % adjust the overshoot temps in F LRR to not count towards a temp region
+    if contains(groupName, 'F LRR 25-17')
+        data.tempbin.WT(data.tempbin.WT) = false;
+        data.tempbin.WS(data.tempbin.WS) = false;
+    end
+    
+    % new variable for spaces in the arena besides inner food quad and outer ring
+    data.innerEmptyQuad = true(size(data.OutterRing));
+    loc = replaceNaN(data.OutterRing,0) | replaceNaN(data.innerFoodQuad,0);
+    data.innerEmptyQuad(loc) = false;
 
+    disp('Data post-processing complete')
+
+end
 
 
 
