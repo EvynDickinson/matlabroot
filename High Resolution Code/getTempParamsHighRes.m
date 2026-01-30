@@ -9,7 +9,7 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'start hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         tRate(2).name = 'warming';
         tRate(2).color = Color('red');
         tRate(3).name = 'cooling';
@@ -27,13 +27,13 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'start hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         tRate(2).name = 'cooling';
         tRate(2).color = Color('dodgerblue');
         tRate(3).name = 'warming';
         tRate(3).color = Color('red');
         tRate(4).name = 'end hold';
-        tRate(4).color = Color('grey');
+        tRate(4).color = Color('Gray');
         param.tRate = tRate;
 
     case {'Hold35C','hold35'}
@@ -42,7 +42,7 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         param.tRate = tRate;
 
         case {'Hold30C','hold30'}
@@ -51,7 +51,7 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         param.tRate = tRate;
 
         case {'Hold25C','hold25'}
@@ -60,7 +60,7 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         param.tRate = tRate;
 
         case {'Hold20C','hold20'}
@@ -69,7 +69,7 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         param.tRate = tRate;
 
         case {'Hold15C','hold15'}
@@ -78,7 +78,7 @@ switch protocol
         % find the x-time value for each time period
         tRate = struct;
         tRate(1).name = 'hold';
-        tRate(1).color = Color('grey');
+        tRate(1).color = Color('Gray');
         param.tRate = tRate;
 end
 % 

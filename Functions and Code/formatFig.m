@@ -55,11 +55,11 @@ if nargin >= 3 % e.g. there are subplots
         % set properties for each subplot:
     for n = 1:nplots
         % find name of the field with the indexes for the subplots
-        sb_field = fieldnames(sb);
-        sb_field = sb_field{1};
-        if nargin==4
+        if nargin==4 % does not assume even subplot sizing
+            sb_field = fieldnames(subplotInd);
+            sb_field = sb_field{1};
             ii = subplotInd(n).(sb_field);
-        else
+        else % assumes each subplot is a only 1 unit size
             ii = n;
         end
         subplot(nrow, ncol, ii)
