@@ -1,10 +1,22 @@
 
-function fig = matchAxis(fig,independent)
-% fig = matchAxis(fig,independent)
+function fig = matchAxis(fig, independent)
+% fig = matchAxis(fig, independent)
+%
+% PURPOSE
 % makes the x and y axes equal to the larger of the axes
-% independent = true if you want to match the x and y axes independently; false if
-% you want x&y to match across all subplots
+%
+% INPUTS
+%   'fig' : figure handle
+%   'independent' : logical for independent axes matching
+%          true -->  match the x and y axes independently
+%          false --> x & y match across all subplots
+%
+% OUTPUTS
+%   'fig' : figure handle for the modified figure
+%
+% ES DICKINSON, 2022
 
+%%
 [y_lim, x_lim] = deal([]);
 figAxes = findall(fig,'type','axes');
 % get axis limits:

@@ -1,23 +1,42 @@
 
 
-function [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only,multiselect)
+function [title_str,pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only,multiselect)
 % [title_str, pName,y_dir,y_lab,nullD,scaler,dType,fig_dir,ext] = PlotParamSelection(plotType,location_only,multiselect)
-% plotType = true --> select the type of data to plot (avg, single trial, separated heating and cooling)
-% location_only --> true if only spatially based parameters are desired (eg. not speed or sleep)
-% mutliselect -->  true if more than one parameter can be selected for plotting
-% {'Distance to Food', 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Speed'};
-% title_str = Name of the selected parameter
-% pName = parameter name in the grouped structure
-% y_dir = y axis plotting direction
-% y_lab  = y axis label
-% nullD = null distribution value
-% scaler = multiplication scaler for the parameter
-% dType = display type (e.g., single trial, avg, sep H &C)
-% fig_dir = fig directory ending for subfolder of this plot type
-% ext = are there subplots that can be plotted 
 % 
-% ES Dickinson, 2024
+% PURPOSE
+% User selects a low resolution data type that returns parameters specific 
+% to that type of data which are related to plotting the data
+%
+% INPUTS (all optional)
+%   'plotType' : select the type of data to plot (avg, single trial, separated heating and cooling)
+%       true = user selects the type of data to plot
+%       false = the type of data is not returned
+%       (default : average)
+%   'location_only' : restrict the plotting data types to only those that
+%       are based on spatial location of the flies
+%       true = only spatially based parameters are desired (eg. not speed or sleep)
+%       false = all data types are available
+%    'mutliselect' : user ability to select multiple data types
+%       true = more than one parameter can be selected for plotting
+%       false = returns only a single parameter 
+%
+% OUTPUTS
+%    'title_str' : Name of the selected parameter
+%       (e.g. 'Distance to Food', 'Food Occupancy', 'Food Circle', 'Occupancy')
+%    'pName' : parameter name in the grouped structure
+%    'y_dir' : y axis plotting direction ('normal' vs 'reverse')
+%    'y_lab' : y axis label 
+%       (e.g. 'Distance to Food (mm)', 'Food Occupancy (% flies)')
+%    'nullD' : null distribution value (e.g. 25 for 25% of the arena)
+%    'scaler' : multiplication scaler for the parameter (usually 1 or 100)
+%    'dType' : display type (e.g., single trial, avg, sep H &C)
+%    'fig_dir' : fig directory ending for subfolder of this plot type [string]
+%    'ext' : are there subgroups of the data that can be plotted [logical]
+%       (e.g., 'innerquad' has 4 extension subquadrants for each location)
+%
+% ES DICKINSON, 2024
 
+%%
 % allow multiple parameters to be selected at a time or not
 if nargin > 2 && multiselect
     selectionMode = 'multiple';
@@ -29,14 +48,15 @@ end
 
 % Select the type of information to plot: 
 if nargin>1 && location_only
-    % paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy'};
-    paramList = { 'fullquad','quadring', 'innerquad','circle10', 'circle7', 'circle5', 'ring', 'inner75'};
+    paramList = {'fullquad','quadring', 'innerquad','circle10', ...
+                 'circle7', 'circle5', 'ring', 'inner75'};
 else
-    % paramList = { 'Food Occupancy', 'Food Circle Occupancy', 'Quadrant Occupancy', 'Ring Occupancy','Proximity to Food','Speed','Sleep'};
-    paramList = {'fullquad', 'innerquad', 'quadring','circle10', 'circle7', 'circle5', 'fliesonfood','ring','speed','sleep','inner75'};
+    paramList = {'fullquad', 'innerquad', 'quadring','circle10', 'circle7',...
+                 'circle5', 'fliesonfood','ring','speed','sleep','inner75'};
 end
 
-idx = listdlg('ListString', paramList,'PromptString', prompt_str,'ListSize',[200,200],'SelectionMode',selectionMode);
+idx = listdlg('ListString', paramList,'PromptString', prompt_str,...
+              'ListSize',[200,200],'SelectionMode',selectionMode);
 if isempty(idx)
     disp('No choice selected')
     return
@@ -44,8 +64,11 @@ else
     numParams = length(idx);
 end
 
-[title_str, pName,ext,y_dir,y_lab,nullD,scaler] = deal([]);
+% initialize empty parameters (need to do this for the cases where there
+% are multiple selection options available for the data)
+[title_str, pName, ext, y_dir, y_lab, nullD, scaler] = deal([]);
 
+% load data-specific parameters into each group
 for i = 1:numParams
     title_str{i} = paramList{idx(i)};
     switch title_str{i}
@@ -138,7 +161,10 @@ if numParams==1
     title_str = title_str{i};
 end
 
-
+% Select the type of data that will be plotted (e.g. avg, single, H&C)
+if ~exist('plotType','var')
+    plotType = false;
+end
 if plotType
     qList = { 'Heating and Cooling','Average', 'Single trial lines'};
     idx = listdlg('ListString', qList,'PromptString', 'How do you want to plot the data:','ListSize',[300,200]);
@@ -165,6 +191,8 @@ else
     dType = 2;
     fig_dir = '';
 end
+
+%% 
 
 
 % % Select the type of information to plot: 

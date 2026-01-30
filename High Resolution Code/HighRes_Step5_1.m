@@ -719,7 +719,7 @@ clearvars('-except',initial_var{:})
 
 Lwing = [];
 Rwing = [];
-% Determine which positions require which wing to be extended
+% Determine which positions require which wing to be extended 
 L_items = {'L1', 'L4', 'GX1', 'GX4', 'GY2', 'GY3'};
 R_items = {'L2', 'L3', 'GX2', 'GX3', 'GY1', 'GY4'};
 % Identify if male is in an appropriate position for each wing direction across each item

@@ -1,21 +1,24 @@
 function [yA, yB] = rmnan(A, B, dim, bidirectional)
 % [yA, yB] = rmnan(A, B, dim, bidirectional)
+%
+% PURPOSE
 % Remove NaNs from vector A and corresponding entries in B.
-% If bidirectional is true, also remove entries where B has NaNs.
+% If bidirectional is true, also remove entries where B has NaNs from the vector A.
 % If A is a vector and B is a matrix, 'dim' specifies which dimension to filter.
 %
-% Inputs:
-%   A - vector
-%   B - (optional) vector or matrix
-%   dim - (optional) dimension for filtering B if B is matrix (default = 2)
-%   bidirectional - (optional) if true, remove where A or B has NaNs (default = false)
+% INPUTS :
+%   'A' : vector 
+%   'B' : (optional) vector or matrix
+%   'dim' :  (optional) dimension for filtering B if B is matrix (default = 2)
+%   'bidirectional' : (optional) if true, remove where A or B has NaNs (default = false)
 %
-% Outputs:
-%   yA - cleaned A
-%   yB - cleaned B (only if B is provided)
+% OUTPUTS:
+%   'yA' : nan removed new vector A
+%   'yB' : nan removed vector or matrix B (only if B is provided)
 %
-% ES Dickinson (and ChatGPT)
+% ES DICKINSON, 2025 (and ChatGPT)
 
+%% 
 % set across rows are the default direction if none selected and B is a
 % matrix while A is a vector
 if nargin < 3 || isempty(dim)

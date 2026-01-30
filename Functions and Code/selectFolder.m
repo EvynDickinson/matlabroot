@@ -1,13 +1,31 @@
 
 
-function folderSelected = selectFolder(path,mulitselect,promptString,default_search_names)
-% folderSelected = selectFolder(path,mulitselect,promptString,default_search_names)
-% default_search_names = {'name 1', 'name 2'} search for these names and
-% highlight them as the default start values...
-% select a folder from an input directory with the auto added 
+function [folderSelected, fullPath] = selectFolder(path,mulitselect,promptString,default_search_names)
+% [folderSelected, fullPath] = selectFolder(path,mulitselect,promptString,default_search_names)
+% 
+% PURPOSE
+% select folder name(s) from the given directory or folder
+% 
+% INPUTS 
+%   'path' :  filepath to the current folder that has the desired folder paths 
+%   'multiselect' : (optional) allow for selection of mulitple folders 
+%           'single' -- only can select one folder
+%           'multiple' -- can select multiple folder options
+%   'promptString' : (optional) text displayed in the folder selection box
+%   'default_search_names'  : (optional) value to start selected if present 
+%           e.g. if the folder names are {'A', 'B', 'C'} and you want the
+%           inital selection option highlighted to be 'B' set default_search_names to 'B'
+% 
+% OUTPUTS
+%   'folderSelected' : cell with string name of the selected folder or cell with
+%           multiple folders names
+%   'fullPath' : full path string to the input folder
+%           fullPath can only be returned if multiselect if set to
+%           'single' otherwise it returns the input root 'path'
+%
+% ES DICKINSON, 2024
 
-% path_A = 'C:\Users\evynd\OneDrive\Desktop\Testing End Folder\'
-
+%%
 switch nargin 
     case 1
         promptString = 'Select folders';
@@ -57,4 +75,22 @@ for i = 1:nFolders
 end
 
 folderSelected = dir_sel;
+
+if strcmpi(mulitselect, 'single')
+    if strcmp(path(end),'/') ||  strcmp(path(end),'\')
+        fullPath = [path folderSelected{1} '/'];
+    else
+        fullPath = [path '/' folderSelected{1} '/'];
+    end
+else 
+    fullPath = path;
+end
+
+
+
+
+
+
+
+
 

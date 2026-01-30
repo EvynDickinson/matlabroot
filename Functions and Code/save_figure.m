@@ -3,26 +3,31 @@ function results = save_figure(fig_handle, figure_name, type, autoSave, closeFig
 % 
 % results = save_figure(fig_handle, figure_name, type, autoSave, closeFig, figure_quality)
 %
-% UPDATE 12.4.25: AUTO SAVE BOTH A PDF AND A PNG FILE 
-%
+% PURPOSE
 % Export the input figure to the given location and name
 % with the following settings: 
 % '-png', '-nocrop', '-r300' , '-painters', '-rgb'
-% Default type is '-png' but can be specified
 %
-% Inputs:
-% 'fig_handle' [handle for figure being saved]
-% 'figure_name' [path and name for saving location of fig]
-% 'type' ['-pdf' or '-png' output type]
-% 'autoSave' [true|false : save fig without user input]
-% 'closeFig' [true|false : close the figure after saving]
-% ''-r300'' pixels per inch figure saving quality -- 80 is a quick save but 300 is
-%             quality and the default]
+% INPUTS:
+%   'fig_handle' : handle for figure being saved
+%   'figure_name' : path and name for saving location of fig
+%           e.g. 'S:\Evyn\DATA\this_figure_name'
+%   'type' : saved format for the figure
+%           common options: '-pdf' or '-png' output type (**current version saves both**)
+%   'autoSave' : true|false : save fig without user input
+%   'closeFig' : true|false : close the figure after saving
+%   'figure_quality' : pixels per inch figure saving quality (format:  '-rNUM')
+%           '-r80' is a quick save but '-r300' is good quality 
+%           (default: '-r300' on PC  &  '-r100' on MAC)
 %
-% Outputs: 
-% 'results' [logical true|false if figure is saved]
+% OUTPUTS: 
+%   'results' : logical true|false if figure is saved
+%
+% UPDATE 12.4.25: AUTO SAVE BOTH A PDF AND A PNG FILE 
 %     
-% % ES Dickinson, University of Washington, Jan 2019    
+% ES DICKINSON, 2019    
+
+%%
 
 % Defaults:
 if nargin < 4
@@ -31,12 +36,12 @@ end
 if nargin<5
     closeFig = true;
 end
-if nargin<6
-    fig_quality = '-r300';
-end
-
-if ismac && nargin<6
-    fig_quality = '-r100'; %this massively increases the image saving time
+if nargin<6 % DETERMINE FIGURE QUALITY
+    if ismac
+        fig_quality = '-r100'; %this massively increases the image saving time
+    else
+        fig_quality = '-r300'; 
+    end
 end
 
 warning off
@@ -75,7 +80,7 @@ end
 
 
 
-% PRE 12/4/25 CODE: 
+% LEGACY (PRE 12/4/25) CODE: 
 % ------------------------------------------------------------------------------------------------------------
 % % Defaults:
 % if nargin == 2
@@ -94,9 +99,6 @@ end
 % if ismac && nargin<6
 %     fig_quality = '-r100'; %this massively increases the image saving time
 % end
-% 
-% 
-% 
 % 
 % 
 % % Save figure:
@@ -130,37 +132,3 @@ end
 
 % ------------------------------------------------------------------------------------------------------------
 
-
-
-
-% %  OLLLLLLD: 
-
-% export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', '-r300' , '-painters', '-rgb');
-% close(fig_handle)
-% fprintf('\nSaved:')
-% disp(figure_name) 
-% results = true;
-
-
-%  switch questdlg('Save Image?', 'Figure', 'Save Figure', 'Close Figure', 'Cancel', 'Save Figure')
-%     case 'Save Figure'
-%         savefig(fig_handle, figure_name)
-%     case 'Cancel'
-%         results = false;
-% end
-   
-% switch questdlg('Save Image?', 'Figure', 'Save Figure', 'Close Figure', 'Cancel', 'Save Figure')
-%     case 'Save Figure'
-%         export_fig(fig_handle, [figure_name '.' type(2:end)], type, '-nocrop', '-r300' , '-painters', '-rgb');
-%         close(fig_handle)
-%         fprintf('\nSaved:')
-%         disp(figure_name) 
-%         results = true;
-%     case 'Close Figure'
-%         close(fig_handle)
-%         results = false;
-%     case 'Cancel'
-%         results = false;
-% end
-
-end
