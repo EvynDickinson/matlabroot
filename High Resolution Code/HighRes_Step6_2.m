@@ -2,7 +2,7 @@
 % Generate figures to compare different behaviors and frequencies of
 % behaviors over time:
 
-%% Ground set: 
+%% Fresh slate start and color update: 
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 
@@ -183,7 +183,7 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
 %% TEMP TUNING CURVE
 clearvars('-except',initial_var{:})
-% foreColor = formattingColors(blkbgd); % get background colors
+foreColor = formattingColors(blkbgd); % get background colors
 
 % Select the type of information to plot: 
 [title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = PlotParamSelectionHR('Heating and Cooling');
@@ -308,11 +308,6 @@ annotation('textarrow', arrow_x, arrow_y, 'String', 'time ','Color',foreColor,'F
 % Save the Figure
 save_figure(fig, [fig_dir title_str ' tuning curve'])
 
-
-
-
-
-
 %% plot the female and male positions within the arena ...
 % TODO: need to rotate the arena to match the food alignment across trials ...
 clearvars('-except',initial_var{:})
@@ -321,6 +316,9 @@ clearvars('-except',initial_var{:})
 a = inputdlg(['There are ' num2str(num.trials) ' figures, how many columns?']);
 c = str2double(a{:});
 r = ceil(num.trials/c);
+plotSkipSize = 100; % jump size to make plotting more manageable
+% TODO 1.29.26 : update this to incorportate the skip size in the scatter
+% plots
 
 % female position figure: 
 fig = getfig('female fly positions in the arena', 1,[1064 774]);
@@ -331,10 +329,11 @@ for i = 1:num.trials
     scatter(x,y,3, data.color(F,:))
     hold on
     scatter(fly(i).well.food(1),fly(i).well.food(2),10, foreColor)
-    viscircles(fly(i).well.center(5,:),30/fly(i).pix2mm,'Color',foreColor)
+    viscircles(fly(i).well.center(5,:),30/fly(i).pix2mm,'Color',foreColor);
     axis square equal
-    set(gca, 'XColor','none', 'ycolor', 'none')
+    set(gca, 'XColor','none', 'ycolor', 'none');
 end
+formatFig(fig,blkbgd,[r,c]);
 save_figure(fig, [figDir 'female fly positions in arena'],fig_type)
 
 % male position figure: 
@@ -348,7 +347,7 @@ for i = 1:num.trials
     scatter(fly(i).well.food(1),fly(i).well.food(2),10, foreColor)
     viscircles(fly(i).well.center(5,:),30/fly(i).pix2mm,'Color',foreColor);
     axis square equal
-    set(gca, 'XColor','none', 'ycolor', 'none')
+    set(gca, 'XColor','none', 'ycolor', 'none');
 end
 save_figure(fig, [figDir 'male fly positions in arena'],fig_type)
 
