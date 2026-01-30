@@ -177,9 +177,9 @@ else
             y = data(sex).rawY(frame,:);
             kolor = data(sex).color;
             plotFlySkeleton(fig, x,y,kolor,false);
-            scatter(x,y, 15, Color('grey'),'filled')
+            scatter(x,y, 15, Color('Gray'),'filled')
             scatter(x(body.head),y(body.head), 35, Color('yellow'),'filled', 'Marker','^')
-            % scatter(x(body.center),y(body.center), 15, Color('grey'),'filled')
+            % scatter(x(body.center),y(body.center), 15, Color('Gray'),'filled')
             
             if sex==1
                 scatter(x(body.left_wing),y(body.left_wing),35,foreColor,'filled')
@@ -204,7 +204,7 @@ zoom = [-250,250];
 fig = getfig('Male positions during wing extension',1,[1075 871]);
 hold on
 % Plot all male body positions
-kolor = Color('grey');
+kolor = Color('Gray');
 x = mX(1:skip:end,[body.head,body.center]);
 y = mY(1:skip:end,[body.head,body.center]);
 plot(x',y','color',kolor)
@@ -236,7 +236,7 @@ plot(x',y','color',foreColor, 'LineWidth', 2)
 % Format figure
 axis  equal square
 h_line(0,'gray',':',2)
-v_line(0,'grey',':',2)
+v_line(0,'Gray',':',2)
 xlim(zoom)
 ylim(zoom)
 formatFig(fig,blkbnd);
@@ -277,7 +277,7 @@ else
     fig = getfig('Male positions during chase',1,[1075 871]);
     hold on
     % Plot all male body positions
-    kolor = Color('grey');
+    kolor = Color('Gray');
     x = mX(1:skip:end,[body.head,body.center]);
     y = mY(1:skip:end,[body.head,body.center]);
     plot(x',y','color',kolor)
@@ -309,7 +309,7 @@ else
     % Format figure
     axis  equal square
     h_line(0,'gray',':',2)
-    v_line(0,'grey',':',2)
+    v_line(0,'Gray',':',2)
     xlim(zoom)
     ylim(zoom)
     formatFig(fig,blkbnd);
@@ -553,13 +553,13 @@ if dType_1
             x = time(offset:offset+length(y)-1)';
             plot(x, y, 'color', foreColor,'LineWidth', lw)
             ylabel('Speed Corr')
-            h_line(0,'grey','--',1)
+            h_line(0,'Gray','--',1)
     
         % 6) Male wingspread 
         subplot(r,c,sb(6).idx); hold on
             plot(time,data(M).wingangle(:,1),'color', Color('dodgerblue'),'LineWidth', lw)
             plot(time,data(M).wingangle(:,2),'color', Color('gold'),'LineWidth', lw)
-            h_line(50,'grey', ':',1)
+            h_line(50,'Gray', ':',1)
             % Axes labels and limits
             ylabel('M wing angle (\circ)')
             xlabel('time (min)')
@@ -735,7 +735,7 @@ for ff = 1:length(roi)
         else
            plotFlySkeleton(fig, x,y,kolor,false);
         end
-        scatter(x,y, 15, Color('grey'),'filled')
+        scatter(x,y, 15, Color('Gray'),'filled')
         scatter(x(body.head),y(body.head), 35, Color('yellow'),'filled', 'Marker','^')
 
     end
@@ -760,7 +760,7 @@ else
 fig = getfig('',1,[1075 871]);
 hold on
 % Plot all male body positions
-kolor = Color('grey');
+kolor = Color('Gray');
 x = mX(1:skip:end,[body.head,body.center]);
 y = mY(1:skip:end,[body.head,body.center]);
 plot(x',y','color',kolor)
@@ -792,7 +792,7 @@ plot(x',y','color',foreColor, 'LineWidth', 2)
 % Format figure
 axis  equal square
 h_line(0,'gray',':',2)
-v_line(0,'grey',':',2)
+v_line(0,'Gray',':',2)
 xlim(zoom)
 ylim(zoom)
 formatFig(fig,blkbnd);
@@ -818,9 +818,9 @@ T.CI = CI;
 
 idx = [T.circling_all, T.circling_1sec,T.wing_ext_all,...
        T.wing_ext,T.chase_all,T.court_chase,CI];
-kolor = {'grey', 'red'};
+kolor = {'Gray', 'red'};
 kolor = repmat(kolor, 1,3);
-% kolor = {'grey','gold','grey','gold','grey','gold'}; % chase, wing ext, circling
+% kolor = {'Gray','gold','Gray','gold','Gray','gold'}; % chase, wing ext, circling
 y1 = 1;
 
 r = 4;
@@ -881,7 +881,7 @@ subplot(r, c, sb(2).idx)
     for sex = 1:2
         plot(time,smooth(data(sex).turning,fps*30,'moving'),'color', data(sex).color)
     end
-    h_line(0,'grey','--')
+    h_line(0,'Gray','--')
     xlabel('Time (min)')
     ylabel('Turning (\circ/s)')
 
