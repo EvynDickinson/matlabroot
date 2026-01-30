@@ -12,7 +12,28 @@ function [path, folder] = getCloudPath(folderOption)
 % 
 % ES Dickinson, Yale University, Aug 2021
 
-switch getenv('COMPUTERNAME')
+% Get computer name
+if ismac
+    [~, result] = system('hostname');
+    computerName = strtrim(result);
+
+    % find the current configuration of the computer
+    if contains(computerName, 'Evyns-M3-Macbook-Pro')
+        computerName = 'Evyns M3';
+    elseif contains(computerName, 'Evyns-M3-MBP')
+        computerName = 'Evyns M3 Yale';
+    elseif contains(computerName,'MacBook-Air') % beccas computer
+        computerName = 'Becca Air';
+    elseif contains(computerName,'yale')
+        computerName = 'Yale VPN';
+    end
+
+else % PC computers
+    computerName = getenv('COMPUTERNAME');
+end
+
+
+switch computerName
     case 'DENALI'
         path = 'G:\My Drive\Jeanne Lab\DATA\';
     case 'ACADIA'
@@ -28,8 +49,10 @@ switch getenv('COMPUTERNAME')
 %     case '' %shows up as empty on the mac
 % %         disp('Evyn''s Macbook');
 %         path = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/DATA/';
-    case ''
+    case {'Evyns M3 Yale', 'Evyns M3', 'Yale VPN'}
         path = '/Users/evyndickinson/Library/CloudStorage/GoogleDrive-evyn.dickinson@yale.edu/My Drive/Jeanne Lab/DATA/';
+    case 'Becca Air'
+        path = '/Users/rebeccaray/Library/CloudStorage/GoogleDrive-beccaray333@gmail.com/My Drive/Jeanne Lab/DATA/';
 end 
 
 if nargin == 1

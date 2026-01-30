@@ -40,6 +40,8 @@ if ismac
         computerName = 'Evyns M3';
     elseif contains(computerName, 'Evyns-M3-MBP')
         computerName = 'Evyns M3 Yale';
+    elseif contains(computerName,'MacBook-Air') % beccas computer
+        computerName = 'Becca Air';
     elseif contains(computerName,'yale')
         computerName = 'Yale VPN';
     end
@@ -96,6 +98,10 @@ switch computerName
         permanentPath = paths.EvynMacLocalPath;
     case 'Evyns M3' % Mac, no VPN thus no server
         permanentPath = paths.EvynMacLocalPath;
+    case 'Becca Air'
+        permanentPath = paths.BeccaLocal;
+        % serverPath = paths.BeccaServer; %TODO find way to differentiate
+        % these
     case 'DENALI'
         serverPath = paths.denaliServerPath;
     case 'MWMJ0LY4WH' %becca's computer

@@ -15,7 +15,7 @@ paths.storageDrive = 'Data Storage';
 paths.removableDrive = 'OnTheGoData';
 
 % root directory locations
-paths.fixedDriveLocations  = {'ACADIA','EVYNPC','Evyns M3 Yale', 'Yale VPN', 'Evyns M3'}; % computer names that have permanent local drives
+paths.fixedDriveLocations  = {'ACADIA','EVYNPC','Evyns M3 Yale', 'Yale VPN', 'Evyns M3','Becca Air'}; % computer names that have permanent local drives
 paths.acadiaServerPath = 'S:\Evyn\DATA\';
 paths.togiakServerPath = 'S:\Evyn\DATA\';
 paths.EvynPCServerPath = '\\svalbard.med.yale.internal\shared\Evyn\DATA\';
@@ -27,6 +27,8 @@ paths.acadiaLocalPath = 'D:\Evyn Lab Data\';
 paths.EvynPCLocalPath = 'K:\DATA\';
 paths.chilkatServerPath = 'S:\Evyn\DATA\';
 paths.SGServerPath = 'S:\Evyn\DATA\';
+paths.BeccaLocal = '/Users/rebeccaray/Desktop/Jeanne Lab Data/';
+paths.BeccaServer = '/Volumes/shared/Evyn/DATA/';
 
 % Second Server Paths
 paths.EvynPCServerTwoPath = '\\syn-jeannelab-1.its.yale.edu\nas1-jeannelab-cc0928-Neuro-ps\Evyn\DATA\';

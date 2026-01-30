@@ -42,6 +42,7 @@ function [path, location_name] = getDataPath(dataType, dataLocation, promptStrin
 % +++ TO UPDATE PATH NAMES EDIT THESE TWO +++
 % getDataFolderOptions **edit list near the bottom**
 % getPathNames **edit around line 18 where the names of the paths are**
+% getCloudPath **edit this one for the google drive folder
 
 paths = getPathNames; 
 path = [];
