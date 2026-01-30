@@ -55,7 +55,11 @@ for rampFolder = 1:size(rampName, 1)
 
     % Load pertinent data
     load([baseDir expName ' parameters.mat'],'parameters'); % load exp params to workspace
-    tempLog = readmatrix([baseDir expName '_RampLog']); % TECA LOG full timecourse temp log
+    try tempLog = readmatrix([baseDir expName '_RampLog']); % TECA LOG full timecourse temp log
+    catch 
+        disp('needed .csv label to work') %error catching
+        tempLog = readmatrix([baseDir expName '_RampLog.csv']);
+    end
     
     % Create a 'compile' list
     compileLength = 3; %  3 minutes
@@ -147,7 +151,7 @@ for rampFolder = 1:size(rampName, 1)
     % Data table with continuous variables:
     T = table(frame, time, temperature, vidNums, vidFrame, fragNum);
     
-    save([baseDir, expName ' alignment table'],'T','parameters','expName')
+    save([baseDir, expName ' alignment table.mat'],'T','parameters','expName')
     
     % Find difference in time between the video saves: 
     
