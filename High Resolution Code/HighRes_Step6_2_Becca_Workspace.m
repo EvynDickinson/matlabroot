@@ -9,6 +9,7 @@ clearvars('-except',initial_var{:})
 % Create lists to cycle through
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
+nRegions = length(region_name);
 
 % FIGURE
 fig = getfig;
@@ -48,8 +49,6 @@ regime_name = {'WT','WS','CT','CS'}; % temp regime
 labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
-nRegions = length(region_name);
-nRegimes = length(regime_name);
 
 % Set up x axis placement
 h = []; 
