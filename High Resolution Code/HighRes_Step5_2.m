@@ -57,16 +57,7 @@ initial_var{end+1} = 'path';
 disp_fig = false; % display baseline figures?
 initial_var{end+1} = 'disp_fig';
 
-% Decide whether to show figures that display M body position relative to F, with green showing during courtship
-% (These figures take forever to load/save)
-response = questdlg('Show M body position during courtship figs?','Figs?','Yes','No','No');
-switch response
-    case 'Yes'
-        showBodyPosition = 1;
-    case 'No'
-        showBodyPosition = 0;
-end
-initial_var{end+1} = 'showBodyPosition';
+
             
 %% FIGURE: Compare wing angles within M and between M and F
 clearvars('-except',initial_var{:})
@@ -155,6 +146,17 @@ fig =  getfig('',1);
 % diff to see if extension lasts > 1sec
 
 clearvars('-except',initial_var{:})
+
+% Decide whether to show figures that display M body position relative to F, with green showing during courtship
+% (These figures take forever to load/save)
+response = questdlg('Show M body position during courtship figs?','Figs?','Yes','No','No');
+switch response
+    case 'Yes'
+        showBodyPosition = 1;
+    case 'No'
+        showBodyPosition = 0;
+end
+initial_var{end+1} = 'showBodyPosition';
 
 tic
 frames = find(T.court_chase==1);
@@ -266,7 +268,7 @@ end
 
 %% FIGURE: M body positions during chase
 % Pull point locations that will be plotted
-tic
+
 frames = find(T.court_chase==1);
 targetn = 10;
 skip = floor(length(frames)/targetn);
@@ -337,7 +339,7 @@ else
         save_figure(fig,[figDir 'chase positions M fly'],fig_type);
     end
 end
-toc
+
 
 
 
