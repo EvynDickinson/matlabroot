@@ -40,6 +40,8 @@ if ismac
         computerName = 'Evyns M3';
     elseif contains(computerName, 'Evyns-M3-MBP')
         computerName = 'Evyns M3 Yale';
+    elseif contains(computerName,'MacBook-Air') % beccas computer
+        computerName = 'Becca Air';
     elseif contains(computerName,'yale')
         computerName = 'Yale VPN';
     end
@@ -49,6 +51,18 @@ else % PC computers
 end
 paths.computerName = computerName;
 % note: the computer name is a host VPN on a mac when there is a VPN connection
+
+% determine which computer is running:
+if ismac 
+    computerName = getenv('USER');
+else 
+    computerName = getenv('COMPUTERNAME');
+end
+paths.computerName = computerName;  
+
+% determine if the compueter
+
+
 
 % BASE DRIVE LOCATION SELECTION
 
@@ -76,9 +90,8 @@ permanentDrive = any(strcmp(computerName, paths.fixedDriveLocations)); % fixed d
 permanentPath = [];
 
 
-% server drive test
+% server drive test and permanent drive addition
 [serverPath, serverTwoPath, permanentPath]  = deal([]);
-
 switch computerName
     case 'ACADIA'
         serverPath = paths.acadiaServerPath;
@@ -91,13 +104,16 @@ switch computerName
         serverPath = paths.EvynPCServerPath;
         serverTwoPath = paths.EvynPCServerTwoPath;
         permanentPath = paths.EvynPCLocalPath;
-    case 'Yale VPN' % VPN into Yale on Mac
-        serverPath = paths.EvynMacServerPath;
+    case 'evyndickinson'
         permanentPath = paths.EvynMacLocalPath;
-        %TODO (3/1)
-    case {'Evyns M3 MPB'} % Mac, no VPN thus no server
-        permanentPath = paths.EvynMacLocalPath;
-
+        if macServer
+            serverPath = paths.EvynMacServerPath;
+        end
+    case 'rebeccaray'
+        permanentPath = paths.BeccaLocalPath;
+        if macServer
+            serverPath = paths.BeccaServerPath;
+        end
     case 'DENALI'
         serverPath = paths.denaliServerPath;
     case 'MWMJ0LY4WH' %becca's computer

@@ -26,31 +26,25 @@ function [availableDrives, availablePaths] = getDataFolderOptions
 % paths.EvynMacServerPath = '/Volumes/shared/Evyn/';
 % paths.acadiaLocalPath = 'D:\';
 % paths.EvynPCLocalPath = 'K:\';
+% if ismac
+%     [~, result] = system('hostname');
+%     computerName = strtrim(result);
+% end
 % %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
- 
-paths = getPathNames;
 
-% Get computer name
-if ismac
-    [~, result] = system('hostname');
-    computerName = strtrim(result);
+%% 
+paths = getPathNames; 
+% TODO: make this a function pulled after the computer name that only
+% returns the specific info for that computer (so we don't need to have the
+% drive names a million places)
 
-    % find the current configuration of the computer
-    if contains(computerName, 'Evyns-M3-Macbook-Pro')
-        computerName = 'Evyns M3';
-    elseif contains(computerName, 'Evyns-M3-MBP')
-        computerName = 'Evyns M3 Yale';
-    elseif contains(computerName,'MacBook-Air') % beccas computer
-        computerName = 'Becca Air';
-    elseif contains(computerName,'yale')
-        computerName = 'Yale VPN';
-    end
-
-else % PC computers
+% determine the computer name:
+if ismac 
+    computerName = getenv('USER');
+else 
     computerName = getenv('COMPUTERNAME');
 end
-paths.computerName = computerName;
-% note: the computer name is a host VPN on a mac when there is a VPN connection
+paths.computerName = computerName;  
 
 % BASE DRIVE LOCATION SELECTION
 
@@ -78,9 +72,10 @@ permanentDrive = any(strcmp(computerName, paths.fixedDriveLocations)); % fixed d
 permanentPath = [];
 
 
-% server drive test
+% TODO: this bit will be obsolete if we can make getPathNames to return for
+% a specific computer only
+% server drive test and permanent drive addition
 [serverPath, serverTwoPath, permanentPath]  = deal([]);
-
 switch computerName
     case 'ACADIA'
         serverPath = paths.acadiaServerPath;
@@ -93,18 +88,15 @@ switch computerName
         serverPath = paths.EvynPCServerPath;
         serverTwoPath = paths.EvynPCServerTwoPath;
         permanentPath = paths.EvynPCLocalPath;
-    case {'Yale VPN', 'Evyns M3 Yale'} % VPN into Yale on Mac or local on Yale
+    case 'evyndickinson'
+        permanentPath = paths.EvynMacLocalPath;
         serverPath = paths.EvynMacServerPath;
-        permanentPath = paths.EvynMacLocalPath;
-    case 'Evyns M3' % Mac, no VPN thus no server
-        permanentPath = paths.EvynMacLocalPath;
-    case 'Becca Air'
-        permanentPath = paths.BeccaLocal;
-        % serverPath = paths.BeccaServer; %TODO find way to differentiate
-        % these
+    case 'rebeccaray'
+        permanentPath = paths.BeccaLocalPath;
+        serverPath = paths.BeccaServerPath;
     case 'DENALI'
         serverPath = paths.denaliServerPath;
-    case 'MWMJ0LY4WH' %becca's computer
+    case 'MWMJ0LY4WH' %becca's work computer aka Chilkat
         serverPath = paths.chilkatServerPath;
         serverTwoPath = paths.chilkatServerTwoPath;
     case 'SLEEPINGGIANT'
@@ -117,6 +109,7 @@ if ~isempty(serverPath)
         serverDrive = true;
     end
 end
+
 % TODO: sort out the time delay on the server two function call
 % Reinstate this function when server2 is being actively used
 % if isfolder(serverTwoPath)
@@ -125,7 +118,6 @@ end
 serverTwoDrive = false;
 
 % Output folder paths for available options
-
 availablePaths.serverPath = serverPath;
 availablePaths.serverTwoPath = serverTwoPath;
 availablePaths.permanentPath = permanentPath;

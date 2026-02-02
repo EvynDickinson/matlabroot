@@ -14,20 +14,7 @@ function [path, folder] = getCloudPath(folderOption)
 
 % Get computer name
 if ismac
-    [~, result] = system('hostname');
-    computerName = strtrim(result);
-
-    % find the current configuration of the computer
-    if contains(computerName, 'Evyns-M3-Macbook-Pro')
-        computerName = 'Evyns M3';
-    elseif contains(computerName, 'Evyns-M3-MBP')
-        computerName = 'Evyns M3 Yale';
-    elseif contains(computerName,'MacBook-Air') % beccas computer
-        computerName = 'Becca Air';
-    elseif contains(computerName,'yale')
-        computerName = 'Yale VPN';
-    end
-
+    computerName = getenv('USER');
 else % PC computers
     computerName = getenv('COMPUTERNAME');
 end
@@ -42,16 +29,16 @@ switch computerName
         path = 'G:\My Drive\Jeanne Lab\DATA\';
     case 'EVYNPC'
         path = 'G:\My Drive\Jeanne Lab\DATA\';
-    case 'MWMJ0LY4WH'
+    case 'MWMJ0LY4WH' %chilkat
         path = 'G:\My Drive\Jeanne Lab\DATA\';
     case 'SLEEPINGGIANT'
         path = 'G:\My Drive\Jeanne Lab\DATA\';
 %     case '' %shows up as empty on the mac
 % %         disp('Evyn''s Macbook');
 %         path = '/Volumes/GoogleDrive/My Drive/Jeanne Lab/DATA/';
-    case {'Evyns M3 Yale', 'Evyns M3', 'Yale VPN'}
+    case 'evyndickinson'
         path = '/Users/evyndickinson/Library/CloudStorage/GoogleDrive-evyn.dickinson@yale.edu/My Drive/Jeanne Lab/DATA/';
-    case 'Becca Air'
+    case 'rebeccaray'
         path = '/Users/rebeccaray/Library/CloudStorage/GoogleDrive-beccaray333@gmail.com/My Drive/Jeanne Lab/DATA/';
 end 
 

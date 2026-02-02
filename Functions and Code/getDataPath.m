@@ -3,26 +3,34 @@
 function [path, location_name] = getDataPath(dataType, dataLocation, promptString)
 % path = getDataPath(dataType, dataLocation, promptString)
 % 
-% dataType options:
-% 0) user select (default)
-% 1) single trial data
-% 2) raw data folder
-% 3) pooled trial data structures 
-% 4) grouped data structures
-% 5) base folder only! -- no path ending
-% 6) courtship folder
-% 7) NOAA Data folder
-% 
+% PURPOSE: 
+% Centralized location for folder and data housing paths based on the
+% specific computer and desired data storage situation
 %
-% dataLocation options: 
-% 0) user select (default)
-% 1) local path
-% 2) server path
-% 3) removable drive
-% 4) storage drive
-% 5) server path 2
-% 6) either server (user selected each time)
+% INPUTS:
+%  'dataType' : options for type of data seeeking
+%       0) user select (default)
+%       1) single trial data
+%       2) raw data folder
+%       3) pooled trial data structures 
+%       4) grouped data structures
+%       5) base folder only! -- no path ending
+%       6) courtship folder
+%       7) NOAA Data folder
+%  'dataLocation' : options for location of the data
+%       0) user select (default)
+%       1) local path
+%       2) server path
+%       3) removable drive
+%       4) storage drive
+%       5) server path 2
+%       6) either server (user selected each time)
+%  'promptString' : what string to display in the search bar
 % 
+% OUTPUTS:
+%  'path' : variable with all the path locations
+%  'location_name' : type of data location (e.g. server)
+%
 % ES Dickinson, Yale University, June 2024
 
 % %%%%%%%%%%%%%%%%%%%           EDITABLE PATH LOCATIONS        %%%%%%%%%%%%%%%%%%%
@@ -39,26 +47,28 @@ function [path, location_name] = getDataPath(dataType, dataLocation, promptStrin
 % path = []; % empty so that in the end, there is something assigned
 % %%%%%%%%%%%%%%%%%%        AVOID EDITING CODE BELOW HERE        %%%%%%%%%%%%%%%%%
 
-% +++ TO UPDATE PATH NAMES EDIT THESE TWO +++
+% +++ TO UPDATE PATH NAMES EDIT THESE THREE +++
 % getDataFolderOptions **edit list near the bottom**
 % getPathNames **edit around line 18 where the names of the paths are**
 % getCloudPath **edit this one for the google drive folder
 
+
+%% 
 paths = getPathNames; 
 path = [];
 
+% find the list of available drives
+[availableDrives, availablePaths] = getDataFolderOptions;
 
 % default values -- single trial data, user selected drive
-switch nargin
-    case 0
-        dataType = 0;
-        dataLocation = 0;
-        promptString = 'Select desired type of data folder : ';
-    case 1 
-        dataLocation = 0;
-        promptString = 'Select desired type of data folder : ';
-    case 2
-        promptString = 'Select desired type of data folder : ';
+if ~exist('promptString', 'var')
+    promptString = 'Select desired type of data folder : ';
+end 
+if ~exist('dataType','var')
+    dataType = 0;
+end
+if ~exist('dataLocation', 'var')
+    dataLocation = 0;   
 end
 
 
@@ -102,10 +112,7 @@ switch dataType
 end
 
 % BASE DRIVE LOCATION SELECTION
-% find the list of available drives
-[availableDrives, availablePaths] = getDataFolderOptions;
-
-% are they available? 
+% which drive locations are available? 
 portableDrive = availableDrives.portable;
 serverDrive = availableDrives.server;
 serverTwoDrive = availableDrives.serverTwo;
@@ -160,7 +167,7 @@ if dataLocation==0 % USER INPUT SELECTION
                availableDrives.storage, availableDrives.portable,true];
     loc_options = all_locations(loc);
     idx = listdlg("PromptString",promptString,'ListString',loc_options,'SelectionMode','single',...
-        'OKString','Get It', 'CancelString','Heck No','InitialValue',1,'ListSize',[300,150]);
+        'OKString','Select Me', 'CancelString','Nah','InitialValue',1,'ListSize',[300,150]);
     if isempty(idx)
         disp('Bummer, no data drive selected')
         return
