@@ -9,6 +9,7 @@ clearvars('-except',initial_var{:})
 % Create lists to cycle through
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
+nRegions = length(region_name);
 
 % FIGURE
 fig = getfig;
@@ -44,10 +45,11 @@ xlabel('time (min)')
 
 clearvars('-except',initial_var{:})
 % Create lists to cycle through
-regime_name = {'WT','WS','CT','CS'}; % temp regime
-labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
+regime_name = {'WT','WS','CT','CS'}; % temp regime
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
+
+% Establish sizes for loops
 nRegions = length(region_name);
 nRegimes = length(regime_name);
 
@@ -57,20 +59,22 @@ x = [];
 for region = 1:nRegions % 3
     h = region;
     for regime = 1:nRegimes % 4
-        h = [h,h(end)+nRegimes];
-    end
+        h = [h,h(end)+nRegimes];   
+    end  
     x(region,:) = h(:,1:nRegimes);
 end
 
-
-sz = 40;
-buff = 0.2;
-% [xM, xF] = deal(1:4);
-% xM = xM-buff;
-% xF = xF+buff;
+% Create list for x axis labels and locations
+labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
+x_labels = [];
+for regime = 1:nRegimes % 4
+    x_labels = [x_labels,median(x(:,regime))];
+end
 
 % FIGURE
-fig = getfig;
+sz = 50;
+buff = 0.2;
+fig = getfig('',true,[1450, 900]);
 hold on
 % Pull out fly speed in each region
 for region = 1:nRegions % 3
@@ -89,16 +93,20 @@ for region = 1:nRegions % 3
         % Replace speed values not during the wanted temp regime with nans
         speed2(~loc2,:) = nan;
         % Calculate mean
-        avgspeed = mean(speed2,1,'omitnan');   
-
+        avgspeed = mean(speed2,1,'omitnan');        
         % Plot average speed in each region during each temp regime
-        scatter(x(region,regime),avgspeed,sz,Color(color_list{region}),'filled');
+        X = x(region,regime) * ones(size(avgspeed));
+        scatter(X,avgspeed,sz,Color(color_list{region}),'filled', 'XJitter','density','XJitterWidth',0.5);
     end
 end
 
+% Format figure
 formatFig(fig,blkbgd);
-legend(region_name)
 ylabel('average speed per fly (mm/s)')
+ylim([0 20])
+xticks(x_labels)
+xticklabels(labels)
+yticks(0:5:20)
 
 
 %% Speed between temp regimes within regions scatter plot
