@@ -388,7 +388,7 @@ fig = getfig('', 1, [436 620]);
     set(gca, 'XTickLabel', labels,'XTickLabelRotation',30);
     ylabel('Courtship per encounters (%)');
     % title('Courtship Behavior During Thermal Threats');
-    formatFig(gcf, blkbgd);
+    formatFig(gcf, blkbgd);        
     ylim([-3,70])
 save_figure(gcf, [figDir 'courtship per encounter across temp regimes'], fig_type);
 

@@ -6,6 +6,8 @@
 % pull out speed
 
 clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colo
+
 % Create lists to cycle through
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
@@ -44,6 +46,8 @@ xlabel('time (min)')
 % pull out speed for each temp regime time period
 
 clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colo
+
 % Create lists to cycle through
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 regime_name = {'WT','WS','CT','CS'}; % temp regime
@@ -71,6 +75,8 @@ for regime = 1:nRegimes % 4
     x_labels = [x_labels,median(x(:,regime))];
 end
 
+[y_avg, y_sem] = deal(nan([4,1]));
+
 % FIGURE
 sz = 50;
 buff = 0.2;
@@ -90,23 +96,37 @@ for region = 1:nRegions % 3
         current_reg = data.tempbin.(regime_name{regime});
         loc2 = replaceNaN(current_reg,0); % TODO can be deleted
         speed2 = speed_all; % M and F combined speed matrix copy
-        % Replace speed values not during the wanted temp regime with nans
+        % Replace speed values not during the wanted te mp regime with nans
         speed2(~loc2,:) = nan;
         % Calculate mean
-        avgspeed = mean(speed2,1,'omitnan');        
+        avgspeed = mean(speed2,1,'omitnan');  
+        y_avg = median(avgspeed,2,'omitnan');
+        y_sem = std(avgspeed,0,2,'omitnan')./sqrt(num.trials);
         % Plot average speed in each region during each temp regime
         X = x(region,regime) * ones(size(avgspeed));
         scatter(X,avgspeed,sz,Color(color_list{region}),'filled', 'XJitter','density','XJitterWidth',0.5);
+        errorbar(x(region,regime), y_avg, y_sem, 'color', Color('gray'), 'linestyle', 'none', 'LineWidth', 1.5,'Marker','_','MarkerSize',30);
     end
 end
 
 % Format figure
 formatFig(fig,blkbgd);
+% y axis specs
 ylabel('average speed per fly (mm/s)')
+ydim = [.4, .37, .34];
 ylim([0 20])
+yticks(0:5:20)
+% x axis specs
 xticks(x_labels)
 xticklabels(labels)
-yticks(0:5:20)
+% annotate on legend to designate regions by color (this might be janky but it works)
+for region = 1:nRegions
+annotation('textbox',[0.75,ydim(region),.5,.5],'String',region_name{region},'FitBoxToText','on','Color',...
+    Color(color_list{region}),'FontSize',15,'EdgeColor',~foreColor)
+end
+
+
+
 
 
 %% Speed between temp regimes within regions scatter plot
@@ -115,6 +135,8 @@ yticks(0:5:20)
 % pull out speed for each temp regime time period
 
 clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colo
+
 % Create lists to cycle through
 regime_name = {'WT','WS','CT','CS'}; % temp regime
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
