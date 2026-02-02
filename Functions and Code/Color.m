@@ -58,7 +58,7 @@ end
 % %Load colors:
 % for ii = 1:length(excelfile)
 %     a = excelfile{ii,3};
-%     colors.names{ii} = excelfile{ii,1};
+%     colors.names{ii,1} = excelfile{ii,1};
 %     if ~isnan(a)
 %         aa = strsplit(a, {',', '.'});
 %         R = str2double(aa{1});
@@ -81,6 +81,7 @@ end
 %         fprintf(['\n value <0 in row: ' num2str(ii)])
 %     end
 % end
+% % make sure you're in the correct 'Functions and Code' 
 % save('color_palette', 'colors')
 
 end
