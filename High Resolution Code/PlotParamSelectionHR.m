@@ -59,12 +59,12 @@ end
 switch dataType
     case 'all'
         paramList = {'Outer Ring', 'Sleep',  'Food Quadrant', 'Speed',...
-          'Inner Food Quadrant', 'Distance to Food', 'Fly On Food', 'Turning', 'Courtship Index',...
+          'Inner Food Quadrant', 'Distance to Food', 'Flies On Food', 'Turning Speed', 'Courtship Index',...
           'Courtship Index All', 'Circling', 'Circling All', 'Chase', 'Chase All',...
           'Food Circle', 'Eccentricity','Wing Extension', 'Wing Extension All', 'Inter Fly Distance'};
     case 'location' % behavior is determined by location in the arena (percent based ones) 
         paramList = {'Outer Ring','Food Quadrant','Inner Food Quadrant', ...
-          'Fly On Food','Food Circle',};
+          'Flies On Food','Food Circle',};
     case 'courtship' % courtship specific parameters
         paramList = {'Courtship Index','Courtship Index All','Inter Fly Distance'...
            'Circling', 'Circling All', 'Chase', 'Chase All','Wing Extension', 'Wing Extension All'};
@@ -132,20 +132,21 @@ for i = 1:numParams
             pName{i} = 'CI_all';
             scaler(i) = 100;
             y_lab{i} = 'courtship index all (% male flies)';
-            ylimits(i,:) = [0, 50];
+            ylimits(i,:) = [0, 10];
             sexSep(i) = false; 
         case 'Eccentricity'
-            pName{i} = 'Eccentricity';
+            pName{i} = 'eccentricity';
             scaler(i) = 1;
             y_lab{i} = 'distance from center (mm)'; % TODO check if this is distance from edge
             % ylimits(i,:) = [0, 50];
         case 'Distance to Food'
             pName{i} = 'dist2food';
-            scaler(i) = 100;
+            scaler(i) = 1;
             y_lab{i} = 'distance to food (mm)';
             ylimits(i,:) = [0, 35];
             y_dir{i} = 'reverse';
-        case 'Flies on Food'
+            nullD(i) = 18.1;
+        case 'Flies On Food'
             pName{i} = 'FlyOnFood';
             scaler(i) = 100;
             y_lab{i} = 'Flies on Food (% flies)';
@@ -193,11 +194,12 @@ for i = 1:numParams
             y_lab{i} = 'distance between flies (mm)';
             % ylimits(i,:) = [0, 35];
             sexSep(i) = false; 
-        case 'Turning'
-            pName{i} = 'turning speed';
+        case 'Turning Speed'
+            pName{i} = 'turning';
             scaler(i) = 1;
             y_lab{i} = 'turning speed (mm/s)'; % TODO check that this is correct
             % ylimits(i,:) = [0, 35];
+            nullD(i) = 0;
     end
 end
 

@@ -6,12 +6,12 @@
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 
-%% FIGURE:  Time course figure and temp-tuning curve for a selected variable
+%% FIGURE: TIME COURSE & TEMP-TUNING CURVE for a selected variable
 clearvars('-except',initial_var{:})
 
 autoLim = true; % matlab automatically determines the y limits if true
 xlim_auto = true; % change the time range for the x axis
-time_limits = [0,900]; % time limits if manual control over x-axis range
+time_limits = [0,350]; % time limits if manual control over x-axis range
 % nMax = num.exp; 
 
 % Select the type of information to plot: 
@@ -181,12 +181,13 @@ end
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
-%% TEMP TUNING CURVE
+%% FIGURE: TEMP TUNING CURVE FOR SELECTED PARAMETER
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 
 % Select the type of information to plot: 
-[title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = PlotParamSelectionHR('Heating and Cooling');
+[title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = ... 
+    PlotParamSelectionHR('Heating and Cooling');
 plot_err = true;
 
 if isempty(title_str)
@@ -203,7 +204,7 @@ end
 % select temp protocol specific plotting features
 autoYLim = false; % Y LIMITS
 if any(isnan(ylimits)) % in case new data is added without specs for axis limits
-    autoYLim = false;
+    autoYLim = true;
 end
 
 % TODO: update this as new protocols are added to the pipeline
@@ -236,7 +237,7 @@ nTemps = length(x); % number of temperature bins
 types  = {'cooling', 'warming'};
 
 % Extract and Plot data:
-fig = getfig('',1);
+fig = getfig('',1,[998 882]); % short and fat: [1230 637]
 for ii = 1:2
     subplot(r,c,ii); hold on
         Idx = data.tempbin.(types{ii});
@@ -271,7 +272,7 @@ formatFig(fig, blkbgd,[r,c]);
 matchAxis(fig, true);
 for ii = 1:2
     subplot(r,c,ii) 
-    title(types{ii},'color', foreColor)
+    title(types{ii},'color', foreColor,'FontAngle','italic')
     xlabel('temperature (\circC)')
     if ~autoXLim;  xlim(xlimits);  end
     if ~autoYLim;  ylim(ylimits);  end
@@ -284,7 +285,7 @@ for ii = 1:2
     if ii==2 % warming
         set(gca, 'YColor', 'none')
     end
-    yline(nullD,'color',Color('gray'), 'LineStyle', '--')
+    h_line(nullD, 'gray', '--',1)
 end
 
 % add shaded area for 'threat' temp region
@@ -304,12 +305,18 @@ annotation('textarrow', arrow_x, arrow_y, 'String', 'time ','Color',foreColor,'F
 arrow_x = [0.60, 0.63];
 arrow_y = [arrow_h, arrow_h];
 annotation('textarrow', arrow_x, arrow_y, 'String', 'time ','Color',foreColor,'FontSize',12);
+% add dashes between the two temp region halves
+arrow_x = [0.495, 0.55];
+arrow_y = [0.11, 0.11];
+annotation('line', arrow_x, arrow_y,'Color',foreColor,...
+    'linestyle','--','linewidth', 1.8);
+
 
 % Save the Figure
-save_figure(fig, [fig_dir title_str ' tuning curve'])
+save_figure(fig, [fig_dir title_str ' tuning curve']);
 
-%% plot the female and male positions within the arena ...
-% TODO: need to rotate the arena to match the food alignment across trials ...
+%% FIGURE: female and male positions within the arena ...
+% TODO: rotate the arena to match the food alignment across trials ...
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); % get background colors
 
@@ -317,15 +324,13 @@ a = inputdlg(['There are ' num2str(num.trials) ' figures, how many columns?']);
 c = str2double(a{:});
 r = ceil(num.trials/c);
 plotSkipSize = 100; % jump size to make plotting more manageable
-% TODO 1.29.26 : update this to incorportate the skip size in the scatter
-% plots
 
 % female position figure: 
 fig = getfig('female fly positions in the arena', 1,[1064 774]);
 for i = 1:num.trials
     subplot(r,c,i); % male position in arena
-    x = fly(i).f.pos(:,body.center,1);
-    y = fly(i).f.pos(:,body.center,2);
+    x = fly(i).f.pos(1:plotSkipSize:end,body.center,1);
+    y = fly(i).f.pos(1:plotSkipSize:end,body.center,2);
     scatter(x,y,3, data.color(F,:))
     hold on
     scatter(fly(i).well.food(1),fly(i).well.food(2),10, foreColor)
@@ -333,15 +338,15 @@ for i = 1:num.trials
     axis square equal
     set(gca, 'XColor','none', 'ycolor', 'none');
 end
-formatFig(fig,blkbgd,[r,c]);
+% formatFig(fig,blkbgd,[r,c]);
 save_figure(fig, [figDir 'female fly positions in arena'],fig_type)
 
 % male position figure: 
 fig = getfig('male fly positions in the arena', 1,[1064 774]);
 for i = 1:num.trials
     subplot(r,c,i); % male position in arena
-    x = fly(i).m.pos(:,body.center,1);
-    y = fly(i).m.pos(:,body.center,2);
+    x = fly(i).m.pos(1:plotSkipSize:end,body.center,1);
+    y = fly(i).m.pos(1:plotSkipSize:end,body.center,2);
     scatter(x,y,3, data.color(M,:))
     hold on
     scatter(fly(i).well.food(1),fly(i).well.food(2),10, foreColor)
@@ -351,113 +356,9 @@ for i = 1:num.trials
 end
 save_figure(fig, [figDir 'male fly positions in arena'],fig_type)
 
-%% Courtship frequency figure: TODO-check that this is aligned time! 
-clearvars('-except',initial_var{:})
-% when and where is the concentration of courtship over experimental time?
-foreColor = formattingColors(blkbgd); % get background colors
-sex = 1;
-% compile the data: 
-[pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
-for i = 1:num.trials
-
-        x = fly(i).time;
-        y = fly(i).T.CI;
-        pD(sex).x = [pD(sex).x, x];
-        pD(sex).y = [pD(sex).y, y];
-
-end
-
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = [1,2]; %temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14];
-sb(3).idx = 3:c:r*c; %binned distance alignment
-LW = 1;
-
-fig = getfig('',0); 
-
-subplot(r,c,sb(1).idx);
-hold on
-for i = 1:num.trials
-    x = fly(i).time;
-    y = fly(i).T.temperature;
-    plot(x,y,'color', foreColor,'LineWidth', LW)
-end
-ylabel('temp (\circC)')
-
-subplot(r,c,sb(2).idx);
-hold on
-for sex = 1:2
-    x = mean(pD(sex).x,2);
-    y = sum(pD(sex).y,2);
-    plot(x,smooth(y,5*60,'moving'),'color', foreColor,'LineWidth',LW)
-end
-xlabel('time (min)')
-ylabel('courtship index sum')
-
-formatFig(fig,blkbgd,[r,c],sb);
-subplot(r,c,sb(1).idx);
-set(gca, 'xcolor', 'none')
-
-% TODO: 
-% plot out by temp region (improving vs worsening) the avg 
-% plot out the avg over time -- running avg. 
-
-%% Courtship Index: 
-% TODO: update this to work with the current data...
-clearvars('-except',initial_var{:})
-% when and where is the concentration of courtship over experimental time?
-[foreColor, ~] = formattingColors(blkbgd); %get background colors
-
-% compile the data: 
-[pD(1).x, pD(2).x, pD(1).y,pD(2).y] = deal([]);
-for i = 1:num.trials
-    sex = 1;
-    % for sex = 1:2
-        x = fly(i).time;
-        y = fly(i).T.CI;
-        pD(sex).x = [pD(sex).x, x];
-        pD(sex).y = [pD(sex).y, y];
-    % end
-end
-
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = [1,2]; %temp timecourse
-sb(2).idx = [4,5,7,8,10,11,13,14];
-sb(3).idx = 3:c:r*c; %binned distance alignment
-LW = 1;
-
-fig = getfig('',1); 
-
-subplot(r,c,sb(1).idx);
-hold on
-for i = 1:num.trials
-    x = fly(i).time;
-    y = fly(i).T.temperature;
-    plot(x,y,'color', foreColor,'LineWidth', LW)
-end
-ylabel('temp (\circC)')
-
-subplot(r,c,sb(2).idx);
-hold on
-for sex = 1:2
-    x = mean(pD(sex).x,2);
-    y = sum(pD(sex).y,2);
-    plot(x,smooth(y,5*60,'moving'),'color', foreColor,'LineWidth',lw)
-end
-xlabel('time (min)')
-ylabel('courtship index sum')
-
-formatFig(fig,blkbgd,[r,c],sb);
-subplot(r,c,sb(1).idx);
-set(gca, 'xcolor', 'none')
-
 %% TODO: group behavior state transition map
 
-%% TODO:  grouped Courtship behavior frequency time course
+%% FIGURE: grouped Courtship behavior frequency time course
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
 kolor = Color('gold');
@@ -472,10 +373,6 @@ temp = mean(data.temperature,2,'omitnan');
 fig = getfig('',0);
 % time
 subplot(r,c,1); hold on 
-% x = data.time;
-% y = data.temp;
-% plot(x,y,'color', foreColor, 'linewidth', lw)
-% ylabel('\circC')
 plot(time, temp,'color', foreColor, 'linewidth', lw)
 ylabel('\circC')
 
@@ -525,67 +422,11 @@ for i = 1:r
     end
 end
 
-save_figure(fig, [figDir 'courtship behaviors over time'],fig_type);
-
-
-%% FIGURE: courtship temp tuning curves
-% TODO: turn this into a temperature tuning curve for each of these metrics
-ntemps = length(data.tempbin.temps);
-[TC.CI.avg, TC.CI.std] = deal(nan(ntemps,2)); % warming then cooling for columns
-for t = 1:ntemps
-    for type = 1:2 %warming then cooling
-        switch type 
-            case 1 
-                ROI = data.tempbin.warming(:,t);
-            case 2
-                ROI = data.tempbin.cooling(:,t);
-        end
-        y = (sum(data.CI(ROI,:),2)./num.trials)*100; % percent of flies doing 'official' courtship
-        y_avg = mean(y,'omitnan');
-        y_err = std(y, 0,1,'omitnan');
-        TC.CI.avg(t,type) = y_avg;
-        TC.CI.std(t,type) = y_err;
-    end
-end
-
-% Plot
-sSpan = 8;
-
-fig = getfig('', 1,[486 680]);
-hold on
-    x = data.tempbin.temps';
-    for type = 1:2
-        switch type
-            case 1
-                kolor = Color('red');
-            case 2
-                kolor = Color('dodgerblue');
-        end
-        % smooth / format
-        y = smooth(TC.CI.avg(:,type),sSpan,'moving');
-        y_err = smooth(TC.CI.std(:,type),sSpan,'moving')./sqrt(num.trials); % SEM     
-        y_low = y-y_err;
-        y_high = y+y_err;
-        y_low(y_low<0) = 0; % threshold error to zero
-        % plot 
-        plot_error_fills(blkbgd, x, y, y_err, kolor,fig_type, 0.35);
-        if ~blkbgd
-            plot(x, y_low, 'color', kolor, 'linewidth',0.25)
-            plot(x, y_high, 'color', kolor, 'linewidth',0.25)
-        end
-        plot(x, y, 'color', kolor, 'linewidth',1)
-    end
-
- %   formatting
- formatFig(fig, blkbgd);
- xlabel('temperature (\circC)')
- ylabel('flies courting (%)')
-
- save_figure(fig, [figDir 'courtship CI index temp tuning curve'],fig_type);
+save_figure(fig, [figDir 'all courtship behaviors over time'],fig_type);
 
 %% TODO: behavior probabilities for states that happen before sleep & how long it took between them...
+% go back over this and make it more legible and clear what it is showing
 clearvars('-except',initial_var{:})
-[foreColor, ~] = formattingColors(blkbgd); %get background colors
 
 % what is the behavior that happened just prior to sleep and how long ago
 % did it happen?
@@ -597,40 +438,40 @@ for i = 1:num.trials
         sleep_off = find(diff(data.sleep(:,sex,i))==-1);
         % behavior comparisions
         if ~isempty(loc)
-            for sleep = 1:length(loc)
-                % last behavior that happened before sleep
-                outRing_last = find(data.OutterRing(1:loc(sleep),sex,i), 1, 'last' ); % outer ring 
-                outRing_last = empty2nan(outRing_last);
-                onFood_last = find(data.FlyOnFood(1:loc(sleep),sex,i), 1, 'last' ); % on food
-                onFood_last = empty2nan(onFood_last);
-                if sex==1
-                    courtship_last = find(data.FlyOnFood(1:loc(sleep),sex,i), 1, 'last' ); % on food
-                    courtship_last = empty2nan(courtship_last);
-                else
-                    courtship_last = nan;
-                end
-                [frame_last, idx_last] = max([outRing_last, onFood_last, courtship_last]);
-                %save into large matrix
-                behavior_last(index,:) = [i, loc(sleep), idx_last, frame_last, outRing_last, onFood_last, courtship_last];
-
-                % next behavior that happened after sleep
-                outRing_next = find(data.OutterRing(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % outer ring 
-                outRing_next = empty2nan(outRing_next);
-                onFood_next = find(data.FlyOnFood(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % on food
-                onFood_next = empty2nan(onFood_next);
-                if sex==1
-                    courtship_next = find(data.FlyOnFood(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % on food
-                    courtship_next = empty2nan(courtship_next);
-                else
-                    courtship_next = nan;
-                end
-                [frame_next, idx_next] = min([outRing_next, onFood_next, courtship_next]);
-                %save into large matrix
-                behavior_next(index,:) = [i, sleep_off(sleep), idx_next, frame_next, outRing_next, onFood_next, courtship_next];
-                
-                % increase the matrix count: 
-                index = index+1;
+        for sleep = 1:length(loc)
+            % last behavior that happened before sleep
+            outRing_last = find(data.OutterRing(1:loc(sleep),sex,i), 1, 'last' ); % outer ring 
+            outRing_last = empty2nan(outRing_last);
+            onFood_last = find(data.FlyOnFood(1:loc(sleep),sex,i), 1, 'last' ); % on food
+            onFood_last = empty2nan(onFood_last);
+            if sex==1
+                courtship_last = find(data.FlyOnFood(1:loc(sleep),sex,i), 1, 'last' ); % on food
+                courtship_last = empty2nan(courtship_last);
+            else
+                courtship_last = nan;
             end
+            [frame_last, idx_last] = max([outRing_last, onFood_last, courtship_last]);
+            %save into large matrix
+            behavior_last(index,:) = [i, loc(sleep), idx_last, frame_last, outRing_last, onFood_last, courtship_last];
+
+            % next behavior that happened after sleep
+            outRing_next = find(data.OutterRing(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % outer ring 
+            outRing_next = empty2nan(outRing_next);
+            onFood_next = find(data.FlyOnFood(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % on food
+            onFood_next = empty2nan(onFood_next);
+            if sex==1
+                courtship_next = find(data.FlyOnFood(sleep_off(sleep)+1:end,sex,i), 1, 'first' )+sleep_off(sleep)+1; % on food
+                courtship_next = empty2nan(courtship_next);
+            else
+                courtship_next = nan;
+            end
+            [frame_next, idx_next] = min([outRing_next, onFood_next, courtship_next]);
+            %save into large matrix
+            behavior_next(index,:) = [i, sleep_off(sleep), idx_next, frame_next, outRing_next, onFood_next, courtship_next];
+            
+            % increase the matrix count: 
+            index = index+1;
+        end
         end
     end
     disp(i)
@@ -663,78 +504,7 @@ formatFig(fig, blkbgd,[1,2]);
 
 save_figure(fig, [figDir 'behaviors before and after sleep'],fig_type);
 
-%% TODO: add a frequency scatter plot that shows the number of instances per temperature region
-clearvars('-except',initial_var{:})
-[foreColor, ~] = formattingColors(blkbgd); %get background colors
 
-temp_regimes = {'hold', 'cooling', 'warming', 'hold'};
-ntypes = length(temp_regimes);
-data_type = 'CI';
-
-% data_type = 'wing_ext_all';
-% data_type = 'chase_all';
-
-% Extract data for plotting
-plotData = [];
-for t = 1:ntypes
-    switch t
-        case 1 % hold
-            t_name = 'pre hold';
-            idx = 1:data.cooling_idx(1)-1;
-        case 2 % cooling
-            t_name = 'cooling';
-            idx = data.cooling_idx(1):data.cooling_idx(2);
-        case 3 % warming
-            t_name = 'warming';
-            idx = data.warming_idx(1):data.warming_idx(2);
-        case 4 % post hold
-            t_name = 'post hold';
-            idx = data.warming_idx(2)+1:length(data.temp);
-    end
-    
-    % have some switch mechanism here to look at different types of parameters
-    raw_data = data.(data_type);
-    
-    y_raw = sum(raw_data(idx,:),'omitnan');
-    y = y_raw./(length(idx)/(fly(1).fps*60)); % instances per minute
-    
-    plotData(t,:) = y;
-end
-
-% Visualize Data:
-buff = 0.2;
-avg_buff = 0.3;
-sz = 60;
-lw = 2;
-cList = {'grey', 'dodgerblue', 'red', 'grey'};
-
-fig = getfig('',1,[547 526]);
-hold on
-for t = 1:ntypes
-    x = shuffle_data(linspace(t-buff,t+buff,num.trials));
-    y = plotData(t,:);
-    scatter(x,y,sz, Color(cList{t}), "filled")
-    x = [t-avg_buff, t+avg_buff];
-    y_mean = mean(y, 'omitnan');
-    plot(x,[y_mean, y_mean],"Color",foreColor, 'linewidth', lw)
-    y_err = std(y, 'omitnan')/num.trials;
-    y_sem = [y_mean-y_err, y_mean+y_err];
-    plot(x,[y_sem(1), y_sem(1)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
-    plot(x,[y_sem(2), y_sem(2)], 'Color',foreColor, 'linewidth', 0.5, 'linestyle', '--')
-end
-set(gca, 'xtick', 1:ntypes,'xticklabel', temp_regimes)
-ylabel([strrep(data_type,'_', '-') ' frequency (#/min)'])
-formatFig(fig, blkbgd);
-save_figure(fig, [figDir 'temp regime binned frequency of ' data_type],fig_type);
-
-% run statistical tests: are they different? 
-statData = plotData';
-[p,tbl,stats] = kruskalwallis(statData,[],'off');
-fig2 = getfig('', 1, [633 580]);
-c = multcompare(stats);
-tble = array2table(c,"VariableNames", ...
-    ["Group A","Group B","Lower Limit","A-B","Upper Limit","P-value"])
-formatFig(fig2, blkbgd);
 
 %% TODO: duration on food across different temperatures
 % Question: when are the flies going onto the food and how long are they staying
@@ -803,8 +573,8 @@ ylabel([strrep(data_type,'_', '-') ' frequency (#/min)'])
 formatFig(fig, blkbgd);
 save_figure(fig, [figDir 'temp regime binned frequency of ' data_type],fig_type);
 
-%% FIGURE: rasterplot of frequency of courtship-like events over the timecourse
-
+%% TODO: sort this mess out: rasterplot of frequency of courtship-like events over the timecourse
+% This currently does not work for LTS data (I think... evyn 2.3.26)
 % bin by time?
 
 % look at the total number for each group...
@@ -871,7 +641,6 @@ for t = 1:4 % hold, cooling, warming, hold
         PD(t,i-1) = sum(pD.(params{i})(tROI(t,1):tROI(t,2)),'omitnan')./(tROI(t,2)-tROI(t,1));
     end
 end
-
 
 cData = [Color('grey'); Color('dodgerblue'); Color('red'); Color('grey')];
 n = 3;
