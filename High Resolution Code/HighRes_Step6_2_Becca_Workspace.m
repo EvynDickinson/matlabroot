@@ -33,12 +33,12 @@ end
 
 % Format fig
 formatFig(fig,blkbgd);
-legend(region_name)
+legend(region_name,"TextColor",foreColor,"Color",~foreColor,"EdgeColor",~foreColor)
 ylabel('average speed (mm/s)')
 xlabel('time (min)')
 
 % Save figure
-% save_figure(fig,[figDir 'speed between regions timecourse'],fig_type);)
+save_figure(fig,[figDir 'speed between regions timecourse'],fig_type);
 
 %% Speed between regions within temp regimes scatter plot
 
@@ -105,7 +105,7 @@ for region = 1:nRegions % 3
         % Plot average speed in each region during each temp regime
         X = x(region,regime) * ones(size(avgspeed));
         scatter(X,avgspeed,sz,Color(color_list{region}),'filled', 'XJitter','density','XJitterWidth',0.5);
-        errorbar(x(region,regime), y_avg, y_sem, 'color', 'k', 'linestyle', 'none', 'LineWidth', 2,'Marker','_','MarkerSize',30);
+        errorbar(x(region,regime), y_avg, y_sem, 'color', foreColor, 'linestyle', 'none', 'LineWidth', 2,'Marker','_','MarkerSize',30);
     end
 end
 
@@ -191,7 +191,7 @@ for region = 1:nRegions % 3
         % Plot average speed in each region during each temp regime
         X = x(regime,region) * ones(size(avgspeed));
         scatter(X,avgspeed,sz,Color(color_list{region}),'filled', 'XJitter','density','XJitterWidth',0.5);
-        errorbar(x(regime,region), y_avg, y_sem, 'color', 'k', 'linestyle', 'none', 'LineWidth', 2,'Marker','_','MarkerSize',30);
+        errorbar(x(regime,region), y_avg, y_sem, 'color', foreColor, 'linestyle', 'none', 'LineWidth', 2,'Marker','_','MarkerSize',30);
         % plot(x(regime,region), y_avg, 'color', 'k')
         Rspeed = [Rspeed;avgspeed];
     end
