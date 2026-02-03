@@ -12,9 +12,16 @@ foreColor = formattingColors(blkbgd); % get background colo
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
 nRegions = length(region_name);
+r = 3; c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2:3; 
 
 % FIGURE
 fig = getfig;
+subplot(r,c,sb(1).idx)
+plot(data.time,data.temperature,'color', foreColor,'LineWidth', 2)
+    ylabel('temp (\circC)')
+subplot(r,c,sb(2).idx)
 hold on
 % Pull out fly speed in each region
 for ii = 1:nRegions
@@ -32,7 +39,10 @@ for ii = 1:nRegions
 end
 
 % Format fig
-formatFig(fig,blkbgd);
+formatFig(fig,blkbgd,[r,c], sb);
+subplot(r,c,sb(1).idx)
+    set(gca, 'xcolor', 'none')
+subplot(r,c,sb(2).idx)
 legend(region_name,"TextColor",foreColor,"Color",~foreColor,"EdgeColor",~foreColor)
 ylabel('average speed (mm/s)')
 xlabel('time (min)')
@@ -226,74 +236,6 @@ end
 % Save figure
 save_figure(fig,[figDir 'speed between temp regimes within regions scatter plot'],fig_type);
 
-%% Speed between temp regimes within regions scatter plot
-
-% % pull out when flies are in each region
-% % pull out speed for each temp regime time period
-% 
-% clearvars('-except',initial_var{:})
-% foreColor = formattingColors(blkbgd); % get background colo
-% 
-% % Create lists to cycle through
-% regime_name = {'WT','WS','CT','CS'}; % temp regime
-% region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
-% color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
-% 
-% % Set up x axis placement
-% h = [];
-% x = [];
-% for regime = 1:nRegimes % 3
-%     h = regime;
-%     for region = 1:nRegions % 4
-%         h = [h,h(end)+5];
-%     end
-%     x(regime,:) = h(:,1:nRegions);
-% end
-% 
-% labels = {'Outer Ring', 'Inner Food Quad', 'Inner Empty Quad'};
-% sz = 40;
-% buff = 0.2;
-% % [xM, xF] = deal(1:4);
-% % xM = xM-buff;
-% % xF = xF+buff;
-% 
-% Rspeed = [];
-% % FIGURE
-% fig = getfig;
-% hold on
-% % Pull out fly speed in each region
-% for region = 1:nRegions % 3
-%     current_var = data.(region_name{region});
-%     loc = logical(replaceNaN(current_var,0));    
-%     speed = data.speed;
-%     % Replace speed values when fly is not in the wanted region with nans
-%     speed(~loc) = nan;
-%     % Pull out fly speed in each temp regime
-%     for regime = 1:nRegimes % 4
-%         current_reg = data.tempbin.(regime_name{regime});
-%         loc2 = replaceNaN(current_reg,0);
-%         speed2 = speed;
-%         % Replace speed values not during the wanted temp regime with nans
-%         speed2(~loc2,:) = nan;
-%         % Remove M/F fly dimension - all flies and their speeds together
-%         speed2 = [squeeze(speed(:,M,:)),squeeze(speed(:,F,:))];
-%         % Calculate mean
-%         avgspeed = mean(speed2,1,'omitnan');   
-%         % Plot average speed in each region during each temp regime
-%         scatter(x(regime,region),avgspeed,sz,Color(color_list{region}),'filled')
-%         Rspeed = [Rspeed;avgspeed];
-%     end
-%     for fly = 1:length(avgspeed)
-%         plot(x(:,region),Rspeed(:,fly))
-%     end
-%         Rspeed = []; 
-% end
-% 
-% 
-% formatFig(fig,blkbgd);
-% legend(region_name)
-% ylabel('average speed per fly (mm/s)')
-
 
 %% Histogram of speed between regions
 
@@ -301,6 +243,8 @@ clearvars('-except',initial_var{:})
 % Create lists to cycle through
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
 color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
+nRegions = length(region_name);
+nBins = 25;
 
 % FIGURE
 fig = getfig;
@@ -314,11 +258,26 @@ for ii = 1:nRegions
     speed(~loc) = nan;
     % Remove M/F fly dimension - all flies and their speeds together
     speed_all = [squeeze(speed(:,M,:)),squeeze(speed(:,F,:))];
-    histogram(speed_all)
+    histogram(speed_all,"FaceColor",Color(color_list{ii}),'FaceAlpha',0.5)
 end
 
+% Format figure
+formatFig(fig,blkbgd);
+% x axis specs
+xlim([0 30]) 
+xlabel('speed (mm/s)')
+% y axis specs
+ylim([0 (3*10^5)])
+ylabel('frequency')
+% annotate on legend to designate regions by color (this might be janky but it works)
+ydim = [0.4, 0.37, 0.34, 0.31]; %hard coded for data distribution on figure
+for region = 1:nRegions
+annotation('textbox',[0.8,ydim(region),.5,.5],'String',region_name{region},'FitBoxToText','on','Color',...
+    Color(color_list{region}),'FontSize',15,'EdgeColor',~foreColor)
+end
 
-
+% Save figure
+save_figure(fig,[figDir 'speed between regions histogram'],fig_type);
 
 
 
