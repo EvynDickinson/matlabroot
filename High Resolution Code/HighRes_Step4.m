@@ -225,7 +225,7 @@ switch questdlg('Were all the tracks correctly answered?')
         disp('Video alignments updated')
 end
 
-% Run from here if manually fixing track alignment
+% Run from here if manually fixing track alignment (in vid_align)
 state_switch = false;
 state = true;
 for i = 2:nvids
