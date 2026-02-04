@@ -1,6 +1,13 @@
 
-function fig = plotFlySkeleton(fig, x,y,kolor,nodes)
-% fig = plotFlySkeleton(fig, x,y)
+function fig = plotFlySkeleton(fig, x, y, kolor, nodes)
+% fig = plotFlySkeleton(fig, x,y,kolor,nodes)
+%
+%
+
+
+
+
+%%
 
 if ~exist('kolor', 'var')
     kolor = 'k';

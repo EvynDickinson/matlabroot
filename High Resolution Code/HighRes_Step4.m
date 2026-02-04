@@ -274,7 +274,10 @@ end
 if ~exist([baseDir '/Figures'], 'dir')
     mkdir([baseDir '/Figures'])
 end
-pix2mm = 0.0289; % calculated on the new back setup 11/7/24
+conversion = getConversion;
+pix2mm = conversion(4).pix2mm;
+% pix2mm = 0.0289; % calculated on the new back setup 11/7/24 [commented
+% out 2/4/26 and implemented the conversion value]
 fps = parameters.FPS;
 
 % Make male and female matrices
@@ -333,7 +336,7 @@ for sex = 1:2
             y = D2.pos(:,2,2);
     end
     % distance traveled from frame to frame by the fly
-    S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2)).*pix2mm; 
+    S = hypot(diff(x), diff(y))./pix2mm; 
     speed(sex).speed = [0;(S./(1/fps))]; % mm per second
 end
 

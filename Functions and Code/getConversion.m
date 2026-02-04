@@ -1,15 +1,29 @@
 
 function [conversion, con_type] = getConversion(exp_date, plate, exp_type)
 % [conversion, con_type] = getConversion(exp_date, plate, exp_type)
-% ex: exp_date = 'MM.DD.YYYY'
-% plate is 1 or 2 for old vs new plate
-% exp_type: 1 = low res, 2 = high res
-% con_type will be the number(s) to use for the conversion -- but gives 2 if you
-% don't give the number of the plate
+%
+% PURPOSE 
+% Load in the specific video to real world conversion and size values for the 
+% different arena plates used at different points in time 
+%
+% INPUTS
+%    'exp_date' : date of the experiment in format 'MM.DD.YYYY'
+%    'plate' : arena identity, e.g., plate 1 or 2 (format: double)
+%               plate = 1 : old plate
+%               plate = 2 : new plate
+%    'exp_type':  experiment resolution camera type 
+%               1 = low res, 2 = high res
+%
+% OUTPUTS
+%    'conversion' : structure with all the parameters for each type of
+%               experiment
+%    'con_type' : will be the number(s) to use for the conversion index type
+%                gives 2 as output type if the plate number is not
+%                provided
 % 
-% pull the numbers and date standards for the experimental plates
-% and their sizes etc 
+% ES DICKINSON, 2025
 
+%%
 date_switch = datetime('10.20.2023', 'InputFormat', 'MM.dd.yyyy');
 
 i = 1; 

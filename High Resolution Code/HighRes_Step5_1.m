@@ -63,23 +63,64 @@ end
 %% ANALYSIS: Extract calculated variables
 clearvars('-except',initial_var{:})
 
+pix2mm = conversion(4).pix2mm;
+
 % Inter-fly-distance from the fly's center point
 x1 = m.pos(:,body.center,1); % x location for male center
 y1 = m.pos(:,body.center,2);
-x2 = f.pos(:,body.center,1);
+x2 = f.pos(:,body.center,1); % x location for female center
 y2 = f.pos(:,body.center,2);
-% calculate interfly distance
-IFD = (sqrt((x1-x2).^2 + (y1-y2).^2))./pix2mm;
+% calculate interfly distance : distance between fly body centers
+IFD = hypot((x2-x1),(y2-y1))./pix2mm;
 % add interfly distance to the data table
 T.IFD = IFD; 
 
 % Fly speed (position one ahead-current position/time)
 speed = [];
-D = (sqrt((x1(1:end-1)-x1(2:end)).^2 + (y1(1:end-1)-y1(2:end)).^2))./pix2mm; % male speed
-m.speed = [0;(D./(1/fps))];
+D = hypot(diff(x1), diff(y1)); % find the distance in pixels one frame to the next
+D = D./pix2mm; % convert from pixels/frame to mm/frame
+D = D.*fps; % convert to mm/sec
+m.speed = [0; D];
 D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2))./pix2mm; % female speed
 f.speed = [0; (D./(1/fps))];
 
+% TODO HERE: 2/4/26 GET THIS SPEED DATA SORTED OUTTTTTT
+
+% m.dist2food = (sqrt((x1-c1).^2 + (y1-c2).^2))./pix2mm; 
+% m.speed = [0; (D./(1/fps))];
+
+
+% S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2))./pix2mm; 
+%     speed(sex).speed = [0;(S./(1/fps))]; % mm per second
+
+
+% % TESTING!!!! 
+% 
+% % Inter-fly-distance from the fly's center point
+% x1 = fly(1).m.pos(:,body.center,1); % x location for male center
+% y1 = fly(1).m.pos(:,body.center,2);
+% x2 = fly(1).f.pos(:,body.center,1); % x location for female center
+% y2 = fly(1).f.pos(:,body.center,2);
+% 
+% test = smooth(D,6,'moving');
+% a = find(test>=50);
+% a(1:2) = [];
+% 
+% % plot out the fly locations for these frames
+% 
+% 
+% 
+% fig = figure; hold on
+% 
+% for ii = 1:length(a)
+% 
+%     x =  fly(1).m.pos(a(ii),:,1);
+%     y =  fly(1).m.pos(a(ii),:,2);
+%     plotFlySkeleton(fig, x,y,Color('dodgerblue'),true);
+% end
+% axis equal
+% 
+% b = (D(a));
 
 %% ANALYSIS: Calculate M and F wing angles
 clearvars('-except',initial_var{:})

@@ -269,6 +269,20 @@ fig = figure;
     formatFig(fig, blkbgd);
 save_figure(fig, [alignmentDir 'raw section durations'],fig_type);
 
+% % Add speed data to trial information: 
+% % TODO: figure out why the speed data is so high??? does it need the
+% conversion to mm from pixels still?
+% for trial = 1:num.trials
+%     T = fly(trial).T;
+%     if ~ismember('Speed', T.Properties.VariableNames)
+%         T.Speed = [fly(trial).m.speed, fly(trial).f.speed];
+% 
+%         figure; hold on
+%         plot(smooth(T.Speed(:,1),10,'moving'),'color', 'b')
+%         plot(T.Speed(:,2),'color', 'm')
+
+        
+
 % Shift trials to align to the ramp trough:
 % preallocate empty space for all the variables that need to be time-shifted across trials
 max_len = size(fly(1).T,1); % set up a buffered time (assume all trials are the same length) 
@@ -276,11 +290,10 @@ optA =  nan(max_len,num.trials); % single data column for each trial
 optB = nan(max_len,2,num.trials); % two data columns per trial
 categories = {'temperature', 'frame', 'IFD', 'cooling', 'warming', 'hold', 'wing_ext', 'wing_ext_all',...
               'court_chase', 'chase_all', 'circling_all', 'circling_1sec', 'CI'}; % from fly.T
-sub_cat = {'eccentricity', 'OutterRing', 'foodQuad', 'foodcircle', 'turning'}; % from fly.data
+sub_cat = {'eccentricity', 'OutterRing', 'foodQuad', 'foodcircle', 'turning', 'speed'}; % from fly.data
 
-
-% DATA STRUCT is time aligned across trials!!!! AKA use this data moving
-% forward in the analyses
+% ****** DATA STRUCT is time aligned across trials!!!! ******
+% AKA use this data moving forward in the analyses
 data = struct; 
 for i = 1:length(categories)
     data.(categories{i}) = optA;
@@ -532,7 +545,7 @@ for trial = 1:num.trials
     y2 = data.y_loc(F).pos(:,body.center,trial);  % y location for female center
 
     % matrix with both flies: male first then female -- but this way we can run the processing in parallel
-    x_loc = [x1,x2]; 
+    x_loc = [x1, x2]; 
     y_loc = [y1, y2]; 
     
     % ct = data(exp).con_type(trial); % experiment lens configuration
@@ -542,7 +555,8 @@ for trial = 1:num.trials
     circle10 = conversion(ct).circle10;
     circle7 = conversion(ct).circle7;
     circle5 = conversion(ct).circle5;
-    foodWell = fly(trial).well.food_idx;  % which well contains the food TODO: update this to account for no food trials...
+    foodWell = fly(trial).well.food_idx;  % which well contains the food 
+    % TODO: update this to account for no food trials...
     % foodWell = data(exp).T.foodLoc(trial);
 
     % Adjust the X and Y coordinates relative to new center of (0,0)
@@ -564,7 +578,7 @@ for trial = 1:num.trials
     % Define base location logicals
     fly_loc = ~isnan(x_loc) & (D <= R) & loc; % data points that are valid flies
 
-    innerQuad = (D < circle75) & fly_loc; %logical of all points that have a fly within the inner circle
+    innerQuad = (D < circle75) & fly_loc; % logical of all points that have a fly within the inner circle
     adjustedX(~fly_loc) = nan;
     adjustedY(~fly_loc) = nan;
     Q = findQuadLocation(adjustedX,adjustedY);
@@ -867,10 +881,14 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
 
     
     % ADD SPEED TO THE DATA STRUCTURE
-    data.speed = nan(size(data.sleep));
-    for trial = 1:num.trials
-        data.speed(:,2,trial) = fly(trial).f.speed;
-        data.speed(:,1,trial) = fly(trial).m.speed;
+    if ~isfield(data, 'speed')
+        warndlg('This structure needs to be rebuilt so the time-aligned speed can be created')
+        return
+        % data.speed = nan(size(data.sleep));
+        % for trial = 1:num.trials
+        %     data.speed(:,2,trial) = fly(trial).f.speed;
+        %     data.speed(:,1,trial) = fly(trial).m.speed;
+        % end
     end
     
     % make an inner food quad region ROI

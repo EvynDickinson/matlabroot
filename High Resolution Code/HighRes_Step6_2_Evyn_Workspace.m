@@ -351,3 +351,351 @@ subplot(r,c,sb(3).idx);
     set(gca, 'YDir',axis_dir)
 
 save_figure(fig, [figFolder opt_list{list_idx}],fig_type);
+
+%% 
+
+
+%% ANALYSIS: Find the quadrants with the highest and lowest occupancy over the exp for null comparison
+% as defined by the 7% space around the well (aka using the 'occupancy' measure
+clearvars('-except',initial_var{:})
+
+occ_idx = (nan([num.trials,2])); % initialize an empty occupancy index
+
+for trial = 1:num.trials
+
+    
+    quad_avg = mean(data(trial).data(trial).data.occ_P,1,'omitnan'); % pull the percent occupancy for each food well
+    [~, low_idx] = min(quad_avg); % which quad was lowest occ on avg
+    [~, high_idx] = max(quad_avg); % which quad was highest occ on avg
+    grouped(trial).occ_idx(trial,1) = low_idx; % register into the index the quad identity for lowest occupancy 
+    grouped(trial).occ_idx(trial,2) = high_idx; % register into the index the quad identity for highest occupancy 
+end
+% add a logical for if this is an empty trial (make it easier for switching code sections later
+if strcmp(data(trial).foodNames, 'Movement')
+    data(trial).emptytrial = true;
+else
+    data(trial).emptytrial = false;
+end
+
+
+
+%% ANALYSIS: normalize fly position within arena to common orientation (food location) 
+clearvars('-except',initial_vars{:})
+OG_Orientation = datetime('10.20.2023','InputFormat','MM.dd.yyyy'); % camera & lens change accounting
+
+for type = 1:3 % assigned food well, lowest occupied, highest occupied
+    switch type
+        case 1 % food assigned position 
+            field_label = 'position';
+        case 2 % lowest occupancy position aligned
+            field_label = 'position_low';
+        case 3 % highest occupancy position aligned
+            field_label = 'position_high';
+    end
+
+    for i = 1:num.exp
+      % BINNED
+      [tempRates,decreasing,increasing,temperatures] = deal([]);
+      % Pull temperature and rate information for the temp protocol
+      temp_rates = data(i).G(1).TR.rates;
+      temp_list = data(i).G(1).TR.temps;
+      nrates = data(i).G(1).TR.nRates;
+      ntemps = data(i).G(1).TR.nTemps;
+      rate_idx = data(i).G(1).TR.rateIdx;
+      temp_idx = data(i).G(1).TR.tempIdx;
+      loc_mat = struct;
+    
+      % find frame index for each temp bin & rate of change
+      for tt = 1:ntemps
+        for rr = 1:nrates
+            rateAligned = rate_idx==rr;
+            tempAligned = temp_idx==tt;
+            loc = find(rateAligned & tempAligned);
+            if isempty(loc)
+                loc = nan;
+            end
+            loc_mat(rr,tt).frames = loc;
+            loc_mat(rr,tt).x = []; % set empty space for appending
+            loc_mat(rr,tt).y = [];
+        end
+      end
+      wellXY = [];
+      for trial = 1:num.trial(i)
+        trial_date = datetime(data(i).T.Date{trial},'InputFormat','MM.dd.yyyy');
+        
+        % get arena information
+         switch type
+             case 1 % food assigned position 
+                well_loc = data(i).T.foodLoc(trial);
+             case 2 % lowest occupancy position aligned
+                well_loc = grouped(i).occ_idx(trial,1);
+             case 3 % highest occupancy position aligned
+                well_loc = grouped(i).occ_idx(trial,2);
+        end
+        wells = data(i).data(trial).data.wellcenters;
+    
+        % % find offset to make the food well the origin
+        % x_offset = wells(1,well_loc);
+        % y_offset = wells(2,well_loc);
+        % wells_x = wells(1,:)-x_offset;
+        % wells_y = wells(2,:)-y_offset;
+        % 
+        % X = data(i).data(trial).data.x_loc;
+        % Y = data(i).data(trial).data.y_loc;
+        % X = X-x_offset;
+        % Y = Y-y_offset;
+        % % save the position normalized data into the grouped structure or something
+    
+        % use the arena center as rotation center rather than the wells
+        arena_center_x = mean(wells(1,:));
+        arena_center_y = mean(wells(2,:));
+        
+        % offset all data by arena center
+        X = data(i).data(trial).data.x_loc - arena_center_x;
+        Y = data(i).data(trial).data.y_loc - arena_center_y;
+        
+        wells_x = wells(1,:) - arena_center_x;
+        wells_y = wells(2,:) - arena_center_y;
+    
+        [WELLS,x_data,y_data] = deal([]);
+        if trial_date > OG_Orientation %new camera orientation
+            % Rotate to correct orientation
+            switch well_loc
+                case 1
+                    x_data = X;
+                    y_data = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+                case 2
+                    x_data = Y;
+                    y_data = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 3
+                    x_data = X;
+                    y_data = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 4
+                    x_data = -Y;
+                    y_data = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+            end
+        else % Rotate to correct orientation with older camera arrangement            
+            switch well_loc
+                case 1
+                    x_data = Y;
+                    y_data = -X;
+                    WELLS(:,1) = wells_y;
+                    WELLS(:,2) = -wells_x;
+                case 2
+                    x_data = X;
+                    y_data = -Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = -wells_y;
+                case 3
+                    x_data = -Y;
+                    y_data = X;
+                    WELLS(:,1) = -wells_y;
+                    WELLS(:,2) = wells_x;
+                case 4
+                    x_data = X;
+                    y_data = Y;
+                    WELLS(:,1) = wells_x;
+                    WELLS(:,2) = wells_y;
+            end
+    
+        end
+        
+        wellXY.x(:,trial) = WELLS(:,1);
+        wellXY.y(:,trial) = WELLS(:,2);
+    
+        % For each temp and rate, pool all (now normalized) fly positions
+        for tt = 1:ntemps
+          for rr = 1:nrates
+            frame_idx = loc_mat(rr,tt).frames;
+            % shift positions for food well as origin
+            if ~isnan(frame_idx)
+                x = x_data(frame_idx,:);
+                y = y_data(frame_idx,:);
+                
+                % save data into structure:
+                loc_mat(rr,tt).data(trial).pos = [x(:),y(:)];
+                loc_mat(rr,tt).x = [loc_mat(rr,tt).x; x(:)];
+                loc_mat(rr,tt).y = [loc_mat(rr,tt).y; y(:)];
+            else
+                loc_mat(rr,tt).data(trial).pos = [nan nan];
+                loc_mat(rr,tt).x = nan;
+                loc_mat(rr,tt).y = nan;
+            end
+          end
+        end
+        grouped(i).(field_label).trial(trial).x = x_data; % this is the full x data for each trial reoriented! 
+        grouped(i).(field_label).trial(trial).y = y_data; % this is the full y data for each trial reoriented! 
+      end
+      
+      % save trial data into broad structure
+      grouped(i).(field_label).loc = loc_mat;
+      grouped(i).(field_label).temp_rates = temp_rates;
+      grouped(i).(field_label).temp_list = temp_list; %
+      grouped(i).(field_label).well_pos = wellXY; %position of the wells in the newly oriented arena
+    end
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+%% FIGURE: Heatmap of the fly positions within the arena across temperature bins
+clearvars('-except',initial_var{:})
+
+% Need to rotate and align the fly arena data first...
+
+
+save_path = createFolder([figDir 'Position Heat Maps/']);
+autoSave = true;
+
+% fig_type = '-pdf';
+% blkbgd = false;
+% [foreColor,backColor] = formattingColors(blkbgd);
+
+% Find the occupancy for each bin:
+% r = data(1).data(1).data.r; %pixel radius of the arena
+
+n = 26; % number of spatial bins
+autoLim = false;
+axis_limits = [0, 0.01];
+
+% Set Temperature
+for temp = 15:4:35  % [17,18, 20,30,32] % 16:2:35  % (17:2:25)
+
+    plotData = [];
+    max_occ = [];
+    % GROUP DATA
+    
+    % get the 'square' units for partitioning space
+    Cx = mean(grouped(i).position.well_pos.x(5,:)); %center X
+    Cy = mean(grouped(i).position.well_pos.y(5,:)); %center Y
+    x_edge = linspace(Cx-r,Cx+r,n);
+    y_edge = linspace(Cy-r,Cy+r,n);
+    
+    % determine what a circle around the arena would look like:
+    % r needs to be transformed into unit square space...
+    square_unit = mean(diff(x_edge)); % pixel size for one bin
+    circ_r = r/square_unit; % arena radius in bin size
+    circ_X = discretize(Cx, x_edge);
+    circ_Y = discretize(Cy, y_edge);
+    
+    % find the temp bin that corresponds to the selected temp:
+    [~,idx] = min(abs(grouped(i).position.temp_list-temp));
+    nRates = length(grouped(i).position.temp_rates);
+    nflies = [];
+    for rr = 1:nRates
+        % find x and y that are within each 'box'
+        x = grouped(i).position.loc(rr,idx).x;
+        y = grouped(i).position.loc(rr,idx).y;
+        nanLoc = isnan(x)| isnan(y);
+        x(nanLoc) = [];
+        y(nanLoc) = [];
+    
+        xInd = discretize(x,x_edge);
+        yInd = discretize(y,y_edge);
+    
+        % find the number of flies within each spatial bin:
+        for row = 1:n
+            for col = 1:n
+                nflies(row,col) = sum(yInd==row & xInd==col);
+            end
+        end
+        % turn to prob and not direct occupancy
+        plotData(i,rr).data = nflies./sum(sum(nflies));
+        
+        max_occ = max([max_occ,max(max(plotData(i,rr).data))]);
+    
+        % Find the wells within the binned space
+        % wellX = (grouped(i).position.well_pos.x(1:4,:)); 
+        % wellY = (grouped(i).position.well_pos.y(1:4,:));
+        % wellX = wellX(:);
+        % wellY = wellY(:);
+        xInd = discretize(0,x_edge);
+        yInd = discretize(0,y_edge);
+    
+        plotData(i,rr).wells = [xInd,yInd];
+    
+    end
+    
+    disp(['Max occupancy: ' num2str(max_occ)])
+    
+    % PLOT 
+    fig_W = 20 + (400*nRates);
+    
+    for i = expList
+        fig = getfig('',false,[fig_W, 340]); 
+        for rr = 1:nRates
+            subplot(1,nRates,rr)
+            hold on
+            imagesc(plotData(i,rr).data); hold on
+            scatter(plotData(i,rr).wells(:,1),plotData(i,rr).wells(:,2),10,'r','filled')
+            axis tight;
+            axis square;
+            % h = drawcircle('Center',[circ_X,circ_Y],'Radius',circ_r,'StripeColor',foreColor);
+            v = viscircles([circ_X,circ_Y],circ_r, 'color', foreColor);
+        end
+        formatFig(fig, blkbgd,[1,nRates]);
+        for rr = 1:nRates
+            subplot(1,nRates,rr)
+            set(gca,'XColor',backColor,'Ycolor',backColor,'XTick', [],'YTick', [])
+            t_str = [num2str(grouped(i).position.temp_rates(rr)) '\circC/min | ' num2str(temp) '\circC'];
+            title({grouped(i).name; t_str},'color',foreColor,'fontsize', 12)
+            
+            % set(gca,'ColorScale','log')
+    
+            c = colorbar;
+            c.Label.String = 'Occupancy Probability';
+            c.Label.Color = foreColor;
+            c.Color = foreColor;
+            if autoLim
+                clim([0,max_occ]) 
+            else
+                clim(axis_limits)
+            end
+        end
+        colormap(flipud(gray))
+        % save the figure to a folder specific to that cohort?
+        save_figure(fig,[save_path grouped(i).name ' ' num2str(temp) ' deg'], fig_type,autoSave,true);
+    end
+
+end
+
+%% DETERMINE WHAT IS UP WITH SPEED DATA: 
+
+figure; 
+for ii = 1:num.trials
+    subplot(7,2,ii);
+    hold on
+    histogram(fly(ii).m.speed,'FaceColor','b')
+    histogram(fly(ii).f.speed, 'FaceColor', 'm')
+end
+
+
+
+figure; 
+for ii = 1:num.trials
+    subplot(7,2,ii);
+    hold on
+    histogram(data.speed(:,M,ii),'FaceColor','b')
+    histogram(data.speed(:,F,ii), 'FaceColor', 'm')
+end
+
+figure; 
+histogram(data.speed(:,:,:))
+xlim()
