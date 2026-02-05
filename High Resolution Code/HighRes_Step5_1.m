@@ -76,51 +76,61 @@ IFD = hypot((x2-x1),(y2-y1))./pix2mm;
 T.IFD = IFD; 
 
 % Fly speed (position one ahead-current position/time)
-speed = [];
+% Male Speed:
 D = hypot(diff(x1), diff(y1)); % find the distance in pixels one frame to the next
 D = D./pix2mm; % convert from pixels/frame to mm/frame
 D = D.*fps; % convert to mm/sec
 m.speed = [0; D];
-D = (sqrt((x2(1:end-1)-x2(2:end)).^2 + (y2(1:end-1)-y2(2:end)).^2))./pix2mm; % female speed
-f.speed = [0; (D./(1/fps))];
+% Female speed: 
+D = hypot(diff(x2), diff(y2)); % find the distance in pixels one frame to the next
+D = D./pix2mm; % convert from pixels/frame to mm/frame
+D = D.*fps; % convert to mm/sec
+f.speed = [0; D];
 
-% TODO HERE: 2/4/26 GET THIS SPEED DATA SORTED OUTTTTTT
-
-% m.dist2food = (sqrt((x1-c1).^2 + (y1-c2).^2))./pix2mm; 
-% m.speed = [0; (D./(1/fps))];
-
-
-% S = (sqrt((x(1:end-1)-x(2:end)).^2 + (y(1:end-1)-y(2:end)).^2))./pix2mm; 
-%     speed(sex).speed = [0;(S./(1/fps))]; % mm per second
-
-
-% % TESTING!!!! 
+% % TODO HERE: 2/4/26 GET THIS SPEED DATA SORTED OUTTTTTT
+% %  ------------------ TESTING!!!! -------------------
 % 
 % % Inter-fly-distance from the fly's center point
-% x1 = fly(1).m.pos(:,body.center,1); % x location for male center
-% y1 = fly(1).m.pos(:,body.center,2);
-% x2 = fly(1).f.pos(:,body.center,1); % x location for female center
-% y2 = fly(1).f.pos(:,body.center,2);
+% trial = 4;
+% x1 = fly(trial).m.pos(:,body.center,1); % x location for male center
+% y1 = fly(trial).m.pos(:,body.center,2);
+% x2 = fly(trial).f.pos(:,body.center,1); % x location for female center
+% y2 = fly(trial).f.pos(:,body.center,2);
 % 
+% D = hypot(diff(x1), diff(y1)); 
 % test = smooth(D,6,'moving');
 % a = find(test>=50);
-% a(1:2) = [];
+% b = max(a); % custom selected range that has two high speed frames
+% b = b(1)-3:b(end)+3;
+% 
+% 
+% figure; hold on
+%     plot(D,'color', Color('vaporwavepurple'))
+%     plot(test, 'color', Color('vaporwaveyellow'))
+%     h_line(50)
+%     v_line([b(1),b(end)], 'red')
 % 
 % % plot out the fly locations for these frames
 % 
-% 
-% 
 % fig = figure; hold on
-% 
-% for ii = 1:length(a)
-% 
-%     x =  fly(1).m.pos(a(ii),:,1);
-%     y =  fly(1).m.pos(a(ii),:,2);
+% for ii = 1:length(b)
+%     sex = 'm';
+%     x =  fly(trial).(sex).pos(b(ii),:,1);
+%     y =  fly(trial).(sex).pos(b(ii),:,2);
 %     plotFlySkeleton(fig, x,y,Color('dodgerblue'),true);
+%     sex = 'f';
+%     x =  fly(trial).(sex).pos(b(ii),:,1);
+%     y =  fly(trial).(sex).pos(b(ii),:,2);
+%     plotFlySkeleton(fig, x,y,Color('vaporwavepink'),true);
 % end
 % axis equal
-% 
-% b = (D(a));
+% formatFig(fig, blkbgd);
+% disp('')
+% disp(D(b))
+% disp('')
+% disp(b')
+
+
 
 %% ANALYSIS: Calculate M and F wing angles
 clearvars('-except',initial_var{:})
