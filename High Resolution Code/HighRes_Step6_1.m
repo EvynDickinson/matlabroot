@@ -185,12 +185,11 @@ clearvars('-except',initial_var{:})
 % baseFolder  = [baseDir 'grouped/Berlin F LRR 25-17 caviar MF/'];
 % figDir = [baseFolder 'Figures/'];
 
-%% Find the temperature alignment across trials...
+%% Find the temperature alignment across trials
 % TODO -- slow down the figure progression so that you can see all of them
 % and approve etc.
 
-foreColor = formattingColors(blkbgd); %get background colors
-
+foreColor = formattingColors(blkbgd); % get background colors
 alignmentDir = createFolder([figDir, 'Alignment Figures/']);
 
 fig = getfig('',1); hold on
@@ -223,7 +222,6 @@ end
 disp(temp_protocols')
 % Catch if the experiment we're running is a hold
 hold_exp = any(contains(temp_protocols,'Hold'));
-
 
 % create a new matrix to look at trial alignment times
 if hold_exp
@@ -269,19 +267,12 @@ fig = figure;
     formatFig(fig, blkbgd);
 save_figure(fig, [alignmentDir 'raw section durations'],fig_type);
 
-% % Add speed data to trial information: 
-% % TODO: figure out why the speed data is so high??? does it need the
-% conversion to mm from pixels still?
-% for trial = 1:num.trials
-%     T = fly(trial).T;
-%     if ~ismember('Speed', T.Properties.VariableNames)
-%         T.Speed = [fly(trial).m.speed, fly(trial).f.speed];
-% 
-%         figure; hold on
-%         plot(smooth(T.Speed(:,1),10,'moving'),'color', 'b')
-%         plot(T.Speed(:,2),'color', 'm')
 
-        
+% Add speed data to trial information: 
+for trial = 1:num.trials
+    fly(trial).data(M).speed = fly(trial).m.speed;
+    fly(trial).data(F).speed = fly(trial).f.speed;
+end
 
 % Shift trials to align to the ramp trough:
 % preallocate empty space for all the variables that need to be time-shifted across trials
@@ -476,9 +467,8 @@ data.tempbin = tempbin;
 disp('next:')
 
 %% Update the distance to food metrics that were incorrect before 1.23.25
-
-% conversion = getConversion;
-pix2mm = conversion(4).pix2mm;
+ct = 4; % condition type for the current high resolution experiment trials
+pix2mm = conversion(ct).pix2mm;
 
 for i = 1:num.trials
     % calculate distance to food (from fly head)
@@ -489,8 +479,8 @@ for i = 1:num.trials
     c1 = fly(i).well.food(1); % food well center
     c2 = fly(i).well.food(2); % food well center
     
-    M_dist  = (sqrt((x1-c1).^2 + (y1-c2).^2))./fly(i).pix2mm;
-    F_dist = (sqrt((x2-c1).^2 + (y2-c2).^2))./fly(i).pix2mm;
+    M_dist  = hypot((x1-c1),(y1-c2)) ./ fly(i).pix2mm;
+    F_dist = hypot((x2-c1),(y2-c2)) ./ fly(i).pix2mm;
    
     data.dist2food(:,M,i) = M_dist;
     data.dist2food(:,F,i) = F_dist;
@@ -512,6 +502,7 @@ clearvars('-except',initial_var{:})
 % other properties later on...like speed in the outer ring etc.
 
 ct = 4; % condition type for the current high resolution experiment trials
+pix2mm = conversion(ct).pix2mm;
 
 % Initialize empty mask structure:
 initial_var{end+1} = 'ROImask';
@@ -548,14 +539,13 @@ for trial = 1:num.trials
     x_loc = [x1, x2]; 
     y_loc = [y1, y2]; 
     
-    % ct = data(exp).con_type(trial); % experiment lens configuration
-    pix2mm = conversion(ct).pix2mm;
-    R = conversion(ct).R;
+    R = conversion(ct).R; % radius of the arena 
     circle75 = conversion(ct).circle75; % defines the distance to the inside edge of the outer ring
     circle10 = conversion(ct).circle10;
     circle7 = conversion(ct).circle7;
     circle5 = conversion(ct).circle5;
     foodWell = fly(trial).well.food_idx;  % which well contains the food 
+   
     % TODO: update this to account for no food trials...
     % foodWell = data(exp).T.foodLoc(trial);
 
@@ -817,17 +807,6 @@ if ~hold_exp
     end
 end
 
-
-%% Build new indexes for temperature regimes 
-% TODO: update this to include a static temperuture hold region 
-
-% build indexes for warm threat, cool threat, warm safe, cool safe
-data.tempbin.WT = data.tempbin.h_idx & data.temp>25; % warm threat
-data.tempbin.WS = data.tempbin.c_idx & data.temp>25; % warm safe
-data.tempbin.CT = data.tempbin.c_idx & data.temp<25; % cool threat
-data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
-
-
 %% Create new comparisons of distances for the group
 
 % % TODO (1/28) give a demo image of the ring size for each area on an image still
@@ -862,7 +841,7 @@ data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
 clearvars('-except',initial_var{:})
 
 % New things to process before saving the data
-[data, initial_var] = post_6_1_processing(data, fly, num, groupName);
+[data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var);
 
 % save the existing data (if desired): 
 clearvars('-except',initial_var{:})
@@ -882,13 +861,16 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     
     % ADD SPEED TO THE DATA STRUCTURE
     if ~isfield(data, 'speed')
-        warndlg('This structure needs to be rebuilt so the time-aligned speed can be created')
-        return
-        % data.speed = nan(size(data.sleep));
-        % for trial = 1:num.trials
-        %     data.speed(:,2,trial) = fly(trial).f.speed;
-        %     data.speed(:,1,trial) = fly(trial).m.speed;
-        % end
+        switch questdlg('This structure needs to be rebuilt so the time-aligned speed can be created. Proceed with non-aligned speed?')
+            case 'Yes'
+                   data.speed = nan(size(data.sleep));
+                        for trial = 1:num.trials
+                            data.speed(:,2,trial) = fly(trial).f.speed;
+                            data.speed(:,1,trial) = fly(trial).m.speed;
+                        end
+            case {'No','Cancel',''}
+                return
+        end
     end
     
     % make an inner food quad region ROI

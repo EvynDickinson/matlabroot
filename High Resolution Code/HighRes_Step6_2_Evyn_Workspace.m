@@ -699,3 +699,68 @@ end
 figure; 
 histogram(data.speed(:,:,:))
 xlim()
+
+
+%% Sort out speed and jump locations???
+ 
+% Inter-fly-distance from the fly's center point
+trial = 13;
+maxtrial = 3 ; % what peak speed do you want to look at? max = 1, second fastest = 2 etc....
+
+speed_thresh = 100;
+x1 = fly(trial).m.pos(:,body.center,1); % x location for male center
+y1 = fly(trial).m.pos(:,body.center,2);
+x2 = fly(trial).f.pos(:,body.center,1); % x location for female center
+y2 = fly(trial).f.pos(:,body.center,2);
+
+D = hypot(diff(x1), diff(y1)); 
+test = smooth(D,6,'moving');
+a = find(D>=speed_thresh); % where does speed exceed 50mm/s
+[maxSpeed, b] = maxk(D,10); % custom selected range that has two high speed frames
+if isempty(b)
+    disp('no examples of excess speed')
+    return
+end
+B = b(maxtrial)-3:b(maxtrial)+3;
+printstring = '\n\t trial had %i frames above %d mm/s\n\t max speed: %i mm/s\n';
+titleString = sprintf(printstring, length(a), speed_thresh, round(maxSpeed(maxtrial)));
+% fprintf(printstring, length(a), speed_thresh, maxSpeed)
+disp(titleString)
+
+fig = figure; hold on
+    plot(D,'color', Color('vaporwavepurple'))
+    plot(test, 'color', Color('vaporwaveyellow'))
+    h_line(50,'vaporwaveblue', '-',2)
+    v_line([B(1),B(end)], 'metrored','-',2)
+    xlabel('frame number')
+    ylabel('fly speed (mm/s)')
+    formatFig(fig, blkbgd);
+    title(titleString)
+
+% plot out the fly locations for these frames
+
+fig = figure; hold on
+for ii = 1:length(B)
+    mColor = Color('vaporwaveblue');
+    fColor = (Color('vaporwavepink'));
+    if B(ii)==b(maxtrial) || B(ii)==b(maxtrial)+1
+        mColor = Color('floralblue');
+        fColor = Color('floraldarkpink');
+    end
+    sex = 'm';
+    x =  fly(trial).(sex).pos(B(ii),:,1);
+    y =  fly(trial).(sex).pos(B(ii),:,2);
+    plotFlySkeleton(fig, x,y,mColor,true);
+    sex = 'f';
+    x =  fly(trial).(sex).pos(B(ii),:,1);
+    y =  fly(trial).(sex).pos(B(ii),:,2);
+    plotFlySkeleton(fig, x,y,fColor,true);
+end
+% format
+title(titleString)
+axis equal
+formatFig(fig, blkbgd);
+disp('Speeds')
+disp(D(B))
+disp('Frame Numbers')
+disp(B')

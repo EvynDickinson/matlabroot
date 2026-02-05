@@ -87,50 +87,6 @@ D = D./pix2mm; % convert from pixels/frame to mm/frame
 D = D.*fps; % convert to mm/sec
 f.speed = [0; D];
 
-% % TODO HERE: 2/4/26 GET THIS SPEED DATA SORTED OUTTTTTT
-% %  ------------------ TESTING!!!! -------------------
-% 
-% % Inter-fly-distance from the fly's center point
-% trial = 4;
-% x1 = fly(trial).m.pos(:,body.center,1); % x location for male center
-% y1 = fly(trial).m.pos(:,body.center,2);
-% x2 = fly(trial).f.pos(:,body.center,1); % x location for female center
-% y2 = fly(trial).f.pos(:,body.center,2);
-% 
-% D = hypot(diff(x1), diff(y1)); 
-% test = smooth(D,6,'moving');
-% a = find(test>=50);
-% b = max(a); % custom selected range that has two high speed frames
-% b = b(1)-3:b(end)+3;
-% 
-% 
-% figure; hold on
-%     plot(D,'color', Color('vaporwavepurple'))
-%     plot(test, 'color', Color('vaporwaveyellow'))
-%     h_line(50)
-%     v_line([b(1),b(end)], 'red')
-% 
-% % plot out the fly locations for these frames
-% 
-% fig = figure; hold on
-% for ii = 1:length(b)
-%     sex = 'm';
-%     x =  fly(trial).(sex).pos(b(ii),:,1);
-%     y =  fly(trial).(sex).pos(b(ii),:,2);
-%     plotFlySkeleton(fig, x,y,Color('dodgerblue'),true);
-%     sex = 'f';
-%     x =  fly(trial).(sex).pos(b(ii),:,1);
-%     y =  fly(trial).(sex).pos(b(ii),:,2);
-%     plotFlySkeleton(fig, x,y,Color('vaporwavepink'),true);
-% end
-% axis equal
-% formatFig(fig, blkbgd);
-% disp('')
-% disp(D(b))
-% disp('')
-% disp(b')
-
-
 
 %% ANALYSIS: Calculate M and F wing angles
 clearvars('-except',initial_var{:})
