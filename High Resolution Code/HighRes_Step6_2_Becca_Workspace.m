@@ -6,7 +6,7 @@
 % pull out speed
 
 clearvars('-except',initial_var{:})
-foreColor = formattingColors(blkbgd); % get background colo
+foreColor = formattingColors(blkbgd); % get background colors
 
 % Create lists to cycle through
 region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
