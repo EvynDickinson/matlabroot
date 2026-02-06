@@ -1,4 +1,6 @@
 
+clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colors
 
 %% Speed between regions timecourse
 
@@ -17,7 +19,7 @@ sb(1).idx = 1;
 sb(2).idx = 2:3; 
 
 % FIGURE
-fig = getfig;
+fig = getfig('',true,[1450, 900]);
 subplot(r,c,sb(1).idx)
 plot(data.time,data.temperature,'color', foreColor,'LineWidth', 2)
     ylabel('temp (\circC)')
@@ -207,7 +209,7 @@ for region = 1:nRegions % 3
     end
     % Plot line connecting average speed for each fly across regimes
     for fly = 1:length(avgspeed)
-        plot(x(:,region),Rspeed(:,fly),'color',Color(color_list{region}))
+        % plot(x(:,region),Rspeed(:,fly),'color',Color(color_list{region}))
     end
     % plot(x(:,region),mean(Rspeed),'color','k')
     Rspeed = []; 
@@ -279,9 +281,96 @@ end
 % Save figure
 save_figure(fig,[figDir 'speed between regions histogram'],fig_type);
 
+%% Speed between regions within threat vs safe periods (not distinguishing warm vs cold)
+% pull out when flies are in each region
+% pull out speed for each temp regime time period
+
+clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colo
+
+% Create lists to cycle through
+region_name = {'OutterRing','innerFoodQuad','innerEmptyQuad'}; % region
+regime_name = {'WT','WS','CT','CS'}; % temp regime
+color_list = {'MetroPurple','MetroRed','MetroOrange'}; % color
+
+% Establish sizes for loops
+nRegions = length(region_name);
+nRegimes = 2; % hard coded for threat and safe only
+
+% Set up x axis placement
+h = []; 
+x = [];
+for region = 1:nRegions % 3
+    h = region;
+    for regime = 1:nRegimes % 4
+        h = [h,h(end)+4];   % hard coded
+    end  
+    x(region,:) = h(:,1:nRegimes);
+end
 
 
 
+% Create list for x axis labels and locations
+labels = {'Threat', 'Safe'};
+x_labels = [];
+for regime = 1:nRegimes % 4
+    x_labels = [x_labels,median(x(:,regime))];
+end
 
+[y_avg, y_sem] = deal(nan([2,1]));
 
+% FIGURE
+sz = 50;
+buff = 0.2;
+fig = getfig('',true,[1450, 900]);
+hold on
+% Pull out fly speed in each region
+for region = 1:nRegions % 3
+    current_var = data.(region_name{region});
+    loc = logical(replaceNaN(current_var,0));    
+    speed = data.speed;
+    % Replace speed values when fly is not in the wanted region with nans
+    speed(~loc) = nan;
+    % Remove M/F fly dimension - all flies and their speeds together
+    speed_all = [squeeze(speed(:,M,:)),squeeze(speed(:,F,:))];
+    % Pull out fly speed in each temp regime
+    for regime = 1:nRegimes % 4
+        switch regime
+            case 1 % threat
+                current_reg = data.tempbin.WT | data.tempbin.CT;
+            case 2 % safe
+                current_reg = data.tempbin.WS | data.tempbin.CS;
+        end
+        loc2 = replaceNaN(current_reg,0); % TODO can be deleted
+        speed2 = speed_all; % M and F combined speed matrix copy
+        % Replace speed values not during the wanted te mp regime with nans
+        speed2(~loc2,:) = nan;
+        % Calculate mean
+        avgspeed = mean(speed2,1,'omitnan');  
+        y_avg = median(avgspeed,2,'omitnan');
+        y_sem = std(avgspeed,0,2,'omitnan')./sqrt(num.trials);
+        % Plot average speed in each region during each temp regime
+        X = x(region,regime) * ones(size(avgspeed));
+        scatter(X,avgspeed,sz,Color(color_list{region}),'filled', 'XJitter','density','XJitterWidth',0.5);
+        errorbar(x(region,regime), y_avg, y_sem, 'color', foreColor, 'linestyle', 'none', 'LineWidth', 2,'Marker','_','MarkerSize',30);
+    end
+end
 
+% Format figure
+formatFig(fig,blkbgd);
+% y axis specs
+ylabel('average speed per fly (mm/s)')
+ydim = [.4, .37, .34]; %hard coded for data distribution on figure
+ylim([0 20])
+yticks(0:5:20)
+% x axis specs
+xticks(x_labels)
+xticklabels(labels)
+% annotate on legend to designate regions by color (this might be janky but it works)
+for region = 1:nRegions
+annotation('textbox',[0.75,ydim(region),.5,.5],'String',region_name{region},'FitBoxToText','on','Color',...
+    Color(color_list{region}),'FontSize',15,'EdgeColor',~foreColor)
+end
+
+% Save figure
+save_figure(fig,[figDir 'speed between regions within threat vs safe'],fig_type);
