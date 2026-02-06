@@ -764,3 +764,463 @@ disp('Speeds')
 disp(D(B))
 disp('Frame Numbers')
 disp(B')
+
+
+%% Rates of courtship depending on how recently the flies interacted
+% make a comparison of the attempt rate as a function of last encounter
+% timing
+% for each encounter, how long ago was the last courtship attempt?
+% are there differences in the courtship attempt rates in different
+% locations within the arena?
+
+% 1) how long since last encounter for each encounter?
+
+clearvars('-except',initial_var{:})
+fps = 30;
+buff = 0.5;
+FA = 0.15; % scatter point transparency level
+[r,c] = subplot_numbers(num.trials,10);
+yColor = Color('vaporwavegren');
+nColor = Color('vaporwavepink');
+LW = 2.5;
+SZ = 25;
+sig_alpha = 0.05/num.trials; % bonferonni's significance level
+
+% first, if we ask generally, regardless of temperature, how does the time
+% since the last encounter affect courtship attemp rates: 
+
+fig = getfig('',1); 
+[p, yAvg, nAvg] = deal([]);
+for trial = 1:num.trials
+  subplot(r,c,trial); hold on
+    enc_end = encounters(trial).locs(:,2); % end frame of an encounter bout
+    enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
+    % time between end of last encounter and start of this encounter
+    frames_since_enc = enc_start(2:end) - enc_end(1:end-1); % in frames
+    time_since_enc = frames_since_enc./fps;  % converted to seconds
+    
+    % quick scatter plot of 'yes' vs 'no' 
+    loc_yes = [logical(encounters(trial).locs(2:end,3))]; % logical of courtship attempts for a given encounter
+    loc_no = ~loc_yes;
+    plot_yes = time_since_enc(loc_yes);
+    plot_no = time_since_enc(loc_no);
+
+    % attempted courtship
+    scatter(ones(size(plot_yes)), plot_yes, SZ, foreColor, 'filled',...
+        'MarkerFaceAlpha', FA, 'xjitter', 'density')
+    avg = mean(plot_yes, 'omitnan');
+    yAvg(trial) = avg;
+    plot([1-buff, 1+buff], [avg,avg],'color', yColor,...
+        'linewidth', LW)
+    % did not attempt courtship
+    scatter(2*ones(size(plot_no)), plot_no, SZ, foreColor, 'filled',...
+        'MarkerFaceAlpha', FA, 'xjitter', 'density')
+    avg = mean(plot_no, 'omitnan');
+    nAvg(trial) = avg;
+    plot([2-buff, 2+buff], [avg,avg],'color', nColor,...
+        'linewidth', LW)
+
+    set(gca, 'yscale', 'log')
+    set(gca, 'XTick',1:2, 'xticklabel', {'Y','N'})
+
+    % t-test of duration difference 
+    [~, p(trial)] = ttest2(plot_yes, plot_no); % welchs t-test (unpaired)
+
+end
+formatFig(fig, blkbgd, [r,c,]);
+matchAxis(fig,true);
+
+edge_idx = 1:c:r*c;
+bottom_idx = ((r-1)*c)+1:r*c;
+
+% correct for MC with bonferonnis :
+hC = p<=sig_alpha; % corrected significance
+h = p<0.05; % uncorrected significance
+for trial = 1:num.trials
+    subplot(r,c,trial); 
+    if hC(trial)
+        title('*', 'color', foreColor,'fontsize', 25)
+    elseif h(trial)
+        title('* nc', 'color', Color('grey'),'fontsize', 20)
+    end
+    if ~any(trial==edge_idx)
+        set(gca, 'ycolor', 'none')
+    end
+end
+
+
+% save figure
+save_figure(fig, [figDir 'Courtship attempts by time since encounter']);
+
+%% Courtship attempts by time-since last encounter Across the full population: 
+clearvars('-except',initial_var{:})
+fps = 30;
+buff = 0.5;
+FA = 0.5; % scatter point transparency level
+[r,c] = subplot_numbers(num.trials,10);
+yColor = Color('vaporwavegren');
+nColor = Color('vaporwavepink');
+LW = 2.5;
+SZ = 25;
+sig_alpha = 0.05/num.trials; % bonferonni's significance level
+
+% across all the trials, is there a trend in the duration since last
+% encounter to courtship?
+
+% extract the data: 
+plot_yes = [];
+plot_no = [];
+for trial = 1:num.trials
+    enc_end = encounters(trial).locs(:,2); % end frame of an encounter bout
+    enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
+    % time between end of last encounter and start of this encounter
+    frames_since_enc = enc_start(2:end) - enc_end(1:end-1); % in frames
+    
+    % quick scatter plot of 'yes' vs 'no' 
+    loc_yes = [logical(encounters(trial).locs(2:end,3))]; % logical of courtship attempts for a given encounter
+    loc_no = ~loc_yes;
+    plot_yes = [plot_yes; frames_since_enc(loc_yes)];
+    plot_no = [plot_no; frames_since_enc(loc_no)];
+end
+
+fig = getfig('',1); 
+    hold on
+    yyaxis left
+    h = histogram(plot_no, 'FaceColor', nColor, 'FaceAlpha', FA);
+    set(gca, 'yscale', 'log')
+
+    yyaxis right
+    histogram(plot_yes,'BinEdges', h.BinEdges, 'FaceColor', yColor, 'FaceAlpha', FA)
+    set(gca, 'xscale', 'log')
+    set(gca, 'yscale', 'log')
+    
+formatFig(fig, blkbgd);
+yyaxis left
+set(gca, 'ycolor', nColor)
+ylabel('Did not attempt courtship')
+yyaxis right
+set(gca, 'ycolor', yColor)
+ylabel('Did not attempt courtship')
+
+save_figure(fig, [figDir 'Courtship attempts by time since encounter histogram']);
+
+%% FIGURE: log regression: avg time since encounter per courtship court duration across 
+
+% bin durations and see if there is a pattern in the attempt rate: 
+clearvars('-except',initial_var{:})
+fps = 30;
+saveDir = createFolder([figDir, 'courtship attempts/']);
+% across all the trials, is there a trend in the duration since last
+% encounter to courtship?
+
+% extract the data: 
+rawData = [];
+% plot_yes = [];
+% plot_no = [];
+for trial = 1:num.trials
+    enc_end = encounters(trial).locs(:,2); % end frame of an encounter bout
+    enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
+    % time between end of last encounter and start of this encounter
+    frames_since_enc = enc_start(2:end) - enc_end(1:end-1); % in frames
+    % make single matrix with duration paired with courtship attempt count
+    rawData = [rawData; frames_since_enc, encounters(trial).locs(2:end,3)];
+end
+
+% bin data by duration time groups:
+x = rawData(:,1)./fps;
+y = rawData(:,2);
+tbl = table(x,y);
+% Fit logistic regression model
+mdl = fitglm(tbl, 'y ~ x', 'Distribution', 'binomial');
+
+% Plot the data and the fitted sigmoid curve
+fig = getfig('',1,[677 579]);
+    scatter(x, y, 30, Color('vaporwavepurple'), 'filled',...
+        'markerfacealpha', 0.7); % Plot raw data
+    hold on;
+    x_range = linspace(min(x), max(x), 100)';
+    y_pred = predict(mdl, x_range);
+    plot(x_range, y_pred, 'color', Color('vaporwaveyellow'), 'LineWidth', 2); % Plot fit
+    h_line(0.5, 'grey', ':')
+formatFig(fig, blkbgd);
+set(gca,'ytick',[0, 0.5, 1],'yticklabel', {'no attempt', ' ', 'attempt'})
+ylim([-0.05, 1])
+xlabel('time since last encounter (s)')
+
+save_figure(fig, [saveDir 'logistic regression courtship attempts x duration since encounter']);
+
+
+% bin data by duration time groups:
+[~, loc] = max(rawData(:,1));
+cutData = rawData;
+cutData(loc,:) = [];
+
+x = cutData(:,1)./fps;
+y = cutData(:,2);
+tbl = table(x,y);
+% Fit logistic regression model
+mdl = fitglm(tbl, 'y ~ x', 'Distribution', 'binomial');
+% Mdl = fitglm(x, y, 'Distribution', 'binomial', 'Link', 'logit'); % same
+% outcome with this notation
+disp(mdl);
+
+% Plot the data and the fitted sigmoid curve
+fig = getfig('',1,[677 579]);
+    scatter(x, y, 30, Color('vaporwavepurple'),'filled',...
+        'markerfacealpha', 0.7); % Plot raw data
+    hold on;
+    x_range = linspace(min(x), max(x), 100)';
+    y_pred = predict(mdl, x_range);
+    plot(x_range, y_pred, 'color', Color('vaporwaveyellow'), 'LineWidth', 2); % Plot fit
+    h_line(0.5, 'grey', ':')
+formatFig(fig, blkbgd);
+set(gca,'ytick',[0, 0.5, 1],'yticklabel', {'no attempt', ' ', 'attempt'})
+ylim([-0.05, 1])
+xlabel('time since last encounter (s)')
+
+save_figure(fig, [saveDir 'logistic regression courtship attempts x duration since encounter dropped highest point']);
+
+
+%% TODO : suppose also need to look at the total number of encounters, 
+% since flies are also chasing and seeking (but that should show up as an
+% increase in the proportion of encounters to courtship rate as well
+
+%% FIGURE: log regression: Likelihood of courtship based on location within the arena?
+
+clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'courtship attempts/']);
+% across all the trials, is there a trend in the distance to the food and
+% the liklihood of encounter to courtship?
+
+% extract the data: 
+rawData = [];
+% plot_yes = [];
+% plot_no = [];
+for trial = 1:num.trials
+    % find the distance from the food for the male fly for each encounter
+    % start: 
+    enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
+    male_dist = data.dist2food(enc_start,M,trial); % male distance to food for those frames
+    courtship_attempt = encounters(trial).locs(:,3);
+    rawData = [rawData; male_dist, courtship_attempt];
+end
+
+% bin data by duration time groups:
+x = rawData(:,1);
+y = rawData(:,2);
+tbl = table(x,y);
+% Fit logistic regression model
+mdl = fitglm(tbl, 'y ~ x', 'Distribution', 'binomial');
+disp(mdl);
+
+% Plot the data and the fitted sigmoid curve
+fig = getfig('',1,[677 579]);
+    scatter(x, y, 30, Color('vaporwavepurple'))%,'filled',...
+        % 'markerfacealpha', 0.15); % Plot raw data
+    hold on;
+    x_range = linspace(min(x), max(x), 100)';
+    y_pred = predict(mdl, x_range);
+    plot(x_range, y_pred, 'color', Color('vaporwaveyellow'), 'LineWidth', 2); % Plot fit
+    h_line(0.5, 'grey', ':')
+formatFig(fig, blkbgd);
+set(gca,'ytick',[0, 0.5, 1],'yticklabel', {'no attempt', ' ', 'attempt'})
+ylim([-0.05, 1])
+xlabel('distance to food (mm)')
+
+save_figure(fig, [saveDir 'logistic regression courtship attempts x dist to food']);
+
+%% Distance to food vs courtship attempts:
+
+clearvars('-except',initial_var{:})
+fps = 30;
+saveDir = createFolder([figDir, 'courtship attempts/']);
+
+% per fly avg distance during courthip
+
+% extract the data: 
+[rawData, plot_yes, plot_no] = deal([]);
+
+for trial = 1:num.trials
+    % find the distance from the food for the male fly for each encounter
+    % start: 
+    enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
+    male_dist = data.dist2food(enc_start,M,trial); % male distance to food for those frames
+    courtship_attempt = encounters(trial).locs(:,3);
+    rawData = [rawData; male_dist, courtship_attempt];
+
+    % per fly data: 
+    plot_yes(trial) = mean(male_dist(logical(courtship_attempt)),'omitnan');
+    plot_no(trial) = mean(male_dist(~logical(courtship_attempt)),'omitnan');
+end
+
+SZ = 35; 
+FA = 0.7;
+buff = 0.35;
+jitbuff = 0.2;
+yColor = Color('vaporwavegren');
+nColor = Color('vaporwavepink');
+LW = 3;
+
+fig = getfig;
+    hold on
+    scatter(ones(size(plot_yes)), plot_yes, SZ, foreColor,...
+        'filled', 'markerFaceAlpha', FA, 'xjitter', 'density','xjitterwidth', jitbuff)
+    avg = mean(plot_yes);
+    plot([1-buff, 1+buff], [avg, avg], 'color', yColor, 'linewidth', LW)
+    scatter(2*ones(size(plot_no)), plot_no, SZ, foreColor,...
+        'filled', 'markerFaceAlpha', FA, 'xjitter', 'density','xjitterwidth', jitbuff)
+    avg = mean(plot_no);
+    plot([2-buff, 2+buff], [avg, avg], 'color', nColor, 'linewidth', LW)
+    
+
+% Paired version: 
+fig = getfig('',1,[514 671]);
+    hold on
+    x = repmat([1,2],[num.trials,1]);
+    plot(x', [plot_yes; plot_no], 'color', Color('grey'), 'linewidth', 1)
+    scatter(x(:,1), plot_yes, SZ, yColor, 'filled','markerfacealpha', FA)
+    scatter(x(:,2), plot_no, SZ, nColor, 'filled','markerfacealpha', FA)
+    % average distance for attempted
+    avg = mean(plot_yes);
+    plot([1-buff, 1+buff], [avg, avg], 'color', yColor, 'linewidth', LW)
+    % average distance for not attempted
+    avg = mean(plot_no);
+    plot([2-buff, 2+buff], [avg, avg], 'color', nColor, 'linewidth', LW)
+formatFig(fig, blkbgd);
+xlim([1-2*buff, 2+2*buff])
+set(gca, 'xtick', 1:2, 'xticklabel', {'attempted', 'not attempted'})
+ylabel('distance to food at encounter (mm)')
+xlabel('courtship')
+
+[~, p] = ttest(plot_yes, plot_no);
+fprintf('\n P-value (%4.3g) for distance and courtship attempts \n',p)
+
+% paired t-test for distance to food: 
+save_figure(fig, [saveDir 'distance to food at encounter by attempt type scatter']);
+
+
+
+%%
+
+
+
+fig = getfig('',1); 
+[p, yAvg, nAvg] = deal([]);
+for trial = 1:num.trials
+  subplot(r,c,trial); hold on
+    enc_end = encounters(trial).locs(:,2); % end frame of an encounter bout
+    enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
+    % time between end of last encounter and start of this encounter
+    frames_since_enc = enc_start(2:end) - enc_end(1:end-1); % in frames
+    time_since_enc = frames_since_enc./fps;  % converted to seconds
+    
+    % quick scatter plot of 'yes' vs 'no' 
+    loc_yes = [logical(encounters(trial).locs(2:end,3))]; % logical of courtship attempts for a given encounter
+    loc_no = ~loc_yes;
+    plot_yes = time_since_enc(loc_yes);
+    plot_no = time_since_enc(loc_no);
+
+    % attempted courtship
+    scatter(ones(size(plot_yes)), plot_yes, SZ, foreColor, 'filled',...
+        'MarkerFaceAlpha', FA, 'xjitter', 'density')
+    avg = mean(plot_yes, 'omitnan');
+    yAvg(trial) = avg;
+    plot([1-buff, 1+buff], [avg,avg],'color', yColor,...
+        'linewidth', LW)
+    % did not attempt courtship
+    scatter(2*ones(size(plot_no)), plot_no, SZ, foreColor, 'filled',...
+        'MarkerFaceAlpha', FA, 'xjitter', 'density')
+    avg = mean(plot_no, 'omitnan');
+    nAvg(trial) = avg;
+    plot([2-buff, 2+buff], [avg,avg],'color', nColor,...
+        'linewidth', LW)
+
+    set(gca, 'yscale', 'log')
+    set(gca, 'XTick',1:2, 'xticklabel', {'Y','N'})
+
+    % t-test of duration difference 
+    [~, p(trial)] = ttest2(plot_yes, plot_no); % welchs t-test (unpaired)
+
+end
+formatFig(fig, blkbgd, [r,c,]);
+matchAxis(fig,true);
+
+edge_idx = 1:c:r*c;
+bottom_idx = ((r-1)*c)+1:r*c;
+
+% correct for MC with bonferonnis :
+hC = p<=sig_alpha; % corrected significance
+h = p<0.05; % uncorrected significance
+for trial = 1:num.trials
+    subplot(r,c,trial); 
+    if hC(trial)
+        title('*', 'color', foreColor,'fontsize', 25)
+    elseif h(trial)
+        title('* nc', 'color', Color('grey'),'fontsize', 20)
+    end
+    if ~any(trial==edge_idx)
+        set(gca, 'ycolor', 'none')
+    end
+end
+
+
+
+
+
+%%
+    
+
+
+
+
+
+types = {'WT', 'WS', 'CT', 'CS'};
+labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
+nTypes = length(types);
+
+tb = data.tempbin;
+[tot_encounters,tot_courtship,court_rate, encounter_rate] = deal(nan([num.trials,4]));
+
+for i = 1:nTypes % for each of the temp regime types
+    roi = find(tb.(types{i})); % find the frames within the region
+    time_period = length(roi); % how many frames possible could there be for encounters (to normalize in case there are difference in the time periods of the diff temp regimess
+    % disp(time_period)
+    % which encounter locations are within the temp regime
+    for trial = 1:num.trials
+        % encounters within this temperature regime
+        encounter_locs = ismember(encounters(trial).locs(:,1),roi);
+        tot_encounters(trial,i) = sum(encounter_locs);
+        tot_courtship(trial,i) = sum(encounters(trial).locs(encounter_locs,3));
+        court_rate(trial,i) = (tot_courtship(trial,i)/tot_encounters(trial,i))*100;
+    end
+    encounter_rate(:,i) = (tot_encounters(:,i)/time_period).*100;
+end
+
+% PLOT THE PERCENTAGE OF FRAMES WITH AN ENCOUNTER PER TEMP REGIME
+y_avg = median(encounter_rate,1,'omitnan');
+y_sem = std(encounter_rate,0,1,'omitnan')./sqrt(num.trials);
+% plot the encounter rate data (bar graph)
+% Create a bar plot for the average CI data across temperature regimes
+sz = 75;
+fig = getfig('', 1, [436 620]);
+    bar(y_avg, 'FaceColor', foreColor);
+    hold on;
+    errorbar(1:nTypes, y_avg, y_sem, 'color', Color('grey'), 'linestyle', 'none', 'LineWidth', 1.5);
+    % scatter plot points
+    x = repmat(1:nTypes,[num.trials, 1]);
+    scatter(x(:), encounter_rate(:), sz, Color('grey'), 'filled', ...
+        'xjitter','density','xjitterwidth', 0.3, 'MarkerFaceAlpha', 0.75);
+    set(gca, 'XTickLabel', labels,'XTickLabelRotation',30);
+    ylabel('Rate of encounters (% of total time)');
+    % title('Courtship Behavior During Thermal Threats');
+    formatFig(gcf, blkbgd);
+    % ylim([-3,70])
+save_figure(gcf, [figDir 'rate of encounters across temp regimes'], fig_type);
+
+% run simple stats:
+% Warm threat vs warm safe
+[h,p,~,stats] = ttest(encounter_rate(:,1), encounter_rate(:,2)); 
+fprintf('encounter rate warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+% cool threat vs cool safe
+[h,p,~,stats] = ttest(encounter_rate(:,3), encounter_rate(:,4)); 
+fprintf('encounter rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
