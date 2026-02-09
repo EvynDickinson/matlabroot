@@ -377,7 +377,7 @@ end
 save_figure(fig,[figDir 'speed between regions within threat vs safe'],fig_type);
 
 
-%% Select temp tuning curve for each region
+%% Select temp tuning curve for each region -- TODO: currently hard coded for speed only
 
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
@@ -422,7 +422,7 @@ c = 2; % heating and cooling separated plots
 LW = 2; % plotting line width
 FA = 0.35; % SEM shading face alpha level
 
-%% ------------- DATA AND PLOTTING -------------
+% FIGURE
 fig = getfig('',1,[998 882]); % short and fat: [1230 637]
 hold on
 % pull larger data type group
@@ -522,3 +522,7 @@ annotation('line', arrow_x, arrow_y,'Color',foreColor,...
 
 % Save the Figure
 save_figure(fig, [fig_dir title_str ' tuning curve between regions']);
+
+
+%% Are there any instances of male aggression? >75 deg
+
