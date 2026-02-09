@@ -282,7 +282,7 @@ encounters(1).mDistance_traveled_info = ...
 encounters(1).dist2food_info = ...
     'distance from male fly to food at the start of an encounters with the female fly';
 
-% extract the data: 
+% extract the data:
 for trial = 1:num.trials
     
     enc_stop = encounters(trial).locs(:,2); % end frame of the last encounter

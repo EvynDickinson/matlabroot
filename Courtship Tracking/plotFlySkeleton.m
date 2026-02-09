@@ -1,11 +1,21 @@
 
-function fig = plotFlySkeleton(fig, x, y, kolor, nodes)
-% fig = plotFlySkeleton(fig, x,y,kolor,nodes)
+function fig = plotFlySkeleton(fig, x, y, kolor, nodes,nodeSize)
+% fig = plotFlySkeleton(fig, x,y,kolor,nodes,nodeSize)
+% 
+% INPUTS
+%       'fig' : figure handle
+%       'x' : matrix with the 5 y values of the fly body position
+%           rows are frames, columns are body positions
+%       'y' : matrix with the 5 y values of the fly body position
+%           rows are frames, columns are body positions
+%       'kolor' : color to plot (RBG format)
+%       'nodes' : logical if plotting node circles
+%       'nodeSize' : scatter point size for the fly skeleton nodes
 %
+% OUTPUTS
+%       'fig' : handle to the figure
 %
-
-
-
+% ES DICKINSON 2025
 
 %%
 
@@ -22,5 +32,8 @@ for i = 1:size(skeleton,1)
 end
 % nodes
 if nodes 
-    scatter(x, y,50, kolor, 'filled')
+    if ~exist('nodeSize', 'var')
+        nodeSize = 50;
+    end
+    scatter(x, y, nodeSize, kolor, 'filled')
 end
