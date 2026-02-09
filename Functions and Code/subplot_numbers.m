@@ -21,21 +21,28 @@ if nargin == 1
     maxCol = 4;
 end
 
-aa = divisors(num_instances);
-a = sqrt(num_instances);
-if length(aa) == 2 % no divisors
-    aa = [2, 3, 4, 5];
-    [~,idx] = min(abs(aa-a));
-    dim1 = aa(idx);
-    dim2 = ceil(num_instances/dim1);
-else
-    [~,idx] = min(abs(aa-a));
-    dim1 = aa(idx);
-    dim2 = num_instances/dim1;
-end
-if dim1 > maxCol || dim2 > maxCol
-    dim1 = maxCol;
-    dim2 = ceil(num_instances/dim1);
+try aa = divisors(num_instances);
+
+    a = sqrt(num_instances);
+    if length(aa) == 2 % no divisors
+        aa = [2, 3, 4, 5];
+        [~,idx] = min(abs(aa-a));
+        dim1 = aa(idx);
+        dim2 = ceil(num_instances/dim1);
+    else
+        [~,idx] = min(abs(aa-a));
+        dim1 = aa(idx);
+        dim2 = num_instances/dim1;
+    end
+    if dim1 > maxCol || dim2 > maxCol
+        dim1 = maxCol;
+        dim2 = ceil(num_instances/dim1);
+    end
+
+catch % no symbolic math toolbox installed on the computer
+    disp('!!! Need to download the Symbolic Math Toolbox on this computer !!!')
+    dim2 = ceil(sqrt(num_instances));
+    dim1 = ceil(num_instances/dim2);
 end
 
 nrows = max([dim1, dim2]);
