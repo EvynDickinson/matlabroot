@@ -117,17 +117,17 @@ titleString = sprintf(printstring, length(a), speed_thresh, round(maxSpeed(maxtr
 % fprintf(printstring, length(a), speed_thresh, maxSpeed)
 disp(titleString)
 
-fig = figure; hold on
-    plot(D,'color', Color('vaporwavepurple'))
-    plot(test, 'color', Color('vaporwaveyellow'))
-    h_line(50,'vaporwaveblue', '-',2)
-    v_line([B(1),B(end)], 'metrored','-',2)
-    xlabel('frame number')
-    ylabel('fly speed (mm/s)')
-    formatFig(fig, blkbgd);
-    title(titleString,'Color',foreColor)
-    
-    save_figure(fig,[saveDir  ' ' fly(trial).name  ' speed over time trial ' num2str(maxtrial)]);
+% fig = figure; hold on
+%     plot(D,'color', Color('vaporwavepurple'))
+%     plot(test, 'color', Color('vaporwaveyellow'))
+%     h_line(50,'vaporwaveblue', '-',2)
+%     v_line([B(1),B(end)], 'metrored','-',2)
+%     xlabel('frame number')
+%     ylabel('fly speed (mm/s)')
+%     formatFig(fig, blkbgd);
+%     title(titleString,'Color',foreColor)
+% 
+%     save_figure(fig,[saveDir  ' ' fly(trial).name  ' speed over time trial ' num2str(maxtrial)]);
 
 
 % plot out the fly locations for these frames
@@ -229,12 +229,171 @@ for trial = 1:num.trials
     end
 end
 
+%% TODO: pull up image frames of the lower speed, non-swap jumps to see if they are indeed a ballistic jump
+
+%% TODO: determine method and approach for dealing with the swap frames
 
 %% ANALYSIS :  can we pair skip frames together?
-
-trial = 8;
-
+% how long is the avg duration of a missed swapped identity?
 % how many frames above 50mm/s?
+
+clearvars('-except',initial_var{:})
+
+trial = 2;
+
+nNeighbors = 5; % how many past frames to compare for location
+sz = 10;
+buff = 0.3;
+% pix2mm = conversion(4).pix2mm;
+
+% find all frames above a speed threshold
+sex = 1;
+sexList = {'m', 'f'};
+speed_thresh = 50; %mm/s speed threshold
+
+% distance data for current trial 
+x1 = fly(trial).m.pos(:,body.center,1); % x location for male center
+y1 = fly(trial).m.pos(:,body.center,2);
+x2 = fly(trial).f.pos(:,body.center,1); % x location for female center
+y2 = fly(trial).f.pos(:,body.center,2);
+dM = hypot(diff(x1), diff(y1));  % male distance
+dF = hypot(diff(x2), diff(y2));  % female distance
+
+speed = squeeze(data.speed(:,sex,trial));
+
+speed_loc = speed>=speed_thresh;
+speed_frames = find(speed_loc); % what frames have above limit speeds?
+
+% look at the avg distance to the fly center for each of the flies in the
+% preceeding frames 
+for ii = 1:length(speed_frames)
+    % current speeding frame: 
+    frame = speed_frames(ii);
+
+    switch sex % TODO 2/10/26 fix the issue here with getting proper plotting and skeleton assignment...
+        case M
+            cX = x1(frame); % male x body center
+            cY = x2(frame); % female x body center
+            c2X = x1(frame+1); % subsrequent frame male x body center
+            c2Y = x2(frame+1); % subsrequent frame female x body center
+        case F
+            cX = y1(frame); % male y body center
+            cY = y2(frame); % female y body center
+            c2X = y1(frame+1); % subsrequent frame male y body center
+            c2Y = y2(frame+1); % subsrequent frame female y body center
+    end
+
+    % find the distance within sex points vs. the across sex points
+    past_roi = frame-nNeighbors:frame-1; % frames behind the fast speed frame
+    dM = hypot(cX-x1(past_roi), cY-y1(past_roi));  % male distance to target fly point
+    dMavg = mean(dM, 'omitnan');
+    dF = hypot(cX-x2(past_roi), cY-y2(past_roi));  % female distance to target fly point
+    dFavg = mean(dF, 'omitnan');
+    switch sex
+        case M
+            likelyswitch = dMavg>=dFavg; % female would be closer than correct male
+        case F 
+            likelyswitch = dMavg<=dFavg; % male would be closer than correct female
+    end
+
+    % if frame is likely a switch, check if next frame is a switch back...
+    if likelyswitch
+        % find the distance within sex points vs the across sex points for
+        % the subsequent frame to check if it switched back
+        d2M = hypot(c2X-x1(past_roi), c2Y-y1(past_roi));  % male distance to target fly point (pixels)
+        d2Mavg = mean(d2M, 'omitnan');
+        d2F = hypot(c2X-x2(past_roi), c2Y-y2(past_roi));  % female distance to target fly point
+        d2Favg = mean(d2F, 'omitnan');
+        switch sex
+            case M
+                likelyreverseswitch = d2Mavg<=d2Favg; % female would be closer than correct male
+            case F           
+                likelyreverseswitch = d2Mavg>=d2Favg; % male would be closer than correct female
+        end
+    end
+    
+   
+    
+    
+    
+    
+    
+    
+    % quick visual test of the currrent frame figure: 
+    r = 1; 
+    c = 3;
+    sb(1).i = 1:2;
+    sb(2).i = 3;
+    fig = getfig('',1,[688 353]);   
+    % fly positions over time
+    subplot(r,c,sb(1).i); hold on
+        roi = frame-nNeighbors:frame+3; % frames to plot
+        for ff = 1:length(roi) % frames before and after the high speed frame
+            mColor = Color('vaporwaveblue');
+            fColor = Color('vaporwavepink');
+            if roi(ff)==frame || roi(ff)==frame+1
+                mColor = Color('floralblue');
+                fColor = Color('floraldarkpink');
+            end
+            x =  fly(trial).m.pos(roi(ff),:,1);
+            y =  fly(trial).m.pos(roi(ff),:,2);
+            plotFlySkeleton(fig, x,y,mColor,true,sz);
+            x =  fly(trial).f.pos(roi(ff),:,1);
+            y =  fly(trial).f.pos(roi(ff),:,2);
+            plotFlySkeleton(fig, x,y,fColor,true,sz);
+            % plot the fly with speed frame in forecolor:
+            x =  fly(trial).(sexList{sex}).pos(frame,:,1);
+            y =  fly(trial).(sexList{sex}).pos(frame,:,2);
+            plotFlySkeleton(fig, x,y,Color('gold'),false);
+            scatter(x(body.center), y(body.center), 45, Color('gold'), 'filled')
+            if likelyswitch
+                x =  fly(trial).(sexList{sex}).pos([frame-1,frame+1],body.center,1);
+                y =  fly(trial).(sexList{sex}).pos([frame-1,frame+1],body.center,2);
+                scatter(x,y,20,foreColor,"filled")
+            end
+        end
+        axis equal
+    % quick test of the within and across fly distance
+    subplot(r,c,sb(2).i);
+    hold on
+        scatter(F*ones(size(dM)), dF, 55, fColor, 'filled', 'MarkerFaceAlpha', 0.7, 'xjitter', 'density', 'xjitterwidth', 0.3)
+        scatter(M*ones(size(dM)), dM, 55, mColor, 'filled', 'MarkerFaceAlpha', 0.7, 'xjitter', 'density', 'xjitterwidth', 0.3)
+        plot([F-buff, F+buff], [dFavg, dFavg], 'color',  foreColor, 'linewidth', 2)
+        plot([M-buff, M+buff], [dMavg, dMavg], 'color', foreColor, 'linewidth', 2)
+        xlim([0,3])
+        ylabel('distance to fast fly (pixels)')
+        set(gca, 'xtick', sex, 'xticklabel', 'Within')
+        % set(gca, 'xcolor', foreColor)
+    % formatting
+    formatFig(fig, blkbgd,[r,c], sb);
+    subplot(r,c,sb(1).i);
+    set(gca,'xcolor', 'none', 'ycolor', 'none')
+    if likelyswitch
+        title_str = sprintf('%i mm/s | switch likely', round(speed(frame)));
+    else
+        title_str = sprintf('%i mm/s |switch unlikely', round(speed(frame)));
+    end
+    title(title_str,'color', foreColor,'FontSize',12)
+    
+
+
+    
+    
+    
+
+
+end
+
+
+
+
+
+
+
+
+
+
+
 
 
 
