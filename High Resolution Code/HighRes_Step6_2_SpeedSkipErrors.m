@@ -233,6 +233,91 @@ end
 
 %% TODO: determine method and approach for dealing with the swap frames
 
+%% Check close frame high speeds for possible switch patterns: 
+clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
+
+trial = 2;
+sz = 10;
+
+% find all frames above a speed threshold
+sex = 1;
+speed_thresh = 50; %mm/s speed threshold
+
+% speed data for current trial 
+speed = squeeze(data.speed(:,sex,trial));
+speed_loc = speed>=speed_thresh;
+
+speed_frames = find(speed_loc); % what frames have above limit speeds?
+
+% locations based on both flies having speed jumps
+double_speed = squeeze(data.speed(:,:,trial)); % locations for speeding in both sexes
+double_speed_loc = double_speed>=speed_thresh;
+confident_frames = find(sum(double_speed_loc,2)==2);
+% what portion of total over-speed instances is this
+% % length(confidence_frm a ew sum(speed_loc)
+
+% how many of these are likely swaps?
+a = find(diff(speed_frames)<=3); % possible start of switch location in speed frames
+b = a+1;
+possible_switches_locs = speed_frames(a); % where are there speed jumps nearly back to back
+reverse_switch_locs = speed_frames(b); 
+
+maxExmp = 8; % how many different examples to show
+r = 2; c = 4; % rows and columns for the figure
+% how many figures with subplots will it take show all the different examples
+nFigs = ceil(length(possible_switches_locs)/(r*c)); 
+titleString = {};
+% check how these look 
+curr_frame = 0; % counter for switch location
+for gg = 1:nFigs
+
+    % PLOT DATA
+    fig = getfig('',1);   
+    for ff = 1:maxExmp
+        subplot(r,c,ff)
+        curr_frame = curr_frame + 1;
+        start_frame = possible_switches_locs(curr_frame);
+        stop_frame = reverse_switch_locs(curr_frame);
+        roi = start_frame-3:stop_frame+3;% frames to plot
+
+        for ii = 1:length(roi)
+            mColor = Color('vaporwaveblue');
+            fColor = Color('vaporwavepink');
+            if roi(ii)==start_frame || roi(ii)==stop_frame
+                mColor = Color('floralblue');
+                fColor = Color('floraldarkpink');
+            end
+            x =  fly(trial).m.pos(roi(ii),:,1);
+            y =  fly(trial).m.pos(roi(ii),:,2);
+            plotFlySkeleton(fig, x,y,mColor,true,sz);
+            x =  fly(trial).f.pos(roi(ii),:,1);
+            y =  fly(trial).f.pos(roi(ii),:,2);
+            plotFlySkeleton(fig, x,y,fColor,true,sz);
+        end
+        if any(start_frame==confident_frames) || any(stop_frame==confident_frames)
+            titleString{ff} = 'Confident';
+        else 
+            titleString{ff} = '';
+        end
+    end
+
+    % format figure: 
+    formatFig(fig, blkbgd,[r,c]);
+     for ff = 1:maxExmp
+        subplot(r,c,ff)
+        axis equal tight
+        title(titleString{ff}, 'color', foreColor,'fontsize', 10)
+        set(gca, 'xcolor', 'none', 'ycolor', 'none')
+        % find the size and build a rectagle 'frame'
+        ax = axis; % [xmin xmax ymin ymax]
+        rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
+              'EdgeColor',foreColor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
+              'linestyle', ':')
+     end
+    save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
+end
+
 %% ANALYSIS :  can we pair skip frames together?
 % how long is the avg duration of a missed swapped identity?
 % how many frames above 50mm/s?
@@ -264,22 +349,37 @@ speed = squeeze(data.speed(:,sex,trial));
 speed_loc = speed>=speed_thresh;
 speed_frames = find(speed_loc); % what frames have above limit speeds?
 
+% how many of these are likely swaps?
+a = find(diff(speed_frames)<=3); % possible start of switch location in speed frames
+b = a+1;
+possible_switches_locs = speed_frames(a); % where are there speed jumps nearly back to back
+reverse_switch_locs = speed_frames(b); 
+
+% check how these look ...
+
+
+[possible_switches_locs, reverse_switch_locs]
+
+% is there an average higher speed for the likely swaps based the step size between
+% speed frames? 
+
+
 % look at the avg distance to the fly center for each of the flies in the
 % preceeding frames 
 for ii = 1:length(speed_frames)
     % current speeding frame: 
     frame = speed_frames(ii);
 
-    switch sex % TODO 2/10/26 fix the issue here with getting proper plotting and skeleton assignment...
+    switch sex 
         case M
             cX = x1(frame); % male x body center
-            cY = x2(frame); % female x body center
+            cY = y1(frame); % male y body center
             c2X = x1(frame+1); % subsrequent frame male x body center
-            c2Y = x2(frame+1); % subsrequent frame female x body center
+            c2Y = y1(frame+1); % subsrequent frame male y body center
         case F
-            cX = y1(frame); % male y body center
+            cX = x2(frame); % female x body center
             cY = y2(frame); % female y body center
-            c2X = y1(frame+1); % subsrequent frame male y body center
+            c2X = x2(frame+1); % subsrequent frame female x body center
             c2Y = y2(frame+1); % subsrequent frame female y body center
     end
 
@@ -312,8 +412,13 @@ for ii = 1:length(speed_frames)
         end
     end
     
-   
-    
+    % if the next point switches back, check to see if it is flagged in the speed
+    % data list:
+    if likelyreverseswitch
+       loc = (frame+1==speed_frames);
+       speed_frames(loc)
+       
+       diff(speed_frames)
     
     
     
