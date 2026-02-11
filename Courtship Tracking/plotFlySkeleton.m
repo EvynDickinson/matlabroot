@@ -19,21 +19,51 @@ function fig = plotFlySkeleton(fig, x, y, kolor, nodes,nodeSize)
 
 %%
 
-if ~exist('kolor', 'var')
+if nargin < 3
     kolor = 'k';
 end
+
+if nargin < 4
+    nodes = true;
+end
+
+if nargin < 5
+    nodeSize = 50;
+end
+
 skeleton = [1,2; 2,3; 2,4; 2,5];
 
-figure(fig)
-hold on
 % edges
-for i = 1:size(skeleton,1)
-    plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', kolor,'HandleVisibility','off')
-end
+xs = x(skeleton)';
+ys = y(skeleton)';
+plot(xs, ys, 'Color', kolor, 'HandleVisibility','off')
+
 % nodes
 if nodes 
-    if ~exist('nodeSize', 'var')
-        nodeSize = 50;
-    end
-    scatter(x, y, nodeSize, kolor, 'filled')
+    plot(x, y, 'o', ...
+     'MarkerSize', sqrt(nodeSize), ...
+     'MarkerFaceColor', kolor, ...
+     'MarkerEdgeColor', kolor, ...
+     'HandleVisibility','off')
 end
+
+
+%%  Original slower code: 
+% if ~exist('kolor', 'var')
+%     kolor = 'k';
+% end
+% skeleton = [1,2; 2,3; 2,4; 2,5];
+% 
+% figure(fig)
+% hold on
+% % edges
+% for i = 1:size(skeleton,1)
+%     plot(x(skeleton(i,:)),y(skeleton(i,:)), 'color', kolor,'HandleVisibility','off')
+% end
+% % nodes
+% if nodes 
+%     if ~exist('nodeSize', 'var')
+%         nodeSize = 50;
+%     end
+%     scatter(x, y, nodeSize, kolor, 'filled')
+% end

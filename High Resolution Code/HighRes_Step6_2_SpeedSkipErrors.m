@@ -233,29 +233,139 @@ end
 
 %% TODO: determine method and approach for dealing with the swap frames
 
-%% Check close frame high speeds for possible switch patterns: 
+%% FIGURE CHECK: swap frames identified by both flies over the speed limit
 clearvars('-except',initial_var{:})
 saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
 trial = 2;
 sz = 10;
+speed_thresh = 30; %mm/s speed threshold
 
-% find all frames above a speed threshold
-sex = 1;
-speed_thresh = 50; %mm/s speed threshold
-
-% speed data for current trial 
-speed = squeeze(data.speed(:,sex,trial));
-speed_loc = speed>=speed_thresh;
-
-speed_frames = find(speed_loc); % what frames have above limit speeds?
+mBaseColor = Color('vaporwaveblue');
+fBaseColor = Color('vaporwavepink');
+mColor_jump = Color('floralblue');
+fColor_jump = Color('floraldarkpink');
 
 % locations based on both flies having speed jumps
 double_speed = squeeze(data.speed(:,:,trial)); % locations for speeding in both sexes
 double_speed_loc = double_speed>=speed_thresh;
 confident_frames = find(sum(double_speed_loc,2)==2);
+% diff(confident_frames)
+fprintf('\nThere are %d likely swap frames\n', length(confident_frames))
+
+maxExmp = 8; % how many different examples to show
+r = 2; c = 4; % rows and columns for the figure
+% how many figures with subplots will it take show all the different examples
+nFigs = ceil(length(confident_frames)/(r*c)); 
+
+% code efficient preallocation
+mPos = fly(trial).m.pos;
+fPos = fly(trial).f.pos;
+allROI = confident_frames + (-3:3);
+
+ax = [];
+curr_frame = 0; % counter for switch location
+for gg = 1:nFigs
+
+    % PLOT DATA
+    fig = getfig('',1);   
+    set(fig, 'Visible', 'off') % hold off on drawing the figure until it is all plotted
+    for ff = 1:maxExmp
+        subplot(r,c,ff);
+        curr_frame = curr_frame + 1;
+        try  start_frame = confident_frames(curr_frame);
+        catch
+            if curr_frame>length(confident_frames)
+                continue
+            end
+        end
+
+        % Initialize fly skeletons for plotting later
+        % hM = initFlySkeleton(ax(ff), mBaseColor, true, sz);
+        % hF = initFlySkeleton(ax(ff), fBaseColor, true, sz);
+        ax = gca;
+        hM = initFlySkeleton(ax, mBaseColor, true, sz);
+        hF = initFlySkeleton(ax, fBaseColor, true, sz);
+
+        roi = allROI(curr_frame,:);% frames to plot
+        for ii = 1 : length(roi)
+            % select the appropriate plotting color
+            if roi(ii)==start_frame %|| roi(ii)==stop_frame
+                mColor = mColor_jump;
+                fColor = fColor_jump;
+            else
+                mColor = mBaseColor;
+                fColor = fBaseColor;
+            end
+            x =  mPos(roi(ii),:,1);
+            y =  mPos(roi(ii),:,2);
+            updateFlySkeleton(hM, x, y, mColor);
+            x =  fPos(roi(ii),:,1);
+            y =  fPos(roi(ii),:,2);
+            updateFlySkeleton(hF, x, y, fColor);
+        end
+        % if any(start_frame==confident_frames) || any(stop_frame==confident_frames)
+        %     titleString{ff} = 'Confident';
+        % else 
+        %     titleString{ff} = '';
+        % end
+    end
+
+    % format figure: 
+    formatFig(fig, blkbgd,[r,c]);
+     for ff = 1:maxExmp
+        subplot(r,c,ff);
+        axis equal tight
+        set(gca, 'xcolor', 'none', 'ycolor', 'none')
+        if curr_frame>length(confident_frames)
+            continue
+        end
+        title(num2str(confident_frames(curr_frame)), 'color', foreColor,'fontsize', 10)
+        % find the size and build a rectagle 'frame'
+        ax = axis; % [xmin xmax ymin ymax]
+        rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
+              'EdgeColor',foreColor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
+              'linestyle', ':')
+     end
+     set(fig, 'Visible', 'on')
+     drawnow
+    % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
+end
+
+
+
+%% MANY FIGURES: Check close frame high speeds for possible switch patterns: 
+clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
+
+trial = 2;
+sz = 10;
+sex = 1;
+speed_thresh = 30; %mm/s speed threshold
+
+% speed data for current trial 
+speed = squeeze(data.speed(:,sex,trial));
+speed_loc = speed>=speed_thresh;
+
+% pull frames above the limit speed
+speed_frames = find(speed_loc); 
+
+% locations based on both flies having speed jumps
+double_speed = squeeze(data.speed(:,:,trial)); % locations for speeding in both sexes
+double_speed_loc = double_speed>=speed_thresh;
+confident_frames = find(sum(double_speed_loc,2)==2);
+fprintf('\nThere are %d likely swap frames\n', length(confident_frames))
+
+
+
+
 % what portion of total over-speed instances is this
-% % length(confidence_frm a ew sum(speed_loc)
+proportion_of_frames = (length(confident_frames)/sum(speed_loc))*100;
+% how similar is the speed between the male and female flies when they swap
+% locations?
+double_speed(confident_frames,:)
+
+
 
 % how many of these are likely swaps?
 a = find(diff(speed_frames)<=3); % possible start of switch location in speed frames
