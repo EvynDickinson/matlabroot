@@ -858,6 +858,7 @@ end
 
 function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var)
 
+    conversion = getConversion; % this pulls in the standard pix2mm values for trials
     
     % ADD SPEED TO THE DATA STRUCTURE
     if ~isfield(data, 'speed')
@@ -905,6 +906,11 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     data.innerEmptyQuad = true(size(data.OutterRing));
     loc = replaceNaN(data.OutterRing,0) | replaceNaN(data.innerFoodQuad,0);
     data.innerEmptyQuad(loc) = false;
+
+    fps = 30;
+    pix2mm = conversion(4).pix2mm;
+    initial_var{end+1} = 'fps';
+    initial_var{end+1} = 'pix2mm';
 
     disp('Data post-processing complete')
 

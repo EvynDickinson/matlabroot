@@ -227,10 +227,7 @@ save_figure(gcf, [figDir 'Courtship behaviors across temp regions'], fig_type);
 % TODO 2/6/26 : separate this to include the encounters as a solo analysis
 % function that can be auto run in step 6.1
 
-fps = 30;
-pix2mm = conversion(4).pix2mm;
 clearvars('-except',initial_var{:})
-initial_var{end+1} = 'encounters';
 
 IFD = 12; % mm distance that counts as an encounter
 
