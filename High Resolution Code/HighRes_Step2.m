@@ -31,6 +31,7 @@ initial_var{end+1} = 'initial_var';
 
 %% convert files to a single video file (or an 8-minute segment)
 disp('COMPILING IN PROGRESS')
+disp(datetime)
 
 for ramp = 1:size(rampName,2)
     clearvars('-except',initial_var{:})
@@ -77,7 +78,7 @@ for ramp = 1:size(rampName,2)
     videoList = (find(run_idx))';
     nVids = length(videoList);
     
-    tic
+    % tic
     parfor idx = 1:nVids
         vid = videoList(idx);
         % Each compiled video is processed independently in parallel
@@ -100,7 +101,8 @@ for ramp = 1:size(rampName,2)
     end
     disp(['Finished ' expName ' videos'])
     disp([num2str(ramp) ' / ' num2str(size(rampName,2))])
-    toc
+    disp(datetime)
+    % toc
 
 end
 
