@@ -27,7 +27,7 @@ if nargin < 4
     nodes = true;
 end
 
-if nargin < 5
+if ~exist('nodeSize', 'var')
     nodeSize = 50;
 end
 

@@ -196,7 +196,7 @@ for trial = 1:num.trials
          % PLOT DATA
         fig = getfig('',1);   
         for ff = 1:nFrames
-            subplot(r,c,ff)
+            subplot(r,c,ff); hold on
             roi = b(ff)-3:b(ff)+3; % frames to plot
             for ii = 1:length(roi)
                 mColor = Color('vaporwaveblue');
