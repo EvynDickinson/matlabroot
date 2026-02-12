@@ -262,32 +262,33 @@ nFigs = ceil(length(confident_frames)/(r*c));
 mPos = fly(trial).m.pos;
 fPos = fly(trial).f.pos;
 allROI = confident_frames + (-3:3);
+% create matrix of the frames for each figure:
+frameList = nan([1,nFigs * r * c]);
+frameList(1:length(confident_frames)) = confident_frames;
+frameList = (reshape(frameList, [r*c, nFigs]))';
+
 
 ax = [];
-curr_frame = 0; % counter for switch location
+idx = 0;
 for gg = 1:nFigs
 
     % PLOT DATA
     fig = getfig('',1);   
-    set(fig, 'Visible', 'off') % hold off on drawing the figure until it is all plotted
+    % set(fig, 'Visible', 'off') % hold off on drawing the figure until it is all plotted
     for ff = 1:maxExmp
         subplot(r,c,ff);
-        curr_frame = curr_frame + 1;
-        try  start_frame = confident_frames(curr_frame);
-        catch
-            if curr_frame>length(confident_frames)
-                continue
-            end
+        idx = idx + 1;
+        start_frame = frameList(gg,ff);
+        if isnan(start_frame)
+            continue
         end
 
         % Initialize fly skeletons for plotting later
-        % hM = initFlySkeleton(ax(ff), mBaseColor, true, sz);
-        % hF = initFlySkeleton(ax(ff), fBaseColor, true, sz);
         ax = gca;
         hM = initFlySkeleton(ax, mBaseColor, true, sz);
         hF = initFlySkeleton(ax, fBaseColor, true, sz);
 
-        roi = allROI(curr_frame,:);% frames to plot
+        roi = allROI(idx,:);% frames to plot
         for ii = 1 : length(roi)
             % select the appropriate plotting color
             if roi(ii)==start_frame %|| roi(ii)==stop_frame
@@ -304,11 +305,6 @@ for gg = 1:nFigs
             y =  fPos(roi(ii),:,2);
             updateFlySkeleton(hF, x, y, fColor);
         end
-        % if any(start_frame==confident_frames) || any(stop_frame==confident_frames)
-        %     titleString{ff} = 'Confident';
-        % else 
-        %     titleString{ff} = '';
-        % end
     end
 
     % format figure: 
@@ -317,10 +313,11 @@ for gg = 1:nFigs
         subplot(r,c,ff);
         axis equal tight
         set(gca, 'xcolor', 'none', 'ycolor', 'none')
-        if curr_frame>length(confident_frames)
+        start_frame = frameList(gg,ff);
+        if isnan(start_frame)
             continue
         end
-        title(num2str(confident_frames(curr_frame)), 'color', foreColor,'fontsize', 10)
+        title(num2str(confident_frames(ii)), 'color', foreColor,'fontsize', 10)
         % find the size and build a rectagle 'frame'
         ax = axis; % [xmin xmax ymin ymax]
         rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
@@ -328,7 +325,7 @@ for gg = 1:nFigs
               'linestyle', ':')
      end
      set(fig, 'Visible', 'on')
-     drawnow
+     % drawnow
     % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
 end
 
