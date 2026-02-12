@@ -36,6 +36,7 @@ skeleton = [1,2; 2,3; 2,4; 2,5];
 % edges
 xs = x(skeleton)';
 ys = y(skeleton)';
+
 plot(xs, ys, 'Color', kolor, 'HandleVisibility','off')
 
 % nodes

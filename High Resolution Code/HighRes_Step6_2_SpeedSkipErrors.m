@@ -285,8 +285,8 @@ for gg = 1:nFigs
 
         % Initialize fly skeletons for plotting later
         ax = gca;
-        hM = initFlySkeleton(ax, mBaseColor, true, sz);
-        hF = initFlySkeleton(ax, fBaseColor, true, sz);
+        % hM = initFlySkeleton(ax, mBaseColor, true, sz);
+        % hF = initFlySkeleton(ax, fBaseColor, true, sz);
 
         roi = allROI(idx,:);% frames to plot
         for ii = 1 : length(roi)
@@ -300,10 +300,12 @@ for gg = 1:nFigs
             end
             x =  mPos(roi(ii),:,1);
             y =  mPos(roi(ii),:,2);
-            updateFlySkeleton(hM, x, y, mColor);
+            plotFlySkeleton(fig, x, y, mColor, true, sz)
+            % updateFlySkeleton(hM, x, y, mColor);
             x =  fPos(roi(ii),:,1);
             y =  fPos(roi(ii),:,2);
-            updateFlySkeleton(hF, x, y, fColor);
+            % updateFlySkeleton(hF, x, y, fColor);
+            plotFlySkeleton(fig, x, y, fColor, true, sz)
         end
     end
 

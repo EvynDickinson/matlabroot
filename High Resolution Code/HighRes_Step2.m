@@ -30,6 +30,7 @@ initial_var{end+1} = 'initial_var';
 
 
 %% convert files to a single video file (or an 8-minute segment)
+disp('COMPILING IN PROGRESS')
 
 for ramp = 1:size(rampName,2)
     clearvars('-except',initial_var{:})
@@ -93,7 +94,7 @@ for ramp = 1:size(rampName,2)
             % Load data matrix
             data = load([baseDir, 'file' num2str(i) '.mat']); 
             writeVideo(v, data.data);
-            disp(['Finished ' 'file' num2str(i) '.mat']);
+            % disp(['Finished ' 'file' num2str(i) '.mat']);
         end    
         close(v);
     end
