@@ -239,7 +239,8 @@ saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
 trial = 2;
 sz = 10;
-speed_thresh = 30; %mm/s speed threshold
+edgeFrames = 5;
+speed_thresh = 50; %mm/s speed threshold
 
 mBaseColor = Color('vaporwaveblue');
 fBaseColor = Color('vaporwavepink');
@@ -261,7 +262,7 @@ nFigs = ceil(length(confident_frames)/(r*c));
 % code efficient preallocation
 mPos = fly(trial).m.pos;
 fPos = fly(trial).f.pos;
-allROI = confident_frames + (-3:3);
+allROI = confident_frames + (-edgeFrames:edgeFrames);
 % create matrix of the frames for each figure:
 frameList = nan([1,nFigs * r * c]);
 frameList(1:length(confident_frames)) = confident_frames;
@@ -276,7 +277,7 @@ for gg = 1:nFigs
     fig = getfig('',1);   
     % set(fig, 'Visible', 'off') % hold off on drawing the figure until it is all plotted
     for ff = 1:maxExmp
-        subplot(r,c,ff);
+        subplot(r,c,ff); hold on
         idx = idx + 1;
         start_frame = frameList(gg,ff);
         if isnan(start_frame)
@@ -300,12 +301,12 @@ for gg = 1:nFigs
             end
             x =  mPos(roi(ii),:,1);
             y =  mPos(roi(ii),:,2);
-            plotFlySkeleton(fig, x, y, mColor, true, sz)
+            plotFlySkeleton(fig, x, y, mColor, true, sz);
             % updateFlySkeleton(hM, x, y, mColor);
             x =  fPos(roi(ii),:,1);
             y =  fPos(roi(ii),:,2);
             % updateFlySkeleton(hF, x, y, fColor);
-            plotFlySkeleton(fig, x, y, fColor, true, sz)
+            plotFlySkeleton(fig, x, y, fColor, true, sz);
         end
     end
 
@@ -319,14 +320,14 @@ for gg = 1:nFigs
         if isnan(start_frame)
             continue
         end
-        title(num2str(confident_frames(ii)), 'color', foreColor,'fontsize', 10)
+        title(num2str(frameList(gg,ff)), 'color', foreColor,'fontsize', 10)
         % find the size and build a rectagle 'frame'
         ax = axis; % [xmin xmax ymin ymax]
         rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
               'EdgeColor',foreColor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
               'linestyle', ':')
      end
-     set(fig, 'Visible', 'on')
+     set(fig, 'Visible', 'on');
      % drawnow
     % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
 end
