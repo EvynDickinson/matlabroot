@@ -160,6 +160,7 @@ initial_var{end+1} = 'aggression';
 
 
 %%
+foreColor = formattingColors(blkbgd); % get background colors
 Mcolor = Color('dodgerblue');
 Fcolor = Color('deeppink');
 

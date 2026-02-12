@@ -524,5 +524,3 @@ annotation('line', arrow_x, arrow_y,'Color',foreColor,...
 save_figure(fig, [fig_dir title_str ' tuning curve between regions']);
 
 
-%% Are there any instances of male aggression? >75 deg
-
