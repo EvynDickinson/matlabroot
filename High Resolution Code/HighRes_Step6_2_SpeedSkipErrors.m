@@ -333,6 +333,246 @@ for gg = 1:nFigs
 end
 
 
+%% Figure: proportion of frames that are likely swap and non swap based on speed criteria
+
+clearvars('-except',initial_var{:})
+
+speed_thresh = 30; %mm/s speed threshold
+skip_threshold = 3; % how many frames for a confident swap pair in time
+
+% initialize empty variables
+Total_High_Speed = nan([num.trials, 2]);
+[Confident_Swaps, Likely_Swaps, All_Speed, Confident_Speed, Likely_Speed] = ...
+    deal(nan([num.trials, 1]));
+
+keyFrames = []; % data structure holding the frame data 
+
+for trial = 1:num.trials
+
+    % MALE speed data for current trial 
+    mspeed = squeeze(data.speed(:,M,trial));
+    mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
+    mspeed_frames = find(mspeed_loc); % pull frames above the limit speed
+    Total_High_Speed(trial,M) = length(mspeed_frames);
+    keyFrames(trial).mspeed_frames = mspeed_frames;
+    
+    % FEMALE speed data for current trial 
+    fspeed = squeeze(data.speed(:,F,trial));
+    fspeed_loc = fspeed>=speed_thresh; % frames with above threshold speed
+    fspeed_frames = find(fspeed_loc); % pull frames above the limit speed
+    Total_High_Speed(trial,F) = length(fspeed_frames);
+    keyFrames(trial).fspeed_frames = fspeed_frames;
+    All_Speed(trial) = mean([mspeed(mspeed_frames); fspeed(fspeed_frames)], 'all', 'omitnan');
+    
+    % Possible swap locations: (based on high speed for both flies)
+    double_speed = squeeze(data.speed(:,:,trial)); % speed in both sexes
+    double_speed_loc = double_speed>=speed_thresh;
+    swap_ConfidentFrames = find(sum(double_speed_loc,2)==2); % where are both M&F speeding
+    confidentPairs = diff(swap_ConfidentFrames)<=skip_threshold; % pairs of frames for a swap and back
+    confidentIdx = sort([find(confidentPairs); find(confidentPairs)+1]);
+    confidentFrames = swap_ConfidentFrames(confidentIdx);
+    keyFrames(trial).swap_ConfidentFrames = swap_ConfidentFrames; % all frames with double speed M F
+    keyFrames(trial).swap_ConfidentFramePairs = confidentFrames; % paired up frames (switch forward and back)
+    Confident_Swaps(trial) = length(confidentIdx); % number of frames with paired swaps
+    Confident_Speed(trial) = mean(double_speed(confidentFrames,:),'all', 'omitnan');
+    
+    % Possible swap locations if one of the sexes does not have a labeled skeleton
+    a = fspeed_loc & isnan(mspeed);
+    b = mspeed_loc & isnan(fspeed);
+    possible_swapFrames = find(a | b);
+    if ~isempty(possible_swapFrames)
+        allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]); % all frames with double speed MF or single+nan
+        likelyPairs = diff(allSwaps)<=skip_threshold;
+        likelyIdx = sort([find(likelyPairs); find(likelyPairs)+1]);
+        Likely_Swaps(trial) =  length(likelyIdx); % how many likely pairs there are
+        swap_LIkelyFrames = allSwaps(likelyIdx);
+        keyFrames(trial).swap_LikelyFrames = allSwaps; % all frames with double speed M F
+        keyFrames(trial).swap_LikelyFramePairs = swap_LIkelyFrames; % paired up frames (switch forward and back)
+
+        % avg speed data for this: 
+        Likely_Speed(trial) = mean(double_speed(swap_LIkelyFrames,:),'all', 'omitnan');
+    end
+
+end
+     
+% Plot some figures!!! 
+jitType = 'rand';
+SZ = 50;
+FA = 0.7;
+mt = ones([num.trials, 1]);
+x = [0.85, 1.15, 2, 3];
+xlabels = {'M', 'F', 'Likely', 'Confident'};
+% [Confident_Swaps, Likely_Swaps, All_Speed, Confident_Speed, Likely_Speed]
+
+fig = getfig('Proportion of frames with jumps vs swaps', true,[495 680]); 
+    hold on
+    % all high speed numbers
+    scatter(x(1)*mt, Total_High_Speed(:,M), SZ, ...
+                Color('vaporwaveblue'),'filled',...
+                'MarkerFaceAlpha', FA,...
+                'XJitter', jitType, 'XJitterWidth',0.3)
+    scatter(x(2)*mt, Total_High_Speed(:,F), SZ, ...
+                Color('vaporwavepink'),'filled',...
+                'MarkerFaceAlpha', FA,...
+                'XJitter', jitType, 'XJitterWidth',0.3)
+    % likely frames
+    scatter(x(3)*mt, Likely_Swaps, SZ, ...
+                Color('vaporwavepurple'),'filled',...
+                'MarkerFaceAlpha', FA,...
+                'XJitter', jitType, 'XJitterWidth',0.5)
+    % confident frames
+    scatter(x(4)*mt, Confident_Swaps, SZ, ...
+                Color('vaporwavegren'),'filled',...
+                'MarkerFaceAlpha', FA,...
+                'XJitter', jitType, 'XJitterWidth',0.5)
+    % plot connecting line between the confident and likely
+
+
+    % formatting
+    formatFig(fig, blkbgd);
+    set(gca, 'yscale', 'log')
+    ylabel('number of high speed frames')
+    set(gca, 'xtick', x, 'XTickLabel', xlabels)
+    xlim([0.5, 3.5])
+       
+% TODO 2/13/26 : determine why there are more confident pairs in than
+% likely pairs...]
+% has to do with there being multiple in a row of a linked type... look at
+% the last trial for an example here...
+
+
+
+
+%% PULL UP IMAGES OF HIGH SPEED FRAMES FROM LOCAL DRIVE DATA
+clearvars('-except',initial_var{:})
+
+% which trials are on a drive that is present at this computer?
+expList = {fly(:).name};
+ExpOnDrive = cell(size(expList)); % cell with location addresses for the videos
+ExpsFound = false(size(expList)); % logical for local copy of the videos
+% find storage drives
+drvStr = 'Data Storage';
+possible_drives =  findDriveByName(drvStr); % find drive letter associated with data storage, if possible
+% find list of experiments on the local drives
+if ~isempty(possible_drives)
+    for ii  = 1:length(possible_drives)
+        rootPath = [possible_drives{ii}, 'Courtship Videos/'];
+        allFolders = dir(rootPath);
+        expDates = {allFolders(:).name}; % experiments on the drive
+        % compare between current experiments and the list of names
+        for jj = 1:length(expList)
+            datestring = expList{jj}(1:10); % current experiment to look for
+            if any(contains(expDates, datestring))
+                % extract the full file path to the videos
+                ExpOnDrive{jj} = [rootPath datestring '/' expList{jj}(12:end) '/'];
+                ExpsFound(jj) = true;
+            end
+        end
+    end
+end
+
+% give option to pull up instances from one of the possible trials
+videoList = {fly(ExpsFound).name};
+idx = listdlg("PromptString",'Select which experiment to demo images from',...
+            'SelectionMode','single',...
+            'ListString',videoList,...
+            'ListSize',[350,400]);
+trial = find(strcmp(videoList{idx},{fly(:).name})); % trial number selected
+
+% for the selected trail: 
+% identify all instances above a speed threshold
+% identify which of those are likely swaps based on double speed/dropped
+% data
+% pull up a random selection to look at an visually confirm/deny identity
+% compare the number of manual vs auto rates in the selected trials
+
+speed_thresh = 30; %mm/s speed threshold
+
+% MALE speed data for current trial 
+mspeed = squeeze(data.speed(:,M,trial));
+mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
+mspeed_frames = find(mspeed_loc); % pull frames above the limit speed
+fprintf('\n Total above threshold MALE frames:  %i\n', length(mspeed_frames))
+
+% FEMALE speed data for current trial 
+fspeed = squeeze(data.speed(:,F,trial));
+fspeed_loc = fspeed>=speed_thresh; % frames with above threshold speed
+fspeed_frames = find(fspeed_loc); % pull frames above the limit speed
+fprintf('\n Total above threshold FEMALE frames:  %i\n', length(fspeed_frames))
+
+% Possible swap locations: (based on high speed for both flies)
+double_speed = squeeze(data.speed(:,:,trial)); % locations for speeding in both sexes
+double_speed_loc = double_speed>=speed_thresh;
+swap_ConfidentFrames = find(sum(double_speed_loc,2)==2);
+fprintf('\nThere are %d likely swap frames\n', length(swap_ConfidentFrames))
+
+% Possible swap locations if one of the sexes does not have a labeled skeleton
+a = fspeed_loc & isnan(mspeed);
+b = mspeed_loc & isnan(fspeed);
+possible_swapFrames = find(a | b);
+fprintf('\nThere are %d possible swap frames\n', length(possible_swapFrames))
+
+% let's look at the possible swap frames: 
+confidentPairs = diff(swap_ConfidentFrames)<=3;
+sum(confidentPairs)
+
+allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]);
+confidentPairs = diff(allSwaps)<=3;
+sum(confidentPairs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% what portion of total over-speed instances is this
+proportion_of_frames = (length(confident_frames)/sum(speed_loc))*100;
+% how similar is the speed between the male and female flies when they swap
+% locations?
+double_speed(confident_frames,:)
+
+
+
+% how many of these are likely swaps?
+a = find(diff(speed_frames)<=3); % possible start of switch location in speed frames
+b = a+1;
+possible_switches_locs = speed_frames(a); % where are there speed jumps nearly back to back
+reverse_switch_locs = speed_frames(b); 
+
+
+
+
+
+
+
+% pull a random sample of non-skip trials?
+
+
+
+
+%% HIGH SPEED TYPE SORTING
+
+% which of the high speed frames are jumps vs which are swaps? 
+% pull up pic evidence for the highest n number of trials
+% pull up pic evidence for a random selection of the lower trials
+
+% quantify the number of jumps vs swaps in the random sample
+
+% Base Rules: 
+% jumps: single fly above speed threshold and IS data for other fly body 
+% swaps: both flies above speed threshold and PAIRED frames OR missing data
+% for one of the other flies but still close by frame with above speed
+% threshold for the non-nan fly
+
 
 %% MANY FIGURES: Check close frame high speeds for possible switch patterns: 
 clearvars('-except',initial_var{:})

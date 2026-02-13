@@ -813,3 +813,7 @@ fprintf('encounter rate warm temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.
 % cool threat vs cool safe
 [h,p,~,stats] = ttest(encounter_rate(:,3), encounter_rate(:,4)); 
 fprintf('encounter rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.tstat, stats.df);
+
+%%
+
+
