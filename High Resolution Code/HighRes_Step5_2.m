@@ -721,7 +721,7 @@ if dType_2
     save_figure(fig,[chaseDir 'All chase bouts zoomed in schematic'], fig_type);
 end
 
-%% FIGURE: (TODO) M body positions during circling
+%% FIGURE: M body positions during circling
 % Pull point locations that will be plotted
 skip = 20;
 zoom = [-250,250];

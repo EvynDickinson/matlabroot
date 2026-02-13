@@ -379,7 +379,7 @@ fig = getfig('Fly identification',true);
         ylabel('frequency')
         xlabel('wing angle')
     % Arena image
-    subplot(r,c,sb(4).idx)
+    subplot(r,c,sb(4).idx)       
         vid = 1;
         vidname = [baseDir, 'compiled_video_', num2str(vid), '.avi'];
         vidh = VideoReader(vidname);
@@ -389,6 +389,7 @@ fig = getfig('Fly identification',true);
         b = T.vidFrame == frame;
         exp_frame = T.frame(find(a & b));
         imshow(img)
+        hold on 
         plotFlySkeleton(fig, D1.pos(exp_frame,:,1),D1.pos(exp_frame,:,2),Color('dodgerblue'),1); 
         plotFlySkeleton(fig, D2.pos(exp_frame,:,1),D2.pos(exp_frame,:,2),Color('pink'),1); 
         % Zoom in on pink fly
@@ -467,6 +468,7 @@ switch response
                 % Male fly
                 subplot(row, col, pics)
                     imshow(img)
+                    hold on
                     plotFlySkeleton(fig, m.pos(exp_frame,:,1),m.pos(exp_frame,:,2),Color('dodgerblue'),0); 
                     % Zoom in on fly
                     xlimits = m.pos(exp_frame,2,1);
@@ -478,6 +480,7 @@ switch response
                 % Female fly
                 subplot(row, col, (pics + col))
                     imshow(img)
+                    hold on
                     plotFlySkeleton(fig, f.pos(exp_frame,:,1),f.pos(exp_frame,:,2),Color('pink'),0);
                     % Zoom in on pink fly
                     xlimits = f.pos(exp_frame,2,1);
