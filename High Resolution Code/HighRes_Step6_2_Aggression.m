@@ -7,8 +7,35 @@ clearvars('-except',initial_var{:})
 pix2mm = conversion(4).pix2mm; %updates 5.12.25
 
 aggression = [];
-
 for trial = 1:num.trials
+
+    % % ------------------------- 1) Shift each frame to the origin for female fly ------------------------- 
+    % x_offset = fly(trial).data(F).rawX(:,body.center); % x values for female center
+    % y_offset = fly(trial).data(F).rawY(:,body.center);
+    % mx = fly(trial).data(M).rawX-x_offset; % subtract the offset from the x values for each body point
+    % my = fly(trial).data(M).rawY-y_offset;
+    % fx = fly(trial).data(F).rawX-x_offset;
+    % fy = fly(trial).data(F).rawY-y_offset;
+    % 
+    % % ------------------------- 2) Rotate each set of points to head and center on the Y axis ------------------------- 
+    % [mX,mY,fX,fY] = deal(nan(size(mx)));
+    % for frame = 1:length(mX)
+    %     % identify coordinates for each body point in that frame - female only
+    %     fpoints = [fx(frame,:)',fy(frame,:)']; 
+    %     % rotate points so head and center align with y axis
+    %     [rotatedPoints, R] = rotateToVertical(fpoints, body.center,body.head,false);
+    %     % load new rotated points into variable
+    %     fX(frame,:) = rotatedPoints(:,1);
+    %     fY(frame,:) = rotatedPoints(:,2);
+    %     % identify coordinates for each body point in that frame - male only
+    %     mpoints = [mx(frame,:)',my(frame,:)'];
+    %     % rotate points in relation to female (using female R)
+    %     mpoints = (R * mpoints')';
+    %     % load new rotated points into variable
+    %     mX(frame,:) = mpoints(:,1);
+    %     mY(frame,:) = mpoints(:,2);
+    % end
+
     aggression(trial).name = fly(trial).name;
 
     % Calulate the angle between fly bodies (both - and +)
