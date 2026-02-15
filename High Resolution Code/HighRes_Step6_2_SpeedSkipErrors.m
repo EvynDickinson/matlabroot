@@ -336,6 +336,7 @@ end
 %% Figure: proportion of frames that are likely swap and non swap based on speed criteria
 
 clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
 speed_thresh = 30; %mm/s speed threshold
 skip_threshold = 3; % how many frames for a confident swap pair in time
@@ -348,7 +349,6 @@ Total_High_Speed = nan([num.trials, 2]);
 keyFrames = []; % data structure holding the frame data 
 
 for trial = 1:num.trials
-
     % MALE speed data for current trial 
     mspeed = squeeze(data.speed(:,M,trial));
     mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
@@ -388,14 +388,23 @@ for trial = 1:num.trials
         swap_LIkelyFrames = allSwaps(likelyIdx);
         keyFrames(trial).swap_LikelyFrames = allSwaps; % all frames with double speed M F
         keyFrames(trial).swap_LikelyFramePairs = swap_LIkelyFrames; % paired up frames (switch forward and back)
-
         % avg speed data for this: 
         Likely_Speed(trial) = mean(double_speed(swap_LIkelyFrames,:),'all', 'omitnan');
+    else % no changes due to new pairings, so the same frames as confident
+        Likely_Swaps(trial) = Confident_Swaps(trial);
+        Likely_Speed(trial) = Confident_Speed(trial);
+        keyFrames(trial).swap_LikelyFrames = keyFrames(trial).swap_ConfidentFrames;
+        keyFrames(trial).swap_LikelyFramePairs = keyFrames(trial).swap_ConfidentFramePairs ;
     end
+
+    % what is the relative number of paired vs unpaired confident frames: 
+    % and what is happening during them? 
 
 end
      
 % Plot some figures!!! 
+
+% FIGURE: number of frames above the speed threshold vs predicted swap frames
 jitType = 'rand';
 SZ = 50;
 FA = 0.7;
@@ -404,7 +413,7 @@ x = [0.85, 1.15, 2, 3];
 xlabels = {'M', 'F', 'Likely', 'Confident'};
 % [Confident_Swaps, Likely_Swaps, All_Speed, Confident_Speed, Likely_Speed]
 
-fig = getfig('Proportion of frames with jumps vs swaps', true,[495 680]); 
+fig = getfig('Proportion of frames with jumps vs swaps', true,[532 680]); 
     hold on
     % all high speed numbers
     scatter(x(1)*mt, Total_High_Speed(:,M), SZ, ...
@@ -418,15 +427,16 @@ fig = getfig('Proportion of frames with jumps vs swaps', true,[495 680]);
     % likely frames
     scatter(x(3)*mt, Likely_Swaps, SZ, ...
                 Color('vaporwavepurple'),'filled',...
-                'MarkerFaceAlpha', FA,...
-                'XJitter', jitType, 'XJitterWidth',0.5)
+                'MarkerFaceAlpha', FA)%,...
+                % 'XJitter', jitType, 'XJitterWidth',0.5)
     % confident frames
     scatter(x(4)*mt, Confident_Swaps, SZ, ...
                 Color('vaporwavegren'),'filled',...
-                'MarkerFaceAlpha', FA,...
-                'XJitter', jitType, 'XJitterWidth',0.5)
+                'MarkerFaceAlpha', FA)%,...
+                % 'XJitter', jitType, 'XJitterWidth',0.5)
     % plot connecting line between the confident and likely
-
+     plot([2*mt'; 3*mt'], [Likely_Swaps'; Confident_Swaps'],...
+            'Color', foreColor,'linewidth', 1)
 
     % formatting
     formatFig(fig, blkbgd);
@@ -434,11 +444,145 @@ fig = getfig('Proportion of frames with jumps vs swaps', true,[495 680]);
     ylabel('number of high speed frames')
     set(gca, 'xtick', x, 'XTickLabel', xlabels)
     xlim([0.5, 3.5])
+
+save_figure(fig, [saveDir  'High speed frame number comparisons']);
        
 % TODO 2/13/26 : determine why there are more confident pairs in than
 % likely pairs...]
 % has to do with there being multiple in a row of a linked type... look at
 % the last trial for an example here...
+
+% FIGURE: 
+
+
+%
+
+% TODO 2/15 FIGURE OUT A METHOD OF TRACKING 
+% DOWN WHICH FRAMES ARE LIKELY SWITCHES
+% what is the relative number of paired vs unpaired confident frames: 
+% and what is happening during them? 
+
+for trial = 1:num.trials
+    a = keyFrames(trial).swap_LikelyFrames;
+    b = keyFrames(trial).swap_LikelyFramePairs;
+    ismember(a,b)
+end
+
+
+% FIGURES: plot out all the fly skeletons for the confident trials based
+% on the double fly speed criteria
+maxExmp = 8; % how many different examples to show
+r = 2; c = 4; % rows and columns for the figure
+% how many figures with subplots will it take show all the different examples
+trial = 13;
+frames = keyFrames(trial).swap_LikelyFrames;
+frame_buff = 3; % how many frames on either side of the target 
+nFigs = ceil(length(frames)/(r*c)); 
+
+% code efficient preallocation
+mPos = fly(trial).m.pos;
+fPos = fly(trial).f.pos;
+roi = frames + (-frame_buff:+frame_buff);% frames to plot
+% create matrix of the frames for each figure:
+frameList = nan([1,nFigs * r * c]);
+frameList(1:length(frames)) = frames;
+frameList = (reshape(frameList, [r*c, nFigs]))';
+% color choices
+mBase = Color('vaporwaveblue');
+fBase = Color('vaporwavepink');
+mHighlight = Color('floralblue');
+fHighlight = Color('floraldarkpink');
+
+% PLOT DATA
+for gg = 1:nFigs
+    fig = getfig('',1);   
+    % subplots for each specific instance of high speed
+    for ff = 1:maxExmp 
+        subplot(r,c,ff); hold on
+        loc = frameList(gg,ff); % identified target frame
+        if isnan(loc) % skip this plot if there isnt data
+            continue
+        end
+        % plot data for the frames around the key frame
+        idx = ((gg-1)*(r*c)) + ff; % what frame in the long list is this
+        fprintf('\nCurrent Frame Count %i', idx)
+        for ii = 1:size(roi,2) % for all frames around the target
+            curr_frame = roi(idx,ii); % frame to plot
+            % select the color based on the frame number
+            if loc==frames(idx)
+                mColor = mHighlight;
+                fColor = fHighlight;
+            else 
+                mColor = mBase;
+                fColor = fBase;
+            end
+            % extract and plot the location data for the flies
+            x =  mPos(curr_frame,:,1);
+            y =  mPos(curr_frame,:,2);
+            plotFlySkeleton(fig, x, y, mColor, false);
+            x =  fPos(curr_frame,:,1);
+            y =  fPos(curr_frame,:,2);
+            plotFlySkeleton(fig, x, y, fColor, false);
+        end
+    end
+
+    % format figure: 
+    formatFig(fig, blkbgd,[r,c]);
+     for ff = 1:maxExmp
+        subplot(r,c,ff)
+        frame_num = frameList(gg,ff);
+        set(gca, 'xcolor', 'none', 'ycolor', 'none')
+        if isnan(frame_num)
+            continue
+        end
+        axis equal tight
+        title(frame_num, 'color', foreColor,'fontsize', 10)
+        % throw label if there is another frame flagged within
+        % skip threshold number of frames
+        a = abs(frame_num - frames)<=skip_threshold; % less than the threshold
+        b = abs(frame_num - frames)>0; % but not equal to itself 
+        if any(a & b)
+            title(sprintf('%d | Yes', frame_num), 'color', foreColor,'fontsize', 10)
+        end
+        % find the size and build a rectagle 'frame'
+        ax = axis; % [xmin xmax ymin ymax]
+        rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
+              'EdgeColor',foreColor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
+              'linestyle', ':')
+     end
+    % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -596,16 +740,11 @@ double_speed_loc = double_speed>=speed_thresh;
 confident_frames = find(sum(double_speed_loc,2)==2);
 fprintf('\nThere are %d likely swap frames\n', length(confident_frames))
 
-
-
-
 % what portion of total over-speed instances is this
 proportion_of_frames = (length(confident_frames)/sum(speed_loc))*100;
 % how similar is the speed between the male and female flies when they swap
 % locations?
 double_speed(confident_frames,:)
-
-
 
 % how many of these are likely swaps?
 a = find(diff(speed_frames)<=3); % possible start of switch location in speed frames
