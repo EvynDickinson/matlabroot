@@ -338,7 +338,7 @@ end
 clearvars('-except',initial_var{:})
 saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
-speed_thresh = 30; %mm/s speed threshold
+speed_thresh = 35; %mm/s speed threshold
 skip_threshold = 3; % how many frames for a confident swap pair in time
 
 % initialize empty variables
@@ -399,11 +399,41 @@ for trial = 1:num.trials
 
     % what is the relative number of paired vs unpaired confident frames: 
     % and what is happening during them? 
-
 end
-     
-% Plot some figures!!! 
 
+% PAIR LIKELY SWAP FRAMES FOR EACH OF THE TRIALS
+% TODO working here 2/15/26
+for trial = 1:num.trials
+    a = keyFrames(trial).swap_LikelyFrames;% current list of possible frames for pairs
+    
+    % Find differences between consecutive frames
+    frame_diffs = diff(a);
+    
+    % Find where frames are close together (potential pairs)
+    is_close = frame_diffs <= skip_threshold;
+    
+    % Extract pairs
+    pairs = [];
+    ii = 1; % index location within frame list
+    while ii <= length(is_close)
+        if is_close(ii)
+            % Found a pair: frames a(i) and a(i+1)
+            pairs = [pairs; a(ii), a(ii+1)];
+            
+            % Skip the next position to avoid overlapping pairs
+            % (e.g., if frames 1,2,3 are all close, we want pairs [1,2] and not [2,3])
+            ii = ii + 2;
+        else
+            ii = ii + 1;
+        end
+    end
+    
+    % Store the pairs
+    keyFrames(trial).frame_pairs = pairs;
+end
+
+
+% Plot some figures!!! 
 % FIGURE: number of frames above the speed threshold vs predicted swap frames
 jitType = 'rand';
 SZ = 50;
@@ -452,29 +482,25 @@ save_figure(fig, [saveDir  'High speed frame number comparisons']);
 % has to do with there being multiple in a row of a linked type... look at
 % the last trial for an example here...
 
-% FIGURE: 
-
-
-%
 
 % TODO 2/15 FIGURE OUT A METHOD OF TRACKING 
 % DOWN WHICH FRAMES ARE LIKELY SWITCHES
 % what is the relative number of paired vs unpaired confident frames: 
 % and what is happening during them? 
 
-for trial = 1:num.trials
-    a = keyFrames(trial).swap_LikelyFrames;
-    b = keyFrames(trial).swap_LikelyFramePairs;
-    ismember(a,b)
-end
+% for trial = 1:num.trials
+%     a = keyFrames(trial).swap_LikelyFrames;
+%     b = keyFrames(trial).swap_LikelyFramePairs;
+%     ismember(a,b)
+% end
 
 
 % FIGURES: plot out all the fly skeletons for the confident trials based
 % on the double fly speed criteria
-maxExmp = 8; % how many different examples to show
-r = 2; c = 4; % rows and columns for the figure
+maxExmp = 50; % how many different examples to show
+r = 5; c = 10; % rows and columns for the figure
 % how many figures with subplots will it take show all the different examples
-trial = 13;
+trial = 3;
 frames = keyFrames(trial).swap_LikelyFrames;
 frame_buff = 3; % how many frames on either side of the target 
 nFigs = ceil(length(frames)/(r*c)); 
@@ -493,6 +519,8 @@ fBase = Color('vaporwavepink');
 mHighlight = Color('floralblue');
 fHighlight = Color('floraldarkpink');
 
+frame_pairs = keyFrames(trial).frame_pairs;
+
 % PLOT DATA
 for gg = 1:nFigs
     fig = getfig('',1);   
@@ -505,7 +533,7 @@ for gg = 1:nFigs
         end
         % plot data for the frames around the key frame
         idx = ((gg-1)*(r*c)) + ff; % what frame in the long list is this
-        fprintf('\nCurrent Frame Count %i', idx)
+        % fprintf('\nCurrent Frame Count %i', idx)
         for ii = 1:size(roi,2) % for all frames around the target
             curr_frame = roi(idx,ii); % frame to plot
             % select the color based on the frame number
@@ -537,17 +565,27 @@ for gg = 1:nFigs
         end
         axis equal tight
         title(frame_num, 'color', foreColor,'fontsize', 10)
+        % give frame pair numbers if it exists
+        frame_pair_loc =  find(frame_num==frame_pairs(:,1) | frame_num==frame_pairs(:,2)) ;
+        if ~isempty(frame_pair_loc)
+            % TODO 2.15.26 working here  
+            title_str = [num2str(frame_num) ' | ' Alphabet(frame_pair_loc)];
+            title(title_str, 'color', foreColor,'fontsize', 10)
+            kolor = Color('vaporwavegren');
+        else
+            kolor = foreColor;
+        end
         % throw label if there is another frame flagged within
         % skip threshold number of frames
-        a = abs(frame_num - frames)<=skip_threshold; % less than the threshold
-        b = abs(frame_num - frames)>0; % but not equal to itself 
-        if any(a & b)
-            title(sprintf('%d | Yes', frame_num), 'color', foreColor,'fontsize', 10)
-        end
+        % a = abs(frame_num - frames)<=skip_threshold; % less than the threshold
+        % b = abs(frame_num - frames)>0; % but not equal to itself 
+        % if any(a & b)
+        %     title(sprintf('%d | Yes', frame_num), 'color', foreColor,'fontsize', 10)
+        % end
         % find the size and build a rectagle 'frame'
         ax = axis; % [xmin xmax ymin ymax]
         rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
-              'EdgeColor',foreColor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
+              'EdgeColor',kolor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
               'linestyle', ':')
      end
     % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
