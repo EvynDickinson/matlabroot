@@ -175,7 +175,7 @@ x = min_wa; % 50:5:90
 bar(x,y,'FaceColor', Color('FireBrick'))
 
 % Format figure
-formatFig(fig,blkbgd)
+formatFig(fig,blkbgd);
 xlabel('Angles of individual mirrored wings')
 ylabel('Total instances')
 

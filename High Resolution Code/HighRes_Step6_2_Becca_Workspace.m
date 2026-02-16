@@ -1,6 +1,7 @@
 
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
+clc
 
 %% Speed between regions timecourse
 
@@ -524,3 +525,140 @@ annotation('line', arrow_x, arrow_y,'Color',foreColor,...
 save_figure(fig, [fig_dir title_str ' tuning curve between regions']);
 
 
+%% Instances where female is chasing male
+
+% Are there any instances of female flies chasing male flies?
+% If so, when / where does that occur
+
+% Adapted from 5_1 analysis to instances of male chasing female
+
+clearvars('-except',initial_var{:})
+
+x = 1;
+y = 2;
+
+ctime = 1; % time restrictor for one bout
+
+fchase = [];
+
+for trial = 1:num.trials
+    fchase(trial).name = fly(trial).name;
+    % positions of M head and F head and center
+    P1 = [fly(trial).f.pos(:,body.head,x),fly(trial).f.pos(:,body.head,y)]; % female head
+    P2 = [fly(trial).m.pos(:,body.center,x),fly(trial).m.pos(:,body.center,y)]; % male center
+    P3 = [fly(trial).m.pos(:,body.head,x),fly(trial).m.pos(:,body.head,y)]; % male head
+    
+    % 1) Calculate body vectors
+    v1 = P3 - P1;  % Nx2 matrix, vector for male head to female head
+    v2 = P3 - P2;  % Nx2 matrix, vector for male head to male center
+    
+    % 2) Calculate the dot product of v1 and v2 for each time step
+    dotProduct = v1(:,1) .* v2(:,1) + v1(:,2) .* v2(:,2);
+    
+    % 3) Compute the magnitudes of the vectors
+    mag_v1 = sqrt(v1(:,1).^2 + v1(:,2).^2); 
+    mag_v2 = sqrt(v2(:,1).^2 + v2(:,2).^2); 
+    
+    % 4) Calculate the cosine of the angle
+    cosTheta = dotProduct ./ (mag_v1 .* mag_v2);
+    
+    % 5) Compute the angle in radians and convert to degrees
+    angleRadians = acos(cosTheta);  % angle in radians
+    angleDegrees = rad2deg(angleRadians);  % convert to degrees
+    mfpos_angle = angleDegrees;
+    
+    % Identify when female position angle is less than 60 degrees from male
+    pos_angle = abs(mfpos_angle) <= 60;
+    
+    % Identify when female is facing male
+    facing = [];
+    f_items = {'L3', 'L4', 'GX3', 'GX4', 'GY3', 'GY4'};
+    % Identify if female is in an appropriate position for each wing direction across each item
+    for i = 1:length(f_items)
+        facing = [facing, fly(trial).position.(f_items{i})];
+    end
+    facing = any(facing,2);
+    
+    % Identify when female is behind male AND facing him
+    fbehindm = (facing & pos_angle);
+    
+    % Identify when female is within 7mm of male
+    close_dist = data.IFD(:,trial) <= 7; % mm
+    
+    % Identify when female is moving
+    fmoving = data.speed(:,F,trial) >= 0.1; % min speed up for debate
+    
+    % Identify when male is moving
+    mmoving = data.speed(:,M,trial) >= 0.01; % min speed diff than F in order to include true chase bouts
+    
+    chase = (fbehindm & close_dist & fmoving & mmoving); % requirements for 'chase all'
+    a = diff(chase); 
+    % Add the first chase value to the list to account for the starting condition
+    b = [chase(1); a]; 
+    % Locations in chase where chasing period starts/end
+    ch_start = find(b == 1); 
+    ch_stop = find(b == -1);
+    % If chasing doesn't stop by end, add stop location at end of ch_stop (loc = length of experiment value)
+    if chase(end)
+        ch_stop(end + 1) = length(time);
+    end
+    % Calculate the length of each chasing bout
+    ch_dur = ch_stop - ch_start;
+    % Find where chasing lasts longer than 2sec
+    dur_loc = find(ch_dur > (ctime*fps));
+    
+    % Create new courtship matrix with only true chasing bouts longer than 2sec
+    mt = false(size(fly(trial).time));
+    if isempty(dur_loc)
+        fchase(trial).(['roi_' num2str(ctime) 'sec']) = [];
+    else
+        for i = 1:length(dur_loc)
+            ii = dur_loc(i);
+            mt(ch_start(ii):ch_stop(ii)) = true;
+            fchase.(['roi_' num2str(ctime) 'sec'])(i,:) = [ch_start(ii), ch_stop(ii)];
+        end
+    end
+    fchase(trial).(['sec_' num2str(ctime)]) = mt; % time restriction 2 seconds
+    fchase(trial).roi_all = find(chase);
+    fchase(trial).all = chase; % NO time limit
+end
+
+%%
+chDir = 'S:\Evyn\DATA\Courtship Videos/grouped/Berlin LTS caviar/Figures/Female Chase Figures/';
+if ~exist(chDir, 'dir')
+        mkdir(chDir)
+end
+
+loc = [];
+loc_2 = [];
+y = [];
+y2 = [];
+
+for trial = 1:num.trials    
+    loc = size(fchase(trial).(['roi_' num2str(ctime) 'sec']),1); % with 2 second restriction
+    loc_2 = size(fchase(trial).roi_all,1); % no time limit
+    y = [y,loc];
+    y2 = [y2,loc_2];
+end
+
+x = 1;
+x2 = 2;
+
+% FIGURE
+fig = getfig('', 1, [436 620]);
+hold on
+% Plot bar plot
+bar(x,y,'FaceColor', Color('PaleVioletRed'),'EdgeAlpha',0) % time restricted
+bar(x2,mean(y2),'FaceColor', Color('PaleVioletRed'),'EdgeAlpha',0) % all
+scatter(x,y,50,Color('MediumVioletRed'),'filled')
+scatter(x2,y2,50,Color('MediumVioletRed'),'filled')
+
+% Format figure
+formatFig(fig,blkbgd);
+xticks([1 2])
+xlim([0 2.75])
+xticklabels({[num2str(ctime) ' sec'], 'all'})
+ylabel('Number of frames of female chase')
+
+% Save figure
+save_figure(fig,[chDir 'Frame count of female chase instances ' num2str(ctime) ' sec'],fig_type);
