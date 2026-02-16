@@ -104,42 +104,80 @@ Lwing = 1;
 Rwing = 2; 
 
 ag_loc = []; % instances of aggression
+min_wa = 50:5:90;
+
 
 for trial = 1:num.trials
     facing = aggression(trial).MfacingF.all_likely;
-   
-    % Pull wing angles equal or greater than extension minimum for L and R
-    wa_cutoff = 65; % minimum wing extension angle for aggression
-    wing_ext = ((fly(trial).data(M).wingangle(:,Lwing)) >= wa_cutoff & (fly(trial).data(M).wingangle(:,Rwing)) >= wa_cutoff); % both wings must be > 90 deg
-    wing_ext = wing_ext & facing; % wing angle and facing F requirements met
-    
-    % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-    a = diff(wing_ext); 
-    % Add the first extension value to the list to account for the starting condition
-    b = [wing_ext(1); a]; 
-    % Locations in wing_ext where extension period starts/end
-    ext_start = find(b == 1); 
-    ext_stop = find(b == -1);
-    % If wing ext doesn't stop by end, add stop location at end of ext_stop (loc = length of experiment value)
-    if wing_ext(end)
-        ext_stop(end + 1) = length(fly(trial).time);
+    for angle = 1:length(min_wa)
+        % Pull wing angles equal or greater than extension minimum for L and R
+        wa_cutoff = min_wa(angle); % minimum wing extension angle for aggression
+        wing_ext = ((fly(trial).data(M).wingangle(:,Lwing)) >= wa_cutoff & (fly(trial).data(M).wingangle(:,Rwing)) >= wa_cutoff); % both wings must be > 90 deg
+        wing_ext = wing_ext & facing; % wing angle and facing F requirements met
+        if isempty(wing_ext)
+            disp(['no instances of aggression in ' aggression(trial).name])
+        end
+        
+        % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
+        a = diff(wing_ext); 
+        % Add the first extension value to the list to account for the starting condition
+        b = [wing_ext(1); a]; 
+        % Locations in wing_ext where extension period starts/end
+        ext_start = find(b == 1); 
+        ext_stop = find(b == -1);
+        % If wing ext doesn't stop by end, add stop location at end of ext_stop (loc = length of experiment value)
+        if wing_ext(end)
+            ext_stop(end + 1) = length(fly(trial).time);
+        end
+        % Calculate the length of each wing ext bout
+        ext_dur = ext_stop - ext_start;
+        % Find where wing ext lasts longer than 1sec
+        dur_loc = find(ext_dur > fps);
+        
+        % Create new aggression matrix with only true wing ext for bouts longer than 1sec
+        mt = false(size(fly(trial).time));
+        for i = 1:length(dur_loc)
+            ii = dur_loc(i);
+            mt(ext_start(ii):ext_stop(ii)) = true;
+        end
+        aggression(trial).one_sec.(['frames_' num2str(wa_cutoff)]) = mt;
+        aggression(trial).all_time.(['frames_' num2str(wa_cutoff)]) = wing_ext;
+        aggression(trial).instances.(['frames_' num2str(wa_cutoff)]) = ...
+            find(aggression(trial).all_time.(['frames_' num2str(wa_cutoff)]));
     end
-    % Calculate the length of each wing ext bout
-    ext_dur = ext_stop - ext_start;
-    % Find where wing ext lasts longer than 1sec
-    dur_loc = find(ext_dur > fps);
-    
-    % Create new aggression matrix with only true wing ext for bouts longer than 1sec
-    mt = false(size(fly(trial).time));
-    for i = 1:length(dur_loc)
-        ii = dur_loc(i);
-        mt(ext_start(ii):ext_stop(ii)) = true;
-    end
-    aggression(trial).one_sec = mt;
-    aggression(trial).all = wing_ext;
-    aggression(trial).instances = find(aggression(trial).all);
 end
 
-% if isempty(fieldnames(aggression.instances))
-%     disp('No instances of aggression found')
-% end
+initial_var{end+1} = 'min_wa';
+
+%% FIGURE: Histogram of agressive wing angles
+
+clearvars('-except',initial_var{:})
+
+plotdata = [];
+y = [];
+
+% Concatenate all instances in each wing angle across all trials
+for angle = 1:length(min_wa)
+    loc = [];
+    for trial = 1:num.trials    
+        wa_cutoff = min_wa(angle);
+        idx = ['frames_' num2str(wa_cutoff)];
+        loc = autoCat(loc,aggression(trial).instances.(idx),true,true);
+    end
+    % Calculate number of instances in for each angle
+    y = [y,size(loc,1)];
+end
+
+% FIGURE
+fig = getfig;
+x = min_wa; % 50:5:90
+% Plot bar plot
+bar(x,y,'FaceColor', Color('FireBrick'))
+
+% Format figure
+formatFig(fig,blkbgd)
+xlabel('Angles of individual mirrored wings')
+ylabel('Total instances')
+
+save_figure(fig,[figDir 'number of aggressive wing angle instances'],fig_type);
+
