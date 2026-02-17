@@ -177,7 +177,7 @@ bar(x,y,'FaceColor', Color('FireBrick'))
 % Format figure
 formatFig(fig,blkbgd);
 xlabel('Angles of individual mirrored wings')
-ylabel('Total instances')
+ylabel('Total instances across trials')
 
 save_figure(fig,[figDir 'number of aggressive wing angle instances'],fig_type);
 
