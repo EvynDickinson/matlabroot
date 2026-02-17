@@ -332,7 +332,9 @@ end
 
 
 %% ANALYSIS & FIGURES: identify likely frame swap locations
-
+if ~any(strcmp('keyFrames', initial_var))
+    initial_var{end+1} = 'keyFrames';
+end
 clearvars('-except',initial_var{:})
 saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
@@ -449,8 +451,12 @@ for trial = 1:num.trials
 end
 % relative percentages
 tot_frames = size(fly(1).T,1);
-m_framesP = (m_frames/tot_frames)*100;
-f_framesP = (f_frames/tot_frames)*100;
+m_framesP = mean((m_frames/tot_frames)*100);
+f_framesP = mean((f_frames/tot_frames)*100);
+swap_percentage =  mean((final_pair_frames ./ tot_frames)*100,'omitnan');
+fprintf('\n%2.3g  percent of total frames are high speed \n', (m_framesP + f_framesP))
+fprintf('\n%2.5g  percent of total frames are confident swaps',swap_percentage);
+
 
 % plotting parameters
 mt = ones([num.trials,1]);
@@ -583,40 +589,47 @@ for trial = 1:num.trials
 end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% PULL UP IMAGES OF HIGH SPEED FRAMES FROM LOCAL DRIVE DATA
 clearvars('-except',initial_var{:})
 
+% load saved frame identity information or generate it: 
+% get computer name: 
+if ismac 
+    computerName = getenv('USER');
+else 
+    computerName = getenv('COMPUTERNAME');
+end
+file_name = [groupDir, computerName ' speed labeling.mat'];
+% load in preexisting data or make a new blank template
+if ~(exist(file_name, 'file')==2)
+    speedTest = struct;
+    nFrames = 50; % how many frames to test for this fly for female and male
+    for trial = 1:num.trials
+        % select random frames to label
+        possible_frames = keyFrames(trial).fspeed_frames;
+        idx_M = randi(length(possible_frames),[nFrames, 1]);
+        frames_M = possible_frames(idx_M);
+        possible_frames = keyFrames(trial).mspeed_frames;
+        idx_F = randi(length(possible_frames),[nFrames, 1]);
+        frames_F = possible_frames(idx_F);
+        speedTest(trial).idx = sort([frames_M; frames_F]);
+        % create empty label structure
+        speedTest(trial).label = cell([nFrames*2, 1]);
+        speedTest(trial).labeled = false([nFrames*2, 1]);
+    end
+    save(file_name,'speedTest');
+else 
+    switch questdlg('Load speed labeling data?')
+        case 'Yes'
+            load(file_name);
+            disp('loaded data file')
+        case {'No', 'Cancel', ''}
+            return
+    end
+end
+
+
+% SELECT A TRIAL TO LABEL:
 % which trials are on a drive that is present at this computer?
 expList = {fly(:).name};
 ExpOnDrive = cell(size(expList)); % cell with location addresses for the videos
@@ -649,83 +662,104 @@ idx = listdlg("PromptString",'Select which experiment to demo images from',...
             'ListString',videoList,...
             'ListSize',[350,400]);
 trial = find(strcmp(videoList{idx},{fly(:).name})); % trial number selected
+% location of the video files for this trial on the current computer: 
+video_root = [ExpOnDrive{trial}  'AVI_Files/compiled_video_'];
 
-% for the selected trail: 
-% identify all instances above a speed threshold
-% identify which of those are likely swaps based on double speed/dropped
-% data
-% pull up a random selection to look at an visually confirm/deny identity
-% compare the number of manual vs auto rates in the selected trials
+% LABEL FRAMES FOR THE SELECTED FILE
 
-speed_thresh = 30; %mm/s speed threshold
+% figure parameters
+pixbuff = 60; % pixel border buffer size
+nPre = 2; % before event frames to show
+nPost = 3;  % after event frames to show
+shiftedframeList = speedTest(trial).idx;
+% adjust frameList for possible shift in timing across videos
+frameList = data.frame(shiftedframeList,trial);
+c = nPre + nPost +1;
+r = 2; % female and male
 
-% MALE speed data for current trial 
-mspeed = squeeze(data.speed(:,M,trial));
-mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
-mspeed_frames = find(mspeed_loc); % pull frames above the limit speed
-fprintf('\n Total above threshold MALE frames:  %i\n', length(mspeed_frames))
+% extact data for this trial
+mXPos = squeeze(fly(trial).m.pos(:,:,1));
+mYPos = squeeze(fly(trial).m.pos(:,:,2));
+fXPos = squeeze(fly(trial).f.pos(:,:,1));
+fYPos = squeeze(fly(trial).f.pos(:,:,2));
+mColor = Color('vaporwaveblue');
+fColor = Color('Vaporwavepink');
 
-% FEMALE speed data for current trial 
-fspeed = squeeze(data.speed(:,F,trial));
-fspeed_loc = fspeed>=speed_thresh; % frames with above threshold speed
-fspeed_frames = find(fspeed_loc); % pull frames above the limit speed
-fprintf('\n Total above threshold FEMALE frames:  %i\n', length(fspeed_frames))
+for ii = 1:5% length(frameList)
+    % only run for unlabeled frames
+    if ~speedTest(trial).labeled(ii)
+        frame = frameList(ii);
+        trial_frames = frame + (-nPre:nPost);
+        vidNum = fly(trial).T.vidNums(frame);
+        vidFrames = fly(trial).T.vidFrame(frame) + (-nPre:nPost);
 
-% Possible swap locations: (based on high speed for both flies)
-double_speed = squeeze(data.speed(:,:,trial)); % locations for speeding in both sexes
-double_speed_loc = double_speed>=speed_thresh;
-swap_ConfidentFrames = find(sum(double_speed_loc,2)==2);
-fprintf('\nThere are %d likely swap frames\n', length(swap_ConfidentFrames))
+        % check if frames could actually exist - if not, skip this one
+        if any(vidFrames<=0 | vidFrames>5400)
+            continue
+        end
 
-% Possible swap locations if one of the sexes does not have a labeled skeleton
-a = fspeed_loc & isnan(mspeed);
-b = mspeed_loc & isnan(fspeed);
-possible_swapFrames = find(a | b);
-fprintf('\nThere are %d possible swap frames\n', length(possible_swapFrames))
+        % load video frames
+        vidPath = [video_root num2str(vidNum) '.avi'];
+        movieInfo = VideoReader(vidPath); %read in video
+        img = read(movieInfo, [vidFrames(1), vidFrames(end)]);
 
-% let's look at the possible swap frames: 
-confidentPairs = diff(swap_ConfidentFrames)<=3;
-sum(confidentPairs)
+        % find the position data of the male fly
+        mX = mXPos(trial_frames,:);
+        mY = mYPos(trial_frames,:);
+        mZoomX = [min(min(mX)) - pixbuff, max(max(mX)) + pixbuff];
+        mZoomY = [min(min(mY)) - pixbuff, max(max(mY)) + pixbuff];
 
-allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]);
-confidentPairs = diff(allSwaps)<=3;
-sum(confidentPairs)
+        % find the position data of the female fly
+        fX = fXPos(trial_frames,:);
+        fY = fYPos(trial_frames,:);
+        fZoomX = [min(min(fX)) - pixbuff, max(max(fX)) + pixbuff];
+        fZoomY = [min(min(fY)) - pixbuff, max(max(fY)) + pixbuff];
+        
+
+        fig = getfig('',1); set(fig, 'color', 'k');
+        for ff = 1 : c
+            % male fly
+            subplot(r, c, ff)
+            imshow(img(:,:,:,ff))
+            xlim(mZoomX)
+            ylim(mZoomY)
+            % plot skeleton on top?
+            hold on
+            plotFlySkeleton(fig, mX(ff,:)', mY(ff,:)', mColor, false);
+
+            % female fly
+            subplot(r, c, ff+c)
+            imshow(img(:,:,:,ff))
+            xlim(fZoomX)
+            ylim(fZoomY)
+            hold on
+            plotFlySkeleton(fig, fX(ff,:)', fY(ff,:)', fColor, false);
+        end
+
+        % label behavior: 
+        switch questdlg('Behavior?', '', 'Jump', 'Swap', 'Other', 'Jump')
+            case 'Jump'
+                speedTest(trial).label = 'Jump';
+            case 'Swap'
+                speedTest(trial).label = 'Swap';
+            case 'Other'
+                speedTest(trial).label = 'Other';
+            case '' % canceled 
+                disp('Labeling Canceled')
+                return
+        end
+        
+        % behavior was labeled
+        speedTest(trial).labeled(ii) = true;
+        close(fig)
+    end
+
+end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-% what portion of total over-speed instances is this
-proportion_of_frames = (length(confident_frames)/sum(speed_loc))*100;
-% how similar is the speed between the male and female flies when they swap
-% locations?
-double_speed(confident_frames,:)
-
-
-
-% how many of these are likely swaps?
-a = find(diff(speed_frames)<=3); % possible start of switch location in speed frames
-b = a+1;
-possible_switches_locs = speed_frames(a); % where are there speed jumps nearly back to back
-reverse_switch_locs = speed_frames(b); 
-
-
-
-
-
-
-
-% pull a random sample of non-skip trials?
+% SAVE DATA STRUCTURE WHEN DONE
+save(file_name,'speedTest');
+ 
 
 
 
