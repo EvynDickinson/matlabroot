@@ -161,7 +161,10 @@ save_figure(fig, [saveDir  'Jump vs swap frame number comparisons']);
 
 
 
-
+% Look at all the 
+if ~strcmp('Yes', questdlg('look at all the likely swap frames?'))
+    return
+end
 
 % FIGURES: plot out all the fly skeletons for the confident trials based
 % on the double fly speed criteria
@@ -488,7 +491,6 @@ for trial = 1:num.trials
     end
 end
 
-%% TODO: pull up image frames of the lower speed, non-swap jumps to see if they are indeed a ballistic jump
 
 %% FIGURES: double speed locations
 clearvars('-except',initial_var{:})
@@ -692,12 +694,12 @@ frameSpeeds = data.speed(shiftedframeList, :, trial);
 
 % figure positioning by computer: 
 switch computerName
-    case 'EVYNPC'
+    case {'EVYNPC', 'ACADIA'}
         figPos = [9 51 1671 697];
         figLoc = false;
 end
 
-for ii = 1:5% length(frameList)
+for ii = 1:length(frameList)
     % only run for unlabeled frames
     if ~speedTest(trial).labeled(ii)
         frame = frameList(ii);
