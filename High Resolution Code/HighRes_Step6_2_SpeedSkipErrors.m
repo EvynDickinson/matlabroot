@@ -1,6 +1,265 @@
 
 % Code to find and sort the high resolutions skip frame errors in tracking
 
+%% ANALYSIS & FIGURES: identify likely frame swap locations
+if ~any(strcmp('keyFrames', initial_var))
+    initial_var{end+1} = 'keyFrames';
+end
+foreColor = formattingColors(blkbgd); % get background colors
+
+clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
+
+speed_thresh = 35; %mm/s speed threshold
+skip_threshold = 3; % how many frames for a confident swap pair in time
+
+% initialize empty variables
+% Total_High_Speed = nan([num.trials, 2]);
+% [Confident_Swaps, Likely_Swaps, All_Speed, Confident_Speed, Likely_Speed] = ...
+%     deal(nan([num.trials, 1]));
+
+keyFrames = []; % data structure holding the frame data 
+
+for trial = 1:num.trials
+    % MALE speed data for current trial 
+    mspeed = squeeze(data.speed(:,M,trial));
+    mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
+    mspeed_frames = find(mspeed_loc); % pull frames above the limit speed
+    keyFrames(trial).mspeed_frames = mspeed_frames;
+    
+    % FEMALE speed data for current trial 
+    fspeed = squeeze(data.speed(:,F,trial));
+    fspeed_loc = fspeed>=speed_thresh; % frames with above threshold speed
+    fspeed_frames = find(fspeed_loc); % pull frames above the limit speed
+    keyFrames(trial).fspeed_frames = fspeed_frames;
+    
+    % Possible swap locations: (based on high speed for both flies)
+    double_speed = squeeze(data.speed(:,:,trial)); % speed in both sexes
+    double_speed_loc = double_speed>=speed_thresh;
+    swap_ConfidentFrames = find(sum(double_speed_loc,2)==2); % where are both M&F speeding
+    
+    % Possible swap locations if one of the sexes does not have a labeled skeleton
+    a = fspeed_loc & isnan(mspeed);
+    b = mspeed_loc & isnan(fspeed);
+    possible_swapFrames = find(a | b);
+    if ~isempty(possible_swapFrames)
+        allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]); % all frames with double speed MF or single+nan
+        keyFrames(trial).swap_LikelyFrames = allSwaps; % all frames with double speed M F
+    else % no changes due to new pairings, so the same frames as confident
+        keyFrames(trial).swap_LikelyFrames = swap_ConfidentFrames;
+    end
+end
+
+% PAIR LIKELY SWAP FRAMES FOR EACH OF THE TRIALS
+for trial = 1:num.trials
+    a = keyFrames(trial).swap_LikelyFrames;% current list of possible frames for pairs
+    % Find differences between consecutive frames
+    frame_diffs = diff(a);
+    % Find where frames are close together (potential pairs)
+    is_close = frame_diffs <= skip_threshold;
+    % Extract pairs
+    pairs = [];
+    ii = 1; % index location within frame list
+    while ii <= length(is_close)
+        if is_close(ii)
+            % Found a pair: frames a(i) and a(i+1)
+            pairs = [pairs; a(ii), a(ii+1)];
+            
+            % Skip the next position to avoid overlapping pairs
+            % (e.g., if frames 1,2,3 are all close, we want pairs [1,2] and not [2,3])
+            ii = ii + 2;
+        else
+            ii = ii + 1;
+        end
+    end
+    % Store the pairs
+    keyFrames(trial).frame_pairs = pairs;
+end
+
+% Identify nearest neighbors to see if the swap is likely for the
+% identified swap locations
+% look at the avg distance to the fly center for each of the
+% flies in the preceeding frames 
+nNeighbors = 5; % how many preceeding frames to look at for close distance?
+for trial = 1:num.trials 
+    keyFrames(trial).frame_pairs_swap = [];
+    mPos = squeeze(fly(trial).m.pos(:,body.center,:));
+    fPos = squeeze(fly(trial).f.pos(:,body.center,:));
+
+    % for each of the likely speed frame pairs
+    likely_pairs = keyFrames(trial).frame_pairs;
+    rois = likely_pairs(:,1) + ((-nNeighbors-1): -1);
+   
+    for ii = 1:size(likely_pairs,1)
+        
+        % frame locations for pre and during swaps
+        pre_roi = rois(ii,:);
+        dur_roi = likely_pairs(ii,1);
+        
+        % distance of each during swap roi to pre-swap roi relative
+        x = mPos(dur_roi,1) - mPos(pre_roi,1); 
+        y = mPos(dur_roi,2) - mPos(pre_roi,2);
+        dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
+        x = mPos(dur_roi,1) - fPos(pre_roi,1); 
+        y = mPos(dur_roi,2) - fPos(pre_roi,2);
+        dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
+
+        % determine if likely switch
+        likelyswitch = dM>=dF; % female would be closer than correct male
+        keyFrames(trial).frame_pairs_swap(ii) = likelyswitch;
+    end
+end
+
+
+% ======== FIGURE =========
+% Quick look at the jump vs swap stats
+[m_frames, f_frames,double_frames, maybe_pair_frames, final_pair_frames] = deal(nan(num.trials, 1));
+for trial = 1:num.trials
+    m_frames(trial) = size(keyFrames(trial).mspeed_frames,1);
+    f_frames(trial) = size(keyFrames(trial).fspeed_frames,1);
+    double_frames(trial) = size(keyFrames(trial).swap_LikelyFrames,1);
+    maybe_pair_frames(trial) = numel(keyFrames(trial).frame_pairs);
+    final_pair_frames(trial) = sum(keyFrames(trial).frame_pairs_swap)*2;
+end
+% relative percentages
+tot_frames = size(fly(1).T,1);
+m_framesP = mean((m_frames/tot_frames)*100);
+f_framesP = mean((f_frames/tot_frames)*100);
+swap_percentage =  mean((final_pair_frames ./ tot_frames)*100,'omitnan');
+fprintf('\n%2.3g  percent of total frames are high speed \n', (m_framesP + f_framesP))
+fprintf('\n%2.5g  percent of total frames are confident swaps',swap_percentage);
+
+
+% plotting parameters
+mt = ones([num.trials,1]);
+r = 1; c = 2;
+sz = 50; FA = 0.7;
+mColor = Color('vaporwaveblue');
+fColor = Color('vaporwavepink');
+
+fig = getfig('',1);
+    % total high speed frames for male and female flies
+    subplot(r,c,1); hold on
+        plot([mt, 2*mt]', [m_frames, f_frames]', 'color', foreColor, 'LineWidth', 1.5)
+        scatter(mt, m_frames, sz, mColor, "filled", 'MarkerFaceAlpha',FA)
+        scatter(2*mt, f_frames, sz, fColor, "filled", 'MarkerFaceAlpha',FA)
+        xlim([0.7, 2.2])
+        set(gca, 'xtick', 1:2, 'xticklabel', {'male', 'female'})
+        ylabel('high speed frame counts')
+        title('all high speed events')
+    
+    % likely swap pairs
+    subplot(r,c,2); hold on
+        plot([mt, 2*mt, 3*mt]', [double_frames, maybe_pair_frames, final_pair_frames]', 'color', foreColor, 'LineWidth', 1.5)
+        scatter([mt; 2*mt; 3*mt], [double_frames; maybe_pair_frames; final_pair_frames]', sz, Color('vaporwavepurple'), "filled", 'MarkerFaceAlpha',FA)
+        xlim([0.7, 3.2])
+        set(gca, 'xtick', 1:3, 'xticklabel', {'all', 'likely', 'confident'})
+        title('Swap Frame Counts')
+        ylabel('high speed frame counts')
+    formatFig(fig, blkbgd, [r,c]);
+save_figure(fig, [saveDir  'Jump vs swap frame number comparisons']);
+
+
+
+
+
+% FIGURES: plot out all the fly skeletons for the confident trials based
+% on the double fly speed criteria
+maxExmp = 50; % how many different examples to show
+r = 5; c = 10; % rows and columns for the figure
+% how many figures with subplots will it take show all the different examples
+for trial = 1:num.trials
+    frames = keyFrames(trial).swap_LikelyFrames;
+    frame_buff = 3; % how many frames on either side of the target 
+    nFigs = ceil(length(frames)/(r*c)); 
+    
+    % code efficient preallocation
+    mPos = fly(trial).m.pos;
+    fPos = fly(trial).f.pos;
+    roi = frames + (-frame_buff:+frame_buff);% frames to plot
+    % create matrix of the frames for each figure:
+    frameList = nan([1, nFigs * r * c]);
+    frameList(1:length(frames)) = frames;
+    frameList = (reshape(frameList, [r*c, nFigs]))';
+    % color choices
+    mBase = Color('vaporwaveblue');
+    fBase = Color('vaporwavepink');
+    mHighlight = Color('floralblue');
+    fHighlight = Color('floraldarkpink');
+    
+    frame_pairs = keyFrames(trial).frame_pairs;
+    
+    % -------------- PLOT DATA ----------------
+    for gg = 1:nFigs
+        fig_str = sprintf('Trial %d | fig %d', trial, gg);
+        fig = getfig(fig_str, 0, [3306 1319]);   
+        % subplots for each specific instance of high speed
+        for ff = 1:maxExmp 
+            subplot(r,c,ff); hold on
+            loc = frameList(gg,ff); % identified target frame
+            if isnan(loc) % skip this plot if there isnt data
+                continue
+            end
+            % plot data for the frames around the key frame
+            idx = ((gg-1)*(r*c)) + ff; % what frame in the long list is this
+            % fprintf('\nCurrent Frame Count %i', idx)
+            for ii = 1:size(roi,2) % for all frames around the target
+                curr_frame = roi(idx,ii); % frame to plot
+                % select the color based on the frame number
+                if loc==frames(idx)
+                    mColor = mHighlight;
+                    fColor = fHighlight;
+                else 
+                    mColor = mBase;
+                    fColor = fBase;
+                end
+                % extract and plot the location data for the flies
+                x =  mPos(curr_frame,:,1);
+                y =  mPos(curr_frame,:,2);
+                plotFlySkeleton(fig, x, y, mColor, false);
+                x =  fPos(curr_frame,:,1);
+                y =  fPos(curr_frame,:,2);
+                plotFlySkeleton(fig, x, y, fColor, false);
+            end
+        end
+    
+        % format figure: 
+        formatFig(fig, blkbgd,[r,c]);
+         for ff = 1:maxExmp
+            subplot(r,c,ff)
+            frame_num = frameList(gg,ff);
+            set(gca, 'xcolor', 'none', 'ycolor', 'none')
+            if isnan(frame_num)
+                continue
+            end
+            axis equal tight
+            title(frame_num, 'color', foreColor,'fontsize', 10)
+            % give frame pair numbers if it exists
+            frame_pair_loc =  find(frame_num==frame_pairs(:,1) | frame_num==frame_pairs(:,2)) ;
+            if ~isempty(frame_pair_loc)
+                % now check if it made it past second layer distance filter: 
+                if keyFrames(trial).frame_pairs_swap(frame_pair_loc)
+                    kolor = Color('vaporwavegren');
+                else
+                    kolor = Color('vaporwaveyellow');
+                end
+                    title_str = [num2str(frame_num) ' | ' Alphabet(frame_pair_loc)];
+                    title(title_str, 'color', foreColor,'fontsize', 10)
+            else
+                kolor = foreColor;
+            end
+    
+            % find the size and build a rectagle 'frame'
+            ax = axis; % [xmin xmax ymin ymax]
+            rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
+                  'EdgeColor',kolor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
+                  'linestyle', ':')
+         end
+        % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
+    end
+
+end
+
 %% FIGURES: look at speed distributions
 
 fig = figure; 
@@ -331,262 +590,7 @@ for gg = 1:nFigs
 end
 
 
-%% ANALYSIS & FIGURES: identify likely frame swap locations
-if ~any(strcmp('keyFrames', initial_var))
-    initial_var{end+1} = 'keyFrames';
-end
-clearvars('-except',initial_var{:})
-saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
-speed_thresh = 35; %mm/s speed threshold
-skip_threshold = 3; % how many frames for a confident swap pair in time
-
-% initialize empty variables
-% Total_High_Speed = nan([num.trials, 2]);
-% [Confident_Swaps, Likely_Swaps, All_Speed, Confident_Speed, Likely_Speed] = ...
-%     deal(nan([num.trials, 1]));
-
-keyFrames = []; % data structure holding the frame data 
-
-for trial = 1:num.trials
-    % MALE speed data for current trial 
-    mspeed = squeeze(data.speed(:,M,trial));
-    mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
-    mspeed_frames = find(mspeed_loc); % pull frames above the limit speed
-    keyFrames(trial).mspeed_frames = mspeed_frames;
-    
-    % FEMALE speed data for current trial 
-    fspeed = squeeze(data.speed(:,F,trial));
-    fspeed_loc = fspeed>=speed_thresh; % frames with above threshold speed
-    fspeed_frames = find(fspeed_loc); % pull frames above the limit speed
-    keyFrames(trial).fspeed_frames = fspeed_frames;
-    
-    % Possible swap locations: (based on high speed for both flies)
-    double_speed = squeeze(data.speed(:,:,trial)); % speed in both sexes
-    double_speed_loc = double_speed>=speed_thresh;
-    swap_ConfidentFrames = find(sum(double_speed_loc,2)==2); % where are both M&F speeding
-    
-    % Possible swap locations if one of the sexes does not have a labeled skeleton
-    a = fspeed_loc & isnan(mspeed);
-    b = mspeed_loc & isnan(fspeed);
-    possible_swapFrames = find(a | b);
-    if ~isempty(possible_swapFrames)
-        allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]); % all frames with double speed MF or single+nan
-        keyFrames(trial).swap_LikelyFrames = allSwaps; % all frames with double speed M F
-    else % no changes due to new pairings, so the same frames as confident
-        keyFrames(trial).swap_LikelyFrames = swap_ConfidentFrames;
-    end
-end
-
-% PAIR LIKELY SWAP FRAMES FOR EACH OF THE TRIALS
-for trial = 1:num.trials
-    a = keyFrames(trial).swap_LikelyFrames;% current list of possible frames for pairs
-    % Find differences between consecutive frames
-    frame_diffs = diff(a);
-    % Find where frames are close together (potential pairs)
-    is_close = frame_diffs <= skip_threshold;
-    % Extract pairs
-    pairs = [];
-    ii = 1; % index location within frame list
-    while ii <= length(is_close)
-        if is_close(ii)
-            % Found a pair: frames a(i) and a(i+1)
-            pairs = [pairs; a(ii), a(ii+1)];
-            
-            % Skip the next position to avoid overlapping pairs
-            % (e.g., if frames 1,2,3 are all close, we want pairs [1,2] and not [2,3])
-            ii = ii + 2;
-        else
-            ii = ii + 1;
-        end
-    end
-    % Store the pairs
-    keyFrames(trial).frame_pairs = pairs;
-end
-
-% Identify nearest neighbors to see if the swap is likely for the
-% identified swap locations
-% look at the avg distance to the fly center for each of the
-% flies in the preceeding frames 
-nNeighbors = 5; % how many preceeding frames to look at for close distance?
-for trial = 1:num.trials 
-    keyFrames(trial).frame_pairs_swap = [];
-    mPos = squeeze(fly(trial).m.pos(:,body.center,:));
-    fPos = squeeze(fly(trial).f.pos(:,body.center,:));
-
-    % for each of the likely speed frame pairs
-    likely_pairs = keyFrames(trial).frame_pairs;
-    rois = likely_pairs(:,1) + ((-nNeighbors-1): -1);
-   
-    for ii = 1:size(likely_pairs,1)
-        
-        % frame locations for pre and during swaps
-        pre_roi = rois(ii,:);
-        dur_roi = likely_pairs(ii,1);
-        
-        % distance of each during swap roi to pre-swap roi relative
-        x = mPos(dur_roi,1) - mPos(pre_roi,1); 
-        y = mPos(dur_roi,2) - mPos(pre_roi,2);
-        dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
-        x = mPos(dur_roi,1) - fPos(pre_roi,1); 
-        y = mPos(dur_roi,2) - fPos(pre_roi,2);
-        dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
-
-        % determine if likely switch
-        likelyswitch = dM>=dF; % female would be closer than correct male
-        keyFrames(trial).frame_pairs_swap(ii) = likelyswitch;
-    end
-end
-
-
-% ======== FIGURE =========
-% Quick look at the jump vs swap stats
-[m_frames, f_frames,double_frames, maybe_pair_frames, final_pair_frames] = deal(nan(num.trials, 1));
-for trial = 1:num.trials
-    m_frames(trial) = size(keyFrames(trial).mspeed_frames,1);
-    f_frames(trial) = size(keyFrames(trial).fspeed_frames,1);
-    double_frames(trial) = size(keyFrames(trial).swap_LikelyFrames,1);
-    maybe_pair_frames(trial) = numel(keyFrames(trial).frame_pairs);
-    final_pair_frames(trial) = sum(keyFrames(trial).frame_pairs_swap)*2;
-end
-% relative percentages
-tot_frames = size(fly(1).T,1);
-m_framesP = mean((m_frames/tot_frames)*100);
-f_framesP = mean((f_frames/tot_frames)*100);
-swap_percentage =  mean((final_pair_frames ./ tot_frames)*100,'omitnan');
-fprintf('\n%2.3g  percent of total frames are high speed \n', (m_framesP + f_framesP))
-fprintf('\n%2.5g  percent of total frames are confident swaps',swap_percentage);
-
-
-% plotting parameters
-mt = ones([num.trials,1]);
-r = 1; c = 2;
-sz = 50; FA = 0.7;
-mColor = Color('vaporwaveblue');
-fColor = Color('vaporwavepink');
-
-fig = getfig('',1);
-    % total high speed frames for male and female flies
-    subplot(r,c,1); hold on
-        plot([mt, 2*mt]', [m_frames, f_frames]', 'color', foreColor, 'LineWidth', 1.5)
-        scatter(mt, m_frames, sz, mColor, "filled", 'MarkerFaceAlpha',FA)
-        scatter(2*mt, f_frames, sz, fColor, "filled", 'MarkerFaceAlpha',FA)
-        xlim([0.7, 2.2])
-        set(gca, 'xtick', 1:2, 'xticklabel', {'male', 'female'})
-        ylabel('high speed frame counts')
-        title('all high speed events')
-    
-    % likely swap pairs
-    subplot(r,c,2); hold on
-        plot([mt, 2*mt, 3*mt]', [double_frames, maybe_pair_frames, final_pair_frames]', 'color', foreColor, 'LineWidth', 1.5)
-        scatter([mt; 2*mt; 3*mt], [double_frames; maybe_pair_frames; final_pair_frames]', sz, Color('vaporwavepurple'), "filled", 'MarkerFaceAlpha',FA)
-        xlim([0.7, 3.2])
-        set(gca, 'xtick', 1:3, 'xticklabel', {'all', 'likely', 'confident'})
-        title('Swap Frame Counts')
-        ylabel('high speed frame counts')
-    formatFig(fig, blkbgd, [r,c]);
-save_figure(fig, [saveDir  'Jump vs swap frame number comparisons']);
-
-
-
-
-
-% FIGURES: plot out all the fly skeletons for the confident trials based
-% on the double fly speed criteria
-maxExmp = 50; % how many different examples to show
-r = 5; c = 10; % rows and columns for the figure
-% how many figures with subplots will it take show all the different examples
-for trial = 1:num.trials
-    frames = keyFrames(trial).swap_LikelyFrames;
-    frame_buff = 3; % how many frames on either side of the target 
-    nFigs = ceil(length(frames)/(r*c)); 
-    
-    % code efficient preallocation
-    mPos = fly(trial).m.pos;
-    fPos = fly(trial).f.pos;
-    roi = frames + (-frame_buff:+frame_buff);% frames to plot
-    % create matrix of the frames for each figure:
-    frameList = nan([1, nFigs * r * c]);
-    frameList(1:length(frames)) = frames;
-    frameList = (reshape(frameList, [r*c, nFigs]))';
-    % color choices
-    mBase = Color('vaporwaveblue');
-    fBase = Color('vaporwavepink');
-    mHighlight = Color('floralblue');
-    fHighlight = Color('floraldarkpink');
-    
-    frame_pairs = keyFrames(trial).frame_pairs;
-    
-    % -------------- PLOT DATA ----------------
-    for gg = 1:nFigs
-        fig_str = sprintf('Trial %d | fig %d', trial, gg);
-        fig = getfig(fig_str, 0, [3306 1319]);   
-        % subplots for each specific instance of high speed
-        for ff = 1:maxExmp 
-            subplot(r,c,ff); hold on
-            loc = frameList(gg,ff); % identified target frame
-            if isnan(loc) % skip this plot if there isnt data
-                continue
-            end
-            % plot data for the frames around the key frame
-            idx = ((gg-1)*(r*c)) + ff; % what frame in the long list is this
-            % fprintf('\nCurrent Frame Count %i', idx)
-            for ii = 1:size(roi,2) % for all frames around the target
-                curr_frame = roi(idx,ii); % frame to plot
-                % select the color based on the frame number
-                if loc==frames(idx)
-                    mColor = mHighlight;
-                    fColor = fHighlight;
-                else 
-                    mColor = mBase;
-                    fColor = fBase;
-                end
-                % extract and plot the location data for the flies
-                x =  mPos(curr_frame,:,1);
-                y =  mPos(curr_frame,:,2);
-                plotFlySkeleton(fig, x, y, mColor, false);
-                x =  fPos(curr_frame,:,1);
-                y =  fPos(curr_frame,:,2);
-                plotFlySkeleton(fig, x, y, fColor, false);
-            end
-        end
-    
-        % format figure: 
-        formatFig(fig, blkbgd,[r,c]);
-         for ff = 1:maxExmp
-            subplot(r,c,ff)
-            frame_num = frameList(gg,ff);
-            set(gca, 'xcolor', 'none', 'ycolor', 'none')
-            if isnan(frame_num)
-                continue
-            end
-            axis equal tight
-            title(frame_num, 'color', foreColor,'fontsize', 10)
-            % give frame pair numbers if it exists
-            frame_pair_loc =  find(frame_num==frame_pairs(:,1) | frame_num==frame_pairs(:,2)) ;
-            if ~isempty(frame_pair_loc)
-                % now check if it made it past second layer distance filter: 
-                if keyFrames(trial).frame_pairs_swap(frame_pair_loc)
-                    kolor = Color('vaporwavegren');
-                else
-                    kolor = Color('vaporwaveyellow');
-                end
-                    title_str = [num2str(frame_num) ' | ' Alphabet(frame_pair_loc)];
-                    title(title_str, 'color', foreColor,'fontsize', 10)
-            else
-                kolor = foreColor;
-            end
-    
-            % find the size and build a rectagle 'frame'
-            ax = axis; % [xmin xmax ymin ymax]
-            rectangle('Position',[ax(1) ax(3) ax(2)-ax(1) ax(4)-ax(3)],...
-                  'EdgeColor',kolor,'LineWidth',0.5, 'Curvature',[0.1 0.1],...
-                  'linestyle', ':')
-         end
-        % save_figure(fig, [saveDir fly(trial).name  ' speed error trials ' num2str(gg)],fig_type, true,false, '-r100');
-    end
-
-end
 
 
 %% PULL UP IMAGES OF HIGH SPEED FRAMES FROM LOCAL DRIVE DATA
@@ -684,6 +688,14 @@ fXPos = squeeze(fly(trial).f.pos(:,:,1));
 fYPos = squeeze(fly(trial).f.pos(:,:,2));
 mColor = Color('vaporwaveblue');
 fColor = Color('Vaporwavepink');
+frameSpeeds = data.speed(shiftedframeList, :, trial);
+
+% figure positioning by computer: 
+switch computerName
+    case 'EVYNPC'
+        figPos = [9 51 1671 697];
+        figLoc = false;
+end
 
 for ii = 1:5% length(frameList)
     % only run for unlabeled frames
@@ -716,7 +728,8 @@ for ii = 1:5% length(frameList)
         fZoomY = [min(min(fY)) - pixbuff, max(max(fY)) + pixbuff];
         
 
-        fig = getfig('',1); set(fig, 'color', 'k');
+        fig = figure; 
+        set(fig, 'color', 'k');
         for ff = 1 : c
             % male fly
             subplot(r, c, ff)
@@ -735,15 +748,21 @@ for ii = 1:5% length(frameList)
             hold on
             plotFlySkeleton(fig, fX(ff,:)', fY(ff,:)', fColor, false);
         end
+        subplot(r, c, nPre+1) % male speed
+        title(num2str(frameSpeeds(ii,1)),'color', 'w')
+        subplot(r, c, nPre+1+c) % male speed
+        title(num2str(frameSpeeds(ii,2)),'color', 'w')
+        set(fig,'position', figPos,'WindowStyle', 'alwaysontop')
+
 
         % label behavior: 
         switch questdlg('Behavior?', '', 'Jump', 'Swap', 'Other', 'Jump')
             case 'Jump'
-                speedTest(trial).label = 'Jump';
+                speedTest(trial).label{ii} = 'Jump';
             case 'Swap'
-                speedTest(trial).label = 'Swap';
+                speedTest(trial).label{ii} = 'Swap';
             case 'Other'
-                speedTest(trial).label = 'Other';
+                speedTest(trial).label{ii} = 'Other';
             case '' % canceled 
                 disp('Labeling Canceled')
                 return
