@@ -624,11 +624,16 @@ if ~(exist(file_name, 'file')==2)
         speedTest(trial).labeled = false([nFrames*2, 1]);
     end
     save(file_name,'speedTest');
-else 
+elseif exist('speedTest','var')==0
     switch questdlg('Load speed labeling data?')
         case 'Yes'
             load(file_name);
             disp('loaded data file')
+        case {'No', 'Cancel', ''}
+            return
+    end
+else 
+     switch questdlg('Use already loaded speed labeling data?')
         case {'No', 'Cancel', ''}
             return
     end
@@ -662,10 +667,17 @@ if ~isempty(possible_drives)
 end
 
 % give option to pull up instances from one of the possible trials
+% pull out the total percentage of labeled frames for each of the trials
 videoList = {fly(ExpsFound).name};
+completion_amt = cell([length(videoList),1]);
+for ii = 1:length(videoList)
+    trial = find(strcmp(videoList{ii},{fly(:).name}));
+    a = (sum(speedTest(trial).labeled)/length(speedTest(trial).labeled))*100;
+    completion_amt{ii} = sprintf('%d%% done: %s',a,videoList{ii});
+end
 idx = listdlg("PromptString",'Select which experiment to demo images from',...
             'SelectionMode','single',...
-            'ListString',videoList,...
+            'ListString',completion_amt,...
             'ListSize',[350,400]);
 trial = find(strcmp(videoList{idx},{fly(:).name})); % trial number selected
 % location of the video files for this trial on the current computer: 
@@ -731,7 +743,7 @@ for ii = 1:length(frameList)
         
 
         fig = figure; 
-        set(fig, 'color', 'k');
+        set(fig, 'color', 'k','name', ['frame: ' num2str(ii)]);
         for ff = 1 : c
             % male fly
             subplot(r, c, ff)
@@ -774,13 +786,32 @@ for ii = 1:length(frameList)
         speedTest(trial).labeled(ii) = true;
         close(fig)
     end
+end
+disp('done all frames')
 
+% SAVE DATA STRUCTURE WHEN DONE
+if strcmp('Yes', questdlg('Save data labels?'))
+    save(file_name,'speedTest');
+    disp('Saved updated labels')
 end
 
 
-% SAVE DATA STRUCTURE WHEN DONE
-save(file_name,'speedTest');
- 
+%%  Look at speed labeling for comparison of what's going on
+
+% find which trials have been labeled: 
+for ii = 1:num.trials
+    frames = speedTest(ii).idx(speedTest(ii).labeled);
+    if ~isempty(frames)
+        swapFrames = keyFrames(ii).frame_pairs(keyFrames(ii).frame_pairs_swap,:)
+        ismember(frames,)
+
+
+% were all the swap frames previously captured in the automated version?
+
+% what proportion of the frames are sprints vs jumps?
+
+% is there a speed differential between sprints vs jumps?
+
 
 
 
