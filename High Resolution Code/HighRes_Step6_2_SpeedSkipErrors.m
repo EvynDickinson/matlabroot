@@ -800,10 +800,17 @@ end
 
 % find which trials have been labeled: 
 for ii = 1:num.trials
-    frames = speedTest(ii).idx(speedTest(ii).labeled);
-    if ~isempty(frames)
-        swapFrames = keyFrames(ii).frame_pairs(keyFrames(ii).frame_pairs_swap,:)
-        ismember(frames,)
+    % list of frames that have been labeled in this trial
+    frames = speedTest(ii).idx(speedTest(ii).labeled); 
+    if ~isempty(frames) 
+        loc = logical(keyFrames(ii).frame_pairs_swap);
+        swapFrames = keyFrames(ii).frame_pairs(loc,:);
+        swapFrames = swapFrames(:); % reshape into vector
+        % were any of the swap frames selected for the random labeling group?
+        labeledFrame_group = ismember(frames,swapFrames);
+        % find all the different condition types: positive positive,
+        % positive negative, etc.
+        
 
 
 % were all the swap frames previously captured in the automated version?
