@@ -43,7 +43,7 @@ sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
 sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
 
 LW = 0.75; % single trial line widths
-sSpan = 300; % 10 second smoothing function
+sSpan = 1800; % 1 minute smoothing function
 kolor = foreColor;
 h_kolor = Color('googlered');
 c_kolor = Color('dodgerblue');
@@ -357,7 +357,6 @@ end
 save_figure(fig, [figDir 'male fly positions in arena'],fig_type)
 
 %% TODO: group behavior state transition map
-
 %% FIGURE: grouped Courtship behavior frequency time course
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
@@ -507,10 +506,20 @@ save_figure(fig, [figDir 'behaviors before and after sleep'],fig_type);
 
 
 %% TODO: duration on food across different temperatures
+% currently only set up for the F LRR data structure
+
 % Question: when are the flies going onto the food and how long are they staying
 % there? How does this change for different temperature regimes?
+ 
+% does the variance in the duration of the visits shift?
+
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+% TODO pull data for the type of experiment
+switch groupName
+    case {'Berlin LTS Caviar'}
+end
 
 temp_regimes = {'hold', 'cooling', 'warming', 'hold'};
 ntypes = length(temp_regimes);

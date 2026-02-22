@@ -92,14 +92,18 @@ for sex = 1:2
     for trial = 1:num.trials
         plotData = [plotData; FV(trial, sex).duration];
     end
-    max(plotData)
-    histogram(plotData,'FaceColor',data.color(sex,:),'BinEdges',0:2:120,'FaceAlpha',0.6)
+    a = max(plotData);
+    binedges = 0:0.5:ceil(a);
+    histogram(plotData,binedges,...
+              'FaceColor',data.color(sex,:),...
+              'FaceAlpha',0.6)
 end
 % formatting the figure
-set(gca, 'YScale','log')
+set(gca, 'YScale','linear')
 xlabel('food visit duration (s)')
 ylabel('instances (#)')
 formatFig(fig, blkbgd);
+xlim([-0.5,30.5])
 
 save_figure(fig, [figDir 'food visit duration histogram'],fig_type)
 

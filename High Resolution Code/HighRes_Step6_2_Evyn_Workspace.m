@@ -759,10 +759,6 @@ end
 %%
     
 
-
-
-
-
 types = {'WT', 'WS', 'CT', 'CS'};
 labels = {'Warm Threat', 'Warm Safe', 'Cool Threat', 'Cool Safe'};
 nTypes = length(types);
@@ -816,4 +812,62 @@ fprintf('encounter rate cold temps: h=%d, p=%.4f, t=%.3f, df=%d\n', h, p, stats.
 
 %%
 
+%% Where are flies sleeping in the arena? Does this change over temperature?
+clearvars('-except',initial_var{:})
 
+[title_str,pName,y_dir,y_lab,nullD,scaler,dType,dir_end,sexSep,ylimits] = PlotParamSelectionHR(true);
+
+
+loc = data.sleep;
+asleep = data.dist2food(loc);
+awake = data.dist2food(~loc);
+binedges = 0:ceil(max(max(max(data.dist2food))));
+sleep_color = Color('vaporwaveblue');
+awake_color = Color('grey');
+
+fig = getfig('',1); hold on
+    yyaxis left 
+    histogram(awake, binedges, 'FaceColor', awake_color)
+    yyaxis right 
+    histogram(asleep, binedges, 'FaceColor', sleep_color,...
+        'FaceAlpha',0.8)
+    formatFig(fig, blkbgd);
+    xlabel('distance to food (mm)')
+    yyaxis left 
+    set(gca, 'ycolor', awake_color)
+    ylabel('awake fly count (#)')
+    yyaxis right
+    set(gca, 'ycolor', sleep_color)
+    ylabel('asleep fly count (#)')
+save_figure(fig, [figDir 'sleeping distance to food histogram']);
+
+
+%% 
+% fly sleep based on region location not distance
+loc = data.sleep;
+
+% compare the norm distibution to % of flies asleep for each region
+% food quad
+
+
+foodQuad = data.foodQuad(loc);
+awake = data.dist2food(~loc);
+binedges = 0:ceil(max(max(max(data.dist2food))));
+sleep_color = Color('vaporwaveblue');
+awake_color = Color('grey');
+
+fig = getfig('',1); hold on
+    yyaxis left 
+    histogram(awake, binedges, 'FaceColor', awake_color)
+    yyaxis right 
+    histogram(asleep, binedges, 'FaceColor', sleep_color,...
+        'FaceAlpha',0.8)
+    formatFig(fig, blkbgd);
+    xlabel('distance to food (mm)')
+    yyaxis left 
+    set(gca, 'ycolor', awake_color)
+    ylabel('awake fly count (#)')
+    yyaxis right
+    set(gca, 'ycolor', sleep_color)
+    ylabel('asleep fly count (#)')
+save_figure(fig, [figDir 'sleeping distance to food histogram']);
