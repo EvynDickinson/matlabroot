@@ -14,6 +14,10 @@ for trial = 1:num.trials
 end
 initial_var{end+1} = 'aggression';
 
+agDir = [figDir '/Aggression/'];
+if ~exist(agDir, 'dir')
+        mkdir(agDir)
+end
 
 %% FIGURES: Ground truthing 
 foreColor = formattingColors(blkbgd); % get background colors
@@ -24,10 +28,10 @@ Fcolor = Color('deeppink');
 trial = 1;
 
 % Demo random male positions relative to female fly
-zoom = [-250,250];
+zoom = [-200,200];
 
 % adjust skip size based on total number of points
-displayNum = 50; 
+displayNum = 200; 
 xM = fly(trial).mX;
 yM = fly(trial).mY;
 xF = fly(trial).fX;
@@ -55,6 +59,8 @@ h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
 formatFig(fig,blkbgd);
 set(gca,'XColor','none','YColor','none')
+
+save_figure(fig,[agDir 'demo of random M positions relative to F'],fig_type);
 
 % ____________________________________________________________________________________________________
 
@@ -94,6 +100,8 @@ h_line(0,'gray',':',2)
 v_line(0,'grey',':',2)
 formatFig(fig,blkbgd);
 set(gca,'XColor','none','YColor','none')
+
+save_figure(fig,[agDir 'M likely facing positions relative to F'],fig_type);
 
 
 %% ANALYSIS: Calculate M aggressive wing extension
@@ -148,6 +156,49 @@ for trial = 1:num.trials
 end
 
 initial_var{end+1} = 'min_wa';
+
+%%
+
+% Visualize likely and unlikely positions 
+likelyFrames = find(aggression(trial).MfacingF.all_likely); % find likely positions
+rand_frames_finder = round(linspace(1,length(likelyFrames),displayNum)); % pull equally spaced frames from likely total
+yah_frames = likelyFrames(rand_frames_finder); % get frame locations for random likely 
+
+unlikelyFrames = find(aggression(trial).MfacingF.unlikely); % find unlikely positions
+rand_frames_finder = round(linspace(1,length(unlikelyFrames),displayNum)); % pull equally spaced frames from unlikely total
+nah_frames = unlikelyFrames(rand_frames_finder); % get frame locations for random unlikely
+
+yah = 
+
+% FIGURE
+fig = getfig('Random selection of all male positions relative to female',1,[1075 871]);
+hold on
+
+% plot male coordinates for head and body 
+% unlikely positions
+x = xM(nah_frames,[body.head,body.center]);
+y = yM(nah_frames,[body.head,body.center]);
+plot(x',y','color',Color('red'))
+scatter(x(:,1),y(:,1),15,Color('red'),"filled","^") % arrow head on male
+% likely positions
+x = xM(yah_frames,[body.head,body.center]);
+y = yM(yah_frames,[body.head,body.center]);
+plot(x',y','color',Color('limegreen'))
+scatter(x(:,1),y(:,1),15,Color('limegreen'),"filled","^") % arrow head on male
+
+% plot female coordinates for head and body
+x = xF(plotLoc,[body.head,body.center]);
+y = yF(plotLoc,[body.head,body.center]);
+plot(x',y','color',foreColor,'LineWidth', 2)
+
+% format figure
+axis  equal square
+h_line(0,'gray',':',2)
+v_line(0,'grey',':',2)
+formatFig(fig,blkbgd);
+set(gca,'XColor','none','YColor','none')
+
+save_figure(fig,[agDir 'M likely facing positions relative to F'],fig_type);
 
 %% FIGURE: Histogram of agressive wing angles
 
