@@ -263,6 +263,19 @@ for trial = 1:num.trials
 
 end
 
+%% ANALYSIS : compare autolabeled and manually labeled frames
+clearvars('-except',initial_var{:})
+
+% Load data from possible sources: 
+files = dir([groupDir '*speed labeling.mat']);
+for ii = 1:size(files,1)
+    temp = load([groupDir, files(ii).name],'speedTest');
+    
+end
+
+
+
+
 %% FIGURES: look at speed distributions
 
 fig = figure; 
