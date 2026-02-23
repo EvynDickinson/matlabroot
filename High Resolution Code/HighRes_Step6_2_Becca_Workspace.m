@@ -759,19 +759,28 @@ fig =  getfig('',1);
         for trial = 1:num.trials    
             % Pull female sleep and male CI 
             fsleep = data.sleep(:, F, trial);
-            fsleep(isnan(fsleep)) = 0;
-            mcourt = logical(data.CI(:, trial));
+            fsleep(isnan(fsleep)) = 0;            
+            mcourt = data.CI(:, trial);
             mcourt(isnan(mcourt)) = 0;
+            mcourt = logical(mcourt);
             % X values
             fx = fly(trial).time(fsleep);
             fX = [fx';fx']; % duplicate and transpose to match size of y matrix for raster
+            if isempty(fX)
+                fX = [0; 0];
+            end
             mx = fly(trial).time(mcourt);
             mX = [mx';mx'];
+            if isempty(mX)
+                mX = [0; 0];
+            end
             % Y values
             fY = repmat([y(trial,F);y(trial,F)+spike_H],[1,size(fx,2)]);    
             mY = repmat([y(trial,M);y(trial,M)+spike_H],[1,size(mx,2)]); 
-            plot(fX,fY,'color',Color(data,color(F,:)),'linewidth',spike_W)
-            plot(mX,mY,'color',Color(data.color(M,:)),'linewidth',spike_W)
+            % plot(fX,fY,'color',Color(data,color(F,:)),'linewidth',spike_W)
+            % plot(mX,mY,'color',Color(data.color(M,:)),'linewidth',spike_W)
+            plot(fX,fY,'color','magenta','linewidth',spike_W)
+            plot(mX,mY,'color','blue','linewidth',spike_W)
         end
 
        
