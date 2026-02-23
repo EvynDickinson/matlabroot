@@ -538,6 +538,7 @@ x = 1;
 y = 2;
 
 ctime = 1; % time restrictor in seconds for a single bout
+fps = fly(1).fps;
 
 fchase = [];
 
@@ -725,44 +726,53 @@ end
 
 %% 
 
+fps = fly(1).fps;
 r = 5;
 c = 1;
 sb(1).idx = 1; % temperature
 sb(2).idx = 2:5; % raster plot
-spike_H = 2; %height of each raster
+lw = 2;
+sSpan = 5*fps;
+spike_H = 0.25; %height of each raster
 trial_space = 1; %gap between trial lines
 spike_W = 0.5; % raster line width
 
-% Initiate variables for y axis points
+% Create y axis plot points for each trial
 dummy = 1;
 y = [];
-
-for trial = 1:num.trials
-    % Create y axis plot points for each trial
+for trial = 1:num.trials    
     ystart = dummy;
     yend = ystart + 2;
     a = ystart:yend;
     y = autoCat(y,a,true,true);
     dummy = ystart + 3;
-    
-    % Pull female sleep and male CI 
-    fsleep = data.sleep(:, F, trial);
-    fsleep(isnan(fsleep)) = 0;
-    mCI = data.CI(:, trial);
-    mCI(isnan(mCI)) = 0;
-
-
 end
 
-y_base = rangeLine(fig, 5);
-        for sex = 1:2 
-            % plot raster of when the fly is on the food
-            x = time(T.FlyOnFood(:,sex));
-            X = [x';x'];
-            Y = repmat([y_base;y_base+spike_H],[1,size(X,2)]);           
-            plot(X,Y,'color',data(sex).color,'linewidth',spike_W)
-            
-            % Update y-offset
-            y_base = y_base+spike_H+trial_space;
-
+% FIGURE
+fig =  getfig('',1); 
+    % Plot temperature
+    subplot(r,c,sb(1).idx); hold on
+        plot(data.time, data.temp, 'color', foreColor,'linewidth', lw)
+        ylabel('temp (\circC)')
+    % Plot raster of female sleep and male court instances for each trial
+    subplot(r,c,sb(2).idx); hold on   
+        for trial = 1:num.trials    
+            % Pull female sleep and male CI 
+            fsleep = data.sleep(:, F, trial);
+            fsleep(isnan(fsleep)) = 0;
+            mcourt = logical(data.CI(:, trial));
+            mcourt(isnan(mcourt)) = 0;
+            % X values
+            fx = fly(trial).time(fsleep);
+            fX = [fx';fx']; % duplicate and transpose to match size of y matrix for raster
+            mx = fly(trial).time(mcourt);
+            mX = [mx';mx'];
+            % Y values
+            fY = repmat([y(trial,F);y(trial,F)+spike_H],[1,size(fx,2)]);    
+            mY = repmat([y(trial,M);y(trial,M)+spike_H],[1,size(mx,2)]); 
+            plot(fX,fY,'color',Color(data,color(F,:)),'linewidth',spike_W)
+            plot(mX,mY,'color',Color(data.color(M,:)),'linewidth',spike_W)
         end
+
+       
+        
