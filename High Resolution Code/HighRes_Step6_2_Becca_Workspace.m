@@ -537,7 +537,7 @@ clearvars('-except',initial_var{:})
 x = 1;
 y = 2;
 
-ctime = 1; % time restrictor for one bout
+ctime = 1; % time restrictor in seconds for a single bout
 
 fchase = [];
 
@@ -623,7 +623,7 @@ for trial = 1:num.trials
     fchase(trial).all = chase; % NO time limit
 end
 
-%%
+% Create new Female Chase folder for saving figs
 chDir = 'S:\Evyn\DATA\Courtship Videos/grouped/Berlin LTS caviar/Figures/Female Chase Figures/';
 if ~exist(chDir, 'dir')
         mkdir(chDir)
@@ -634,13 +634,15 @@ loc_2 = [];
 y = [];
 y2 = [];
 
+% Determine y variables for time restriction and no time limit
 for trial = 1:num.trials    
-    loc = size(fchase(trial).(['roi_' num2str(ctime) 'sec']),1); % with 2 second restriction
+    loc = size(fchase(trial).(['roi_' num2str(ctime) 'sec']),1); % with time restriction
     loc_2 = size(fchase(trial).roi_all,1); % no time limit
     y = [y,loc];
     y2 = [y2,loc_2];
 end
 
+% X variables
 x = 1;
 x2 = 2;
 
@@ -662,3 +664,105 @@ ylabel('Number of frames of female chase')
 
 % Save figure
 save_figure(fig,[chDir 'Frame count of female chase instances ' num2str(ctime) ' sec'],fig_type);
+
+%% Courtship attempts while female is sleeping
+
+scourt = [];
+
+% CI
+fsleep = [];
+mCI= [];
+
+for trial = 1:num.trials
+    scourt(trial).name = fly(trial).name;
+    fsleep = data.sleep(:, F, trial);
+    fsleep(isnan(fsleep)) = 0;
+
+    % CI
+    mCI = data.CI(:, trial);
+    mCI(isnan(mCI)) = 0;
+    loc = fsleep & mCI;
+    idx = find(loc);
+    if isempty(idx)
+        scourt(trial).numframes_CI = 0;
+    else
+        scourt(trial).numframes_CI = length(idx);
+    end
+
+    % Wing ext
+    mwing = data.wing_ext(:, trial);
+    mwing(isnan(mwing)) = 0;
+    loc = fsleep & mwing;
+    idx = find(loc);
+    if isempty(idx)
+        scourt(trial).numframes_WE = 0;
+    else
+        scourt(trial).numframes_WE = length(idx);
+    end
+
+    % Chase
+    mchase = data.court_chase(:, trial);
+    mchase(isnan(mchase)) = 0;
+    loc = fsleep & mchase;
+    idx = find(loc);
+    if isempty(idx)
+        scourt(trial).numframes_chase = 0;
+    else
+        scourt(trial).numframes_chase= length(idx);
+    end
+
+    % Circling
+    mcircling = data.circling_1sec(:, trial);
+    mcircling(isnan(mcircling)) = 0;
+    loc = fsleep & mcircling;
+    idx = find(loc);
+    if isempty(idx)
+        scourt(trial).numframes_circling= 0;
+    else
+        scourt(trial).numframes_circling= length(idx);
+    end
+end
+
+%% 
+
+r = 5;
+c = 1;
+sb(1).idx = 1; % temperature
+sb(2).idx = 2:5; % raster plot
+spike_H = 2; %height of each raster
+trial_space = 1; %gap between trial lines
+spike_W = 0.5; % raster line width
+
+% Initiate variables for y axis points
+dummy = 1;
+y = [];
+
+for trial = 1:num.trials
+    % Create y axis plot points for each trial
+    ystart = dummy;
+    yend = ystart + 2;
+    a = ystart:yend;
+    y = autoCat(y,a,true,true);
+    dummy = ystart + 3;
+    
+    % Pull female sleep and male CI 
+    fsleep = data.sleep(:, F, trial);
+    fsleep(isnan(fsleep)) = 0;
+    mCI = data.CI(:, trial);
+    mCI(isnan(mCI)) = 0;
+
+
+end
+
+y_base = rangeLine(fig, 5);
+        for sex = 1:2 
+            % plot raster of when the fly is on the food
+            x = time(T.FlyOnFood(:,sex));
+            X = [x';x'];
+            Y = repmat([y_base;y_base+spike_H],[1,size(X,2)]);           
+            plot(X,Y,'color',data(sex).color,'linewidth',spike_W)
+            
+            % Update y-offset
+            y_base = y_base+spike_H+trial_space;
+
+        end
