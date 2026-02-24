@@ -781,7 +781,6 @@ for ii = 1:length(frameList)
         title(num2str(frameSpeeds(ii,2)),'color', 'w')
         set(fig,'position', figPos,'WindowStyle', 'alwaysontop')
 
-
         % label behavior: 
         switch questdlg('Behavior?', '', 'Jump', 'Swap', 'Other', 'Jump')
             case 'Jump'
@@ -810,20 +809,114 @@ end
 
 
 %%  Look at speed labeling for comparison of what's going on
+clearvars('-except',initial_var{:})
 
+% load in different labeled data types:
+file_root = [groupDir,  '*speed labeling.mat'];
+dir_contents = dir(file_root);
+nFiles = size(dir_contents,1);
+% extract and combine all possible labeled frames
+for ii = 1:nFiles
+    temp = load([groupDir dir_contents(ii).name]);
+    % write speed labels into same structure
+    if ii==1 % firs tone: load as blank
+        speedTest = temp.speedTest;
+    else % load data into empty slots
+        for trial = 1:num.trials
+            % find location for labeled frames
+            loc = temp.speedTest(trial).labeled;
+            if sum(loc)>0
+                speedTest(trial).labeled = loc;
+                speedTest(trial).label = temp.speedTest(trial).label;
+                speedTest(trial).idx = temp.speedTest(trial).idx;
+            end
+        end
+    end
+end
+
+% display how many and much of each trial is labeled: 
+total_labels = [];
+for trial = 1:num.trials
+    total_labels(trial) = sum(speedTest(trial).labeled);
+    fprintf('\n%i %% -- trial %i', total_labels(trial), trial);
+end
+disp(' ')
+
+
+confusionMat = struct; % empty structure for the frame numbers
+rateMat = nan([num.trials, 4]); % number of frames total for each trial confusion matrix
 % find which trials have been labeled: 
-for ii = 1:num.trials
-    % list of frames that have been labeled in this trial
-    frames = speedTest(ii).idx(speedTest(ii).labeled); 
-    if ~isempty(frames) 
-        loc = logical(keyFrames(ii).frame_pairs_swap);
-        swapFrames = keyFrames(ii).frame_pairs(loc,:);
-        swapFrames = swapFrames(:); % reshape into vector
-        % were any of the swap frames selected for the random labeling group?
-        labeledFrame_group = ismember(frames,swapFrames);
-        % find all the different condition types: positive positive,
-        % positive negative, etc.
+for trial = 1:num.trials
+    % list of frames that have been manually labeled in this trial
+    manual_all = speedTest(trial).idx(speedTest(trial).labeled); % all manually labeled frame numbers
+    % list of frames that were auto-labeled as swaps
+    loc = logical(keyFrames(trial).frame_pairs_swap);
+    auto_swap = keyFrames(trial).frame_pairs(loc,:); % auto-labeled swap frames
+    auto_swap = sort(auto_swap(:)); % reshape into vector
+
+    if ~isempty(manual_all) % if there are manually labeled frames
+        % pull out the frames manually labeled as swaps
+        manual_swap_loc = strcmpi('Swap', speedTest(trial).label); 
+        manual_swap = speedTest(trial).idx(manual_swap_loc); % manual labels for swap frames
+        loc = ~manual_swap_loc & speedTest(trial).labeled;
+        manual_other = speedTest(trial).idx(loc); % manual labels for all other frames
+
+        % pos-pos outcome: both manually and auto-labeled as swaps 
+        % (positive-positive)
+        pos_pos_frames = manual_swap(ismember(manual_swap,auto_swap)); 
         
+        % pos-neg outcome: auto labeled swap, manually NOT labeled swap 
+        % (false positive)
+        pos_neg_frames = auto_swap(ismember(auto_swap, manual_all));
+        if any(pos_neg_frames==pos_pos_frames)
+            pos_neg_frames(pos_neg_frames==pos_pos_frames) = [];
+        end
+
+        % neg-pos outcome: manually labeled swap, not autolabeled swap
+        % (false-negative outcome) 
+        neg_pos_frames = manual_swap(~ismember(manual_swap, auto_swap));
+
+        % neg-neg outcome: not manually labeled swaps not autolabeled as swaps
+        neg_neg_frames = manual_other(~ismember(manual_other, auto_swap));
+
+        % save these lists into a new struct?
+        confusionMat(trial).PP_frames = pos_pos_frames;
+        confusionMat(trial).PN_frames = pos_neg_frames;
+        confusionMat(trial).NP_frames = neg_pos_frames;
+        confusionMat(trial).NN_frames = neg_neg_frames;
+        
+        % pull out the frame numbers: 
+        rateMat(trial,1) = length(pos_pos_frames);
+        rateMat(trial,2) = length(pos_neg_frames);
+        rateMat(trial,3) = length(neg_pos_frames);
+        rateMat(trial,4) = length(neg_neg_frames);
+
+    end
+end
+
+% TODO: update this to make a figure showing the confusion matrix 
+% convert numbers into percentages: 
+totals = sum(rateMat,2);
+percentMat = (rateMat./totals).*100;
+buff = 0.3;
+
+fig = getfig('Confusion Matrix', 1);
+    x = repmat(1:4, [num.trials, 1]);
+    scatter(x, percentMat, 75, Color('vaporwavepurple'),...
+                'filled', 'MarkerFaceAlpha', 0.7, ...
+                'xjitter', 'density', 'xjitterwidth', 0.2)
+    % plot means
+    hold on
+    x = 1:4;
+    x = x' + [-buff, buff];
+    y = mean(percentMat, 1, 'omitnan');
+    y = repmat(y,[2,1]);
+    plot(x', y, 'color', foreColor, 'linewidth', 2)
+
+    % formatting and labels
+    formatFig(fig, blkbgd);
+    set(gca, 'xtick', 1:4, 'xticklabel', {'Swap', 'auto-swap', 'manual-swap', 'other'})
+
 
 
 % were all the swap frames previously captured in the automated version?
