@@ -808,8 +808,9 @@ if strcmp('Yes', questdlg('Save data labels?'))
 end
 
 
-%%  Look at speed labeling for comparison of what's going on
+%% ANALYSIS: Look at speed labeling for comparison of what's going on
 clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
 
 % load in different labeled data types:
 file_root = [groupDir,  '*speed labeling.mat'];
@@ -819,13 +820,14 @@ nFiles = size(dir_contents,1);
 for ii = 1:nFiles
     temp = load([groupDir dir_contents(ii).name]);
     % write speed labels into same structure
-    if ii==1 % firs tone: load as blank
+    if ii==1 % first one: load as blank 
         speedTest = temp.speedTest;
     else % load data into empty slots
         for trial = 1:num.trials
             % find location for labeled frames
             loc = temp.speedTest(trial).labeled;
             if sum(loc)>0
+                fprintf('\nTrial %i from %s\n',trial,dir_contents(ii).name)
                 speedTest(trial).labeled = loc;
                 speedTest(trial).label = temp.speedTest(trial).label;
                 speedTest(trial).idx = temp.speedTest(trial).idx;
@@ -834,6 +836,17 @@ for ii = 1:nFiles
     end
 end
 
+% 
+% % sanity check: are the random frames to be labeled different for the two trials?
+% frame_numbers = nan([100,2,num.trials]);
+% for ii = 1:nFiles
+%     temp = load([groupDir dir_contents(ii).name]);
+%     a = [temp.speedTest(:).idx];
+%     frame_numbers(:,ii,:) = a; 
+% end
+
+
+
 % display how many and much of each trial is labeled: 
 total_labels = [];
 for trial = 1:num.trials
@@ -841,7 +854,6 @@ for trial = 1:num.trials
     fprintf('\n%i %% -- trial %i', total_labels(trial), trial);
 end
 disp(' ')
-
 
 confusionMat = struct; % empty structure for the frame numbers
 rateMat = nan([num.trials, 4]); % number of frames total for each trial confusion matrix
@@ -900,7 +912,7 @@ totals = sum(rateMat,2);
 percentMat = (rateMat./totals).*100;
 buff = 0.3;
 
-fig = getfig('Confusion Matrix', 1);
+fig = getfig('Confusion Matrix', 1,[759 882]);
     x = repmat(1:4, [num.trials, 1]);
     scatter(x, percentMat, 75, Color('vaporwavepurple'),...
                 'filled', 'MarkerFaceAlpha', 0.7, ...
@@ -916,8 +928,8 @@ fig = getfig('Confusion Matrix', 1);
     % formatting and labels
     formatFig(fig, blkbgd);
     set(gca, 'xtick', 1:4, 'xticklabel', {'Swap', 'auto-swap', 'manual-swap', 'other'})
-
-
+    ylabel('% of frames')
+save_figure(fig, [saveDir, 'Confusion Matrix Scatter'])
 
 % were all the swap frames previously captured in the automated version?
 

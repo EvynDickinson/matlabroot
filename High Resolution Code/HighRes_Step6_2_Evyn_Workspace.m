@@ -871,3 +871,21 @@ fig = getfig('',1); hold on
     set(gca, 'ycolor', sleep_color)
     ylabel('asleep fly count (#)')
 save_figure(fig, [figDir 'sleeping distance to food histogram']);
+
+%% Figure out why the speedTest frames are not aligning across computers
+
+clearvars('-except',initial_var{:})
+
+keyFramesMAC = keyFrames;
+load('keyframes.mat')
+
+% compare the two keyframes data (these should be identical) 
+errList = [];
+for trial = 1:num.trials
+    % key frame comparisons
+    a = keyFramesMAC(trial).frame_pairs(:)';
+    b = keyFrames(trial).frame_pairs(:)';
+    errList(trial,1) = sum(~ismember(a,b));
+    errList(trial,2) = sum(~ismember(b,a));
+end
+
