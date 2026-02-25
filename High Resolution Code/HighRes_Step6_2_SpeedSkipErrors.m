@@ -263,18 +263,6 @@ for trial = 1:num.trials
 
 end
 
-%% ANALYSIS : compare autolabeled and manually labeled frames
-clearvars('-except',initial_var{:})
-
-% Load data from possible sources: 
-files = dir([groupDir '*speed labeling.mat']);
-for ii = 1:size(files,1)
-    temp = load([groupDir, files(ii).name],'speedTest');
-    
-end
-
-
-
 
 %% FIGURES: look at speed distributions
 
@@ -836,7 +824,7 @@ for ii = 1:nFiles
     end
 end
 
-% 
+
 % % sanity check: are the random frames to be labeled different for the two trials?
 % frame_numbers = nan([100,2,num.trials]);
 % for ii = 1:nFiles
@@ -844,7 +832,6 @@ end
 %     a = [temp.speedTest(:).idx];
 %     frame_numbers(:,ii,:) = a; 
 % end
-
 
 
 % display how many and much of each trial is labeled: 
@@ -927,17 +914,91 @@ fig = getfig('Confusion Matrix', 1,[759 882]);
 
     % formatting and labels
     formatFig(fig, blkbgd);
-    set(gca, 'xtick', 1:4, 'xticklabel', {'Swap', 'auto-swap', 'manual-swap', 'other'})
+    set(gca, 'xtick', 1:4, 'xticklabel', {'both swap', 'auto-only', 'manual-only', 'no swap'})
     ylabel('% of frames')
 save_figure(fig, [saveDir, 'Confusion Matrix Scatter'])
 
+% how many of the high speed incidents seem to be fly swaps?
+% compare the manual vs auto-tested trials: 
+ 
+% compare the two keyframes data (these should be identical) 
+swapRate = [];
+for trial = 1:num.trials
+    % key frame comparisons
+    a = sum(keyFrames(trial).frame_pairs_swap);
+    b = size(keyFrames(trial).mspeed_frames,1) + size(keyFrames(trial).fspeed_frames,1);
+    swapRate(trial) = (a/b)*100;
+end
+fprintf('\nOn average only %4.2g%% of high-speed frames are swapped\n',mean(swapRate))
+
+% Quick look at the speeds of jumps vs swaps to make sure there isn't an easy
+% threshold to impose: 
+
+% jumps vs other speed differential: 
+ 
+% find the speed of the flies that have been labeled: 
+types = {'jump', 'other', 'swap'};
+speedData = struct;
+for ii = 1:length(types)
+    speedData.(types{ii}) = [];
+end
+speedList = nan([100,3. num.trials]);
+for trial = 1:num.trials
+    
+    jump_loc = strcmpi('jump',speedTest(trial).label);
+    other_loc = strcmpi('other',speedTest(trial).label);
+    swap_loc = strcmpi('swap',speedTest(trial).label);
+    
+    for ii = 1:length(types)
+        loc = strcmpi(types{ii},speedTest(trial).label);
+        frame = speedTest(trial).idx(loc);
+        if ~isempty(frame)
+            mSpeed = fly(trial).m.speed(frame);
+            fSpeed = fly(trial).f.speed(frame);
+            speedData.(types{ii}) = [speedData.(types{ii}); (max([mSpeed'; fSpeed'])')];
+        end
+    end
+end
+
+% speed of the different manually labeled behaviors:
+buff = 0.15; 
+SZ = 50;
+LW = 1.5;
+fig = getfig('speed by behavior type', 1);
+    hold on
+    for ii = 1:length(types)
+        x = speedData.(types{ii});
+        y = ii*ones(size(x));
+        scatter(x, y, SZ, Color('vaporwaveblue'),...
+                    'filled', 'MarkerFaceAlpha', 0.5, ...
+                    'yjitter', 'density', 'YJitterWidth',0.5)
+        % add on some standard deviation bars 
+        x_avg = mean(x,'omitnan');
+        x_med = median(x,'omitnan');
+        x_std = std(x, 'omitnan');
+        plot([x_avg-x_std, x_avg+x_std], [ii,ii], 'color', foreColor,...
+            'LineWidth', LW, 'Marker', '|', 'MarkerSize',15)
+        plot([x_avg, x_avg], [ii-buff, ii+buff], 'color', foreColor,...
+            'LineWidth', LW)
+        plot([x_med, x_med], [ii-buff, ii+buff], 'color', foreColor,...
+            'LineWidth', LW,'LineStyle', ':')
+    end
+    
+    % formatting and labels
+    formatFig(fig, blkbgd);
+    xlabel('speed (mm/s)')
+    ylabel('manual label')
+    set(gca, 'ytick', 1:length(types), 'yticklabel', types)
+save_figure(fig, [saveDir, 'Speed distribution by behavior type manual labels']);
+% save_figure(fig, [saveDir, 'Speed distribution by behavior type manual labels zoom in']);
+
+
+%% Unanswered questions: 
 % were all the swap frames previously captured in the automated version?
 
 % what proportion of the frames are sprints vs jumps?
 
 % is there a speed differential between sprints vs jumps?
-
-
 
 
 
