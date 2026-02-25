@@ -1,5 +1,10 @@
 
 % Code to find and sort the high resolutions skip frame errors in tracking
+% This code was used to identify the source of high-speed frames in the
+% high-resolution data and then build an automated classification system to
+% pull the frame swap locations from the jump or sprint frames (which are
+% real and not artifacts) 
+
 
 %% ANALYSIS & FIGURES: identify likely frame swap locations
 if ~any(strcmp('keyFrames', initial_var))

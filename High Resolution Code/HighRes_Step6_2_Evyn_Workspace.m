@@ -889,3 +889,129 @@ for trial = 1:num.trials
     errList(trial,2) = sum(~ismember(b,a));
 end
 
+
+%% 
+
+%% ANALYSIS & FIGURES: identify likely frame swap locations
+% TODO: 2.25.26 convert this to something that can be used in 
+% the main data analysis pipeline
+initial_var = add_var(initial_var, 'keyFrames');
+clearvars('-except',initial_var{:})
+
+foreColor = formattingColors(blkbgd); % get background colors
+saveDir = createFolder([figDir, 'extreme speed troubleshooting/']);
+
+speed_thresh = 35; %mm/s speed threshold
+skip_threshold = 3; % how many frames for a confident swap pair in time
+
+% data structure holding the frame data
+keyFrames = [];  
+
+for trial = 1:num.trials
+    % MALE speed data for current trial 
+    mspeed = squeeze(data.speed(:,M,trial));
+    mspeed_loc = mspeed>=speed_thresh; % frames with above threshold speed
+    mspeed_frames = find(mspeed_loc); % pull frames above the limit speed
+    keyFrames(trial).mspeed_frames = mspeed_frames;
+    
+    % FEMALE speed data for current trial 
+    fspeed = squeeze(data.speed(:,F,trial));
+    fspeed_loc = fspeed>=speed_thresh; % frames with above threshold speed
+    fspeed_frames = find(fspeed_loc); % pull frames above the limit speed
+    keyFrames(trial).fspeed_frames = fspeed_frames;
+    
+    % Possible swap locations: (based on high speed for both flies)
+    double_speed = squeeze(data.speed(:,:,trial)); % speed in both sexes
+    double_speed_loc = double_speed>=speed_thresh;
+    swap_ConfidentFrames = find(sum(double_speed_loc,2)==2); % where are both M&F speeding
+    
+    % Possible swap locations if one of the sexes does not have a labeled skeleton
+    a = fspeed_loc & isnan(mspeed);
+    b = mspeed_loc & isnan(fspeed);
+    possible_swapFrames = find(a | b);
+    if ~isempty(possible_swapFrames)
+        allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]); % all frames with double speed MF or single+nan
+        keyFrames(trial).swap_LikelyFrames = allSwaps; % all frames with double speed M F
+    else % no changes due to new pairings, so the same frames as confident
+        keyFrames(trial).swap_LikelyFrames = swap_ConfidentFrames;
+    end
+end
+
+% PAIR LIKELY SWAP FRAMES FOR EACH OF THE TRIALS
+for trial = 1:num.trials
+    a = keyFrames(trial).swap_LikelyFrames;% current list of possible frames for pairs
+    % Find differences between consecutive frames
+    frame_diffs = diff(a);
+    % Find where frames are close together (potential pairs)
+    is_close = frame_diffs <= skip_threshold;
+    % Extract pairs
+    pairs = [];
+    ii = 1; % index location within frame list
+    while ii <= length(is_close)
+        if is_close(ii)
+            % Found a pair: frames a(i) and a(i+1)
+            pairs = [pairs; a(ii), a(ii+1)];
+            
+            % Skip the next position to avoid overlapping pairs
+            % (e.g., if frames 1,2,3 are all close, we want pairs [1,2] and not [2,3])
+            ii = ii + 2;
+        else
+            ii = ii + 1;
+        end
+    end
+    % Store the pairs
+    keyFrames(trial).frame_pairs = pairs;
+end
+
+% Identify nearest neighbors to see if the swap is likely for the
+% identified swap locations
+% look at the avg distance to the fly center for each of the
+% flies in the preceeding frames 
+nNeighbors = 5; % how many preceeding frames to look at for close distance?
+for trial = 1:num.trials 
+    keyFrames(trial).frame_pairs_swap = [];
+    mPos = squeeze(fly(trial).m.pos(:,body.center,:));
+    fPos = squeeze(fly(trial).f.pos(:,body.center,:));
+
+    % for each of the likely speed frame pairs
+    likely_pairs = keyFrames(trial).frame_pairs;
+    rois = likely_pairs(:,1) + ((-nNeighbors-1): -1);
+   
+    for ii = 1:size(likely_pairs,1)
+        
+        % frame locations for pre and during swaps
+        pre_roi = rois(ii,:);
+        dur_roi = likely_pairs(ii,1);
+        
+        % distance of each during swap roi to pre-swap roi relative
+        x = mPos(dur_roi,1) - mPos(pre_roi,1); 
+        y = mPos(dur_roi,2) - mPos(pre_roi,2);
+        dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
+        x = mPos(dur_roi,1) - fPos(pre_roi,1); 
+        y = mPos(dur_roi,2) - fPos(pre_roi,2);
+        dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
+
+        % determine if likely switch
+        likelyswitch = dM>=dF; % female would be closer than correct male
+        keyFrames(trial).frame_pairs_swap(ii) = likelyswitch;
+    end
+end
+
+
+% ======== FIGURE =========
+% Quick look at the jump vs swap stats
+[m_frames, f_frames,double_frames, maybe_pair_frames, final_pair_frames] = deal(nan(num.trials, 1));
+for trial = 1:num.trials
+    m_frames(trial) = size(keyFrames(trial).mspeed_frames,1);
+    f_frames(trial) = size(keyFrames(trial).fspeed_frames,1);
+    double_frames(trial) = size(keyFrames(trial).swap_LikelyFrames,1);
+    maybe_pair_frames(trial) = numel(keyFrames(trial).frame_pairs);
+    final_pair_frames(trial) = sum(keyFrames(trial).frame_pairs_swap)*2;
+end
+% relative percentages
+tot_frames = size(fly(1).T,1);
+m_framesP = mean((m_frames/tot_frames)*100);
+f_framesP = mean((f_frames/tot_frames)*100);
+swap_percentage =  mean((final_pair_frames ./ tot_frames)*100,'omitnan');
+fprintf('\n%2.3g  percent of total frames are high speed \n', (m_framesP + f_framesP))
+fprintf('\n%2.5g  percent of total frames are confident swaps',swap_percentage);
