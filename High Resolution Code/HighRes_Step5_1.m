@@ -21,6 +21,9 @@ if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, l
     load(processed_path)
     baseFolder = curr_baseFolder;
     baseDir = curr_baseDir;
+    conversion = getConversion; 
+    pix2mm = conversion(4).pix2mm; %#ok<NASGU>
+    initial_var = add_var(initial_var, 'pix2mm');
     disp('Data loaded!')
     clearvars('-except',initial_var{:})
 else
@@ -36,7 +39,7 @@ else
         fig_type = '-png';
         [foreColor,backColor] = formattingColors(blkbnd); % get background colors
         conversion = getConversion; 
-        pix2mm = conversion(4).pix2mm; %updates 5.12.25
+        pix2mm = conversion(4).pix2mm; %#ok<NASGU> %updates 5.12.25
         
         % Create variable to store body points
         body = [];
@@ -63,8 +66,6 @@ end
 %% ANALYSIS: Extract calculated variables
 clearvars('-except',initial_var{:})
 
-pix2mm = conversion(4).pix2mm;
-
 % Inter-fly-distance from the fly's center point
 x1 = m.pos(:,body.center,1); % x location for male center
 y1 = m.pos(:,body.center,2);
@@ -86,6 +87,115 @@ D = hypot(diff(x2), diff(y2)); % find the distance in pixels one frame to the ne
 D = D./pix2mm; % convert from pixels/frame to mm/frame
 D = D.*fps; % convert to mm/sec
 f.speed = [0; D];
+
+%% Find high-speed short-term swap frames and reverse them: 
+speed_thresh = 35; %mm/s speed threshold
+skip_threshold = 3; % how many frames for a confident swap pair in time
+nNeighbors = 5; % how many preceeding frames to look at for close distance?
+
+% Find possible swap locations: 
+m_loc = m.speed>=speed_thresh;
+f_loc = f.speed>=speed_thresh;
+
+% speed above threshold for both male and female
+double_speed_loc = m_loc & f_loc;
+swap_ConfidentFrames = find(double_speed_loc);
+
+% speed above threshold and nan for other fly
+a = f_loc & isnan(m.speed);
+b = m_loc & isnan(f.speed);
+possible_swapFrames = find(a | b);
+
+% combine all possible swap frames: 
+allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]);
+
+% PAIR LIKELY SWAP FRAMES FOR EACH OF THE TRIALS
+% Find differences between consecutive frames
+frame_diffs = diff(allSwaps);
+% Find where frames are close together (potential pairs)
+is_close = frame_diffs <= skip_threshold;
+% Extract pairs
+pairs = [];
+ii = 1; % index location within frame list
+while ii <= length(is_close)
+    if is_close(ii)
+        % Found a pair: frames a(i) and a(i+1)
+        pairs = [pairs; allSwaps(ii), allSwaps(ii+1)];
+        
+        % Skip the next position to avoid overlapping pairs
+        % (e.g., if frames 1,2,3 are all close, we want pairs [1,2] and not [2,3])
+        ii = ii + 2;
+    else
+        ii = ii + 1;
+    end
+end
+
+% Second filter: body size and position relative to past trajectory
+mPos = squeeze(m.pos(:,body.center,:));
+fPos = squeeze(f.pos(:,body.center,:));
+
+% for each of the likely speed frame pairs
+% likely_pairs = pairs;
+rois = pairs(:,1) + ((-nNeighbors-1): -1);
+
+% check location alignment for each swap pair
+likelyswitch = false([size(pairs, 1), 1]);
+for ii = 1:size(pairs,1)
+    
+    % frame locations for pre and during swaps
+    pre_roi = rois(ii,:);
+    dur_roi = pairs(ii,1);
+    
+    % distance of each during swap roi to pre-swap roi relative
+    x = mPos(dur_roi,1) - mPos(pre_roi,1); 
+    y = mPos(dur_roi,2) - mPos(pre_roi,2);
+    dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
+    x = mPos(dur_roi,1) - fPos(pre_roi,1); 
+    y = mPos(dur_roi,2) - fPos(pre_roi,2);
+    dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
+
+    % determine if likely switch
+    likelyswitch(ii) = dM>=dF; % female would be closer than correct male
+end
+
+% extract the likely swap locations
+if any(likelyswitch)
+    swap_pairs = pairs(likelyswitch,:); % pull only the likely pairs
+end
+
+
+
+% Quick look at the jump vs swap stats
+m_frames = length(m_loc);
+f_frames = arrayfun(@(x) size(x.fspeed_frames, 1), keyFrames);
+pair_frames = arrayfun(@(x) numel(x.swap_pairs), keyFrames);
+
+% relative percentages
+tot_frames = size(T,1);
+m_framesP = mean((sum(m_loc)/tot_frames)*100);
+f_framesP = mean((sum(f_loc)/tot_frames)*100);
+swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
+fprintf('\n%2.3g  percent of total frames are high speed', (m_framesP + f_framesP))
+fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
+
+%% FIX FLY ID SWAPS: (TODO: 2/26)
+
+
+% Preview the swaps: 
+if ~isempty(swap_pairs)
+    for ii = 1:size(swap_pairs,1)
+
+
+    end
+end
+
+
+
+% Manually approve the swaps: 
+% (give number pair to the swaps, show all the swaps on a single image)
+% (question approve the swaps) 
+% (option to UNCORRECT a swap if not actually a swap)
+
 
 
 %% ANALYSIS: Calculate M and F wing angles
