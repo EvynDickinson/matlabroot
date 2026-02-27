@@ -22,7 +22,7 @@ if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, l
     baseFolder = curr_baseFolder;
     baseDir = curr_baseDir;
     conversion = getConversion; 
-    pix2mm = conversion(4).pix2mm; %#ok<NASGU>
+    pix2mm = conversion(4).pix2mm; 
     initial_var = add_var(initial_var, 'pix2mm');
     disp('Data loaded!')
     clearvars('-except',initial_var{:})
@@ -39,7 +39,7 @@ else
         fig_type = '-png';
         [foreColor,backColor] = formattingColors(blkbnd); % get background colors
         conversion = getConversion; 
-        pix2mm = conversion(4).pix2mm; %#ok<NASGU> %updates 5.12.25
+        pix2mm = conversion(4).pix2mm; %updates 5.12.25
         
         % Create variable to store body points
         body = [];
@@ -164,12 +164,6 @@ if any(likelyswitch)
 end
 
 
-
-% Quick look at the jump vs swap stats
-m_frames = length(m_loc);
-f_frames = arrayfun(@(x) size(x.fspeed_frames, 1), keyFrames);
-pair_frames = arrayfun(@(x) numel(x.swap_pairs), keyFrames);
-
 % relative percentages
 tot_frames = size(T,1);
 m_framesP = mean((sum(m_loc)/tot_frames)*100);
@@ -179,16 +173,56 @@ fprintf('\n%2.3g  percent of total frames are high speed', (m_framesP + f_frames
 fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
 
 %% FIX FLY ID SWAPS: (TODO: 2/26)
+if ~isempty(swap_pairs)
+
+nSwaps = size(swap_pairs,1);
+frameBuffer = 3; % how many frames before/after swap to show
+mColor = Color('vaporwaveblue');
+fColor = Color('vaporwavepink');
+[r, c] = subplot_numbers(nSwaps);
+sz = 15; % node size for fly skeleton
 
 
 % Preview the swaps: 
-if ~isempty(swap_pairs)
-    for ii = 1:size(swap_pairs,1)
+fig = getfig('', 1); hold on
+for ii = 1:nSwaps
+   subplot(r, c, ii)
+   % plot the swapped frames
+   pre_roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,1)-1;
+   post_roi = swap_pairs(ii,2)+1 : swap_pairs(ii,2)+frameBuffer;
+   OG_roi = [pre_roi, post_roi]; % combined before and after
+   swap_roi = swap_pairs(ii,1):swap_pairs(ii,2); % swap frames to color opposite
 
+   % --- pull body locations for plotting ---
 
-    end
+   % Male tracks: 
+   mX = data(M).rawX(OG_roi,:);
+   mY = data(M).rawY(OG_roi,:);
+   % add middle frames: 
+   mX = [mX; data(M).rawX(swap_roi,:)];
+   mY = [mY; data(M).rawY(swap_roi,:)];
+
+   % Female tracks: 
+   fX = data(F).rawX(OG_roi,:);
+   fY = data(F).rawY(OG_roi,:);
+   % add middle frames: 
+   fX = [fX; data(F).rawX(swap_roi,:)];
+   fY = [fY; data(F).rawY(swap_roi,:)];
+
+   % plot both sets of tracks: 
+   plotFlySkeleton(fig, mX, mY, mColor, true, sz);
+
 end
 
+
+
+
+% only place data needs to be swapped: 
+% data.rawX
+% data.rawY
+% data.x
+% data.y
+% data.
 
 
 % Manually approve the swaps: 
@@ -196,7 +230,7 @@ end
 % (question approve the swaps) 
 % (option to UNCORRECT a swap if not actually a swap)
 
-
+end
 
 %% ANALYSIS: Calculate M and F wing angles
 clearvars('-except',initial_var{:})
