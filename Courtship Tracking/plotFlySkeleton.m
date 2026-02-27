@@ -30,22 +30,31 @@ end
 if ~exist('nodeSize', 'var')
     nodeSize = 50;
 end
+ 
+skeleton = [1,2; 2,3; 2,4; 2,5]; % specific links for lines between body parts
+nFlies = size(x, 1); % number of fly skeletons to plot
 
-skeleton = [1,2; 2,3; 2,4; 2,5];
+% Vectorized edge plotting
+% Create all edge coordinates at once
+x_edges = nan(3 * size(skeleton, 1), nFlies);
+y_edges = nan(3 * size(skeleton, 1), nFlies);
 
-% edges
-xs = x(skeleton)';
-ys = y(skeleton)';
+for i = 1:size(skeleton, 1)
+    row_start = (i-1)*3 + 1;
+    % extract X edges
+    x_edges(row_start, :) = x(:, skeleton(i, 1))';
+    x_edges(row_start+1, :) = x(:, skeleton(i, 2))';
+    % extract Y edges
+    y_edges(row_start, :) = y(:, skeleton(i, 1))';
+    y_edges(row_start+1, :) = y(:, skeleton(i, 2))';
+end
 
-plot(xs, ys, 'Color', kolor, 'HandleVisibility','off')
+% Plot all edges in one call
+plot(x_edges(:), y_edges(:), 'Color', kolor, 'HandleVisibility', 'off');
 
-% nodes
-if nodes 
-    plot(x, y, 'o', ...
-     'MarkerSize', sqrt(nodeSize), ...
-     'MarkerFaceColor', kolor, ...
-     'MarkerEdgeColor', kolor, ...
-     'HandleVisibility','off')
+% Plot all nodes
+if nodes
+    scatter(x(:), y(:), nodeSize, kolor, 'filled', 'HandleVisibility', 'off');
 end
 
 

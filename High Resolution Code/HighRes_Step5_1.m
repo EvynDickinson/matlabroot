@@ -4,30 +4,49 @@
 %% LOAD data
 clear; clc;
 warning off
-path = getDataPath(6,0);
+
+% updates for updating the fly data with no swaps:
+[excelfile, Excel, xlFile] = load_HighResExperiments;
+% find trials that can be updated: 
+loc_ready = strcmpi('Y', excelfile(:,Excel.groupready)) & ...
+   (~strcmpi('Y', excelfile(:,Excel.swapcorrected)) | ~strcmpi('NA', excelfile(:,Excel.swapcorrected)));
+loc = find(loc_ready);
+% select trial to update: 
+trial_options = excelfile(loc,Excel.trialID);
+idx = listdlg('PromptString','Select experiments to update:','ListString',trial_options,...
+                    'SelectionMode','single','ListSize',[350,300]);
+excel_loc = loc(idx); % location in excel file of trials to process
+path = getDataPath(6,2);
 baseFolder = [path,'Trial Data/'];
-trialDir = selectFolder(baseFolder); 
-baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+trialDir = trial_options{idx};
+baseDir = [baseFolder, trialDir '/']; % full folder directory for that trial
+
+
+% % Manual selection (commented out for auto-revamp of all data on swaps)
+% path = getDataPath(6,0);
+% baseFolder = [path,'Trial Data/'];
+% trialDir = selectFolder(baseFolder); 
+% baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
 
 figDir = [baseDir,'Figures/']; 
 if ~exist(figDir, 'dir')
     mkdir(figDir)
 end
 
-processed_path = [baseDir 'post-5.1 data.mat'];
-if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, load that?'))
-    curr_baseFolder = baseFolder;
-    curr_baseDir = baseDir;
-    load(processed_path)
-    baseFolder = curr_baseFolder;
-    baseDir = curr_baseDir;
-    conversion = getConversion; 
-    pix2mm = conversion(4).pix2mm; 
-    initial_var = add_var(initial_var, 'pix2mm');
-    disp('Data loaded!')
-    clearvars('-except',initial_var{:})
-else
-    if strcmp('Yes', questdlg('Run basic analysis now?'))
+% processed_path = [baseDir 'post-5.1.2 data.mat'];
+% if isfile(processed_path) && strcmp('Yes',questdlg('Processed data file found, load that?'))
+%     curr_baseFolder = baseFolder;
+%     curr_baseDir = baseDir;
+%     load(processed_path)
+%     baseFolder = curr_baseFolder;
+%     baseDir = curr_baseDir;
+%     conversion = getConversion; 
+%     pix2mm = conversion(4).pix2mm; 
+%     initial_var = add_var(initial_var, 'pix2mm');
+%     disp('Data loaded!')
+%     clearvars('-except',initial_var{:})
+% else
+    % if strcmp('Yes', questdlg('Run basic analysis now?'))
         load([baseDir, 'basic data.mat']) % load the parameters and temp table
         disp('data loaded')
         tic 
@@ -60,8 +79,8 @@ else
         initial_var{end+1} = 'disp_fig';
         toc
         disp('Data loaded, continuing evaluation')
-    end
-end
+%     end
+% end
 
 %% ANALYSIS: Extract calculated variables
 clearvars('-except',initial_var{:})
@@ -89,6 +108,8 @@ D = D.*fps; % convert to mm/sec
 f.speed = [0; D];
 
 %% Find high-speed short-term swap frames and reverse them: 
+clearvars('-except',initial_var{:})
+
 speed_thresh = 35; %mm/s speed threshold
 skip_threshold = 3; % how many frames for a confident swap pair in time
 nNeighbors = 5; % how many preceeding frames to look at for close distance?
@@ -130,47 +151,74 @@ while ii <= length(is_close)
     end
 end
 
-% Second filter: body size and position relative to past trajectory
-mPos = squeeze(m.pos(:,body.center,:));
-fPos = squeeze(f.pos(:,body.center,:));
-
-% for each of the likely speed frame pairs
-% likely_pairs = pairs;
-rois = pairs(:,1) + ((-nNeighbors-1): -1);
-
-% check location alignment for each swap pair
-likelyswitch = false([size(pairs, 1), 1]);
-for ii = 1:size(pairs,1)
-    
-    % frame locations for pre and during swaps
-    pre_roi = rois(ii,:);
-    dur_roi = pairs(ii,1);
-    
-    % distance of each during swap roi to pre-swap roi relative
-    x = mPos(dur_roi,1) - mPos(pre_roi,1); 
-    y = mPos(dur_roi,2) - mPos(pre_roi,2);
-    dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
-    x = mPos(dur_roi,1) - fPos(pre_roi,1); 
-    y = mPos(dur_roi,2) - fPos(pre_roi,2);
-    dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
-
-    % determine if likely switch
-    likelyswitch(ii) = dM>=dF; % female would be closer than correct male
-end
-
-% extract the likely swap locations
-if any(likelyswitch)
-    swap_pairs = pairs(likelyswitch,:); % pull only the likely pairs
-end
-
-
-% relative percentages
 tot_frames = size(T,1);
 m_framesP = mean((sum(m_loc)/tot_frames)*100);
 f_framesP = mean((sum(f_loc)/tot_frames)*100);
-swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
-fprintf('\n%2.3g  percent of total frames are high speed', (m_framesP + f_framesP))
-fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
+fprintf('\n%2.3g  percent of total frames are high speed\n', (m_framesP + f_framesP))
+
+if ~isempty(pairs)
+    % Second filter: body size and position relative to past trajectory
+    mPos = squeeze(m.pos(:,body.center,:));
+    fPos = squeeze(f.pos(:,body.center,:));
+    
+    % for each of the likely speed frame pairs
+    % likely_pairs = pairs;
+    rois = pairs(:,1) + ((-nNeighbors-1): -1);
+    
+    % check location alignment for each swap pair
+    likelyswitch = false([size(pairs, 1), 1]);
+    for ii = 1:size(pairs,1)
+        
+        % frame locations for pre and during swaps
+        pre_roi = rois(ii,:);
+        dur_roi = pairs(ii,1);
+        
+        % distance of each during swap roi to pre-swap roi relative
+        x = mPos(dur_roi,1) - mPos(pre_roi,1); 
+        y = mPos(dur_roi,2) - mPos(pre_roi,2);
+        dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
+        x = mPos(dur_roi,1) - fPos(pre_roi,1); 
+        y = mPos(dur_roi,2) - fPos(pre_roi,2);
+        dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
+    
+        % determine if likely switch
+        likelyswitch(ii) = dM>=dF; % female would be closer than correct male
+    end
+    
+    % extract the likely swap locations
+    if any(likelyswitch)
+        swap_pairs = pairs(likelyswitch,:); % pull only the likely pairs
+    end
+
+    % relative percentages
+    swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
+    fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
+else 
+    swap_pairs = [];
+    disp('No swapped pairs in this data')
+
+    % determine if processing a full data set or just updating the data
+    % with the new name...
+    processed_file = [baseDir 'post-5.1.1 data.mat'];
+    if exist(processed_file,"file")==2 % old processed data already exists -- change the name now: 
+        newpath =  [baseDir 'post-5.1.2 data.mat'];
+
+        status = movefile(processed_file, newpath);
+        if status == 1
+            disp('File renamed successfully');
+        else
+            disp(['Error: ' msg]);
+        end
+        % update that it was processed in the excel sheet:     
+        isExcelFileOpen(xlFile);
+        writecell({'NA'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(excel_loc)]);  
+        % NA for no swaps, not applicible 
+        disp('Data updated and name changed.')
+        return
+
+    end
+
+end
 
 %% FIX FLY ID SWAPS: (TODO: 2/26)
 if ~isempty(swap_pairs)
@@ -184,14 +232,23 @@ sz = 15; % node size for fly skeleton
 
 
 % Preview the swaps: 
-fig = getfig('', 1); hold on
+fig = getfig('', 1); 
 for ii = 1:nSwaps
-   subplot(r, c, ii)
+   subplot(r, c, ii); hold on
+   % plot OG frames: 
+   roi = swap_pairs(ii,1):swap_pairs(ii,2);
+   mX = data(M).rawX(roi,:);
+   mY = data(M).rawY(roi,:);
+   fX = data(F).rawX(roi,:);
+   fY = data(F).rawY(roi,:);
+   plotFlySkeleton(fig, mX, mY, mColor, true, sz);
+   plotFlySkeleton(fig, fX, fY, fColor, true, sz);
+
    % plot the swapped frames
    pre_roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,1)-1;
-   post_roi = swap_pairs(ii,2)+1 : swap_pairs(ii,2)+frameBuffer;
+   post_roi = swap_pairs(ii,2) : swap_pairs(ii,2)+frameBuffer;
    OG_roi = [pre_roi, post_roi]; % combined before and after
-   swap_roi = swap_pairs(ii,1):swap_pairs(ii,2); % swap frames to color opposite
+   swap_roi = swap_pairs(ii,1):swap_pairs(ii,2)-1; % swap frames to color opposite
 
    % --- pull body locations for plotting ---
 
@@ -199,36 +256,94 @@ for ii = 1:nSwaps
    mX = data(M).rawX(OG_roi,:);
    mY = data(M).rawY(OG_roi,:);
    % add middle frames: 
-   mX = [mX; data(M).rawX(swap_roi,:)];
-   mY = [mY; data(M).rawY(swap_roi,:)];
+   mX = [mX; data(F).rawX(swap_roi,:)];
+   mY = [mY; data(F).rawY(swap_roi,:)];
 
    % Female tracks: 
    fX = data(F).rawX(OG_roi,:);
    fY = data(F).rawY(OG_roi,:);
    % add middle frames: 
-   fX = [fX; data(F).rawX(swap_roi,:)];
-   fY = [fY; data(F).rawY(swap_roi,:)];
+   fX = [fX; data(M).rawX(swap_roi,:)];
+   fY = [fY; data(M).rawY(swap_roi,:)];
 
    % plot both sets of tracks: 
    plotFlySkeleton(fig, mX, mY, mColor, true, sz);
-
+   plotFlySkeleton(fig, fX, fY, fColor, true, sz);
+   
+   % formatting and labels for mismatched alignments
+   title([Alphabet(ii)])
+end
+formatFig(fig, blkbnd,[r,c]);
+for ii = 1:nSwaps
+     subplot(r, c, ii)
+     set(gca, 'xcolor', 'none', 'ycolor', 'none')
 end
 
-
-
-
-% only place data needs to be swapped: 
-% data.rawX
-% data.rawY
-% data.x
-% data.y
-% data.
-
-
 % Manually approve the swaps: 
-% (give number pair to the swaps, show all the swaps on a single image)
-% (question approve the swaps) 
-% (option to UNCORRECT a swap if not actually a swap)
+switch questdlg('Are all tracks in alignment?')
+    case 'Yes'
+        disp('swapping data information')
+        % raw alignment...
+        swap_roi = [];
+        for ii = 1:nSwaps
+            swap_roi = [swap_roi, swap_pairs(ii,1) : swap_pairs(ii,2)-1];
+        end
+        
+        % Swap 'data' sections: 
+        data_fields = {'rawX', 'rawY', 'x', 'y'};
+        for ii = 1:length(data_fields)
+            correct_M = data(F).(data_fields{ii})(swap_roi,:);
+            correct_F = data(M).(data_fields{ii})(swap_roi,:);
+            % swap data: 
+            data(M).(data_fields{ii})(swap_roi,:) = correct_M;
+            data(F).(data_fields{ii})(swap_roi,:) = correct_F;
+        end
+        
+        % Swap 'f' and 'm' sections
+        correct_M = f.pos(swap_roi,:,:);
+        correct_F = m.pos(swap_roi,:,:);
+        m.pos(swap_roi,:,:) = correct_M;
+        f.pos(swap_roi,:,:) = correct_F;
+        
+        correct_M = f.wing.angle(swap_roi,:);
+        correct_F = m.wing.angle(swap_roi,:);
+        m.wing.angle(swap_roi,:) = correct_M;
+        f.wing.angle(swap_roi,:) = correct_F;
+
+        % recalculate speed: 
+        % Inter-fly-distance from the fly's center point
+        x1 = m.pos(:,body.center,1); % x location for male center
+        y1 = m.pos(:,body.center,2);
+        x2 = f.pos(:,body.center,1); % x location for female center
+        y2 = f.pos(:,body.center,2);
+        % Male Speed:
+        D = hypot(diff(x1), diff(y1)); % find the distance in pixels one frame to the next
+        D = D./pix2mm; % convert from pixels/frame to mm/frame
+        D = D.*fps; % convert to mm/sec
+        m.speed = [0; D];
+        % Female speed: 
+        D = hypot(diff(x2), diff(y2)); % find the distance in pixels one frame to the next
+        D = D./pix2mm; % convert from pixels/frame to mm/frame
+        D = D.*fps; % convert to mm/sec
+        f.speed = [0; D];
+
+    case 'No'
+        % give list of options that do not need to be swapped? Then show
+        % the original version of those frames...
+        % TODO: tell Evyn if one of these pops up so we can make the code
+        % to account for it 
+
+        % (give number pair to the swaps, show all the swaps on a single image)
+        % (question approve the swaps) 
+        % (option to UNCORRECT a swap if not actually a swap)
+
+        warndlg('Manually check and fix the misaligned tracks...')
+        disp('Manual alignment of the tracks is still in progress....')
+        return
+    case {'Cancel', ''}
+        warndlg('Manually check and fix the misaligned tracks...')
+        disp('Manual alignment of the tracks is still in progress....')
+end
 
 end
 
@@ -1466,7 +1581,7 @@ clearvars('-except',initial_var{:})
 
 switch questdlg('Save processed data?')
     case 'Yes'
-        save([baseDir 'post-5.1.1 data.mat'],'-v7.3')
+        save([baseDir 'post-5.1.2 data.mat'],'-v7.3')
         disp('Saved data file')
     case 'No'
         return
@@ -1474,15 +1589,35 @@ switch questdlg('Save processed data?')
         return
 end
 
+% parameters.trialID = trialID;
+% % DATE LOCATION:
+% date_loc = (strcmp(excelfile(:,Excel.date),dateDir{1})); % find the rows in the excel sheet that match the current exp date
+% name_loc = (strcmp(excelfile(:,Excel.expID),expName)); % find name match
+% loc = find(date_loc & name_loc);
+% if isempty(loc)
+%     warndlg('Can''t find the row location for the file to add the trial ID information. Input manually.')
+%     disp(trialID)
+% else
+%     % write the trial ID into the excel sheet
+%     isExcelFileOpen(xlFile);
+%     writecell({trialID},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(loc)]);
+%     writecell({'Y'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.basicfigs) num2str(loc)]);
+% end
+
+
+
+% NOTE: 2.27.26
+% this code has been update to include a swaped-frames catch for single and
+% double frame identity swap situations. Moving forward, data will be saved
+% as 'post-5.1.2.mat' to indicate the updated version of the data
+
 % NOTE: 5.12.25 
 % this code has been updated to include the new distance measures for the
 % plate size and thus moving forward, data will be saved as
 % 'post-5.1.1.mat' rather than just 'post-5.1.mat' data. Do not use data
 % from the original set, as it has an incorrect distance scaling factor. 
 
-% TODO : rerun all the current high_res data files and update them for the
-% correct distance measures. Add in a delete the old file function as well.
-% Evyn (5.12.25)
+
 
 %% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
 % vidpath = "S:\Evyn\DATA\Courtship Videos\02.05.2025\Berlin_courtship_F_LRR_caviar_ramp1\compiled_video_1.avi";
