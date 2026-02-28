@@ -1067,6 +1067,10 @@ end
 T.wing_ext = mt;
 T.wing_ext_all = wing_ext;
 
+% % TODO WORKING HERE 
+% wing_ext_filled = imclose(wing_ext, ones(max_gap + 1, 1));
+
+
 %% ANALYSIS: Chase identification
 % < 120 deg area behind female x
 % facing female x
