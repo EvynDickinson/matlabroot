@@ -5,12 +5,15 @@
 clear; clc;
 warning off
 
+auto_run = true;
+
 % updates for updating the fly data with no swaps:
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 % find trials that can be updated: 
 done_loc = (strcmpi('Y', excelfile(:,Excel.swapcorrected)) | strcmpi('NA', excelfile(:,Excel.swapcorrected)));
 loc_ready = strcmpi('Y', excelfile(:,Excel.groupready)) & ~done_loc;
 loc = find(loc_ready);
+fprintf('\n %i unprocessed experiments remaining\n', length(loc))
 % select trial to update: 
 trial_options = excelfile(loc,Excel.trialID);
 idx = listdlg('PromptString','Select experiments to update:','ListString',trial_options,...
@@ -28,7 +31,6 @@ figDir = createFolder([baseDir,'Figures/']);
 % trialDir = selectFolder(baseFolder); 
 % baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
 
-
 processed_path = [baseDir 'post-5.1.2 data.mat'];
 if isfile(processed_path) % DATA ALREADY EXISTS
     if strcmp('Yes',questdlg('Processed data file found, load that?'))
@@ -37,7 +39,7 @@ if isfile(processed_path) % DATA ALREADY EXISTS
         load(processed_path)
         baseFolder = curr_baseFolder;
         baseDir = curr_baseDir;
-        conversion = getConversion; 
+        conversion = getConversion;
         pix2mm = conversion(4).pix2mm; 
         initial_var = add_var(initial_var, 'pix2mm');
         disp('Data loaded!')
@@ -46,7 +48,7 @@ if isfile(processed_path) % DATA ALREADY EXISTS
         return
     end
 else % DATA DOES NOT YET EXIST
-    if strcmp('Yes', questdlg('Run basic analysis now?'))
+    if auto_run %strcmp('Yes', questdlg('Run basic analysis now?'))
         load([baseDir, 'basic data.mat']) % load the parameters and temp table
         disp('data loaded')
         tic 
@@ -82,6 +84,10 @@ else % DATA DOES NOT YET EXIST
     end
 end
 
+% Base Parameters: 
+max_gap = 3; % how many skipped frames can exist without the behavior being continuous 
+initial_var = add_var(initial_var, 'max_gap');
+
 %% ANALYSIS: Extract calculated variables
 clearvars('-except',initial_var{:})
 
@@ -107,7 +113,7 @@ D = D./pix2mm; % convert from pixels/frame to mm/frame
 D = D.*fps; % convert to mm/sec
 f.speed = [0; D];
 
-%% Find high-speed short-term swap frames and reverse them: 
+%% ANALYSIS: Find high-speed short-term swap frames and reverse them: 
 clearvars('-except',initial_var{:})
 
 speed_thresh = 35; %mm/s speed threshold
@@ -193,34 +199,36 @@ if ~isempty(pairs)
     % relative percentages
     swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
     fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
-else 
+    swap_status = 'Y';
+else % NO swapped frames
     swap_pairs = [];
-    disp('UPDATE: NO SWAPPED FRAMES FOUND')
-
-    % determine if processing a full data set or just updating the data
-    % with the new name...
-    processed_file = [baseDir 'post-5.1.1 data.mat'];
-    if exist(processed_file,"file")==2 % old processed data already exists -- change the name now: 
-        newpath =  [baseDir 'post-5.1.2 data.mat'];
-
-        status = movefile(processed_file, newpath);
-        if status == 1
-            disp('File renamed successfully');
-        else
-            disp(['Error: ' msg]);
-        end
-        % update that it was processed in the excel sheet:     
-        isExcelFileOpen(xlFile);
-        writecell({'NA'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(excel_loc)]);  
-        % NA for no swaps, not applicible 
-        disp('Data updated and name changed.')
-        return
-
-    end
-
+    fprintf('\n\n ** UPDATE: NO SWAPPED FRAMES FOUND ** \n\n')
+    swap_status = 'NA';
+    % % determine if processing a full data set or just updating the data
+    % % with the new name...
+    % processed_file = [baseDir 'post-5.1.1 data.mat'];
+    % if exist(processed_file,"file")==2 % old processed data already exists -- change the name now: 
+    %     newpath =  [baseDir 'post-5.1.2 data.mat'];
+    % 
+    %     status = movefile(processed_file, newpath);
+    %     if status == 1
+    %         disp('File renamed successfully');
+    %     else
+    %         disp(['Error: ' msg]);
+    %     end
+    %     % update that it was processed in the excel sheet:     
+    %     isExcelFileOpen(xlFile);
+    %     writecell({'NA'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(excel_loc)]);  
+    %     % NA for no swaps, not applicible 
+    %     disp('Data updated and name changed.')
+    %     return
+    % 
+    % end
 end
 
-%% FIX FLY ID SWAPS: (TODO: 2/26)
+initial_var = add_var(initial_var, 'swap_status');
+
+%% ANALYSIS: FIX FLY ID SWAPS: (TODO: 2/26)
 if ~isempty(swap_pairs)
 
 nSwaps = size(swap_pairs,1);
@@ -318,6 +326,7 @@ switch questdlg('Are all tracks in alignment?')
         D = D./pix2mm; % convert from pixels/frame to mm/frame
         D = D.*fps; % convert to mm/sec
         f.speed = [0; D];
+        close(fig)
 
     case 'No'
         % % give list of options that do not need to be swapped? Then show
@@ -475,7 +484,11 @@ clearvars('-except',initial_var{:})
 % center all points to female fly
 % align all points to female fly heading (center = 0)
 
-response = questdlg('Visualize male positions too?','','Yes','No','No');
+if ~auto_run
+    response = questdlg('Visualize male positions too?','','Yes','No','No');
+else
+    response = 'No';
+end
 
 data(M).color = Color('dodgerblue');
 data(F).color = Color('deeppink');
@@ -915,8 +928,9 @@ end
 
 % Fly on the food: 
 T.FlyOnFood = T.dist2food<=well.R; % fly head must be within the food circle
-disp('Flies on food: M & F')
-sum(T.FlyOnFood)
+a = sum(T.FlyOnFood);
+fprintf('\n Male fly on food frame #: %i \n Female fly on food frame #: %i\n',a(1), a(2))
+
 
 %% ANALYSIS: Determine temperature bins and directions
 % TODO (2/26) update this to work for temp holds and trials that don't have
@@ -1025,6 +1039,7 @@ end
 %% ANALYSIS: Calculate male wing extension
 clearvars('-except',initial_var{:})
 
+% (accounts for suble drops in things like tracking)
 Lwing = [];
 Rwing = [];
 % Determine which positions require which wing to be extended 
@@ -1042,15 +1057,16 @@ Rwing = any(Rwing,2);
 % Pull wing angles equal or greater than extension minimum for L and R
 wa_cutoff = 50; % minimum wing extension angle for courtship
 wing_ext = (Lwing & (m.wing.angle(:,1) >= wa_cutoff)) | (Rwing & (m.wing.angle(:,2) >= wa_cutoff)); % wing must be facing the female fly
+wing_ext_filled = imclose(wing_ext, ones(max_gap + 1, 1)); % fill gaps in the behavior with those less than the max gap
 % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
-a = diff(wing_ext); 
+a = diff(wing_ext_filled); 
 % Add the first extension value to the list to account for the starting condition
-b = [wing_ext(1); a]; 
+b = [wing_ext_filled(1); a]; 
 % Locations in wing_ext where extension period starts/end
 ext_start = find(b == 1); 
 ext_stop = find(b == -1);
 % If wing ext doesn't stop by end, add stop location at end of ext_stop (loc = length of experiment value)
-if wing_ext(end)
+if wing_ext_filled(end)
     ext_stop(end + 1) = length(time);
 end
 % Calculate the length of each wing ext bout
@@ -1065,11 +1081,8 @@ for i = 1:length(dur_loc)
     mt(ext_start(ii):ext_stop(ii)) = true;
 end
 T.wing_ext = mt;
+T.wing_ext_filled = wing_ext_filled;
 T.wing_ext_all = wing_ext;
-
-% % TODO WORKING HERE 
-% wing_ext_filled = imclose(wing_ext, ones(max_gap + 1, 1));
-
 
 %% ANALYSIS: Chase identification
 % < 120 deg area behind female x
@@ -1132,14 +1145,16 @@ fmoving = f.speed >= 0.1; % min speed up for debate
 mmoving = m.speed >= 0.01; % min speed diff than F in order to include true chase bouts
 
 chase = (mbehindf & close_dist & fmoving & mmoving); % requirements for 'chase all'
-a = diff(chase); 
+chase_filled = imclose(chase, ones(max_gap + 1, 1)); % fill gaps in the behavior
+
+a = diff(chase_filled); 
 % Add the first chase value to the list to account for the starting condition
-b = [chase(1); a]; 
+b = [chase_filled(1); a]; 
 % Locations in chase where chasing period starts/end
 ch_start = find(b == 1); 
 ch_stop = find(b == -1);
 % If chasing doesn't stop by end, add stop location at end of ch_stop (loc = length of experiment value)
-if chase(end)
+if chase_filled(end)
     ch_stop(end + 1) = length(time);
 end
 % Calculate the length of each chasing bout
@@ -1160,6 +1175,7 @@ else
 end
 T.court_chase = mt; % time restriction 2 seconds
 T.chase_all = chase; % NO time limit
+T.chase_filled = chase_filled;
 
 %% ANALYSIS: Circling behavior
 % M head within 3mm? [head_dist]
@@ -1234,16 +1250,18 @@ ok_var(const_var) = nan;% all data points with acceptable variance
 
 % Full selection criteria: 
 V = position.likely & head_dist & const_var & f_speed_cut;
+V_filled = imclose(V, ones(max_gap + 1, 1)); % fill micro gaps in the behavior
+
 
 %  --- Find periods longer than 1 second ---
-a = diff(V); % when does the speed switch between stability and instability 
+a = diff(V_filled); % when does the speed switch between stability and instability 
 % Add the first chase value to the list to account for the starting condition
-b = [V(1); a]; 
+b = [V_filled(1); a]; 
 % Find when stability periods starts/end
 v_start = find(b == 1); 
 v_stop = find(b == -1);
 % If speed stability doesn't stop by end, add stop location at end of v_stop (loc = length of experiment value)
-if V(end)
+if V_filled(end)
     v_stop(end + 1) = length(time);
 end
 % Calculate the length of each speed bout
@@ -1259,6 +1277,7 @@ end
 
 T.circling_all = V; % when the male fly is circling the female (no time restriction)
 T.circling_1sec = constant_velocity; % when circling is longer than 1 second
+T.circling_filled = V_filled;
 
 % COURTSHIP INDEX
 CI = any([T.court_chase,T.wing_ext,T.circling_1sec],2); % courtship index
@@ -1267,24 +1286,21 @@ T.CI = CI;
 %% ANALYSIS: Fly turning 
 
 clearvars('-except',initial_var{:})
+
 for sex = 1:2
     % extract the x and y head and center positions to calculcate the slope of the body line
-    x = data(sex).rawX(:,body.head:body.center);
-    y = data(sex).rawY(:,body.head:body.center);
+    x = data(sex).rawX(:, body.head:body.center);
+    y = data(sex).rawY(:, body.head:body.center);
     
-    % zero the flys center (actually unneccessary) 
-    X = x - x(:,2);
-    Y = y - y(:,2);
-    % slope for each point in time
-    slope = (Y(:,2)-Y(:,1))./(X(:,2)-X(:,1));
-    m1 = slope(1:end-1);   % 'past' heading
-    m2 = slope(2:end);      % 'current' heading
+    % Heading angles for each frame
+    heading = atan2(diff(y, 1, 2), diff(x, 1, 2));
     
-    % calculate the angle between the two slopes 
-    theta = atan((m1-m2)./(1+(m1.*m2)));
-    theta = rad2deg(theta);
-    data(sex).turning = [nan; theta].*(fps);
+    % Angular velocity (change in heading)
+    theta = diff(unwrap(heading));  % unwrap handles angle wrapping around the 180deg point
+    
+    data(sex).turning = [nan; nan; rad2deg(theta)] * fps;
 end
+
 
 %% ANALYSIS: Extract sleep data
 clearvars('-except',initial_var{:})
@@ -1304,6 +1320,7 @@ for sex = 1:2
     x_diff = diff(x); 
     % Identify when position is not changing
     u = abs(x_diff)<= 1;
+    u = imclose(u, ones(2, 1)); % fill micro gaps in the behavior
     % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
     a = diff(u);
     % Add the first position value to the list to account for the starting condition
@@ -1346,115 +1363,82 @@ clearvars('-except',initial_var{:})
 % 2 = sleeping
 % 3 = edge-occupancy
 % 4 = courtship
+
+% Behavior states
 b_list = {'food', 'sleeping', 'edge','m_courtship'};
-nstates = length(b_list);
+nStates = length(b_list);
 ntime = length(time);
-time_buff = 10; % number of frames that can be 'skipped' before the state is considered switched
+time_buff = 10; % number of frames that can be 'skipped' before a state switch
 
 for sex = 1:2 % male and female
-   
-    tic
-    % Initialize behavior states
-    behavior = nan(ntime, 4);
+
+    % ---- Initialize behavior state matrix -----
+    behavior = nan(ntime, nStates);
+    % Food: 
     behavior(T.FlyOnFood(:, sex), 1) = 1;
-    
+    % Sleep:
     if sex == 1
         behavior(m.sleep, 2) = 2;
     else
         behavior(f.sleep, 2) = 2;
     end
-    
+    % Escape: 
     behavior(data(sex).OutterRing, 3) = 3;
+    % Courtship: 
     behavior(T.CI, 4) = 4;
 
     % Sleep takes priority when overlapping with other states
-    sleep_override = ~isnan(behavior(:, 2)) & any(~isnan(behavior(:, [1, 3, 4])), 2);
+    sleep_override = ~isnan(behavior(:, 2));
     behavior(sleep_override, [1, 3, 4]) = nan;
 
     % Assign a single state per time point
-    beh = nan(size(time));
-    for i = [4, 3, 1, 2] % Sleep is assigned last to take priority
-        beh(~isnan(behavior(:, i))) = i;
+    beh = nan(ntime,1);
+    for ii = [4, 3, 1, 2] % Sleep is assigned last to take priority
+        beh(~isnan(behavior(:, ii))) = ii;
     end
 
-    % Find state start indices
-    state_starts = find(~isnan(beh));
+    % ------ Find state transitions -----
 
-    % Preallocate a table for state transitions
-    max_transitions = numel(state_starts); % Overestimate, we'll trim later
-    ST = table(nan(max_transitions, 1), nan(max_transitions, 1), nan(max_transitions, 1), ...
-        nan(max_transitions, 1), nan(max_transitions, 1), nan(max_transitions, 1), nan(max_transitions, 1), ...
-        'VariableNames', {'state1', 'state1_start', 'state1_end', 'state2', 'state2_start', 'state2_end', 'transition'});
-
-    % Identify state transitions
-    idx = 1;
-    i = 1;
-    while i < numel(state_starts)
-        curr_state = beh(state_starts(i));
-        state1_start = state_starts(i);
-        state1_end = state1_start;
-
-        % Move forward until we find a new state or exceed time_buff
-        for j = i + 1:numel(state_starts)
-            t = state_starts(j);
-            next_state = beh(t);
-            gap = t - state1_end;
-
-            if curr_state == next_state && gap <= time_buff
-                state1_end = t; % Extend the current state
-            else
-                % Store state transition
-                ST.state1(idx) = curr_state;
-                ST.state1_start(idx) = state1_start;
-                ST.state1_end(idx) = state1_end;
-                ST.state2(idx) = next_state;
-                ST.state2_start(idx) = t;
-                ST.transition(idx) = str2double([num2str(curr_state), num2str(next_state)]);
-
-                % Update previous state's end time
-                if idx > 1
-                    ST.state2_end(idx - 1) = state1_end;
-                end
-
-                % Prepare for next transition
-                idx = idx + 1;
-                break;
-            end
-        end
-
-        i = j; % Move to next segment
-    end
-
-    % Trim empty rows
-    ST(idx:end, :) = [];
-   
-    % Make the probability map as a heatmap with the transition probability as a shaded square with a number
-    % then it will also be easy to make a 'difference' map between each of the temperature periods
+    % Remove NaNs and get state changes
+    valid_idx = find(~isnan(beh));
+    valid_states = beh(valid_idx);
     
-    transition_list = nan([nstates^2,1]);
-    idx = 1;
-    for i = 1:nstates
-        for j = 1:nstates
-            transition_list(idx) = str2double([num2str(i) num2str(j)]); 
-            idx = idx + 1;
-        end
-    end
+    % Find where state changes (accounting for time_buff)
+    state_changes = [true; (diff(valid_states) ~= 0) | (diff(valid_idx) > time_buff)];
     
-    transitions = [];
-    for i = 1:length(transition_list)
-        transitions(i) = sum(ST.transition==transition_list(i));
-    end
-    transitions = reshape(transitions,[nstates, nstates])';
+    % Get transition indices
+    trans_start = valid_idx(state_changes);
+    trans_end = [trans_start(2:end)-1; ntime];
+    states = valid_states(state_changes);
+    
+    % Build state transition table
+    n_trans = length(trans_start) - 1;
+    ST = table(...
+        states(1:end-1), trans_start(1:end-1), trans_end(1:end-1), ...
+        states(2:end), trans_start(2:end), trans_end(2:end), ...
+        states(1:end-1)*10 + states(2:end), ...
+        'VariableNames', {'state1', 'state1_start', 'state1_end', ...
+                          'state2', 'state2_start', 'state2_end', 'transition'});
 
-    % Save some of the data to the data structure for future use:
+    % ===== COMPUTE TRANSITION MATRIX  =====
+    % Use accumarray instead of loops
+    transition_rows = floor(ST.transition / 10);
+    transition_cols = mod(ST.transition, 10);
+    transitions = accumarray([transition_rows, transition_cols], 1, [nStates, nStates]);
+    
+    % Create transition list for reference
+    [i_grid, j_grid] = ndgrid(1:nStates, 1:nStates);
+    transition_list = i_grid(:)*10 + j_grid(:);
+
+    % ===== SAVE DATA =====
     data(sex).states.ST = ST;
     data(sex).states.b_list = b_list;
-    data(sex).states.nstates = nstates;
+    data(sex).states.nstates = nStates;
     data(sex).states.beh = beh;
     data(sex).states.behavior = behavior;
     data(sex).states.transitions = transitions;
     data(sex).states.transition_list = transition_list;
-    toc
+
 end
 
 % % How long to each behavior state after each temp change and what order?
@@ -1493,47 +1477,58 @@ end
 
 % How long to each behavior state after each temp change and what order?
 for sex = 1:2  % for each of the two flies
-    nstates = data(sex).states.nstates;
-    nregimes = numel(tRate);
+    nStates = data(sex).states.nstates;
+    nRegimes = numel(tRate); % to account for each temperature regime
+    ST = data(sex).states.ST;
+    beh = data(sex).states.beh;
 
     % Preallocate freq struct
-    freq(nregimes, nstates) = struct(...
-        'name', '', ...
-        'n_states', 0, ...
-        'n_instances', 0, ...
-        'perc_time_in_state', 0, ...
-        'time_to_first_instance', nan, ...
-        'temp_at_first_instance', nan);
+    % freq(nregimes, nstates) = struct(...
+    %         'name', '', ...
+    %         'n_states', 0, ...
+    %         'n_instances', 0, ...
+    %         'perc_time_in_state', 0, ...
+    %         'time_to_first_instance', nan, ...
+    %         'temp_at_first_instance', nan);
+    freq = struct('name', cell(nRegimes, nStates), ...
+                  'n_states', {0}, ...
+                  'n_instances', {0}, ...
+                  'perc_time_in_state', {0}, ...
+                  'time_to_first_instance', {nan}, ...
+                  'temp_at_first_instance', {nan});
 
-    for r = 1:nregimes  % for each temperature regime
+    for r = 1:nRegimes  % for each temperature regime
         roi = tRate(r).idx;  % get the temperature regime frame indices
         total_frames = diff(roi);
-
-        for i = 1:nstates  % for each type of behavior/state
-            freq(r, i).name = data(sex).states.b_list{i};
-            loc = (data(sex).states.ST.state1 == i);
+        roi_range = roi(1):roi(2);
+        for ii = 1:nStates  % for each type of behavior/state
+            freq(r, ii).name = b_list{ii};
             
-            if ~any(loc)
-                continue  % Skip if behavior never occurred
+            % Find states in this regime
+            state_in_regime = (ST.state1 == ii) & ...
+                              (ST.state1_start >= roi(1)) & ...
+                              (ST.state1_start <= roi(2));
+
+            if ~any(state_in_regime)
+                continue;  % Skip if behavior never occurred
             end
             
             % Find first occurrence
-            first_idx = find(loc, 1, 'first');
-            first_frame = data(sex).states.ST.state1_start(first_idx);
+            first_idx = find(state_in_regime, 1, 'first');
+            first_frame = ST.state1_start(first_idx);
 
             % Number of occurrences
-            freq(r, i).n_states = sum(loc);
+            freq(r, ii).n_states = sum(state_in_regime);
+            freq(r, ii).n_instances = sum(beh(roi_range) == ii);
+            freq(r, ii).perc_time_in_state = ...
+                            (freq(r, ii).n_instances / total_frames) * 100;
+            freq(r, ii).time_to_first_instance = ...
+                            (first_frame - roi(1)) / parameters.FPS;
+            
+            % Safe indexing for temperature
+            temp_idx = first_frame:min(first_frame+3, ntime);
+            freq(r, ii).temp_at_first_instance = mean(T.temperature(temp_idx));
 
-            % Total time in state
-            beh_match = (data(sex).states.beh == i);
-            freq(r, i).n_instances = sum(beh_match);
-            freq(r, i).perc_time_in_state = (freq(r, i).n_instances / total_frames) * 100;
-
-            % Time to first instance in seconds
-            freq(r, i).time_to_first_instance = (first_frame - roi(1)) / parameters.FPS;
-
-            % Temperature at first occurrence (mean over 3 frames)
-            freq(r, i).temp_at_first_instance = mean(T.temperature(first_frame:first_frame+3));
         end
     end
     
@@ -1542,42 +1537,50 @@ for sex = 1:2  % for each of the two flies
 end
 
 
-% FIGURES: number and distribution of behaviors that were observed
+%% FIGURES: number and distribution of behaviors that were observed
 % quick figure on the total set of observed behaviors
 clearvars('-except',initial_var{:})
 
+if auto_run
+    auto_save = true;
+    img_qual = '-r80';
+else
+    auto_save = false;
+    img_qual = '-r300';
+end
+
 sexes = {'male', 'female'};
-nstates = data(1).states.nstates;
+nStates = data(M).states.nstates;
 b_list = strrep(data(1).states.b_list,'_',' ');
 fig = getfig('',1,[ 937 406]);
 for sex = 1:2
     subplot(1,2,sex)
-    bar(1:nstates, sum(~isnan(data(sex).states.behavior)),'FaceColor',data(sex).color)
+    bar(1:nStates, sum(~isnan(data(sex).states.behavior)),'FaceColor',data(sex).color)
     set(gca, "XTickLabel", b_list)
     xlabel('behavior state')
     ylabel('full trial count')
 end
 formatFig(fig,false,[1,2]);
-save_figure(fig,[figDir 'Behavior state bar graph full ramp  M and F'],fig_type);
+save_figure(fig,[figDir 'Behavior state bar graph full ramp  M and F'],fig_type,auto_save, true, img_qual);
 
-% time course of the behavior states
-fig = getfig('',1,[ 937 406]);
-for sex = 1:2
-    subplot(1,2,sex);
-    hold on
-    % h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
-
-    for i = 1:4
-        y = data(sex).states.behavior(:,i);
-        scatter(time, y, 35, data(sex).color, 'filled')
-    end
-    xlabel('time (min)')
-    ylabel('behavior state')
-    ylim([0.5,nstates+0.5])
-    set(gca, "YTick",1:nstates, 'YTickLabel',  b_list, 'ydir', 'reverse')
-end
-formatFig(fig,false, [1,2]);
-save_figure(fig,[figDir 'Behavior state timecourse M and F'],fig_type);
+% % time course of the behavior states
+% fig = getfig('',1,[ 937 406]);
+% for sex = 1:2
+%     subplot(1,2,sex);
+%     hold on
+%     % h = rectangle('Position', [roi(1), ylims(1), diff(roi),diff(ylims)], 'FaceColor', tRate(i).color);
+% 
+%     for i = 1:4
+%         y = data(sex).states.behavior(:,i);
+%         scatter(time, y, 35, data(sex).color, 'filled')
+%     end
+%     xlabel('time (min)')
+%     ylabel('behavior state')
+%     ylim([0.5,nStates+0.5])
+%     set(gca, "YTick",1:nStates, 'YTickLabel',  b_list, 'ydir', 'reverse')
+% end
+% formatFig(fig,false, [1,2]);
+% save_figure(fig,[figDir 'Behavior state timecourse M and F'],fig_type,auto_save, true, img_qual);
 
 % FIGURE: transition matrix heatmap of the states
 fig = getfig('',1);
@@ -1589,7 +1592,7 @@ for sex = 1:2
     set(gca, 'XDisplayLabels',b_list,'YDisplayLabels',b_list)
     title(sexes{sex})
 end
-save_figure(fig,[figDir 'Behavior state transitions heatmap M and F'],fig_type);
+save_figure(fig,[figDir 'Behavior state transitions heatmap M and F'],fig_type,auto_save, true, img_qual);
 
 % Figures: Histogram of the different state transitions & total count of the behaviors (~time)
 fig = getfig('',1,[1064 473]);
@@ -1601,9 +1604,10 @@ for sex = 1:2
     ylabel('count (#)')
 end
 fig = formatFig(fig,false,[1,2]);
-save_figure(fig,[figDir 'Behavior state transitions histogram M and F'],fig_type);
+save_figure(fig,[figDir 'Behavior state transitions histogram M and F'],fig_type,auto_save, true, img_qual);
 
 % Figure:  pie chart of different behaviors across the full experiment
+legend_labels = ['Unknown', data(1).states.b_list];
 fig = getfig('',1);
 for sex = 1:2
     subplot(1,2,sex)
@@ -1617,7 +1621,8 @@ for sex = 1:2
     pie(x,xplode)
     title({sexes{sex}; '   '})
 end
-save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type);
+legend(strrep(legend_labels,'_','-'), 'Location', 'best')
+save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type,auto_save, true, img_qual);
 
 % when (if) does each state arise in each temp regime? At what temp is the
 % behavior observed?
@@ -1625,17 +1630,21 @@ save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type
 %%  Save the 'analyzed' data package:
 clearvars('-except',initial_var{:})
 
-switch questdlg('Save processed data?')
-    case 'Yes'
+if auto_run 
+    save_data = true;
+else 
+    switch questdlg('Save processed data?') %#ok<UNRCH>
+        case 'Yes'
+           save_data = true;
+    end
+end
+
+if save_data
         save([baseDir 'post-5.1.2 data.mat'],'-v7.3')
         % update that it was processed in the excel sheet:     
         isExcelFileOpen(xlFile);
-        writecell({'Y'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(excel_loc)]);  
-        disp('Saved data file')
-    case 'No'
-        return
-    case 'Cancel'
-        return
+        writecell({swap_status},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(excel_loc)]);  
+        fprintf('Saved %s data file\n', trialDir)
 end
 
 
