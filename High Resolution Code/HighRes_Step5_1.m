@@ -26,12 +26,12 @@ trialDir = trial_options{idx};
 baseDir = [baseFolder, trialDir '/']; % full folder directory for that trial
 figDir = createFolder([baseDir,'Figures/']);
 
-% Manual selection (commented out for auto-revamp of all data on swaps)
-path = getDataPath(6,0);
-baseFolder = [path,'Trial Data/'];
-trialDir = selectFolder(baseFolder); 
-baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
-figDir = createFolder([baseDir,'Figures/']);
+% % Manual selection (commented out for auto-revamp of all data on swaps)
+% path = getDataPath(6,0);
+% baseFolder = [path,'Trial Data/'];
+% trialDir = selectFolder(baseFolder); 
+% baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+% figDir = createFolder([baseDir,'Figures/']);
 
 processed_path = [baseDir 'post-5.1.2 data.mat'];
 if isfile(processed_path) % DATA ALREADY EXISTS
