@@ -1,4 +1,5 @@
 
+
 % Load single trial data and run final processing and figures 
 
 %% LOAD data
@@ -25,11 +26,12 @@ trialDir = trial_options{idx};
 baseDir = [baseFolder, trialDir '/']; % full folder directory for that trial
 figDir = createFolder([baseDir,'Figures/']);
 
-% % Manual selection (commented out for auto-revamp of all data on swaps)
-% path = getDataPath(6,0);
-% baseFolder = [path,'Trial Data/'];
-% trialDir = selectFolder(baseFolder); 
-% baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+% Manual selection (commented out for auto-revamp of all data on swaps)
+path = getDataPath(6,0);
+baseFolder = [path,'Trial Data/'];
+trialDir = selectFolder(baseFolder); 
+baseDir = [baseFolder, trialDir{:} '/']; % full folder directory for that trial
+figDir = createFolder([baseDir,'Figures/']);
 
 processed_path = [baseDir 'post-5.1.2 data.mat'];
 if isfile(processed_path) % DATA ALREADY EXISTS
@@ -1142,7 +1144,7 @@ close_dist = T.IFD <= 7; % mm
 fmoving = f.speed >= 0.1; % min speed up for debate
 
 % Identify when male is moving
-mmoving = m.speed >= 0.01; % min speed diff than F in order to include true chase bouts
+mmoving = m.speed >= 0.1; % min speed diff than F in order to include true chase bouts
 
 chase = (mbehindf & close_dist & fmoving & mmoving); % requirements for 'chase all'
 chase_filled = imclose(chase, ones(max_gap + 1, 1)); % fill gaps in the behavior
@@ -1298,7 +1300,8 @@ for sex = 1:2
     % Angular velocity (change in heading)
     theta = diff(unwrap(heading));  % unwrap handles angle wrapping around the 180deg point
     
-    data(sex).turning = [nan; nan; rad2deg(theta)] * fps;
+    % data(sex).turning = [nan; nan; rad2deg(theta)] * fps;  % had double nan and was too long?? -BR
+    data(sex).turning = [nan; rad2deg(theta)] * fps;
 end
 
 
