@@ -25,9 +25,9 @@ fprintf('\n %i unprocessed experiments remaining\n', length(excel_loc_list))
 trial_options = excelfile(excel_loc_list,Excel.trialID);
 path = getDataPath(6,2);
 baseFolder = [path,'Trial Data/'];
-
+tic
 for trial_idx = 1:length(trial_options)
-
+    toc
     fprintf('\n\n========== Processing trial %i of %i: %s ==========\n', ...
         trial_idx, length(trial_options), trial_options{trial_idx});
 
@@ -97,8 +97,7 @@ for trial_idx = 1:length(trial_options)
     initial_var{end+1} = 'disp_fig';
     max_gap = 3;
     initial_var = add_var(initial_var, 'max_gap');
-    
-    toc
+
     disp('Data loaded, continuing evaluation')
     
     %% ANALYSIS: Extract calculated variables
@@ -232,8 +231,7 @@ for trial_idx = 1:length(trial_options)
 
     initial_var = add_var(initial_var, 'swap_status');   
     
-    
-    %% ANALYSIS: FIX FLY ID SWAPS: (TODO: 2/26)
+    %% ANALYSIS: FIX FLY ID SWAPS:
     if ~isempty(swap_pairs)
     
     nSwaps = size(swap_pairs,1);
@@ -283,10 +281,15 @@ for trial_idx = 1:length(trial_options)
          set(gca, 'xcolor', 'none', 'ycolor', 'none')
          axis equal
     end
+
+    
     
     % Manually approve the swaps: 
     switch questdlg('Are all tracks in alignment?')
         case 'No'
+
+            real_swaps = true(size(swap_pairs,1),1); % base assumption: all swaps are correct
+
             % give list of options that do not need to be swapped? Then show
             % the original version of those frames...
             mColor = Color('PastelBlue');
@@ -296,12 +299,14 @@ for trial_idx = 1:length(trial_options)
             idxList = Alphabet(1:nSwaps);
             fix_idx = listdlg('PromptString', 'Select the incorrectly handled swap trials',...
                             'ListString',idxList,'SelectionMode','multiple');
-            fix_list = false(size(fix_idx));
             sz = 20;
+            % frameBuffer = 3; % default
+            % frameBuffer = 8; % trajectory examining
 
             % look at the original vs the corrected swap versions for the trials that were suspect: 
-            r = 1; c = 2;
-            for ii = 1:length(fix_idx)
+            r = 2; c = 2;
+            for ii = fix_idx % 1:length(fix_idx)
+                % ii = fix_idx(jj); % actual swap index 
                 % frame numbers for the regions of interest
                 roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,2)+frameBuffer; % full ROI region
                 swap_roi = swap_pairs(ii,1):swap_pairs(ii,2)-1; % swap frames to color opposite
@@ -309,27 +314,35 @@ for trial_idx = 1:length(trial_options)
                 post_roi = swap_pairs(ii,2) : swap_pairs(ii,2)+frameBuffer;
                 
                 % all center points for swapped frames
-                swapX = [data(F).rawX(swap_roi,body.center);...
-                                data(M).rawX(swap_roi,body.center)];
-                swapY = [data(F).rawY(swap_roi,body.center);...
-                                data(M).rawY(swap_roi,body.center)];
+                swapX_all = [data(F).rawX(swap_roi,:);...
+                                data(M).rawX(swap_roi,:)];
+                swapY_all = [data(F).rawY(swap_roi,:);...
+                                data(M).rawY(swap_roi,:)];
+                swapX = swapX_all(:,body.center);
+                swapY = swapY_all(:,body.center);
 
-                fig = getfig('', 1); 
-                % plot OG frames: 
+                fig = getfig('', 1,[1064 1233]); 
+                % plot OG frames center line: 
                    subplot(r, c, 1); 
                    hold on
                        mX = data(M).rawX(roi,:);
                        mY = data(M).rawY(roi,:);
                        fX = data(F).rawX(roi,:);
                        fY = data(F).rawY(roi,:);
-                       % plotFlySkeleton(fig, mX, mY, mColor, false, sz);
-                       % plotFlySkeleton(fig, fX, fY, fColor, false, sz);
                        % track alignment over time
                        plot(mX(:,body.center), mY(:,body.center),'color', mHighlight, 'linestyle', '-',...
                            'Marker','o', 'MarkerFaceColor',mHighlight)
                        plot(fX(:,body.center), fY(:,body.center),'color', fHighlight, 'linestyle', '-',...
                            'Marker','o', 'MarkerFaceColor',fHighlight)
                        scatter(swapX, swapY, sz-6, foreColor,'filled')
+                       title([Alphabet(ii) ' original'])
+
+               % plot OG frames fly outline: 
+                   subplot(r, c, 3); 
+                   hold on
+                       plotFlySkeleton(fig, mX, mY, mHighlight, true, sz);
+                       plotFlySkeleton(fig, fX, fY, fHighlight, true, sz);
+                       scatter(swapX_all, swapY_all, sz, foreColor,'filled')
                        title([Alphabet(ii) ' original'])
                 
                % plot 'FIXED'  frames: 
@@ -350,32 +363,37 @@ for trial_idx = 1:length(trial_options)
                        fY = [data(F).rawY(pre_roi,:);...
                                   data(M).rawY(swap_roi,:);...
                                   data(F).rawY(post_roi,:)];
-
                        % % plot both sets of tracks: 
-                       % plotFlySkeleton(fig, mX, mY, mColor, false, sz);
-                       % plotFlySkeleton(fig, fX, fY, fColor, false, sz);
                         plot(mX(:,body.center), mY(:,body.center),'color', mHighlight, 'linestyle', '-',...
                            'Marker','o', 'MarkerFaceColor',mHighlight)
                         plot(fX(:,body.center), fY(:,body.center),'color', fHighlight, 'linestyle', '-',...
                            'Marker','o', 'MarkerFaceColor',fHighlight)
                         scatter(swapX, swapY, sz-6, foreColor, 'filled')
                         title([Alphabet(ii) ' corrected'])
+                 
+                   % plot 'FIXED' fly outlines: 
+                   subplot(r, c, 4); 
+                   hold on
+                      % % plot both sets of tracks: 
+                        plotFlySkeleton(fig, mX, mY, mHighlight, true, sz);
+                        plotFlySkeleton(fig, fX, fY, fHighlight, true, sz);
+                        scatter(swapX_all, swapY_all, sz, foreColor,'filled')
+                        title([Alphabet(ii) ' corrected'])
                     
-                        % formatting
-                        formatFig(fig, blkbnd, [r,c]);
-                        subplot(r, c, 1); 
+                    % formatting
+                    formatFig(fig, blkbnd, [r,c]);
+                    for sp = 1:4
+                        subplot(r, c, sp); 
                         set(gca, xcolor='none', ycolor='none')
                         axis equal
-                        subplot(r, c, 2); 
-                        set(gca, xcolor='none', ycolor='none')
-                        axis equal
+                    end
                    
                 % manual check / approval:
-                switch questdlg('Select the correct alignment:', '', 'Original', 'Swapped', 'Cancel', 'Original')
+                switch questdlg('Select the appropriate alignment:', '', 'Original', 'Corrected', 'Cancel', 'Original')
                     case 'Original'
-                        fix_list(ii) = false;
-                    case 'Swapped'
-                        fix_list(ii) = true;
+                        real_swaps(ii) = false; % DONT swap the data -- priginal alignment was correct
+                    case 'Corrected'
+                        real_swaps(ii) = true; % DO swap the data
                     case {'Cancel', ''}
                         return
                 end
@@ -383,19 +401,30 @@ for trial_idx = 1:length(trial_options)
             end  
                 
             % update the fix swap pairs to only the correct ones: 
-            real_swaps = true(size(swap_pairs,1),1); % base: all swaps are correct
-            real_swaps(fix_idx(~fix_list)) = false;
             swap_pairs = swap_pairs(real_swaps,:);
             nSwaps = sum(real_swaps);
 
         case {'Cancel', ''}
             warndlg('Manually check and fix the misaligned tracks...')
-            disp('Manual alignment of the tracks is still in progress....')
+            disp('Auto-processing aborted')
             return
+            % something here to get the information on what the trial is to
+            % go look at it manually and/or have an option to basically
+            % ditch the skip frame
+            
+            % format longG
+            % disp([roi', mX(:,body.center), mY(:,body.center)])
+            % % swap_pairs_add = [577996, 577999; 578003, 578004];
+            % % swap_pairs = [swap_pairs_add; swap_pairs];
+            % 
+            % % swap_pairs = [577997, 577998; swap_pairs]
+            % 
+            % disp([roi', fX(:,body.center), fY(:,body.center)])
+
     end
 
     % ----- SWAP ONLY THE APPROPRIATE SWAP FRAMES ----
-    
+
     disp('swapping data information')
     % raw alignment...
     swap_roi = [];
@@ -1611,8 +1640,9 @@ for trial_idx = 1:length(trial_options)
         ylabel('full trial count')
     end
     formatFig(fig,false,[1,2]);
-    save_figure(fig,[figDir 'Behavior state bar graph full ramp  M and F'],fig_type,auto_save, true, img_qual);
-    
+    saveas(fig, [figDir 'Behavior state bar graph full ramp  M and F.pdf'])
+    close(fig)
+
     % % time course of the behavior states
     % fig = getfig('',1,[ 937 406]);
     % for sex = 1:2
@@ -1642,7 +1672,9 @@ for trial_idx = 1:length(trial_options)
         set(gca, 'XDisplayLabels',b_list,'YDisplayLabels',b_list)
         title(sexes{sex})
     end
-    save_figure(fig,[figDir 'Behavior state transitions heatmap M and F'],fig_type,auto_save, true, img_qual);
+    saveas(fig, [figDir 'Behavior state transitions heatmap M and F.pdf'])
+    close(fig)
+    % save_figure(fig,[figDir 'Behavior state transitions heatmap M and F'],fig_type,auto_save, true, img_qual);
     
     % Figures: Histogram of the different state transitions & total count of the behaviors (~time)
     fig = getfig('',1,[1064 473]);
@@ -1654,7 +1686,9 @@ for trial_idx = 1:length(trial_options)
         ylabel('count (#)')
     end
     fig = formatFig(fig,false,[1,2]);
-    save_figure(fig,[figDir 'Behavior state transitions histogram M and F'],fig_type,auto_save, true, img_qual);
+    saveas(fig, [figDir 'Behavior state transitions histogram M and F.pdf'])
+    close(fig)
+    % save_figure(fig,[figDir 'Behavior state transitions histogram M and F'],fig_type,auto_save, true, img_qual);
     
     % Figure:  pie chart of different behaviors across the full experiment
     legend_labels = ['Unknown', data(1).states.b_list];
@@ -1672,7 +1706,9 @@ for trial_idx = 1:length(trial_options)
         title({sexes{sex}; '   '})
     end
     legend(strrep(legend_labels,'_','-'), 'Location', 'best')
-    save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type,auto_save, true, img_qual);
+    saveas(fig, [figDir 'Behavior state transitions pie chart M and F.pdf'])
+    close(fig)
+    % save_figure(fig,[figDir 'Behavior state transitions pie chart M and F'],fig_type,auto_save, true, img_qual);
     
     % when (if) does each state arise in each temp regime? At what temp is the
     % behavior observed?
