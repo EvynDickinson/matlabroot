@@ -783,5 +783,20 @@ fig =  getfig('',1);
             plot(mX,mY,'color','blue','linewidth',spike_W)
         end
 
+%% For 5_1 chase!!
+
+% 2.28.26 exp
+
+i = 62;
+plotroi = (m.chaseroi(i,1):m.chaseroi(i,2))';
+vidnum = T.vidNums(plotroi);
+frames = T.vidFrame(plotroi);
+
+fig = getfig;
+plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),Color('dodgerblue'),false) % male
+plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),Color('deeppink'),false) % female
+
+
+
        
         
