@@ -1739,130 +1739,176 @@ datetime('now')
 
 %%
 
-% parameters.trialID = trialID;
-% % DATE LOCATION:
-% date_loc = (strcmp(excelfile(:,Excel.date),dateDir{1})); % find the rows in the excel sheet that match the current exp date
-% name_loc = (strcmp(excelfile(:,Excel.expID),expName)); % find name match
-% loc = find(date_loc & name_loc);
-% if isempty(loc)
-%     warndlg('Can''t find the row location for the file to add the trial ID information. Input manually.')
-%     disp(trialID)
-% else
-%     % write the trial ID into the excel sheet
-%     isExcelFileOpen(xlFile);
-%     writecell({trialID},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(loc)]);
-%     writecell({'Y'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.basicfigs) num2str(loc)]);
+%%
+
+%% CODE FOR DOUBLE CHECKING NO SWAPS FOUND IN PROCESSED DATA:
+
+
+
+% %% LOAD data
+% clear; clc;
+% warning off
+% 
+% % updates for updating the fly data with no swaps:
+% [excelfile, Excel, xlFile] = load_HighResExperiments;
+% 
+% % find trials that can be updated: 
+% loc_ready = strcmpi('Y', excelfile(:,Excel.swapcorrected));
+% EXCEL_LOC_LIST = find(loc_ready);
+% 
+% fprintf('\n %i unprocessed experiments remaining\n', length(EXCEL_LOC_LIST))
+% 
+% % select trial to update: 
+% TRIAL_OPTIONS = excelfile(EXCEL_LOC_LIST,Excel.trialID);
+% path = getDataPath(6,2);
+% baseFolder = [path,'Trial Data/'];
+% 
+% for TRIAL_IDX = 16:length(TRIAL_OPTIONS)
+% 
+%     fprintf('\n\n========== Processing trial %i of %i: %s ==========\n', ...
+%                 TRIAL_IDX, length(TRIAL_OPTIONS), TRIAL_OPTIONS{TRIAL_IDX});
+% 
+%     EXCEL_LOC = EXCEL_LOC_LIST(TRIAL_IDX); % location in excel file of trials to process
+%     trialDir = TRIAL_OPTIONS{TRIAL_IDX};
+%     baseDir = [baseFolder, trialDir '/']; % full folder directory for that trial
+%     figDir = createFolder([baseDir,'Figures/']);
+% 
+%     processed_path = [baseDir 'post-5.1.2 data.mat'];
+% 
+%     load(processed_path)
+% 
+%     % % Set initial variables
+%     initial_var = who;
+%     initial_var{end+1} = 'initial_var';
+%     initial_var{end+1} = 'well';
+%     initial_var{end+1} = 'path';
+%     initial_var{end+1} = 'TRIAL_IDX';
+%     initial_var{end+1} = 'TRIAL_OPTIONS';
+%     initial_var{end+1} = 'EXCEL_LOC_LIST';
+%     initial_var{end+1} = 'EXCEL_LOC';
+%     initial_var{end+1} = 'xlFile';
+%     initial_var{end+1} = 'Excel';
+%     initial_var{end+1} = 'excelfile';
+% 
+%     disp('Data loaded, continuing evaluation')
+% 
+%     %% ANALYSIS: Find high-speed short-term swap frames and reverse them: 
+%     clearvars('-except',initial_var{:})
+% 
+%     speed_thresh = 35; %mm/s speed threshold
+%     skip_threshold = 3; % how many frames for a confident swap pair in time
+%     nNeighbors = 5; % how many preceeding frames to look at for close distance?
+% 
+%     % Find possible swap locations: 
+%     m_loc = m.speed>=speed_thresh;
+%     f_loc = f.speed>=speed_thresh;
+% 
+%     % speed above threshold for both male and female
+%     double_speed_loc = m_loc & f_loc;
+%     swap_ConfidentFrames = find(double_speed_loc);
+% 
+%     % speed above threshold and nan for other fly
+%     a = f_loc & isnan(m.speed);
+%     b = m_loc & isnan(f.speed);
+%     possible_swapFrames = find(a | b);
+% 
+%     % combine all possible swap frames: 
+%     allSwaps = sort([swap_ConfidentFrames; possible_swapFrames]);
+% 
+%     % PAIR LIKELY SWAP FRAMES FOR EACH OF THE TRIALS
+%     % Find differences between consecutive frames
+%     frame_diffs = diff(allSwaps);
+%     % Find where frames are close together (potential pairs)
+%     is_close = frame_diffs <= skip_threshold;
+%     % Extract pairs
+%     pairs = [];
+%     ii = 1; % index location within frame list
+%     while ii <= length(is_close)
+%         if is_close(ii)
+%             % Found a pair: frames a(i) and a(i+1)
+%             pairs = [pairs; allSwaps(ii), allSwaps(ii+1)];
+% 
+%             % Skip the next position to avoid overlapping pairs
+%             % (e.g., if frames 1,2,3 are all close, we want pairs [1,2] and not [2,3])
+%             ii = ii + 2;
+%         else
+%             ii = ii + 1;
+%         end
+%     end
+% 
+%     tot_frames = size(T,1);
+%     m_framesP = mean((sum(m_loc)/tot_frames)*100);
+%     f_framesP = mean((sum(f_loc)/tot_frames)*100);
+%     fprintf('\n%2.3g  percent of total frames are high speed\n', (m_framesP + f_framesP))
+% 
+%     % are there pairs of swaps found??
+%     if ~isempty(pairs)
+% 
+%         % fprintf('\n*** SWAPS DETECTED - SKIPPING TRIAL %s ***\n', trialDir);
+%         % close all
+%         % continue; % skip to next trial
+% 
+%         % Second filter: body size and position relative to past trajectory
+%         mPos = squeeze(m.pos(:,body.center,:));
+%         fPos = squeeze(f.pos(:,body.center,:));
+% 
+%         % for each of the likely speed frame pairs
+%         % likely_pairs = pairs;
+%         rois = pairs(:,1) + ((-nNeighbors-1): -1);
+% 
+%         % check location alignment for each swap pair
+%         likelyswitch = false([size(pairs, 1), 1]);
+%         for ii = 1:size(pairs,1)
+% 
+%             % frame locations for pre and during swaps
+%             pre_roi = rois(ii,:);
+%             dur_roi = pairs(ii,1);
+% 
+%             % distance of each during swap roi to pre-swap roi relative
+%             x = mPos(dur_roi,1) - mPos(pre_roi,1); 
+%             y = mPos(dur_roi,2) - mPos(pre_roi,2);
+%             dM = mean(hypot(x,y),'omitnan');  % male track distance to assigned male (distance to male)
+%             x = mPos(dur_roi,1) - fPos(pre_roi,1); 
+%             y = mPos(dur_roi,2) - fPos(pre_roi,2);
+%             dF = mean(hypot(x,y),'omitnan');  % male track distance to assigned female (distance to female)
+% 
+%             % determine if likely switch
+%             likelyswitch(ii) = dM>=dF; % female would be closer than correct male
+%         end
+% 
+%         % extract the likely swap locations
+%         if any(likelyswitch)
+%             swap_pairs = pairs(likelyswitch,:); % pull only the likely pairs
+%             swap_status = 'Y';
+%         else % no pairs passed the body path filter:
+%             swap_pairs = [];
+%             swap_status = 'NA';
+%         end
+% 
+%         % relative percentages
+%         swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
+%         fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
+% 
+%     else % NO swapped frames
+% 
+%         swap_pairs = [];
+%         fprintf('\n\n ** UPDATE: NO SWAPPED FRAMES FOUND ** \n\n')
+%         swap_status = 'NA';
+% 
+%     end
+% 
+%     switch swap_status
+%         case 'NA'
+%         case 'Y'
+%             isExcelFileOpen(xlFile);
+%             writecell({'SF'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(EXCEL_LOC)]);
+%             % write 'swap found' 
+%     end
+% 
+%     clearvars('-except', 'TRIAL_IDX', 'TRIAL_OPTIONS', 'EXCEL_LOC_LIST', 'EXCEL_LOC', ...
+%               'xlFile', 'Excel', 'excelfile', 'path', 'baseFolder')
+% 
 % end
-
-
-
-% NOTE: 2.27.26
-% this code has been update to include a swaped-frames catch for single and
-% double frame identity swap situations. Moving forward, data will be saved
-% as 'post-5.1.2.mat' to indicate the updated version of the data
-
-% NOTE: 5.12.25 
-% this code has been updated to include the new distance measures for the
-% plate size and thus moving forward, data will be saved as
-% 'post-5.1.1.mat' rather than just 'post-5.1.mat' data. Do not use data
-% from the original set, as it has an incorrect distance scaling factor. 
-
-
-
-%% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
-% vidpath = "S:\Evyn\DATA\Courtship Videos\02.05.2025\Berlin_courtship_F_LRR_caviar_ramp1\compiled_video_1.avi";
-% % vidpath = "S:\Evyn\DATA\Courtship Videos\09.26.2024\Berlin_courtship_F_LRR_caviar_ramp\compiled_video_2.avi";
-% movieInfo = VideoReader(vidpath); %read in video
-% demoImg = (read(movieInfo,1));
-% well_loc = readPoints(demoImg,4); % click on center positions of the wells in the arena
-
-% % distance between well 1 and 3
-% d = [];
-% well_1 = well_loc(:,1);
-% well_3 = well_loc(:,3);
-% d = [d;sum((well_1-well_3).^2).^0.5];
-% % distance between well 2 and 4
-% well_1 = well_loc(:,2);
-% well_3 = well_loc(:,4);
-% d = [d;sum((well_1-well_3).^2).^0.5];
-% 
-% pixelsbetweenwells = mean(d); %pixels
-% actualdistance =  36.2; %mm
-% pix2mm = actualdistance/pixelsbetweenwells; % multiplier
-% 
-% R = 36.1;
-% WC = well_loc;
-% x1 = WC(1,1:2:4);
-% y1 = WC(2,1:2:4);
-% x2 = WC(1,2:2:4);
-% y2 = WC(2,2:2:4);
-% [xi,yi] = polyxpoly(x1,y1,x2,y2);
-% centre = [xi,yi];
-% 
-% fig = figure;
-%     imshow(demoImg); hold on
-%     viscircles(centre,R*pix2mm,'color', 'w','LineWidth',0.25);
-%     % find actual plate size: 
-%     % roi = drawcircle; % manually add in the circle over the food well
-%     % newR = roi.Radius/pix2mm;
-%     newR = 33.6;
-%     viscircles(centre,newR*pix2mm,'color', 'w','LineWidth',0.25);
-
-%% Visual check of the area sizes for the arena
-
-% vidpath = "S:\Evyn\DATA\Courtship Videos\02.05.2025\Berlin_courtship_F_LRR_caviar_ramp1\compiled_video_1.avi";
-% movieInfo = VideoReader(vidpath); %read in video
-% demoImg = (read(movieInfo,1));
-% 
-% fig = getfig('',1,[900,900]);
-%     imshow(demoImg); hold on
-%     viscircles(well.center(5,:),conversion(4).R*pix2mm,'color', 'w','LineWidth',0.25);
-%     viscircles(well.center(5,:),conversion(4).circle75*pix2mm,'color', 'w','LineWidth',0.25);
-%     viscircles(well.food,conversion(4).circle10*pix2mm,'color', Color('gold'),'LineWidth',0.25);
-%     viscircles(well.food,conversion(4).circle7*pix2mm,'color', Color('red'),'LineWidth',0.25);
-%     viscircles(well.food,conversion(4).circle5*pix2mm,'color', Color('purple'),'LineWidth',0.25);
 % 
 % 
-% % vidpath = "S:\Evyn\DATA\Raw Data\05.01.2025\C1_hold_33_caviar_1.avi";
-
-
-%% RUN THIS TO CHECK THE FIT OF THE OUTER RING 
-% TODO (3/11) run this on all the seperate trials between high res and low res to be
-% sure that they are aligned and captureing the appropriate space limits
-
-% % Current trial movie path: 
-% loc_str = ['Experiment: ' parameters.date ' ' parameters.expID];
-% disp(loc_str)
-% dummypath = uigetdir;
-% movieInfo = VideoReader([dummypath '/compiled_video_1.avi']); %read in video
-% demoImg = (read(movieInfo,1));
-% 
-% % ArenaArea = 2827.43;
-% R =  25.6; % (full arena edge: 29.5)   %functional distance they can reach in the circle
-% innerR = R*sqrt(3/4); % radius of the inner 50% occupancy space R*sqrt(1/2)
-% dist_from_edge = (R - innerR); % distance acceptable for start of outer 25%
-% maxR = R*sqrt(0.1); % radius of a circle occupying 10% of the arena
-% 
-% centre = well.center(5,:);
-% foodWell = well.center(well.food_idx,:);
-% figure; imshow(demoImg);
-%     viscircles(centre,R*pix2mm,'color', foreColor,'LineWidth',0.25);
-%     viscircles(centre,innerR/pix2mm,'color', foreColor,'LineWidth',0.25);
-%     viscircles(foodWell,maxR/pix2mm,'color', foreColor,'LineWidth',0.25);
-%     hold on
-% % plot all the position points within this experiment: 
-% 
-% x = data(M).rawX(:,body.head);
-% y = data(M).rawY(:,body.head);
-% scatter(x,y,1,'b','filled')
-% x = data(F).rawX(:,body.head);
-% y = data(F).rawY(:,body.head);
-% scatter(x,y,1,'m','filled')
-
-
-
-
-
-
-
-
+% disp('All Done')

@@ -6,21 +6,32 @@
 clear; clc;
 warning off
 
-auto_run = true;
+auto_run = false;
 
 % updates for updating the fly data with no swaps:
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 % find trials that can be updated: 
-done_loc = (strcmpi('Y', excelfile(:,Excel.swapcorrected)) | strcmpi('NA', excelfile(:,Excel.swapcorrected)));
-loc_ready = strcmpi('Y', excelfile(:,Excel.groupready)) & ~done_loc;
+% done_loc = (strcmpi('Y', excelfile(:,Excel.swapcorrected)) | strcmpi('NA', excelfile(:,Excel.swapcorrected)));
+% loc_ready = strcmpi('Y', excelfile(:,Excel.groupready)) & ~done_loc;
+
+switch questdlg('Load all data options or processed data only?','','All Data', 'Unprocessed', 'Cancel','Unprocessed')
+    case 'All Data'
+        loc_ready = strcmpi('Y', excelfile(:,Excel.basicfigs));
+    case 'Unprocessed'
+        % loc_ready = ~strcmpi('Y', excelfile(:,Excel.groupready)) & strcmpi('Y', excelfile(:,Excel.basicfigs));
+        loc_ready = strcmpi('SF', excelfile(:,Excel.swapcorrected));
+    case {'Cancel',''}
+        disp('nothing selected')
+        return
+end
+
 loc = find(loc_ready);
-fprintf('\n %i unprocessed experiments remaining\n', length(loc))
 % select trial to update: 
 trial_options = excelfile(loc,Excel.trialID);
 idx = listdlg('PromptString','Select experiments to update:','ListString',trial_options,...
                     'SelectionMode','single','ListSize',[350,300]);
 excel_loc = loc(idx); % location in excel file of trials to process
-path = getDataPath(6,2);
+path = getDataPath(6,0);
 baseFolder = [path,'Trial Data/'];
 trialDir = trial_options{idx};
 baseDir = [baseFolder, trialDir '/']; % full folder directory for that trial
@@ -50,10 +61,9 @@ if isfile(processed_path) % DATA ALREADY EXISTS
         return
     end
 else % DATA DOES NOT YET EXIST
-    if auto_run %strcmp('Yes', questdlg('Run basic analysis now?'))
+    if strcmp('Yes', questdlg('Run basic analysis now?'))
         load([baseDir, 'basic data.mat']) % load the parameters and temp table
         disp('data loaded')
-        tic 
         % Experiment parameters
         nvids = parameters.nVids; % number of videos
         fps = parameters.FPS;
@@ -81,7 +91,6 @@ else % DATA DOES NOT YET EXIST
         
         disp_fig = false; % display baseline figures?
         initial_var{end+1} = 'disp_fig';
-        toc
         disp('Data loaded, continuing evaluation')
     end
 end
@@ -206,31 +215,11 @@ else % NO swapped frames
     swap_pairs = [];
     fprintf('\n\n ** UPDATE: NO SWAPPED FRAMES FOUND ** \n\n')
     swap_status = 'NA';
-    % % determine if processing a full data set or just updating the data
-    % % with the new name...
-    % processed_file = [baseDir 'post-5.1.1 data.mat'];
-    % if exist(processed_file,"file")==2 % old processed data already exists -- change the name now: 
-    %     newpath =  [baseDir 'post-5.1.2 data.mat'];
-    % 
-    %     status = movefile(processed_file, newpath);
-    %     if status == 1
-    %         disp('File renamed successfully');
-    %     else
-    %         disp(['Error: ' msg]);
-    %     end
-    %     % update that it was processed in the excel sheet:     
-    %     isExcelFileOpen(xlFile);
-    %     writecell({'NA'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.swapcorrected) num2str(excel_loc)]);  
-    %     % NA for no swaps, not applicible 
-    %     disp('Data updated and name changed.')
-    %     return
-    % 
-    % end
 end
 
 initial_var = add_var(initial_var, 'swap_status');
 
-%% ANALYSIS: FIX FLY ID SWAPS: (TODO: 2/26)
+%% ANALYSIS: FIX FLY ID SWAPS:
 if ~isempty(swap_pairs)
 
 nSwaps = size(swap_pairs,1);
@@ -238,8 +227,7 @@ frameBuffer = 3; % how many frames before/after swap to show
 mColor = Color('vaporwaveblue');
 fColor = Color('vaporwavepink');
 [r, c] = subplot_numbers(nSwaps);
-sz = 15; % node size for fly skeleton
-
+sz = 5; % node size for fly skeleton
 
 % Preview the swaps: 
 fig = getfig('', 1); 
@@ -258,7 +246,7 @@ for ii = 1:nSwaps
    mY_swap = data(F).rawY(swap_roi,:);
    mX = data(M).rawX(OG_roi,:);
    mY = data(M).rawY(OG_roi,:);
-   plotFlySkeleton(fig, [mX; mX_swap], [mY; mY_swap], mColor, true, sz);
+   plotFlySkeleton(fig, [mX; mX_swap], [mY; mY_swap], mColor, false, sz);
    % highlight corrected frames
    scatter(mX_swap(:), mY_swap(:), sz+10, foreColor, 'filled')
 
@@ -267,7 +255,7 @@ for ii = 1:nSwaps
    fY = data(F).rawY(OG_roi,:);
    fX_swap = data(M).rawX(swap_roi,:);
    fY_swap = data(M).rawY(swap_roi,:);
-   plotFlySkeleton(fig, [fX; fX_swap], [fY; fY_swap], fColor, true, sz);
+   plotFlySkeleton(fig, [fX; fX_swap], [fY; fY_swap], fColor, false, sz);
    % highlight corrected frames
    scatter(fX_swap(:), fY_swap(:), sz+10, foreColor, 'filled')
    
@@ -283,122 +271,194 @@ end
 
 % Manually approve the swaps: 
 switch questdlg('Are all tracks in alignment?')
-    case 'Yes'
-        disp('swapping data information')
-        % raw alignment...
-        swap_roi = [];
-        for ii = 1:nSwaps
-            swap_roi = [swap_roi, swap_pairs(ii,1) : swap_pairs(ii,2)-1];
-        end
-        
-        % Swap 'data' sections: 
-        data_fields = {'rawX', 'rawY', 'x', 'y'};
-        for ii = 1:length(data_fields)
-            correct_M = data(F).(data_fields{ii})(swap_roi,:);
-            correct_F = data(M).(data_fields{ii})(swap_roi,:);
-            % swap data: 
-            data(M).(data_fields{ii})(swap_roi,:) = correct_M;
-            data(F).(data_fields{ii})(swap_roi,:) = correct_F;
-        end
-        
-        % Swap 'f' and 'm' sections
-        correct_M = f.pos(swap_roi,:,:);
-        correct_F = m.pos(swap_roi,:,:);
-        m.pos(swap_roi,:,:) = correct_M;
-        f.pos(swap_roi,:,:) = correct_F;
-        
-        correct_M = f.wing.angle(swap_roi,:);
-        correct_F = m.wing.angle(swap_roi,:);
-        m.wing.angle(swap_roi,:) = correct_M;
-        f.wing.angle(swap_roi,:) = correct_F;
-
-        % recalculate speed: 
-        % Inter-fly-distance from the fly's center point
-        x1 = m.pos(:,body.center,1); % x location for male center
-        y1 = m.pos(:,body.center,2);
-        x2 = f.pos(:,body.center,1); % x location for female center
-        y2 = f.pos(:,body.center,2);
-        % Male Speed:
-        D = hypot(diff(x1), diff(y1)); % find the distance in pixels one frame to the next
-        D = D./pix2mm; % convert from pixels/frame to mm/frame
-        D = D.*fps; % convert to mm/sec
-        m.speed = [0; D];
-        % Female speed: 
-        D = hypot(diff(x2), diff(y2)); % find the distance in pixels one frame to the next
-        D = D./pix2mm; % convert from pixels/frame to mm/frame
-        D = D.*fps; % convert to mm/sec
-        f.speed = [0; D];
-        close(fig)
-
     case 'No'
-        % % give list of options that do not need to be swapped? Then show
-        % % the original version of those frames...
-        % idxList = Alphabet(1:nSwaps);
-        % fix_idx = listdlg('PromptString', 'Select the incorrectly handled swap trials',...
-        %                 'ListString',idxList,'SelectionMode','multiple');
-        % 
-        % % look at the original vs the corrected swap versions for the trials that were suspect: 
-        % r = 1; c = 2;
-        % for ii = 1:length(fix_idx)
-        %     fig = getfig('', 1); 
-        %            subplot(r, c, 1); 
-        %            hold on
-        %            % plot OG frames: 
-        %            roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,2)+frameBuffer;
-        %            mX = data(M).rawX(roi,:);
-        %            mY = data(M).rawY(roi,:);
-        %            fX = data(F).rawX(roi,:);
-        %            fY = data(F).rawY(roi,:);
-        %            plotFlySkeleton(fig, mX, mY, mColor, true, sz);
-        %            plotFlySkeleton(fig, fX, fY, fColor, true, sz);
-        % 
-        %            % plot 'fixed' frames:
-        %            % plot the swapped frames
-        %            pre_roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,1)-1;
-        %            post_roi = swap_pairs(ii,2) : swap_pairs(ii,2)+frameBuffer;
-        %            OG_roi = [pre_roi, post_roi]; % combined before and after
-        %            swap_roi = swap_pairs(ii,1):swap_pairs(ii,2)-1; % swap frames to color opposite
-        % 
-        %            % --- pull body locations for plotting ---
-        % 
-        %            % Male tracks: 
-        %            mX = data(M).rawX(OG_roi,:);
-        %            mY = data(M).rawY(OG_roi,:);
-        %            % add middle frames: 
-        %            mX = [mX; data(F).rawX(swap_roi,:)];
-        %            mY = [mY; data(F).rawY(swap_roi,:)];
-        % 
-        %            % Female tracks: 
-        %            fX = data(F).rawX(OG_roi,:);
-        %            fY = data(F).rawY(OG_roi,:);
-        %            % add middle frames: 
-        %            fX = [fX; data(M).rawX(swap_roi,:)];
-        %            fY = [fY; data(M).rawY(swap_roi,:)];
-        % 
-        %            % plot both sets of tracks: 
-        %            plotFlySkeleton(fig, mX, mY, mColor, true, sz);
-        %            plotFlySkeleton(fig, fX, fY, fColor, true, sz);
-        % 
-        %            % formatting and labels for mismatched alignments
-        %            title([Alphabet(ii)])
 
-        
-        % TODO: tell Evyn if one of these pops up so we can make the code
-        % to account for it 
+        real_swaps = true(size(swap_pairs,1),1); % base assumption: all swaps are correct
 
-        % (give number pair to the swaps, show all the swaps on a single image)
-        % (question approve the swaps) 
-        % (option to UNCORRECT a swap if not actually a swap)
+        % give list of options that do not need to be swapped? Then show
+        % the original version of those frames...
+        mColor = Color('PastelBlue');
+        fColor = Color('PastelPurple');
+        mHighlight = Color('Vaporwaveblue');
+        fHighlight = Color('Vaporwavepink');
+        idxList = Alphabet(1:nSwaps);
+        fix_idx = listdlg('PromptString', 'Select the incorrectly handled swap trials',...
+                        'ListString',idxList,'SelectionMode','multiple');
+        sz = 20;
+        % frameBuffer = 3; % default
+        % frameBuffer = 8; % trajectory examining
 
-        warndlg('Manually check and fix the misaligned tracks...')
-        disp('Manual alignment of the tracks is still in progress....')
-        return
+        % look at the original vs the corrected swap versions for the trials that were suspect: 
+        r = 2; c = 2;
+        for ii = fix_idx % 1:length(fix_idx)
+            % ii = fix_idx(jj); % actual swap index 
+            % frame numbers for the regions of interest
+            roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,2)+frameBuffer; % full ROI region
+            swap_roi = swap_pairs(ii,1):swap_pairs(ii,2)-1; % swap frames to color opposite
+            pre_roi = swap_pairs(ii,1)-frameBuffer:swap_pairs(ii,1)-1;
+            post_roi = swap_pairs(ii,2) : swap_pairs(ii,2)+frameBuffer;
+            
+            % all center points for swapped frames
+            swapX_all = [data(F).rawX(swap_roi,:);...
+                            data(M).rawX(swap_roi,:)];
+            swapY_all = [data(F).rawY(swap_roi,:);...
+                            data(M).rawY(swap_roi,:)];
+            swapX = swapX_all(:,body.center);
+            swapY = swapY_all(:,body.center);
+
+            fig = getfig('', 1,[1064 1233]); 
+            % plot OG frames center line: 
+               subplot(r, c, 1); 
+               hold on
+                   mX = data(M).rawX(roi,:);
+                   mY = data(M).rawY(roi,:);
+                   fX = data(F).rawX(roi,:);
+                   fY = data(F).rawY(roi,:);
+                   % track alignment over time
+                   plot(mX(:,body.center), mY(:,body.center),'color', mHighlight, 'linestyle', '-',...
+                       'Marker','o', 'MarkerFaceColor',mHighlight)
+                   plot(fX(:,body.center), fY(:,body.center),'color', fHighlight, 'linestyle', '-',...
+                       'Marker','o', 'MarkerFaceColor',fHighlight)
+                   scatter(swapX, swapY, sz-6, foreColor,'filled')
+                   title([Alphabet(ii) ' original'])
+
+           % plot OG frames fly outline: 
+               subplot(r, c, 3); 
+               hold on
+                   plotFlySkeleton(fig, mX, mY, mHighlight, true, sz);
+                   plotFlySkeleton(fig, fX, fY, fHighlight, true, sz);
+                   scatter(swapX_all, swapY_all, sz, foreColor,'filled')
+                   title([Alphabet(ii) ' original'])
+            
+           % plot 'FIXED'  frames: 
+               subplot(r, c, 2); 
+               hold on
+                   % Male tracks: 
+                   mX = [data(M).rawX(pre_roi,:);...
+                              data(F).rawX(swap_roi,:);...
+                              data(M).rawX(post_roi,:)];
+                   mY = [data(M).rawY(pre_roi,:);...
+                              data(F).rawY(swap_roi,:);...
+                              data(M).rawY(post_roi,:)];
+
+                   % Female tracks: 
+                   fX = [data(F).rawX(pre_roi,:);...
+                              data(M).rawX(swap_roi,:);...
+                              data(F).rawX(post_roi,:)];
+                   fY = [data(F).rawY(pre_roi,:);...
+                              data(M).rawY(swap_roi,:);...
+                              data(F).rawY(post_roi,:)];
+                   % % plot both sets of tracks: 
+                    plot(mX(:,body.center), mY(:,body.center),'color', mHighlight, 'linestyle', '-',...
+                       'Marker','o', 'MarkerFaceColor',mHighlight)
+                    plot(fX(:,body.center), fY(:,body.center),'color', fHighlight, 'linestyle', '-',...
+                       'Marker','o', 'MarkerFaceColor',fHighlight)
+                    scatter(swapX, swapY, sz-6, foreColor, 'filled')
+                    title([Alphabet(ii) ' corrected'])
+             
+               % plot 'FIXED' fly outlines: 
+               subplot(r, c, 4); 
+               hold on
+                  % % plot both sets of tracks: 
+                    plotFlySkeleton(fig, mX, mY, mHighlight, true, sz);
+                    plotFlySkeleton(fig, fX, fY, fHighlight, true, sz);
+                    scatter(swapX_all, swapY_all, sz, foreColor,'filled')
+                    title([Alphabet(ii) ' corrected'])
+                
+                % formatting
+                formatFig(fig, blkbnd, [r,c]);
+                for sp = 1:4
+                    subplot(r, c, sp); 
+                    set(gca, xcolor='none', ycolor='none')
+                    axis equal
+                end
+               
+            % manual check / approval:
+            switch questdlg('Select the appropriate alignment:', '', 'Original', 'Corrected', 'Cancel', 'Original')
+                case 'Original'
+                    real_swaps(ii) = false; % DONT swap the data -- priginal alignment was correct
+                case 'Corrected'
+                    real_swaps(ii) = true; % DO swap the data
+                case {'Cancel', ''}
+                    return
+            end
+            close all
+        end  
+            
+        % update the fix swap pairs to only the correct ones: 
+        swap_pairs = swap_pairs(real_swaps,:);
+        nSwaps = sum(real_swaps);
+
     case {'Cancel', ''}
         warndlg('Manually check and fix the misaligned tracks...')
-        disp('Manual alignment of the tracks is still in progress....')
-end
+        disp('Auto-processing aborted')
+        return
+        % something here to get the information on what the trial is to
+        % go look at it manually and/or have an option to basically
+        % ditch the skip frame
+        
+        % format longG
+        % disp([roi', mX(:,body.center), mY(:,body.center)])
+        % % swap_pairs_add = [577996, 577999; 578003, 578004];
+        % % swap_pairs = [swap_pairs_add; swap_pairs];
+        % 
+        % % swap_pairs = [577997, 577998; swap_pairs]
+        % 
+        % disp([roi', fX(:,body.center), fY(:,body.center)])
 
 end
+
+% ----- SWAP ONLY THE APPROPRIATE SWAP FRAMES ----
+
+disp('swapping data information')
+% raw alignment...
+swap_roi = [];
+for ii = 1:nSwaps
+    swap_roi = [swap_roi, swap_pairs(ii,1) : swap_pairs(ii,2)-1];
+end
+
+% Swap 'data' sections: 
+data_fields = {'rawX', 'rawY', 'x', 'y'};
+for ii = 1:length(data_fields)
+    correct_M = data(F).(data_fields{ii})(swap_roi,:);
+    correct_F = data(M).(data_fields{ii})(swap_roi,:);
+    % swap data: 
+    data(M).(data_fields{ii})(swap_roi,:) = correct_M;
+    data(F).(data_fields{ii})(swap_roi,:) = correct_F;
+end
+
+% Swap 'f' and 'm' sections
+correct_M = f.pos(swap_roi,:,:);
+correct_F = m.pos(swap_roi,:,:);
+m.pos(swap_roi,:,:) = correct_M;
+f.pos(swap_roi,:,:) = correct_F;
+
+correct_M = f.wing.angle(swap_roi,:);
+correct_F = m.wing.angle(swap_roi,:);
+m.wing.angle(swap_roi,:) = correct_M;
+f.wing.angle(swap_roi,:) = correct_F;
+
+% recalculate speed: 
+% Inter-fly-distance from the fly's center point
+x1 = m.pos(:,body.center,1); % x location for male center
+y1 = m.pos(:,body.center,2);
+x2 = f.pos(:,body.center,1); % x location for female center
+y2 = f.pos(:,body.center,2);
+% Male Speed:
+D = hypot(diff(x1), diff(y1)); % find the distance in pixels one frame to the next
+D = D./pix2mm; % convert from pixels/frame to mm/frame
+D = D.*fps; % convert to mm/sec
+m.speed = [0; D];
+% Female speed: 
+D = hypot(diff(x2), diff(y2)); % find the distance in pixels one frame to the next
+D = D./pix2mm; % convert from pixels/frame to mm/frame
+D = D.*fps; % convert to mm/sec
+f.speed = [0; D];
+
+close all
+
+end
+    
 
 %% ANALYSIS: Calculate M and F wing angles
 clearvars('-except',initial_var{:})
@@ -1636,9 +1696,11 @@ clearvars('-except',initial_var{:})
 if auto_run 
     save_data = true;
 else 
-    switch questdlg('Save processed data?') %#ok<UNRCH>
+    switch questdlg('Save processed data?') 
         case 'Yes'
            save_data = true;
+        case {'No', 'Cancel', ''}
+            disp('Data NOT saved')
     end
 end
 
@@ -1651,23 +1713,6 @@ if save_data
 end
 
 
-% parameters.trialID = trialID;
-% % DATE LOCATION:
-% date_loc = (strcmp(excelfile(:,Excel.date),dateDir{1})); % find the rows in the excel sheet that match the current exp date
-% name_loc = (strcmp(excelfile(:,Excel.expID),expName)); % find name match
-% loc = find(date_loc & name_loc);
-% if isempty(loc)
-%     warndlg('Can''t find the row location for the file to add the trial ID information. Input manually.')
-%     disp(trialID)
-% else
-%     % write the trial ID into the excel sheet
-%     isExcelFileOpen(xlFile);
-%     writecell({trialID},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.trialID) num2str(loc)]);
-%     writecell({'Y'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.basicfigs) num2str(loc)]);
-% end
-
-
-
 % NOTE: 2.27.26
 % this code has been update to include a swaped-frames catch for single and
 % double frame identity swap situations. Moving forward, data will be saved
@@ -1678,7 +1723,6 @@ end
 % plate size and thus moving forward, data will be saved as
 % 'post-5.1.1.mat' rather than just 'post-5.1.mat' data. Do not use data
 % from the original set, as it has an incorrect distance scaling factor. 
-
 
 
 %% (DONE -- but save for any arena changes) Determine the conversion between pixels to mm for any new video configuration
