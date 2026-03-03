@@ -241,7 +241,7 @@ for trial_idx = 1:length(trial_options)
     mColor = Color('vaporwaveblue');
     fColor = Color('vaporwavepink');
     [r, c] = subplot_numbers(nSwaps);
-    sz = 15; % node size for fly skeleton
+    sz = 5; % node size for fly skeleton
     
     
     % Preview the swaps: 
@@ -297,6 +297,7 @@ for trial_idx = 1:length(trial_options)
             fix_idx = listdlg('PromptString', 'Select the incorrectly handled swap trials',...
                             'ListString',idxList,'SelectionMode','multiple');
             fix_list = false(size(fix_idx));
+            sz = 20;
 
             % look at the original vs the corrected swap versions for the trials that were suspect: 
             r = 1; c = 2;
@@ -314,7 +315,6 @@ for trial_idx = 1:length(trial_options)
                                 data(M).rawY(swap_roi,body.center)];
 
                 fig = getfig('', 1); 
-                    
                 % plot OG frames: 
                    subplot(r, c, 1); 
                    hold on
@@ -372,23 +372,26 @@ for trial_idx = 1:length(trial_options)
                    
                 % manual check / approval:
                 switch questdlg('Select the correct alignment:', '', 'Original', 'Swapped', 'Cancel', 'Original')
-                    % case 'Original'
-                    %     fix_list(ii) = false;
+                    case 'Original'
+                        fix_list(ii) = false;
                     case 'Swapped'
                         fix_list(ii) = true;
                     case {'Cancel', ''}
                         return
                 end
-                close(fig)
+                close all
             end  
                 
             % update the fix swap pairs to only the correct ones: 
-            swap_pairs = swap_pairs(fix_idx(fix_list),:);
-            nSwaps = sum(fix_list);
+            real_swaps = true(size(swap_pairs,1),1); % base: all swaps are correct
+            real_swaps(fix_idx(~fix_list)) = false;
+            swap_pairs = swap_pairs(real_swaps,:);
+            nSwaps = sum(real_swaps);
 
         case {'Cancel', ''}
             warndlg('Manually check and fix the misaligned tracks...')
             disp('Manual alignment of the tracks is still in progress....')
+            return
     end
 
     % ----- SWAP ONLY THE APPROPRIATE SWAP FRAMES ----
