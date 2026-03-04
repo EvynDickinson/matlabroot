@@ -5,21 +5,16 @@
 %% LOAD data
 clear; clc;
 warning off
-
 auto_run = false;
 
 % updates for updating the fly data with no swaps:
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 % find trials that can be updated: 
-% done_loc = (strcmpi('Y', excelfile(:,Excel.swapcorrected)) | strcmpi('NA', excelfile(:,Excel.swapcorrected)));
-% loc_ready = strcmpi('Y', excelfile(:,Excel.groupready)) & ~done_loc;
-
 switch questdlg('Load all data options or processed data only?','','All Data', 'Unprocessed', 'Cancel','Unprocessed')
     case 'All Data'
         loc_ready = strcmpi('Y', excelfile(:,Excel.basicfigs));
     case 'Unprocessed'
-        % loc_ready = ~strcmpi('Y', excelfile(:,Excel.groupready)) & strcmpi('Y', excelfile(:,Excel.basicfigs));
-        loc_ready = strcmpi('SF', excelfile(:,Excel.swapcorrected));
+        loc_ready = ~strcmpi('Y', excelfile(:,Excel.groupready)) & strcmpi('Y', excelfile(:,Excel.basicfigs));
     case {'Cancel',''}
         disp('nothing selected')
         return
