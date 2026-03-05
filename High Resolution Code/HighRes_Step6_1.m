@@ -3,6 +3,9 @@
 % unified cohort of flies (do not mix across different experimental
 % parameters) 
 
+% pregroup data with: 
+%        Group_HR_DataGUI
+
 %% Load grouped data to compare across flies and ramps
 
 clear; close all; clc
@@ -64,11 +67,17 @@ else % Generate a new data structure from trial-level-data
                         selectedFiles{i} = [eligible_files{fileIdx(i),1} '_' eligible_files{fileIdx(i),2}];
                     end
                 end
-        case 'structure list'
+        case 'structure list' % precreated in the 
               % load list of grouped experiment folders and select from those
-              % folderOpts = 
-              % WORKING HERE
-    
+              [groupName, folderOpts] = selectFolder([baseDir,'grouped/']);
+              fileListName = [folderOpts 'filelist.mat'];
+              if exist(fileListName, 'file')==2
+                  load(fileListName)
+                  selectedFiles = T.Trial_ID;
+              else
+                  warndlg('No prefabricated file list found, try making the structure again with Group_HR_DataGUI.mlapp')
+                  return
+              end
         case 'Cancel'
             return
     end
@@ -76,14 +85,15 @@ else % Generate a new data structure from trial-level-data
     field_list = {'T','data','f', 'fX', 'fY', 'fps', 'm', 'mX', 'mY', 'nvids', 'parameters', 'pix2mm', 'position', 'tRate', 'time', 'well'};
     fly = struct;
     fill_idx = 1;
-    for i = 1:length(fileIdx)
-        try dummy = load([baseFolder selectedFiles{i} '/post-5.1.1 data.mat']);
-            fly(fill_idx).name = selectedFiles{i};
+    for trial = 1:length(selectedFiles)
+        try dummy = load([baseFolder selectedFiles{trial} '/post-5.1.2 data.mat']);
+            fly(fill_idx).name = selectedFiles{trial};
             for ii = 1:length(field_list)
                 fly(fill_idx).(field_list{ii}) = dummy.(field_list{ii});
             end
             fill_idx = fill_idx +1;
-        catch; disp(['Missing data: ' selectedFiles{i}])
+            fprintf('\n%i/%i Loaded: %s', trial, length(selectedFiles),selectedFiles{trial})
+        catch; disp(['Missing data: ' selectedFiles{trial}])
         end
     end
     
@@ -104,22 +114,26 @@ end
 
 % make or assign the figure folder in the grouped data folder
 % temporary option:
-switch questdlg('Will this data be saved to an existing data structure?')
-    case 'Yes'
-        fileList = dir([baseDir 'grouped/']);
-        fileIdx = listdlg('ListString', {fileList(3:end).name},'ListSize',[350,450],'promptstring', 'Select group:');
-        if isempty(fileIdx)
-            disp('No group selected')
+if exist('groupName', 'var')==1
+    groupName = groupName{:};
+else
+    switch questdlg('Will this data be saved to an existing data structure?')
+        case 'Yes'
+            fileList = dir([baseDir 'grouped/']);
+            fileIdx = listdlg('ListString', {fileList(3:end).name},'ListSize',[350,450],'promptstring', 'Select group:');
+            if isempty(fileIdx)
+                disp('No group selected')
+                return
+            end
+            fileIdx = fileIdx + 2; % offset to account for the skipped presentation of the '.' files above
+            groupName = fileList(fileIdx).name;
+    
+        case 'No'
+            str = inputdlg('Write group name:');
+            groupName = str{:};
+        case 'Cancel'
             return
-        end
-        fileIdx = fileIdx + 2; % offset to account for the skipped presentation of the '.' files above
-        groupName = fileList(fileIdx).name;
-
-    case 'No'
-        str = inputdlg('Write group name:');
-        groupName = str{:};
-    case 'Cancel'
-        return
+    end
 end
 
 % make or assign the base grouped data folder
@@ -176,9 +190,6 @@ clearvars('-except',initial_var{:})
 % figDir = [baseFolder 'Figures/'];
 
 %% Find the temperature alignment across trials
-% TODO -- slow down the figure progression so that you can see all of them
-% and approve etc.
-
 foreColor = formattingColors(blkbgd); % get background colors
 alignmentDir = createFolder([figDir, 'Alignment Figures/']);
 
@@ -459,6 +470,7 @@ disp('next:')
 %% Update the distance to food metrics that were incorrect before 1.23.25
 ct = 4; % condition type for the current high resolution experiment trials
 pix2mm = conversion(ct).pix2mm;
+initial_var = add_var(initial_var, 'pix2mm');
 
 for i = 1:num.trials
     % calculate distance to food (from fly head)
@@ -482,17 +494,12 @@ for i = 1:num.trials
 end
 disp('updated distance to food data structures')
 
-%% Analysis: create spatial regions screens for ROIs of interest in each trial arena
-% TODO: working here 7/16
-
 %% ANALYSIS: Create ROImasks -- logical masks for all the regions in the arena for each trial
 clearvars('-except',initial_var{:})
 % Add a new structure that contains the masks for each of the regions of
 % interest for the flies in this experiment which can be used to filter
 % other properties later on...like speed in the outer ring etc.
-
 ct = 4; % condition type for the current high resolution experiment trials
-pix2mm = conversion(ct).pix2mm;
 
 % Initialize empty mask structure:
 initial_var{end+1} = 'ROImask';
@@ -622,7 +629,7 @@ end
 
 
 %% ANALYSIS:  Secondary organization of the ROImask data grouped by sex and not trial
-% TODO: 7.18 create a new structure that has the ROImask data grouped by
+% Structure that has the ROImask data grouped by
 % sex and not trial that can more easily be used with the 'data' structure
 clearvars('-except',initial_var{:})
 initial_var{end+1} = 'flyROImask';
@@ -837,6 +844,7 @@ clearvars('-except',initial_var{:})
 clearvars('-except',initial_var{:})
 switch questdlg('Save data to grouped data structure?')
     case 'Yes'
+        disp('Saving data ...')
         save([groupDir 'GroupData.mat'],'-v7.3');
         disp('Data saved')
 end
@@ -848,7 +856,7 @@ end
 
 function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var)
 
-    conversion = getConversion; % this pulls in the standard pix2mm values for trials
+    % conversion = getConversion; % this pulls in the standard pix2mm values for trials
     
     % ADD SPEED TO THE DATA STRUCTURE
     if ~isfield(data, 'speed')
@@ -897,10 +905,8 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     loc = replaceNaN(data.OutterRing,0) | replaceNaN(data.innerFoodQuad,0);
     data.innerEmptyQuad(loc) = false;
 
-    fps = 30;
-    pix2mm = conversion(4).pix2mm;
-    initial_var{end+1} = 'fps';
-    initial_var{end+1} = 'pix2mm';
+    fps = fly(1).parameters.FPS;
+    initial_var = add_var(initial_var, 'fps');
 
     disp('Data post-processing complete')
 
