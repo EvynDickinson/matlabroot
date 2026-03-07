@@ -372,20 +372,24 @@ else
             data.hold_idx = []; % TODO: deal with this
          
         case 'courtship_F_LRR_25-17' % TODO : 7/10 update this to work with the new ramp strucutres... 
-            % save new indexes for plotting regions: 
-            a = (diff(data.cooling));
-            data.cooling_idx_all(:,1) = find(a==1);  % start of cooling
-            data.cooling_idx_all(:,2) = find(a==-1); % end of cooling (middlepoint)
-            a = (diff(data.warming));
-            data.warming_idx_all(:,1) = find(a==1);  % start of warming
-            data.warming_idx_all(:,2) = find(a==-1); % end of warming (middlepoint)
+           % Cooling regions
+            a = diff(data.cooling, 1, 1);  % diff along rows (dim 1)
+            [~, data.cooling_idx_all(:,1)] = max(a == 1,  [], 1);  % per column (trial)
+            [~, data.cooling_idx_all(:,2)] = max(a == -1, [], 1);
+            
+            % Warming regions  
+            a = diff(data.warming, 1, 1);
+            [~, data.warming_idx_all(:,1)] = max(a == 1,  [], 1);
+            [~, data.warming_idx_all(:,2)] = max(a == -1, [], 1);
+            
+            % Hold region
+            data.hold_idx = []; % TODO: deal with this
+
             % universal timings: 
             data.cooling_idx = int32(median(data.cooling_idx_all));
             data.warming_idx = median(data.warming_idx_all);
-            data.warming_idx(1) = data.warming_idx(1)+1; % offset the start of warming by 1 frame
+            data.warming_idx(1) = data.warming_idx(1)+1; 
             data.warming_idx = int32(data.warming_idx);
-            data.hold_idx = []; % TODO: deal with this
-  
     end 
 end
 
@@ -412,6 +416,8 @@ save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type);
 
 
 % show the alignment across temperature
+% TODO: 3.7 Figure out why this is not in alignment for the F LRR
+% experiments
 LW  = 2;
 fig = getfig('', 1);
     plot(data.temperature)
