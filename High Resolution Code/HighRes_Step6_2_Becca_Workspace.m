@@ -724,8 +724,6 @@ for trial = 1:num.trials
     end
 end
 
-%% 
-
 fps = fly(1).fps;
 r = 5;
 c = 1;
@@ -798,14 +796,41 @@ plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),Color('deepp
 
 
 
-%%
+%% 5_2 edge bumping examples
 
-i = 62;
-plotroi = (m.chaseroi(i,1):m.chaseroi(i,2))';
-vidnum = T.vidNums(plotroi);
-frames = T.vidFrame(plotroi);
+% Save figures to HR example clips folder on server
+figDir = 'S:\Evyn\DATA\Courtship Videos\HR behavior example clips\edge bumping traces\';
+if ~exist(figDir, 'dir')
+        mkdir(figDir)
+end
 
+% Hard coded for specific videos and frames
+vidnum = 88;
+vidframes = (2508:2883)';
+a = T.vidNums == vidnum;
+b =  find(a);
+frames = b(vidframes);
+
+% Arena specs
+fullArena_R = 29.5;
+foodWell = well.center(well.food_idx,:);
+centre = well.center(5,:);
+
+% FIGURE
 fig = getfig;
-plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),Color('dodgerblue'),false) % male
-plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),Color('deeppink'),false) % female
-        
+hold on
+plotFlySkeleton(fig,data(M).rawX(frames,:),data(M).rawY(frames,:),data(M).color,false) % male
+plotFlySkeleton(fig,data(F).rawX(frames,:),data(F).rawY(frames,:),data(F).color,false) % female
+viscircles(centre, fullArena_R*pix2mm,'color', foreColor,'linewidth', 0.5) % arena circle
+viscircles(foodWell, well.radius(well.food_idx),'color', foreColor,'linewidth', 0.5) % food circle
+
+% Format figure
+formatFig(fig,blkbnd);
+axis square
+set(gca, 'xcolor', 'none', 'ycolor', 'none')
+name = [num2str(parameters.date), ' ', num2str(parameters.expID) ' vid' num2str(vidnum)...
+        ' ', num2str(vidframes(1)) '-' num2str(vidframes(end))];
+title(name,'color', foreColor,'FontSize',10);
+
+% Save figure
+save_figure(fig,[figDir num2str(name)],fig_type);        

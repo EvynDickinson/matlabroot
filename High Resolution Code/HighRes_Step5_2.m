@@ -477,6 +477,7 @@ end
 timebuff = 3; % time buffer before and after chase (in seconds)
 timebuff = timebuff/60; % set to minutes
 
+% -------------------------------------------------------------- Image overlay -------------------------------------------------------------
 if dType_1
     % Subplots
     r = 7;
@@ -597,7 +598,7 @@ if dType_1
         % Save figure
         save_figure(fig,[chaseDir 'Chase Bout_', num2str(i), ' from ', num2str(time(ROI(1))) ' to '  num2str(time(ROI(end)))], fig_type,false, false);
     
-        % ---------------------------------------- Zoom in on arena and display skeletons -----------------------------------
+        % ----------- Zoom in on arena and display skeletons --------------
     
             % Zoom in on the flies
             subplot(r,c,sb(2).idx); hold on
@@ -633,6 +634,7 @@ if dType_1
     end
 end
 
+% --------------------------------------------------------- Schematic Summary ------------------------------------------------------------
 if dType_2
     r = floor(sqrt(nChaseBouts));
     c = ceil(nChaseBouts/r);
