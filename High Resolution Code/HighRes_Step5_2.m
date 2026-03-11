@@ -22,7 +22,7 @@
 % courtship index vs temperature
 
 % Prep data
-if ~strcmp(questdlg('Is data from 5.1.1 already loaded?'),'Yes')
+if ~strcmp(questdlg('Is data from 5.1.2 already loaded?'),'Yes')
     clear; clc;
     startloc = getDataPath(6,0);
     if isempty(startloc)
@@ -32,7 +32,7 @@ if ~strcmp(questdlg('Is data from 5.1.1 already loaded?'),'Yes')
     trialDir_1 = selectFolder(baseFolder_1); 
     baseDir_1 = [baseFolder_1, trialDir_1{:} '/']; % full folder directory for that trial
     
-    load([baseDir_1, 'post-5.1.1 data.mat']) % load the parameters and temp table
+    load([baseDir_1, 'post-5.1.2 data.mat']) % load the parameters and temp table
     baseDir = baseDir_1;
     baseFolder = baseFolder_1;
     trialDir = trialDir_1;
