@@ -795,6 +795,30 @@ plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),Color('dodge
 plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),Color('deeppink'),false) % female
 
 
+% 3.3.26 exp
+i = 2;
+plotroi = (m.chaseroi(i,1):m.chaseroi(i,2))';
+speed = f.speed(plotroi);
+
+        % From 5_1: Identify when female is moving
+        fmoving = f.speed >= 0.1; % min speed up for debate
+        mmoving = m.speed >= 0.1;
+        close_dist = T.IFD <= 7;
+        mbehindf = (facing & pos_angle);
+
+k = find(fmoving);
+fismove = fmoving(plotroi);
+mismove = mmoving(plotroi);
+close = close_dist(plotroi);
+behind = mbehindf(plotroi);
+
+fig = getfig;
+hold on
+plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),data(M).color,false) % male
+plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),data(F).color,false) % female
+
+
+
 
 %% 5_2 edge bumping examples
 
@@ -805,8 +829,8 @@ if ~exist(figDir, 'dir')
 end
 
 % Hard coded for specific videos and frames
-vidnum = 88;
-vidframes = (2508:2883)';
+vidnum = 12;
+vidframes = (4937:5288)';
 a = T.vidNums == vidnum;
 b =  find(a);
 frames = b(vidframes);

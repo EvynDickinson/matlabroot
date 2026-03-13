@@ -180,7 +180,7 @@ for trial = 1:ntrials
 end
 % xlim([0 0.5])
 for trial = 1:ntrials
-    max(data(trial).speed.smoothed_raw)
+    dummy = max(data(trial).speed.smoothed_raw);
 end
 
 % Format figure
