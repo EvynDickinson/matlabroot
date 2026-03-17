@@ -929,7 +929,13 @@ for trial = 1: nTrials
 end
 
         
+%% Find jump escape locations in the data 
 
+clearvars('-except',initial_var{:})
+
+speed_threshold = 35;
+loc = data.speed >= speed_threshold;
+data.jump = loc;
 
 
 

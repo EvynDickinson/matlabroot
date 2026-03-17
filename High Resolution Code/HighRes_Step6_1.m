@@ -914,6 +914,10 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     fps = fly(1).parameters.FPS;
     initial_var = add_var(initial_var, 'fps');
 
+    speed_threshold = 35;
+    loc = data.speed >= speed_threshold;
+    data.jump = loc;
+
     disp('Data post-processing complete')
 
 end

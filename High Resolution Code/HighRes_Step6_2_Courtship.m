@@ -284,20 +284,29 @@ for trial = 1:num.trials
     
     enc_stop = encounters(trial).locs(:,2); % end frame of the last encounter
     enc_start = encounters(trial).locs(:,1); % start frame of an encounter bout
-    
+    enc_rois = [enc_stop(1:end-1),enc_start(2:end)]; % between encounter periods
+
     % ---- MALE DISTANCE TRAVELED -----
     % find the distance traveled by the male fly between the last encounter
     % with the female fly and this encounter
     mDistance = nan([length(enc_stop)+1,1]); % empty vector for distance between encounters
-    for ii = 1:length(enc_stop)-1  
+    for ii = 1:length(enc_rois)  
         % distance between encounters?
-        roi = enc_stop(ii):enc_start(ii+1);
+        roi = enc_rois(ii,1):enc_rois(ii,2);
         x = data.x_loc(M).pos(roi,body.center,trial);
         y = data.y_loc(M).pos(roi,body.center,trial);
          % save data into structure
         mDistance(ii+1) = sum(hypot(diff(x), diff(y))./pix2mm); 
     end
+
     encounters(trial).mDistance_traveled = mDistance;
+
+    % % WORKING HERE: TODO
+    % % Speed based version of distance traveled: 
+    % for ii = 1:length(enc_stop)-1  
+    %     test = sum(data.speed(enc_start(ii):enc_stop(ii),M,trial),'omitnan');
+    %     test/(enc_stop(ii)-enc_start)
+    % end
 
     % ----- DISTANCE FROM FOOD ------
     % distance from food at the start of encounter
@@ -1082,7 +1091,6 @@ save_figure(fig, [saveDir 'distance to food at encounter by attempt type scatter
 %% FIGURE: Distance traveled by male btwn courtship vs  courtship rate:
 clearvars('-except',initial_var{:})
 
-
 SZ = 35; 
 FA = 0.7;
 buff = 0.35;
@@ -1090,6 +1098,12 @@ jitbuff = 0.2;
 yColor = Color('vaporwavegren');
 nColor = Color('vaporwavepink');
 LW = 3;
+
+% how far did male flies travel between courtship encounters?
+
+
+
+
 
 fig = getfig;
     hold on

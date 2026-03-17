@@ -184,6 +184,7 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 %% FIGURE: TEMP TUNING CURVE FOR SELECTED PARAMETER
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
+plot_threat_zone = false;
 
 % Select the type of information to plot: 
 [title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = ... 
@@ -208,7 +209,7 @@ if any(isnan(ylimits)) % in case new data is added without specs for axis limits
 end
 
 % TODO: update this as new protocols are added to the pipeline
-if strcmp(groupName,'Berlin LTS caviar') % X LIMITS
+if contains(groupName,'LTS') % X LIMITS
     xlimits = [13, 37];
     autoXLim = false;
     xPos = [15, 25];  % for the shaded threat region on the plot
@@ -218,6 +219,9 @@ else
 end
 
 kolor = Color('vaporwavepurple'); % set color selection
+if strcmp(groupName, 'TrpA1-Gal4 x UAS-Kir2.1 LTS Caviar')
+    kolor = Color('vaporwavegren');
+end
 r = 1; % figure rows
 c = 2; % heating and cooling separated plots
 LW = 2; % plotting line width
@@ -289,12 +293,14 @@ for ii = 1:2
 end
 
 % add shaded area for 'threat' temp region
-for tt = 1:2
-    subplot(r, c, tt)
-    ylimits = ylim;
-    pos = [xPos(1,tt), ylimits(1), range(xPos), range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
-    rectangle('Position', pos, 'FaceColor', foreColor, ... 
-              'FaceAlpha', 0.1, 'EdgeColor', 'none');
+if plot_threat_zone
+    for tt = 1:2
+        subplot(r, c, tt)
+        ylimits = ylim;
+        pos = [xPos(1,tt), ylimits(1), range(xPos), range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
+        rectangle('Position', pos, 'FaceColor', foreColor, ... 
+                  'FaceAlpha', 0.1, 'EdgeColor', 'none');
+    end
 end
 
 % add a time arrow to the temp axes graphs
@@ -672,9 +678,6 @@ save_figure(fig, [figDir 'courstship measures avg over temp region'],'-pdf');
 
 %% Trial by trial comparision of the different courtship measures 
 clearvars('-except',initial_var{:})
-
-% UPDATE THIS FOR NOT LTS: 
-data.temp = mean(data.temperature,2,'omitnan');
 
 % bin by 1 minute increments
 

@@ -61,7 +61,8 @@ switch dataType
         paramList = {'Outer Ring', 'Sleep',  'Food Quadrant', 'Speed',...
           'Inner Food Quadrant', 'Distance to Food', 'Flies On Food', 'Turning Speed', 'Courtship Index',...
           'Courtship Index All', 'Circling', 'Circling All', 'Chase', 'Chase All',...
-          'Food Circle', 'Eccentricity','Wing Extension', 'Wing Extension All', 'Inter Fly Distance'};
+          'Food Circle', 'Eccentricity','Wing Extension', 'Wing Extension All',...
+          'Inter Fly Distance', 'Escape Jump'};
     case 'location' % behavior is determined by location in the arena (percent based ones) 
         paramList = {'Outer Ring','Food Quadrant','Inner Food Quadrant', ...
           'Flies On Food','Food Circle',};
@@ -89,6 +90,11 @@ y_dir = repmat({'normal'},[numParams,1]); % set default to normal direction
 for i = 1:numParams
     title_str{i} = paramList{idx(i)};
     switch title_str{i}
+        case 'Escape Jump'
+            pName{i} = 'jump';
+            scaler(i) = 100;
+            y_lab{i} = 'escape jump rate (% flies)';
+            % ylimits(i,:) = [0, 3];
         case 'Outer Ring'
             pName{i} = 'OutterRing'; % yes, I have bad spelling sometimes lol
             scaler(i) = 100;
@@ -126,7 +132,7 @@ for i = 1:numParams
             pName{i} = 'CI';
             scaler(i) = 100;
             y_lab{i} = 'restrictive courtship index (% male flies)';
-            ylimits = [0 2]; 
+            ylimits = [0 3]; 
             sexSep(i) = false; 
         case 'Courtship Index All'
             pName{i} = 'CI_all';
