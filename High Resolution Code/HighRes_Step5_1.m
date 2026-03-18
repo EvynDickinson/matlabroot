@@ -10,7 +10,8 @@ auto_run = false;
 % updates for updating the fly data with no swaps:
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 % find trials that can be updated: 
-switch questdlg('Load all data options or processed data only?','','All Data', 'Unprocessed', 'Cancel','Unprocessed')
+quest_str = 'Load all data options or unprocessed (not yet 5.1 run) data only?';
+switch questdlg(quest_str,'','All Data', 'Unprocessed', 'Cancel','Unprocessed')
     case 'All Data'
         loc_ready = strcmpi('Y', excelfile(:,Excel.basicfigs));
     case 'Unprocessed'
@@ -21,10 +22,19 @@ switch questdlg('Load all data options or processed data only?','','All Data', '
 end
 
 loc = find(loc_ready);
+if isempty(loc) % error handling if no data found
+    fprintf('\n No unprocessed trials found\n')
+    return
+end
+
 % select trial to update: 
 trial_options = excelfile(loc,Excel.trialID);
 idx = listdlg('PromptString','Select experiments to update:','ListString',trial_options,...
                     'SelectionMode','single','ListSize',[350,300]);
+if isempty(idx) % error handling for no trial selection
+    fprintf('\n No trials selected \n')
+    return
+end
 excel_loc = loc(idx); % location in excel file of trials to process
 path = getDataPath(6,0);
 baseFolder = [path,'Trial Data/'];
