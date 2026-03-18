@@ -818,7 +818,30 @@ plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),data(M).colo
 plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),data(F).color,false) % female
 
 
+%%
 
+figure;
+[y_yes, y_no] = deal(m.speed);
+y_yes(~mmoving) = nan;
+y_no(mmoving) = nan;
+hold on
+plot(time, y_yes, Color='g')
+plot(time, y_no, Color='r')
+ylim([0,10])
+
+
+%% 
+
+figure;
+[y_yes, y_no] = deal(m.speed);
+y_yes(~chase_filled) = nan;
+y_no(~chase) = nan;
+hold on
+plot(time, y_yes, Color='g')
+plot(time, y_no, Color='r')
+ylim([0,10])
+xlim([time(m.chaseroi(2,1)),time(m.chaseroi(2,2))])
+h_line(0.1)
 
 %% 5_2 edge bumping examples
 

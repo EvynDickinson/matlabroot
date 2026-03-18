@@ -1213,6 +1213,7 @@ mmoving = m.speed >= 0.1; % min speed diff than F in order to include true chase
 
 chase = (mbehindf & close_dist & fmoving & mmoving); % requirements for 'chase all'
 chase_filled = imclose(chase, ones(max_gap + 1, 1)); % fill gaps in the behavior
+% chase_filled = imclose(chase, ones(2, 1)); % fill gaps in the behavior
 
 a = diff(chase_filled); 
 % Add the first chase value to the list to account for the starting condition
