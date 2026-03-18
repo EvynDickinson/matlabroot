@@ -1,6 +1,6 @@
 
 clearvars('-except',initial_var{:})
-foreColor = formattingColors(blkbgd); % get background colors
+foreColor = formattingColors(blkbnd); % get background colors
 clc
 
 %% Speed between regions timecourse
@@ -43,9 +43,9 @@ end
 
 % Format fig
 formatFig(fig,blkbgd,[r,c], sb);
-subplot(r,c,sb(1).idx)
+subplot(r,c,sb(1).idx);
     set(gca, 'xcolor', 'none')
-subplot(r,c,sb(2).idx)
+subplot(r,c,sb(2).idx);
 legend(region_name,"TextColor",foreColor,"Color",~foreColor,"EdgeColor",~foreColor)
 ylabel('average speed (mm/s)')
 xlabel('time (min)')
@@ -781,7 +781,7 @@ fig =  getfig('',1);
             plot(mX,mY,'color','blue','linewidth',spike_W)
         end
 
-%% For 5_1 chase!!
+%% (Run 5_1 chase first) Plot fly skeletons during certain chase bouts
 
 % 2.28.26 exp
 
@@ -796,7 +796,7 @@ plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),Color('deepp
 
 
 % 3.3.26 exp
-i = 2;
+i = 1;
 plotroi = (m.chaseroi(i,1):m.chaseroi(i,2))';
 speed = f.speed(plotroi);
 
@@ -818,30 +818,134 @@ plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),data(M).colo
 plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),data(F).color,false) % female
 
 
-%%
-
+% Evyn figure
 figure;
 [y_yes, y_no] = deal(m.speed);
-y_yes(~mmoving) = nan;
-y_no(mmoving) = nan;
+y_yes(~mmoving) = nan; % speed only when m speed > threshold (0.1) (when 0, make nan)
+y_no(mmoving) = nan; % speed when < threshold
 hold on
 plot(time, y_yes, Color='g')
 plot(time, y_no, Color='r')
-ylim([0,10])
+ylim([0,10]) % speed
 
 
-%% 
 
-figure;
-[y_yes, y_no] = deal(m.speed);
-y_yes(~chase_filled) = nan;
-y_no(~chase) = nan;
-hold on
-plot(time, y_yes, Color='g')
-plot(time, y_no, Color='r')
-ylim([0,10])
-xlim([time(m.chaseroi(2,1)),time(m.chaseroi(2,2))])
-h_line(0.1)
+%% (Run 5_1 chase first) Chase unfilled vs filled requirements
+
+bout = 1; % chase bout number
+ 
+% Subplots
+r = 5; 
+c = 9;
+sb(1).idx = [1:4,10:13,19:22,28:31];
+sb(2).idx = 6:9;
+sb(3).idx = 15:18;
+sb(4).idx = 24:27;
+sb(5).idx = 33:36;
+
+% FIGURE
+fig = getfig;
+    hold on
+    % chase plot
+    subplot(r,c,sb(1).idx);
+        hold on
+        plotroi = (m.chaseroi(bout,1):m.chaseroi(bout,2))';
+        plotFlySkeleton(fig,data(M).rawX(plotroi,:),data(M).rawY(plotroi,:),data(M).color,false); % male
+        plotFlySkeleton(fig,data(F).rawX(plotroi,:),data(F).rawY(plotroi,:),data(F).color,false); % female
+    % male speed
+    subplot(r,c,sb(2).idx);        
+        [y_yes, y_no] = deal(m.speed);
+        y_yes(~chase_filled) = nan; % m speed during chase bouts with gaps filled in (when 0, make nan)
+        y_no(~chase) = nan; % m speed during consistent chase bouts only
+        hold on
+        plot(time, y_yes, Color='g')
+        plot(time, y_no, 'color', foreColor)
+        xlim([time(m.chaseroi(bout,1)),time(m.chaseroi(bout,2))]) % time
+        ylabel('Male speed')
+        h_line(0.1) % speed threshold for chase
+    % female speed
+    subplot(r,c,sb(3).idx);
+        [y_yes2, y_no2] = deal(f.speed);
+        y_yes2(~chase_filled) = nan; 
+        y_no2(~chase) = nan; 
+        hold on
+        plot(time, y_yes2, Color='g')
+        plot(time, y_no2, 'color', foreColor)
+        xlim([time(m.chaseroi(bout,1)),time(m.chaseroi(bout,2))]) 
+        ylabel('Female speed')
+        h_line(0.1) 
+    % close distance
+    subplot(r,c,sb(4).idx);
+        [y_yes3, y_no3] = deal(T.IFD);
+        y_yes3(~chase_filled) = nan; 
+        y_no(~chase) = nan; 
+        hold on
+        plot(time, y_yes3, Color='g')
+        plot(time, y_no3, 'color', foreColor)
+        xlim([time(m.chaseroi(bout,1)),time(m.chaseroi(bout,2))]) 
+        ylabel('IFD')
+        h_line(7) % distance threshold (7mm)
+    % male behind female
+    subplot(r,c,sb(5).idx);
+        [y_yes4, y_no4] = deal(mbehindf);
+        y_yes4(~chase_filled) = 0; 
+        y_no4(~chase) = 0; 
+        hold on
+        plot(time, y_yes4, Color='g')
+        plot(time, y_no4, 'color', foreColor)
+        xlim([time(m.chaseroi(bout,1)),time(m.chaseroi(bout,2))]) 
+        ylabel('M behind & facing F')
+
+% Format figure
+formatFig(fig,blkbnd,[r,c],sb);
+    subplot(r,c,sb(1).idx);
+    set(gca, 'xcolor', 'none', 'ycolor', 'none')
+
+
+% -------------------  From 5_1: recreate un-filled chase to pull ROI -------------------
+a = diff(chase); 
+b = [chase(1); a]; 
+ch_start = find(b == 1); 
+ch_stop = find(b == -1);
+if chase(end)
+    ch_stop(end + 1) = length(time);
+end
+ch_dur = ch_stop - ch_start;
+dur_loc = find(ch_dur > (2*fps));
+mt = false(size(time));
+if isempty(dur_loc)
+    unf_chaseroi = [];
+else
+    for i = 1:length(dur_loc)
+        ii = dur_loc(i);
+        mt(ch_start(ii):ch_stop(ii)) = true;
+        unf_chaseroi(i,:) = [ch_start(ii), ch_stop(ii)]; % chase roi's using unfilled chase
+    end
+end
+% ----------------------------------------------------------------------------------------------------------
+
+% Create title describing if bout does or doesn't exist without filling
+[d1,d2] = deal([]);
+% for row = 1: length(m.chaseroi)
+d1 = [d1;m.chaseroi(bout,1)==unf_chaseroi(1)];
+d2 = [d2;m.chaseroi(bout,1)==unf_chaseroi(2)];
+% end
+if sum(d1|d2)
+    label = ['Bout ' num2str(bout), ' still exists unfilled, ROI: ',num2str(unf_chaseroi)];
+    title(label)
+    answer = 'Y';
+else
+    label = ['Bout ' num2str(bout), ' no longer exists unfilled'];
+    title(label)
+    answer = 'N';
+end
+
+% Save figure
+chDir = [figDir 'Chase Figures/Filled vs Unfilled/'];
+if ~exist(chDir, 'dir')
+        mkdir(chDir)
+end
+save_figure(fig,['Chase bout ' num2str(bout) ', ' num2str(answer)],fig_type);
 
 %% 5_2 edge bumping examples
 
