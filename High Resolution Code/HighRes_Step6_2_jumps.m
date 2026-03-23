@@ -163,7 +163,5 @@ fprintf('\n Female jump distance p-value: %2.4g',p)
 
 
 
-
-
 %% Rate of jumping in food and starved flies
 

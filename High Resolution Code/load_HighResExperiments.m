@@ -50,6 +50,7 @@ Excel.groupready = find(strcmpi('Group Ready',Excel.headers) == 1);
 Excel.swapcorrected = find(strcmpi('Swap Corrected',Excel.headers) == 1);
 Excel.processed_data_on_server = find(strcmpi('Processed Data On Server',Excel.headers) == 1);
 Excel.storagedrive = find(strcmpi('Storage Drive',Excel.headers) == 1);
+Excel.ToUpdate = find(strcmpi('5.1 Updates',Excel.headers) == 1);
 
 Excel.well_1 = find(strcmpi('Well 1', Excel.headers)==1);
 Excel.well_2 = find(strcmpi('Well 2', Excel.headers)==1);

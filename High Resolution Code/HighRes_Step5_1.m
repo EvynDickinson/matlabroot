@@ -17,23 +17,21 @@ switch questdlg(quest_str,'','All Data', 'Unprocessed', 'Cancel','Unprocessed')
     case 'Unprocessed'
         loc_ready = ~strcmpi('Y', excelfile(:,Excel.groupready)) & strcmpi('Y', excelfile(:,Excel.basicfigs));
     case {'Cancel',''}
-        disp('nothing selected')
-        return
+        error('Nothing selected')
 end
 
 loc = find(loc_ready);
 if isempty(loc) % error handling if no data found
-    fprintf('\n No unprocessed trials found\n')
-    return
+    error('No unprocessed trials found')
 end
+
 
 % select trial to update: 
 trial_options = excelfile(loc,Excel.trialID);
 idx = listdlg('PromptString','Select experiments to update:','ListString',trial_options,...
                     'SelectionMode','single','ListSize',[350,300]);
 if isempty(idx) % error handling for no trial selection
-    fprintf('\n No trials selected \n')
-    return
+    error('No trials selected')
 end
 excel_loc = loc(idx); % location in excel file of trials to process
 path = getDataPath(6,0);
@@ -63,7 +61,7 @@ if isfile(processed_path) % DATA ALREADY EXISTS
         disp('Data loaded!')
         clearvars('-except',initial_var{:})
     else % cancel if data not currently needed
-        return
+        error('Manually disrupted data loading')
     end
 else % DATA DOES NOT YET EXIST
     if strcmp('Yes', questdlg('Run basic analysis now?'))

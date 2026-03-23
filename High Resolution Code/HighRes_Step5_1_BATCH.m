@@ -1,6 +1,4 @@
 
-
-
 % batch process trials that have already been processed :
 
 %% LOAD data
@@ -13,8 +11,10 @@ auto_run = true;
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
 
-% find trials that can be updated: 
-done_loc = (strcmpi('Y', excelfile(:,Excel.swapcorrected)) | strcmpi('NA', excelfile(:,Excel.swapcorrected)));
+% find trials that need to be updated:
+Excel.ToUpdate
+done_loc = strcmpi('Y', excelfile(:,Excel.ToUpdate));
+% done_loc = (strcmpi('Y', excelfile(:,Excel.swapcorrected)) | strcmpi('NA', excelfile(:,Excel.swapcorrected)));
 loc_ready = strcmpi('Y', excelfile(:,Excel.groupready)) & ~done_loc;
 excel_loc_list = find(loc_ready);
 
