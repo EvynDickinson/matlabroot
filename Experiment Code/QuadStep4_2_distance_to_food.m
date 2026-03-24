@@ -250,7 +250,7 @@ dataString = cell([1,num.exp]);
 
 % FIGURE:
 fig = getfig('',true);
-for i = num.exp:-1:1
+for i = 1:2 %num.exp:-1:1
     x = grouped(i).time;
     kolor = grouped(i).color;
     switch ext

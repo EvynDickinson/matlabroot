@@ -48,6 +48,18 @@ initial_vars = [initial_vars(:)', 'arena', 'threshHigh', 'threshLow', 'binSpace'
 
 FPS = expData.parameters.FPS;
 
+%% Create a catch for empty arenas: 
+
+emptyArena = false(1, nArenas);
+for arena = 1:nArenas
+    strA = expData.(['Arena' Alphabet(arena)]).genotype;
+    if strcmp('Empty', strA)
+        emptyArena(arena) = true;
+    end
+end
+
+initial_vars{end+1} = 'emptyArena';
+
 %%  summary figure for each arena
 if ~essentialfigs % NEW 5.22.25
     % temp suspended
@@ -58,79 +70,79 @@ if ~essentialfigs % NEW 5.22.25
     subplotInd(4).idx = 4:4:20; % histogram
     
     for arena = 1:nArenas
-    
-        % group data across videos:
-        plotZ = T.flyCount(:,arena);
-        plotY = arenaData(arena).occ_P;
-        sSpan = 180;
-        LW = 2;
-        time = T.time;
-        wellLabels = arenaData(arena).wellLabels;
-        arenaSel = arenaData(arena).name;
-    
-        fig = getfig(''); 
-         % tracking accuracy proxy (# flies)
-         subplot(nrow,ncol,subplotInd(3).idx)
-            y = smooth(plotZ,'moving',sSpan);
-            roi = 2:length(y)-1;
-            plot(time(roi), y(roi), 'linewidth', LW, 'color', Color('grey'))
-            hline(arenaData(arena).nflies, 'w--')
-            ylabel('fly count')
-    
-         % temperature over time
-         subplot(nrow,ncol,subplotInd(1).idx)
-            y = smooth(T.temperature,'moving',sSpan);
-            roi = 2:length(y)-1;
-            plot(time(roi), y(roi), 'linewidth', LW, 'color', 'w')
-            ylabel('temp (\circC)')
-    %         ylim([5,26])
-    
-         % occupation probability
-         subplot(nrow,ncol,subplotInd(2).idx)
-            hold on
-            for well = 1:4
-                kolor = pullFoodColor(wellLabels{well});
-                y = smooth(plotY(:,well),'moving',sSpan);
+          if ~emptyArena(arena)
+            % group data across videos:
+            plotZ = T.flyCount(:,arena);
+            plotY = arenaData(arena).occ_P;
+            sSpan = 180;
+            LW = 2;
+            time = T.time;
+            wellLabels = arenaData(arena).wellLabels;
+            arenaSel = arenaData(arena).name;
+        
+            fig = getfig(''); 
+             % tracking accuracy proxy (# flies)
+             subplot(nrow,ncol,subplotInd(3).idx)
+                y = smooth(plotZ,'moving',sSpan);
                 roi = 2:length(y)-1;
-                plot(time(roi), y(roi), 'linewidth', LW, 'color', kolor);
-            end
-            xlabel('time (min)'); ylabel('occupation probability')
-    
-         % fly count histogram
-         subplot(nrow,ncol,subplotInd(4).idx)
-            yyaxis left
-            set(gca,'YColor', 'k')
-            yyaxis right
-            h = histogram(arenaData(arena).flyCount); vline(arenaData(arena).nflies, 'w--'); 
-            set(h, 'facecolor', Color('grey'))
-            xlabel('Number tracked flies'); ylabel('Frame count')
-        %     labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
-        %     set(labelHandles,'FontSize', 18);
-        %     set(gca,'fontsize',15,'FontWeight','normal');
-    
-        formatFig(fig, true, [nrow, ncol], subplotInd);
-        subplot(nrow,ncol,subplotInd(2).idx)
-        l = legend(strrep(wellLabels,'_','-'));
-        set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','position', [0.6463 0.5633 0.0963 0.1126]);% [0.8780 0.8119 0.0963 0.1126])%
-        subplot(nrow,ncol,subplotInd(1).idx)
-        set(gca, 'XColor', 'k')
-        subplot(nrow,ncol,subplotInd(3).idx)
-        set(gca, 'XColor', 'k')
-        titleName = strrep([folder ' ' expName arenaSel], '_',' ');
-        title(titleName,'color', 'w')
-    
-        % Save image
-        expPDF = [arenaData(arena).figDir folder ' ' expName ' ' arenaSel ' summary.pdf'];
-        if autoSave==true
-            export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
-        else
-            if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+                plot(time(roi), y(roi), 'linewidth', LW, 'color', Color('grey'))
+                hline(arenaData(arena).nflies, 'w--')
+                ylabel('fly count')
+        
+             % temperature over time
+             subplot(nrow,ncol,subplotInd(1).idx)
+                y = smooth(T.temperature,'moving',sSpan);
+                roi = 2:length(y)-1;
+                plot(time(roi), y(roi), 'linewidth', LW, 'color', 'w')
+                ylabel('temp (\circC)')
+        %         ylim([5,26])
+        
+             % occupation probability
+             subplot(nrow,ncol,subplotInd(2).idx)
+                hold on
+                for well = 1:4
+                    kolor = pullFoodColor(wellLabels{well});
+                    y = smooth(plotY(:,well),'moving',sSpan);
+                    roi = 2:length(y)-1;
+                    plot(time(roi), y(roi), 'linewidth', LW, 'color', kolor);
+                end
+                xlabel('time (min)'); ylabel('occupation probability')
+        
+             % fly count histogram
+             subplot(nrow,ncol,subplotInd(4).idx)
+                yyaxis left
+                set(gca,'YColor', 'k')
+                yyaxis right
+                h = histogram(arenaData(arena).flyCount); vline(arenaData(arena).nflies, 'w--'); 
+                set(h, 'facecolor', Color('grey'))
+                xlabel('Number tracked flies'); ylabel('Frame count')
+            %     labelHandles = findall(gca, 'type', 'text', 'handlevisibility', 'off');
+            %     set(labelHandles,'FontSize', 18);
+            %     set(gca,'fontsize',15,'FontWeight','normal');
+        
+            formatFig(fig, true, [nrow, ncol], subplotInd);
+            subplot(nrow,ncol,subplotInd(2).idx)
+            l = legend(strrep(wellLabels,'_','-'));
+            set(l, 'color', 'k', 'textcolor', 'w','edgecolor', 'k','position', [0.6463 0.5633 0.0963 0.1126]);% [0.8780 0.8119 0.0963 0.1126])%
+            subplot(nrow,ncol,subplotInd(1).idx)
+            set(gca, 'XColor', 'k')
+            subplot(nrow,ncol,subplotInd(3).idx)
+            set(gca, 'XColor', 'k')
+            titleName = strrep([folder ' ' expName arenaSel], '_',' ');
+            title(titleName,'color', 'w')
+        
+            % Save image
+            expPDF = [arenaData(arena).figDir folder ' ' expName ' ' arenaSel ' summary.pdf'];
+            if autoSave==true
                 export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
-            end
-        end  
-        save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' summary figure'], '-png', autoSave,true,'-r80');
+            else
+                if strcmpi(questdlg('Append figure to summary pdf?'),'Yes')
+                    export_fig(fig, expPDF, '-pdf', '-nocrop', '-r300' , '-painters', '-rgb','-append');
+                end
+            end  
+            save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' summary figure'], '-png', autoSave,true,'-r80');
+          end 
     end
-    
     clearvars('-except',initial_vars{:})
     fprintf('\nNext\n')
 end
@@ -138,57 +150,60 @@ end
 %% -------Simple visualization: relationship between temp & well occupation-----------
 if essentialfigs == false
   for arena = 1:nArenas
-    nrow = 4;
-    ncol = 1;
-    subplotInd(1).idx = 1;
-    subplotInd(2).idx = 2:4;
-    sSpan = 180;
-    LW = 1;
-    wellLabels = arenaData(arena).wellLabels;
-    time = T.time;
-    occ = arenaData(arena).occ_P;
-    arenaSel = arenaData(arena).name;
+      if emptyArena(arena)
+          continue
+      end
+        nrow = 4;
+        ncol = 1;
+        subplotInd(1).idx = 1;
+        subplotInd(2).idx = 2:4;
+        sSpan = 180;
+        LW = 1;
+        wellLabels = arenaData(arena).wellLabels;
+        time = T.time;
+        occ = arenaData(arena).occ_P;
+        arenaSel = arenaData(arena).name;
+        
+        % MAKE THE FIGURE:
+        fig = getfig(''); 
+            % TEMPERATURE data
+            subplot(nrow,ncol,subplotInd(1).idx)
+            y = smooth(T.temperature,sSpan);
+            plot(T.time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
+            ylabel('temp (\circC)')
+    %         ylim([5,27])
+            % OCCUPANCY
+            subplot(nrow,ncol,subplotInd(2).idx)
+            hold on
+            % error fills
+            for well = 1:4
+                kolor = pullFoodColor(wellLabels{well}); % plotting color for food
+                y_avg(:,well) = smooth(occ(:,well),sSpan);
+                y_err = movstd(occ,sSpan);
+                fill_data = error_fill(time, y_avg(:,well), y_err(:,well));
+                h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
+                set(h(well), 'facealpha', 0.3)
+            end
+            % average line
+            for well = 1:4
+                kolor = pullFoodColor(wellLabels{well});
+                plot(time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
+            end
+            xlabel('time (min)'); ylabel('occupation probability')
     
-    % MAKE THE FIGURE:
-    fig = getfig(''); 
-        % TEMPERATURE data
+        formatFig(fig, true, [nrow, ncol], subplotInd);
+        l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
+        set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
+        for well = 1:4
+            set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+        end
         subplot(nrow,ncol,subplotInd(1).idx)
-        y = smooth(T.temperature,sSpan);
-        plot(T.time(2:end-1), y(2:end-1), 'linewidth', LW, 'color', 'w')
-        ylabel('temp (\circC)')
-%         ylim([5,27])
-        % OCCUPANCY
-        subplot(nrow,ncol,subplotInd(2).idx)
-        hold on
-        % error fills
-        for well = 1:4
-            kolor = pullFoodColor(wellLabels{well}); % plotting color for food
-            y_avg(:,well) = smooth(occ(:,well),sSpan);
-            y_err = movstd(occ,sSpan);
-            fill_data = error_fill(time, y_avg(:,well), y_err(:,well));
-            h(well) = fill(fill_data.X, fill_data.Y, kolor, 'EdgeColor','none');
-            set(h(well), 'facealpha', 0.3)
-        end
-        % average line
-        for well = 1:4
-            kolor = pullFoodColor(wellLabels{well});
-            plot(time,y_avg(:,well), 'linewidth', LW, 'color', kolor);
-        end
-        xlabel('time (min)'); ylabel('occupation probability')
-
-    formatFig(fig, true, [nrow, ncol], subplotInd);
-    l = legend([{'';'';'';''};strrep(wellLabels,'_','-')]);
-    set(l, 'color', 'k', 'textcolor', 'w','position', [0.7947 0.6462 0.0963 0.1126])
-    for well = 1:4
-        set(get(get(h(well),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-    end
-    subplot(nrow,ncol,subplotInd(1).idx)
-    set(gca, 'XColor', 'k')
-    titleName = strrep([folder ' ' expName ' ' arenaSel], '_',' ');
-    title(titleName,'color', 'w')
-
-    % Save image
-    save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' well occupation timcourse'], '-png', autoSave,true,'-r80');
+        set(gca, 'XColor', 'k')
+        titleName = strrep([folder ' ' expName ' ' arenaSel], '_',' ');
+        title(titleName,'color', 'w')
+    
+        % Save image
+        save_figure(fig, [arenaData(arena).figDir expName ' ' arenaSel ' well occupation timcourse'], '-png', autoSave,true,'-r80');
   end
   clearvars('-except',initial_vars{:})
   fprintf('\nNext\n')

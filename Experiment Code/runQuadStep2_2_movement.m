@@ -76,8 +76,8 @@ for vid = 1:nvids
         trackROI(vid,arena).tracks = [];
     end
     
-    allX = squeeze(data(vid).tracks(:,1,1,:));
-    allY = squeeze(data(vid).tracks(:,1,2,:));
+    allX = squeeze(data(vid).tracks(:,1,1,:)); % x positions from this video
+    allY = squeeze(data(vid).tracks(:,1,2,:)); % y positions from this video
 
     for fly = flynums    
         % APPLY 4 CONDITIONS FOR POINT BEING CONTINOUS WITH PREVIOUS FRAME
@@ -151,36 +151,39 @@ for vid = 1:nvids
     % fig = figure;
     % hold on
     for arena = 1:4
-        ntrackedlines = sum(~isnan(squeeze(trackROI(vid,arena).tracks(:,1,:))),2);
-    %     plot(ntrackedlines,'color', arenaData(arena).color)
-        trackROI(vid,arena).ntrackedlines = ntrackedlines;
+        if ~isempty(trackROI(vid,arena).tracks) % skip if there are no flies in this arena
+            ntrackedlines = sum(~isnan(squeeze(trackROI(vid,arena).tracks(:,1,:))),2);
+        %     plot(ntrackedlines,'color', arenaData(arena).color)
+            trackROI(vid,arena).ntrackedlines = ntrackedlines;
+        end
     end
         
     % Make a speed array
     for arena = 1:4
-        X = squeeze(trackROI(vid,arena).tracks(:,1,:));
-        Y = squeeze(trackROI(vid,arena).tracks(:,2,:));
-        loc = sum(X,1,'omitnan')==0;
-        X(:,loc) = []; %remove a column of all zeros
-        Y(:,loc) = []; %remove a column of all zeros
-
-        % calculate speed: 
-        dX = diff(X,1,1);
-        dY = diff(Y,1,1);
-        speed = hypot(dX,dY);
-        speed = (speed./pix2mm)*FPS;
-        trackROI(vid,arena).speed = speed;
+          if ~isempty(trackROI(vid,arena).tracks) % skip if there are no flies in this arena
+                X = squeeze(trackROI(vid,arena).tracks(:,1,:)); % all X positions within this video and arena
+                Y = squeeze(trackROI(vid,arena).tracks(:,2,:)); % all Y positions within this video and arena
+                loc = sum(X,1,'omitnan')==0;
+                X(:,loc) = []; %remove a column of all zeros
+                Y(:,loc) = []; %remove a column of all zeros
         
-        % extract the avg and err of speed for a given frame
-        speedAvg = mean(speed,2,'omitnan');
-        speedErr = std(speed,0,2,'omitnan');
-    
-        trackROI(vid,arena).speedAvg = [speedAvg; nan]; % nan for the final frame whose speed we can't calculate
-        trackROI(vid,arena).speedErr = [speedErr; nan];
-
-%         figure; histogram(reshape(speed,1,numel(speed)))
-%         figure; plot(speedAvg)
-
+                % calculate speed: 
+                dX = diff(X,1,1);
+                dY = diff(Y,1,1);
+                speed = hypot(dX,dY);
+                speed = (speed./pix2mm)*FPS;
+                trackROI(vid,arena).speed = speed;
+                
+                % extract the avg and err of speed for a given frame
+                speedAvg = mean(speed,2,'omitnan');
+                speedErr = std(speed,0,2,'omitnan');
+            
+                trackROI(vid,arena).speedAvg = [speedAvg; nan]; % nan for the final frame whose speed we can't calculate
+                trackROI(vid,arena).speedErr = [speedErr; nan];
+        
+        %         figure; histogram(reshape(speed,1,numel(speed)))
+        %         figure; plot(speedAvg)
+          end
     end
 end
 
@@ -192,11 +195,13 @@ close all
 if essentialfigs == false
     fig = figure;
     for arena = 1:4
-        hold on
-        vid = 1;
-        z = trackROI(vid, arena).tracks;
-        for ii = 1:size(z,3)
-            plot(z(:,1,ii),z(:,2,ii),'linewidth', 0.5)
+        if ~isempty(trackROI(vid, arena).tracks)
+            hold on
+            vid = 1;
+            z = trackROI(vid, arena).tracks;
+            for ii = 1:size(z,3)
+                plot(z(:,1,ii),z(:,2,ii),'linewidth', 0.5)
+            end
         end
     end
     axis square
@@ -211,16 +216,20 @@ end
 if essentialfigs == false
     fig = figure; hold on
     for arena = 1:4
-        for vid = 1:nvids
-            dummy = squeeze(trackROI(vid, arena).tracks(:,1,:));
-            X = sum(~isnan(dummy),1);
-            scatter(vid*ones(1,numel(X)),X,25,arenaData(arena).color,"filled")
-            meanLength(vid,arena) = mean(X,2,'omitnan');
+        if ~isempty(trackROI(vid, arena).tracks)
+            for vid = 1:nvids
+                dummy = squeeze(trackROI(vid, arena).tracks(:,1,:));
+                X = sum(~isnan(dummy),1);
+                scatter(vid*ones(1,numel(X)),X,25,arenaData(arena).color,"filled")
+                meanLength(vid,arena) = mean(X,2,'omitnan');
+            end
         end
     end
     for arena = 1:4
-        plot(1:nvids,meanLength(:,arena),'color','w','linewidth', 2.5)
-        plot(1:nvids,meanLength(:,arena),'color',arenaData(arena).color,'linewidth', 1.5)
+        if ~isempty(trackROI(vid, arena).tracks)
+            plot(1:nvids,meanLength(:,arena),'color','w','linewidth', 2.5)
+            plot(1:nvids,meanLength(:,arena),'color',arenaData(arena).color,'linewidth', 1.5)
+        end
     end
     
     xlabel('Video number')
@@ -234,12 +243,15 @@ end
 %% ANALYSIS: group the speed data over time
 
 % find the maximum number of tracks for speed data
+maxTrack = nan(1, nArenas);
 for arena = 1:4
-    nMax = [];
-    for vid = 1:nvids
-        nMax = max([nMax, max(trackROI(vid, arena).ntrackedlines)]);
+    if ~isempty(trackROI(vid, arena).tracks)
+        nMax = [];
+        for vid = 1:nvids
+            nMax = max([nMax, max(trackROI(vid, arena).ntrackedlines)]);
+        end
+        maxTrack(arena) = nMax;
     end
-    maxTrack(arena) = nMax;
 end
 disp('Max tracks for each arena:')
 disp(maxTrack)
@@ -247,35 +259,47 @@ disp(maxTrack)
 % combine all the speed points into a single structure
 speed = struct;
 for arena = 1:4
-    speed(arena).raw = [];
-    for vid = 1:nvids
-        plotdata = (trackROI(vid, arena).speed);
-        % move all the data points to an area that can be appended
-        plotdata = sort(plotdata,2); 
-        if size(plotdata,2)<maxTrack(arena)
-            addData = nan(size(plotdata,1),maxTrack(arena));
-            addData(:,1:size(plotdata,2)) = plotdata;
-        else
-            addData = plotdata(:,1:maxTrack(arena));
+    if ~isempty(trackROI(vid, arena).tracks)
+        excessPoints = [];
+        speed(arena).raw = [];
+        for vid = 1:nvids
+            plotdata = (trackROI(vid, arena).speed);
+            % move all the data points to an area that can be appended
+            plotdata = sort(plotdata,2);  % moves all the nans to the end of the columns
+            if size(plotdata,2)<maxTrack(arena)
+                addData = nan(size(plotdata,1),maxTrack(arena));
+                addData(:,1:size(plotdata,2)) = plotdata;
+            else
+                addData = plotdata(:,1:maxTrack(arena)); % this cuts off any data that is more than the current number of flies but should be just the nans
+                % sanity check:  how many of the points getting cut off
+                % actually contain any real data?
+                excessPoints = [excessPoints, sum(~isnan(plotdata(:,maxTrack(arena):end)))];
+            end
+            speed(arena).raw = [speed(arena).raw; nan(1,maxTrack(arena)); addData];
         end
-        speed(arena).raw = [speed(arena).raw; nan(1,maxTrack(arena));addData];
     end
+    fprintf('\n Total speed points cutoff in arena %s: %i\n', Alphabet(arena), sum(excessPoints))
 %     speed(arena).raw
 end
 
+
 % layout the average speed & error over time
 for arena = 1:4
-    speed(arena).avg = mean(speed(arena).raw,2,'omitnan');
-    speed(arena).err = std(speed(arena).raw,0,2,'omitnan')./sqrt(nflies(arena));
+     if ~isempty(trackROI(vid, arena).tracks)
+        speed(arena).avg = mean(speed(arena).raw,2,'omitnan');
+        speed(arena).err = std(speed(arena).raw,0,2,'omitnan')./sqrt(nflies(arena));
+     end
 end
 
 % define walking as flies moving faster than 1.5mm/s
 walkLim = 1.5;
 for arena = 1:4
-    loc = speed(arena).raw>=walkLim;
-    speed(arena).walkNum = sum(loc,2);
-    loc = speed(arena).raw<walkLim;
-    speed(arena).restNum = sum(loc,2);
+     if ~isempty(trackROI(vid, arena).tracks)
+        loc = speed(arena).raw>=walkLim;
+        speed(arena).walkNum = sum(loc,2);
+        loc = speed(arena).raw<walkLim;
+        speed(arena).restNum = sum(loc,2);
+     end
 end
 
 % Save the speed data into a separate structure for the experiments
@@ -298,10 +322,12 @@ if ~essentialfigs % NEW 5.22.25
         subplot(row, col, sb(2).idx)
         hold on
         for arena = 1:4
-           try
-               plot(occupancy.time, smooth(speed(arena).avg(1:end-1),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
-           catch
-               plot(occupancy.time, smooth(speed(arena).avg,sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+           if ~isempty(trackROI(vid, arena).tracks)
+               try
+                   plot(occupancy.time, smooth(speed(arena).avg(1:end-1),sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+               catch
+                   plot(occupancy.time, smooth(speed(arena).avg,sSpan,'moving'),'color', arenaData(arena).color,'LineWidth',1)
+               end
            end
         end
         xlabel('time (min)')
@@ -314,24 +340,25 @@ end
 
 %% FIGURE: speed histogram
 if essentialfigs == false
-    speedMax = 20;
+    speedMax = 35;
     
     fig = figure; set(fig, 'pos', [87 258 1230 720])
     for arena = 1:4
-        subplot(2,2,arena)
-        X = speed(arena).raw;
-        h(arena).data = histogram(X,'EdgeColor','w');
-        set(gca, 'YScale','log')
-        h_line(10,'gold')
-        v_line(20,'red')
-        xlabel('speed (mm/s)')
-        ylabel('frame count')
-        % find the portion of frames above the allowable instance:
-        raw = reshape(X,numel(X),1);
-        raw(isnan(raw)) = [];
-        percentHigh(arena) = (sum(raw>speedMax)/length(raw))*100;
-        title(['Over limit: ' num2str(percentHigh(arena)), '%'])
-        
+         if ~isempty(trackROI(vid, arena).tracks)
+            subplot(2,2,arena)
+            X = speed(arena).raw;
+            h(arena).data = histogram(X,'EdgeColor','w');
+            set(gca, 'YScale','log')
+            h_line(10,'gold')
+            v_line(20,'red')
+            xlabel('speed (mm/s)')
+            ylabel('frame count')
+            % find the portion of frames above the allowable instance:
+            raw = reshape(X,numel(X),1);
+            raw(isnan(raw)) = [];
+            percentHigh(arena) = (sum(raw>speedMax)/length(raw))*100;
+            title(['Over limit: ' num2str(percentHigh(arena)), '%'])
+         end
     end
     formatFig(fig,true,[2,2]);
     
@@ -361,7 +388,7 @@ if essentialfigs == false
     sb(2).idx = 2:5;
     
     for arena = 1:4
-    
+       if ~isempty(trackROI(vid, arena).tracks)
         fig = figure; set(fig, 'pos', [2035 443 908 600])
             subplot(row, col, sb(1).idx)
                 plot(occupancy.time, occupancy.temp,'color', 'w','linewidth', 2)
@@ -374,7 +401,7 @@ if essentialfigs == false
                             smooth(speed(arena).restNum,sSpan,'moving')];
                 y = area(plotdata);
                 y(2).EdgeColor = 'none';
-                y(2).FaceColor = Color('darkslategrey'); % resting
+                y(2).FaceColor = Color('darkslategray'); % resting
                 y(1).EdgeColor = 'none';
                 y(1).FaceColor = Color('springgreen'); % walking
             %labels
@@ -385,7 +412,7 @@ if essentialfigs == false
             set(gca,'XColor','k','TickDir','out')
         
         save_figure(fig, [arenaData(arena).figDir expName ' walking vs resting fly numbers' ], '-png',autoSave,true,'-r80');
-    
+       end
     end
     
     clearvars('-except',initial_vars{:})
@@ -394,14 +421,16 @@ end
 %% SAVE: data stored in each subfolder for arenas
 
 % Save group data into combo folder: 
-save([analysisDir expName ' speed data v2.mat'],'speed', 'trackROI');
+save([analysisDir expName ' speed data v2.mat'], 'speed', 'trackROI');
 
 % Save into each group folder:
 SPEED = speed;
 for arena = 1:nArenas
-    speed = SPEED(arena);
-    speedTracks = trackROI(:,arena);
-    save([arenaData(arena).figDir expName ' speed data v2.mat'],'speed', 'speedTracks');
+     if ~isempty(trackROI(vid, arena).tracks)
+        speed = SPEED(arena);
+        speedTracks = trackROI(:,arena);
+        save([arenaData(arena).figDir expName ' speed data v2.mat'],'speed', 'speedTracks');
+     end
 end
 
 results = 'Saved Data';
