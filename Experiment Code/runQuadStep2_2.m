@@ -52,7 +52,7 @@ FPS = expData.parameters.FPS;
 
 emptyArena = false(1, nArenas);
 for arena = 1:nArenas
-    strA = expData.(['Arena' Alphabet(arena)]).genotype;
+    strA = expData.parameters.(['Arena' Alphabet(arena)]).genotype;
     if strcmp('Empty', strA)
         emptyArena(arena) = true;
     end
