@@ -13,6 +13,7 @@ genotype = getGenotype; % pull genotype information
 [food, wellLoc] = getFoodType(1);% pull food well option
 
 switch parameters.protocol
+    
     case 'courtship_F_LRR_25-17'
         totalLength = 64; % 16 min pre, 16 down, 16 up, 16 post
         rampNum = questdlg('Ramp number?','','1','2','3','1'); %todo -- make this more dynamic and search for # in folder
@@ -21,11 +22,15 @@ switch parameters.protocol
     case 'high_res_LTS_35-15'
         totalLength = 485; %
         expName = [genotype '_' parameters.protocol '_' food];
-
+        
+    case 'HR_LTS_R_15-35'
+        totalLength = 360; %
+        expName = [genotype '_' parameters.protocol '_' food];
+        
     case {'Hold15C', 'Hold20C', 'Hold25C', 'Hold30C', 'Hold35C'}
         totalLength = 485; %
         expName = [genotype '_' parameters.protocol '_' food];
-
+        
 end
 
 % parameters.protocol = 'Hold35C';
@@ -46,7 +51,6 @@ parameters.ITI = 5;
 parameters.FPS = hz;
 parameters.recordingduration = totalLength;
 parameters.fragmentduration = trial;
-% parameters.protocol = 'courtship_F_LRR_25-17'; %TODO dynamic
 parameters.numFrag = nsamples; % number of video fragments
 parameters.experimenter = questdlg('Select experimenter:','','Becca', 'Evyn', 'Cancel', 'Becca');
 parameters.day_night = 'D'; 
