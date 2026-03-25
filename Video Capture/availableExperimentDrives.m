@@ -22,7 +22,7 @@ else
 end
 
 % query what temp protocol is being used: 
-list = {'F LRR 25-17', 'LTS 35-15', 'hold 15C', 'hold 20C', 'hold 25C', 'hold 30C', 'hold 35C'};
+list = {'F LRR 25-17', 'LTS 35-15', 'R LTS 15-35', 'hold 15C', 'hold 20C', 'hold 25C', 'hold 30C', 'hold 35C'};
 a = listdlg('PromptString','Select your temp protocol:','ListString',list);
 
 % a = questdlg('Select your temp protocol:','','F LRR 25-17', 'LTS 35-15','Cancel','F LRR 25-17');
