@@ -226,9 +226,8 @@ save_figure(gcf, [figDir 'Courtship behaviors across temp regions'], fig_type);
 
 % TODO 2/6/26 : separate this to include the encounters as a solo analysis
 % function that can be auto run in step 6.1
-
 clearvars('-except',initial_var{:})
-
+pix2mm = fly(1).pix2mm;
 IFD = 12; % mm distance that counts as an encounter
 
 % initialize parameters for saving the data
@@ -289,14 +288,14 @@ for trial = 1:num.trials
     % ---- MALE DISTANCE TRAVELED -----
     % find the distance traveled by the male fly between the last encounter
     % with the female fly and this encounter
-    mDistance = nan([length(enc_stop)+1,1]); % empty vector for distance between encounters
+    mDistance = nan([length(enc_stop),1]); % empty vector for distance between encounters
     for ii = 1:length(enc_rois)  
         % distance between encounters?
         roi = enc_rois(ii,1):enc_rois(ii,2);
         x = data.x_loc(M).pos(roi,body.center,trial);
         y = data.y_loc(M).pos(roi,body.center,trial);
          % save data into structure
-        mDistance(ii+1) = sum(hypot(diff(x), diff(y))./pix2mm); 
+        mDistance(ii+1) = sum(hypot(diff(x), diff(y))./pix2mm);  % distance in mm
     end
 
     encounters(trial).mDistance_traveled = mDistance;
@@ -1090,6 +1089,8 @@ save_figure(fig, [saveDir 'distance to food at encounter by attempt type scatter
 
 %% FIGURE: Distance traveled by male btwn courtship vs  courtship rate:
 clearvars('-except',initial_var{:})
+% show whether there is a correlation between encounter courtship rate and distance
+% traveled since the last encounter with the female fly:
 
 SZ = 35; 
 FA = 0.7;
@@ -1099,9 +1100,19 @@ yColor = Color('vaporwavegren');
 nColor = Color('vaporwavepink');
 LW = 3;
 
-% how far did male flies travel between courtship encounters?
-
-
+% distance traveled for successful encounters: 
+plot_yes_all = [];
+[yes_court, no_court] = deal(nan(num.trials, 2)); % avg col and std col for distance traveled
+for trial = 1:num.trials
+    yes_loc = logical(encounters(trial).locs(:,3));
+    no_loc = ~yes_loc;
+    mDist = encounters(trial).mDistance_traveled; % all distance locations 
+    plot_yes = mDist(yes_loc);
+    % mean and std for this trial of the distance traveled between encounters
+    yes_court(trial, 1) = mean(plot_yes, 'omitnan');
+    yes_court(trial, 2) = sem(plot_yes);
+    % working here! 
+    plot_yes_all = [plot_yes_all; plot_yes];
 
 
 
