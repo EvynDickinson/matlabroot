@@ -1061,7 +1061,6 @@ fig = getfig;
     avg = mean(plot_no);
     plot([2-buff, 2+buff], [avg, avg], 'color', nColor, 'linewidth', LW)
     
-
 % Paired version: 
 fig = getfig('',1,[514 671]);
     hold on
@@ -1091,67 +1090,161 @@ save_figure(fig, [saveDir 'distance to food at encounter by attempt type scatter
 clearvars('-except',initial_var{:})
 % show whether there is a correlation between encounter courtship rate and distance
 % traveled since the last encounter with the female fly:
-
-SZ = 35; 
-FA = 0.7;
-buff = 0.35;
-jitbuff = 0.2;
-yColor = Color('vaporwavegren');
-nColor = Color('vaporwavepink');
-LW = 3;
+saveDir = createFolder([figDir, 'courtship attempts/']);
 
 % distance traveled for successful encounters: 
-plot_yes_all = [];
+[plot_yes_all, plot_no_all] = deal([]);
 [yes_court, no_court] = deal(nan(num.trials, 2)); % avg col and std col for distance traveled
 for trial = 1:num.trials
     yes_loc = logical(encounters(trial).locs(:,3));
     no_loc = ~yes_loc;
     mDist = encounters(trial).mDistance_traveled; % all distance locations 
     plot_yes = mDist(yes_loc);
-    % mean and std for this trial of the distance traveled between encounters
+    plot_no = mDist(no_loc);
+    % courtship: mean and std for this trial of the distance traveled between encounters
     yes_court(trial, 1) = mean(plot_yes, 'omitnan');
     yes_court(trial, 2) = sem(plot_yes);
-    % working here! 
     plot_yes_all = [plot_yes_all; plot_yes];
+    % no courtship: mean and std for this trial of the distance traveled between encounters
+    no_court(trial, 1) = mean(plot_no, 'omitnan');
+    no_court(trial, 2) = sem(plot_no);
+    plot_no_all = [plot_no_all; plot_no];
+end
 
-
-
-fig = getfig;
+% FIGURE: all encounters across all flies
+yColor = Color('vaporwavegren');
+nColor = Color('vaporwavepink');
+LW = 3;
+jitbuff = 0.4;
+buff = 0.2;
+SZ = 15; 
+FA = 0.1;
+fig = getfig('',true, [539 900]);
     hold on
-    scatter(ones(size(plot_yes)), plot_yes, SZ, foreColor,...
+    % plot yes courtship data
+    scatter(ones(size(plot_yes_all)), plot_yes_all, SZ, foreColor,...
         'filled', 'markerFaceAlpha', FA, 'xjitter', 'density','xjitterwidth', jitbuff)
-    avg = mean(plot_yes);
+    avg = mean(plot_yes_all,'omitnan');
     plot([1-buff, 1+buff], [avg, avg], 'color', yColor, 'linewidth', LW)
-    scatter(2*ones(size(plot_no)), plot_no, SZ, foreColor,...
+    % plot no courtship data
+    scatter(2*ones(size(plot_no_all)), plot_no_all, SZ, foreColor,...
         'filled', 'markerFaceAlpha', FA, 'xjitter', 'density','xjitterwidth', jitbuff)
-    avg = mean(plot_no);
+    avg = mean(plot_no_all,'omitnan');
     plot([2-buff, 2+buff], [avg, avg], 'color', nColor, 'linewidth', LW)
-    
+    ylim([-5,1500])
+    formatFig(fig, blkbgd);
+    xlim([0.5, 2.5])
+    % quick t-test: 
+    [h,p] = ttest2(plot_yes_all, plot_no_all);
+    title_str = sprintf('distance traveled between encounters \neffect on courtship likelihood\np = %1.3f',p);
+    title(title_str, 'color', foreColor)
+    set(gca, xtick=1:2, xticklabel={'Courtship', 'No Courtship'})
+    ylabel('M distance traveled since last encounter with F (mm)')
+save_figure(fig, [saveDir 'distance traveled since encounter by attempt type scatter all points']);
 
-% Paired version: 
+
+% Paired per-fly version: 
+SZ = 35; 
+FA = 0.7;
 fig = getfig('',1,[514 671]);
     hold on
     x = repmat([1,2],[num.trials,1]);
-    plot(x', [plot_yes; plot_no], 'color', Color('grey'), 'linewidth', 1)
-    scatter(x(:,1), plot_yes, SZ, yColor, 'filled','markerfacealpha', FA)
-    scatter(x(:,2), plot_no, SZ, nColor, 'filled','markerfacealpha', FA)
+    plot(x', [yes_court(:,1)'; no_court(:,1)'], 'color', Color('grey'), 'linewidth', 1)
+    scatter(x(:,1), yes_court(:,1), SZ, yColor, 'filled','markerfacealpha', FA)
+    scatter(x(:,2), no_court(:,1), SZ, nColor, 'filled','markerfacealpha', FA)
     % average distance for attempted
-    avg = mean(plot_yes);
+    avg = mean(yes_court(:,1));
     plot([1-buff, 1+buff], [avg, avg], 'color', yColor, 'linewidth', LW)
     % average distance for not attempted
-    avg = mean(plot_no);
+    avg = mean(no_court(:,1));
     plot([2-buff, 2+buff], [avg, avg], 'color', nColor, 'linewidth', LW)
 formatFig(fig, blkbgd);
 xlim([1-2*buff, 2+2*buff])
 set(gca, 'xtick', 1:2, 'xticklabel', {'attempted', 'not attempted'})
-ylabel('distance to food at encounter (mm)')
+ylabel('distance traveled since encounter (mm)')
 xlabel('courtship')
-
-[~, p] = ttest(plot_yes, plot_no);
-fprintf('\n P-value (%4.3g) for distance and courtship attempts \n',p)
+% stats
+[~, p] = ttest(yes_court(:,1), no_court(:,1));
+fprintf('\n p-value (%4.3g) for distance traveled and courtship attempts \n',p)
+% title update
+title_str = sprintf('p-value: %4.3g',p);
+title(title_str, 'color', foreColor)
 
 % paired t-test for distance to food: 
-save_figure(fig, [saveDir 'distance to food at encounter by attempt type scatter']);
+save_figure(fig, [saveDir 'distance traveled since encounter by attempt type scatter per fly']);
 
 
-%%
+% make a quick binary fit model: 
+x = [plot_yes_all; plot_no_all];
+y = [ones(size(plot_yes_all)); zeros(size(plot_no_all))];
+tbl = table(x,y);
+% Fit logistic regression model
+mdl = fitglm(tbl, 'y ~ x', 'Distribution', 'binomial');
+
+% Plot the data and the fitted sigmoid curve
+fig = getfig('',1,[677 579]);
+    scatter(x, y, 30, Color('vaporwavepurple'), 'filled',...
+        'markerfacealpha', 0.7); % Plot raw data
+    hold on;
+    x_range = linspace(min(x), max(x), 100)';
+    y_pred = predict(mdl, x_range);
+    plot(x_range, y_pred, 'color', Color('vaporwaveyellow'), 'LineWidth', 2); % Plot fit
+    h_line(0.5, 'grey', ':')
+formatFig(fig, blkbgd);
+set(gca,'ytick',[0, 0.5, 1],'yticklabel', {'no attempt', ' ', 'attempt'})
+ylim([-0.05, 1])
+xlabel('distance traveled since last encounter (mm)')
+
+save_figure(fig, [saveDir 'logistic regression courtship attempts x dist traveled since encounter']);
+
+
+%% FIGURE: what is the frequency of courtship behaviors? 
+% use this to demonstrate that we can capture fairly rare events by looking
+% over a long period of time -- which means low yield but important to
+% actually study
+clearvars('-except',initial_var{:})
+
+SZ = 35;
+FA = 0.7;
+xjit = 0.2;
+buff = xjit;
+tot_frames = length(data.time);
+kolor = Color('vaporwavepink');
+
+fig = getfig('',1,[565 680]); hold on
+    % wing extension
+    y = sum(data.wing_ext_all,'omitnan');
+    y = (y./tot_frames)*100; % convert to percent of total time
+    x = ones(size(y));
+    scatter(x, y, SZ, foreColor, 'filled', 'MarkerFaceAlpha', FA,...
+        'xjitter', 'density', 'xjitterwidth', xjit)
+    y_avg = mean(y);
+    plot([1-buff, 1+buff], [y_avg, y_avg], 'color', kolor, 'linewidth', 1.5)
+
+    % circling
+    X = 2;
+    y = sum(data.circling_all,'omitnan');
+    y = (y./tot_frames)*100;
+    x = X*ones(size(y));
+    scatter(x, y, SZ, foreColor, 'filled', 'MarkerFaceAlpha', FA,...
+        'xjitter', 'density', 'xjitterwidth', xjit)
+    y_avg = mean(y);
+    plot([X-buff, X+buff], [y_avg, y_avg], 'color', kolor, 'linewidth', 1.5)
+
+    % chase
+    X = 3;
+    y = sum(data.chase_all,'omitnan');
+    y = (y./tot_frames)*100;
+    x = X*ones(size(y));
+    scatter(x, y, SZ, foreColor, 'filled', 'MarkerFaceAlpha', FA,...
+        'xjitter', 'density', 'xjitterwidth', xjit)
+    y_avg = mean(y);
+    plot([X-buff, X+buff], [y_avg, y_avg], 'color', kolor, 'linewidth', 1.5)
+
+   % formatting
+   formatFig(fig, blkbgd);
+   ylabel('behavior frequency (percent of total time)')
+   set(gca, xtick = 1:3, xticklabel = {'Wing Extension', 'Circling', 'Chase'})
+
+% save the figure: 
+save_figure(fig, [figDir 'courtship behavior frequency']);

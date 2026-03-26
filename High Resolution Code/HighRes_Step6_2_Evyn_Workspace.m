@@ -938,6 +938,38 @@ loc = data.speed >= speed_threshold;
 data.jump = loc;
 
 
+%% 
+
+%% FIGURE: what is the frequency of courtship behaviors? 
+% use this to demonstrate that we can capture fairly rare events by looking
+% over a long period of time -- which means low yield but important to
+% actually study
+clearvars('-except',initial_var{:})
+
+SZ = 35;
+FA = 0.7;
+xjit = 0.2;
+buff = xjit;
+tot_frames = length(data.time);
+kolor = Color('vaporwavepink');
+
+fig = getfig('',1,[565 680]); hold on
+    % jump escape
+    y = squeeze(sum(data.jump,1,'omitnan'));
+    y = (y(:)./tot_frames)*100; % convert to percent of total time
+    x = ones(size(y));
+    scatter(x, y, SZ, foreColor, 'filled', 'MarkerFaceAlpha', FA,...
+        'xjitter', 'density', 'xjitterwidth', xjit)
+    y_avg = mean(y);
+    plot([1-buff, 1+buff], [y_avg, y_avg], 'color', kolor, 'linewidth', 1.5)
+
+   % formatting
+   formatFig(fig, blkbgd);
+   ylabel('behavior frequency (percent of total time)')
+   set(gca, xtick = 1, xticklabel = {'jump escape'})
+
+% save the figure: 
+save_figure(fig, [figDir 'jump behavior frequency']);
 
 
 
