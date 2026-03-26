@@ -985,3 +985,26 @@ title(name,'color', foreColor,'FontSize',10);
 
 % Save figure
 save_figure(fig,[figDir num2str(name)],fig_type);        
+
+%% Incorportate fly death
+
+% list = {'incapM','incapF','deadM','deadF'};
+% for idx = 1:length(list)
+%     a = excelfile(excel_loc,Excel.(list{idx}));
+%     yes = strcmp({a},'<missing>');
+%     if yes 
+%         % if yes, then replace all missing strings with logaical 0's     
+%     end
+% 
+% end
+
+incapM = excelfile(excel_loc,Excel.incapM);
+incapF = excelfile(excel_loc,Excel.incapF);
+deadM = excelfile(excel_loc,Excel.deadM);
+deadF = excelfile(excel_loc,Excel.deadF);
+
+% see if i even need to change missings into logicals, or if i can just
+% identify when it's a number (aka incap/dead) and just pull that out
+% instead
+% is there function to identify numbers from characters?
+
