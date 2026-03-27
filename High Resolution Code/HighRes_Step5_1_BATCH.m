@@ -10,7 +10,6 @@ auto_run = true;
 % updates for updating the fly data with no swaps:
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
-
 % find trials that need to be updated:
 Excel.ToUpdate
 done_loc = strcmpi('Y', excelfile(:,Excel.ToUpdate));

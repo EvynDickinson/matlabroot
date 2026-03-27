@@ -99,7 +99,7 @@ else % DATA DOES NOT YET EXIST
 end
 
 % Base Parameters: 
-max_gap = 3; % how many skipped frames can exist without the behavior being continuous 
+max_gap = 1; % how many skipped frames can exist without the behavior being continuous 
 initial_var = add_var(initial_var, 'max_gap');
 
 %% ANALYSIS: Extract calculated variables
@@ -273,6 +273,8 @@ for ii = 1:nSwaps
 end
 
 % Manually approve the swaps: 
+fprintf(['\n Track alignment:\n Look for the blue fly outlines with white highlights' ...
+    'all being consisent with the other blue outines and vice versa\n'])
 switch questdlg('Are all tracks in alignment?')
     case 'No'
 
@@ -1387,7 +1389,7 @@ for sex = 1:2
     x_diff = diff(x); 
     % Identify when position is not changing
     u = abs(x_diff)<= 1;
-    u = imclose(u, ones(2, 1)); % fill micro gaps in the behavior
+    u = imclose(u, ones(2, 1)); % fill micro gaps in the behavior (gap of a single frame only)
     % Each value subtracted by the value before it (1 = ext starts, -1 = ext stops, 0 = no state change)
     a = diff(u);
     % Add the first position value to the list to account for the starting condition
