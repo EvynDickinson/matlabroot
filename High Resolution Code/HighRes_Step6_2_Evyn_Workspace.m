@@ -953,7 +953,7 @@ buff = xjit;
 tot_frames = length(data.time);
 kolor = Color('vaporwavepink');
 
-fig = getfig('',1,[565 680]); hold on
+fig = getfig('',1,[296 680]); hold on
     % jump escape
     y = squeeze(sum(data.jump,1,'omitnan'));
     y = (y(:)./tot_frames)*100; % convert to percent of total time
@@ -967,6 +967,7 @@ fig = getfig('',1,[565 680]); hold on
    formatFig(fig, blkbgd);
    ylabel('behavior frequency (percent of total time)')
    set(gca, xtick = 1, xticklabel = {'jump escape'})
+   xlim([0.5,1.5])
 
 % save the figure: 
 save_figure(fig, [figDir 'jump behavior frequency']);
