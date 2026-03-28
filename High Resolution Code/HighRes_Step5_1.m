@@ -1711,6 +1711,7 @@ else
 end
 
 if save_data
+        version_name = sprintf('v_5.1.2 | max gap %i', max_gap);
         save([baseDir 'post-5.1.2 data.mat'],'-v7.3')
         % update that it was processed in the excel sheet:     
         isExcelFileOpen(xlFile);

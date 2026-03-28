@@ -41,7 +41,6 @@ for trial_idx = 1:length(trial_options)
         writecell({'Y'},xlFile,'Sheet','Exp List','Range',[Alphabet(Excel.ToUpdate) num2str(excel_loc)]);
         fprintf('✓ Saved %s data file\n', trialDir)
     end
-    
 end
 
 disp('all data finished reprocessing')
