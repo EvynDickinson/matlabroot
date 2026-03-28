@@ -180,50 +180,104 @@ disp('cleaned data proofed')
 %% Align the tracks from video to video: 
 % display image of fly postion at the end of the first video and then the
 % next chunk for the subsequent video to see if they align
+
+% automatically determine which fly is which from end of one video to the start of
+% the next video
+
+% Take the average position of the fly for the last n frames and the n start frames
+% and see which has a closer center of mass
+% if there are trials with largely different values, ask for manual approval
+
+bodycenter = 2; % index location of the fly body center point
 buff = 4;
-vid_align = false([1,nvids]);
+vid_align = false([1,nvids]); % initiate as all false values
 vid_align(1) = true;
+sROI = 1:1+buff;
+close_threshold = 20; % how many pixels on avg close together for manual check 
+
 for vid = 1:nvids-1
     frame_end = length(data(vid).occupancy_matrix);
     eROI = frame_end-buff:frame_end;
-    sROI = 1:1+buff;
     
-    fig = getfig(['Vid ' num2str(vid)],0,[882 694]); 
-    hold on
-    for i = eROI
-        plotFlySkeleton(fig, data(vid).tracks(i,:,1,1),data(vid).tracks(i,:,2,1),Color('dodgerblue'),true);
-        plotFlySkeleton(fig, data(vid).tracks(i,:,1,2),data(vid).tracks(i,:,2,2),Color('deeppink'),true); 
+    % pull fly positions from end the first video: 
+    FX1 = data(vid).tracks(eROI,bodycenter,1,1); % first vid fly 1 center X 
+    FY1 = data(vid).tracks(eROI,bodycenter,2,1); %  fly 1 center Y
+    % pull fly positions from start the next video: 
+    NX1 = data(vid+1).tracks(sROI,bodycenter,1,1); % next vid fly 1 center X 
+    NY1 = data(vid+1).tracks(sROI,bodycenter,2,1); % fly 1 center Y
+    NX2 = data(vid+1).tracks(sROI,bodycenter,1,2); % next vid fly 2 center X 
+    NY2 = data(vid+1).tracks(sROI,bodycenter,2,2); % fly 2 center Y
+    
+    % avg center points: 
+    x1_avg = mean(x1, 'omitnan');
+    y1_avg = mean(y1, 'omitnan');
+    x2_avg = mean(x2, 'omitnan');
+    y2_avg = mean(y2, 'omitnan');
+
+    % determine which set of points are closer on average
+    stay_value = mean(hypot(FX1-NX1, FY1-NY1), 'omitnan'); % within track alignment
+    cross_value = mean(hypot(FX1-NX2, FY1-NY2),'omitnan'); % across track alignment value
+
+    % sanity check:
+    % standard deviation within vs across the flies is decent
+    % (or maybe have some set distance requirement -- like if both values are within
+    % 15mm it needs manual check) 
+    if stay_value<=close_threshold && cross_value<=close_threshold
+        fig = getfig(['Vid ' num2str(vid)],0,[882 694]); 
+        hold on
+        plotFlySkeleton(fig, data(vid).tracks(eROI,:,1,1),data(vid).tracks(eROI,:,2,1),Color('dodgerblue'),true);
+        plotFlySkeleton(fig, data(vid).tracks(eROI,:,1,2),data(vid).tracks(eROI,:,2,2),Color('deeppink'),true); 
+        plotFlySkeleton(fig, data(vid+1).tracks(sROI,:,1,1),data(vid+1).tracks(sROI,:,2,1),Color('blue'),false);
+        plotFlySkeleton(fig, data(vid+1).tracks(sROI,:,1,2),data(vid+1).tracks(sROI,:,2,2),Color('pink'),false); 
+        % manual selection: 
+        switch questdlg('Are the tracks aligned?')
+            case 'Yes'
+            vid_align(vid+1) = true;
+            case 'Cancel'
+                return
+            case ''
+                return
+        end
+        close(fig)
+    
+    else % automatically determine the track alignment
+        if stay_value<cross_value 
+            vid_align(vid+1) = true;
+        end 
     end
-    for i = sROI
-        plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,1),data(vid+1).tracks(i,:,2,1),Color('blue'),false);
-        plotFlySkeleton(fig, data(vid+1).tracks(i,:,1,2),data(vid+1).tracks(i,:,2,2),Color('pink'),false); 
-    end
-    % axis square
-    switch questdlg('Are the tracks aligned?')
-        case 'Yes'
-        vid_align(vid+1) = true;
-        case 'Cancel'
-            return
-        case ''
-            return
-    end
-    close(fig)
     disp([num2str(vid) '/' num2str(nvids-1)])
 end
 
-% Option to change order if a track was answered incorrectly: 
-% TODO: (optional) incorporate a video verification of the alignment for
-% the incorrectly assigned videos
-switch questdlg('Were all the tracks correctly answered?')
-    case 'Yes'
-    case 'No'
-        list_str = inputdlg('Write in the incorrect video numbers, separated by a space (e.g., ''22 45'')');
-        incorrect_vids = str2double(strsplit(list_str{:},' '));
-        for i = incorrect_vids
-            vid_align(i) = ~vid_align(i);
-        end
-        disp('Video alignments updated')
-end
+% % Quick visual check of the tracks to see that they all make sense and did what we
+% % think they did: 
+% r = 3;
+% c = 5;
+% frame_end = length(data(vid).occupancy_matrix);
+% eROI = frame_end-buff:frame_end;
+% sROI = 1:1+buff;
+% nFigs = ceil(nvids/(r*c));
+% 
+% vid = 0;
+% for fig_idx = 1:nFigs
+%     fig = getfig(num2str(fig_idx), false);
+%     for ii = 1:r*c
+%         vid = vid+1;
+%         if vid>nvids-1
+%             continue
+%         end
+%         subplot(r,c,ii)
+%         hold on
+%         plotFlySkeleton(fig, data(vid).tracks(eROI,:,1,1),data(vid).tracks(eROI,:,2,1),Color('dodgerblue'),false);
+%         plotFlySkeleton(fig, data(vid).tracks(eROI,:,1,2),data(vid).tracks(eROI,:,2,2),Color('deeppink'),false); 
+%         plotFlySkeleton(fig, data(vid+1).tracks(sROI,:,1,1),data(vid+1).tracks(sROI,:,2,1),Color('blue'),false);
+%         plotFlySkeleton(fig, data(vid+1).tracks(sROI,:,1,2),data(vid+1).tracks(sROI,:,2,2),Color('pink'),false); 
+%         if vid_align(vid+1)
+%             title('GOOD', 'color', 'k', 'fontsize', 20)
+%         else
+%             title('BAD', 'color', 'k', 'fontsize', 20)
+%         end
+%     end
+% end
 
 % Run from here if manually fixing track alignment (in vid_align)
 state_switch = false;
