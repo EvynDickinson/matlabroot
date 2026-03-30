@@ -10,8 +10,8 @@ foreColor = formattingColors(blkbgd); % get background colors
 clearvars('-except',initial_var{:})
 
 autoLim = true; % matlab automatically determines the y limits if true
-xlim_auto = true; % change the time range for the x axis
-time_limits = [0,350]; % time limits if manual control over x-axis range
+xlim_auto = false; % change the time range for the x axis
+time_limits = [0, 300]; % time limits if manual control over x-axis range
 % nMax = num.exp; 
 
 % Select the type of information to plot: 
@@ -40,28 +40,30 @@ r = 5; %rows
 c = 3; %columns
 sb(1).idx = [1,2]; %temp timecourse
 sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
-sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
+sb(3).idx = 3 : c : r*c; %dependent var temp tuning curve
 
 LW = 0.75; % single trial line widths
-sSpan = 1800; % 1 minute smoothing function
+sSpan = 1 * (60*60) * num.fps; % 1 minute smoothing function
 kolor = foreColor;
 h_kolor = Color('googlered');
 c_kolor = Color('dodgerblue');
+t_idx = data.tempbin.in_frames; % which data is being considered in the plot
 
 % FIGURE:
 fig = getfig('',true);
-    x = data.time;
+    x = data.time(t_idx);
     yy = data.(pName);
     if sexSep % data separated per fly or per group of flies
         y_all = [squeeze(yy(:,M,:)), squeeze(yy(:,F,:))];
     else 
         y_all = yy;
     end
+    y_all = y_all(t_idx,:); % update this to exclude cutoff data
     nTrials = size(y_all,2);
     
     % temp
     subplot(r,c,sb(1).idx); hold on
-        y = data.temperature;
+        y = data.temperature(t_idx);
         plot(x,y,'LineWidth',2,'Color',kolor)
 
     % selected parameter time course
@@ -83,6 +85,10 @@ fig = getfig('',true);
         x  = data.tempbin.temps; % temp bins
         cIdx = data.tempbin.cooling; % logical locations for cooling data for each temp bin
         hIdx = data.tempbin.warming; % logical locations for warming data for each temp bin
+        % set all time points out of range as false: 
+        cIdx(~t_idx,:) = false;
+        hIdx(~t_idx,:) = false;
+
         nTemps = length(x); % number of temperature bins
         % create empty variables for the avg and error data
         switch dType
@@ -182,6 +188,7 @@ end
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
 %% FIGURE: TEMP TUNING CURVE FOR SELECTED PARAMETER
+% WORKING HERE 3/30
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 plot_threat_zone = false;

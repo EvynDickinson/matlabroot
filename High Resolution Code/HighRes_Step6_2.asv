@@ -10,8 +10,8 @@ foreColor = formattingColors(blkbgd); % get background colors
 clearvars('-except',initial_var{:})
 
 autoLim = true; % matlab automatically determines the y limits if true
-xlim_auto = true; % change the time range for the x axis
-time_limits = [0,350]; % time limits if manual control over x-axis range
+xlim_auto = false; % change the time range for the x axis
+time_limits = [0, 300]; % time limits if manual control over x-axis range
 % nMax = num.exp; 
 
 % Select the type of information to plot: 
@@ -40,17 +40,17 @@ r = 5; %rows
 c = 3; %columns
 sb(1).idx = [1,2]; %temp timecourse
 sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
-sb(3).idx = 3:c:r*c; %dependent var temp tuning curve
+sb(3).idx = 3 : c : r*c; %dependent var temp tuning curve
 
 LW = 0.75; % single trial line widths
-sSpan = 300; % 10 second smoothing function
+sSpan = 1 * (60*60) * num.fps; % 1 minute smoothing function
 kolor = foreColor;
 h_kolor = Color('googlered');
 c_kolor = Color('dodgerblue');
 
 % FIGURE:
 fig = getfig('',true);
-    x = data.time;
+    x = data.time(data.timebin.in;
     yy = data.(pName);
     if sexSep % data separated per fly or per group of flies
         y_all = [squeeze(yy(:,M,:)), squeeze(yy(:,F,:))];
@@ -184,6 +184,7 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 %% FIGURE: TEMP TUNING CURVE FOR SELECTED PARAMETER
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
+plot_threat_zone = false;
 
 % Select the type of information to plot: 
 [title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = ... 
@@ -208,7 +209,7 @@ if any(isnan(ylimits)) % in case new data is added without specs for axis limits
 end
 
 % TODO: update this as new protocols are added to the pipeline
-if strcmp(groupName,'Berlin LTS caviar') % X LIMITS
+if contains(groupName,'LTS') % X LIMITS
     xlimits = [13, 37];
     autoXLim = false;
     xPos = [15, 25];  % for the shaded threat region on the plot
@@ -218,6 +219,9 @@ else
 end
 
 kolor = Color('vaporwavepurple'); % set color selection
+if strcmp(groupName, 'TrpA1-Gal4 x UAS-Kir2.1 LTS Caviar')
+    kolor = Color('vaporwavegren');
+end
 r = 1; % figure rows
 c = 2; % heating and cooling separated plots
 LW = 2; % plotting line width
@@ -289,12 +293,14 @@ for ii = 1:2
 end
 
 % add shaded area for 'threat' temp region
-for tt = 1:2
-    subplot(r, c, tt)
-    ylimits = ylim;
-    pos = [xPos(1,tt), ylimits(1), range(xPos), range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
-    rectangle('Position', pos, 'FaceColor', foreColor, ... 
-              'FaceAlpha', 0.1, 'EdgeColor', 'none');
+if plot_threat_zone
+    for tt = 1:2
+        subplot(r, c, tt)
+        ylimits = ylim;
+        pos = [xPos(1,tt), ylimits(1), range(xPos), range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
+        rectangle('Position', pos, 'FaceColor', foreColor, ... 
+                  'FaceAlpha', 0.1, 'EdgeColor', 'none');
+    end
 end
 
 % add a time arrow to the temp axes graphs
@@ -357,7 +363,6 @@ end
 save_figure(fig, [figDir 'male fly positions in arena'],fig_type)
 
 %% TODO: group behavior state transition map
-
 %% FIGURE: grouped Courtship behavior frequency time course
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
@@ -507,10 +512,20 @@ save_figure(fig, [figDir 'behaviors before and after sleep'],fig_type);
 
 
 %% TODO: duration on food across different temperatures
+% currently only set up for the F LRR data structure
+
 % Question: when are the flies going onto the food and how long are they staying
 % there? How does this change for different temperature regimes?
+ 
+% does the variance in the duration of the visits shift?
+
 clearvars('-except',initial_var{:})
 [foreColor, ~] = formattingColors(blkbgd); %get background colors
+
+% TODO pull data for the type of experiment
+switch groupName
+    case {'Berlin LTS Caviar'}
+end
 
 temp_regimes = {'hold', 'cooling', 'warming', 'hold'};
 ntypes = length(temp_regimes);
@@ -574,7 +589,7 @@ formatFig(fig, blkbgd);
 save_figure(fig, [figDir 'temp regime binned frequency of ' data_type],fig_type);
 
 %% TODO: sort this mess out: rasterplot of frequency of courtship-like events over the timecourse
-% This currently does not work for LTS data I tih
+% This currently does not work for LTS data (I think... evyn 2.3.26)
 % bin by time?
 
 % look at the total number for each group...
@@ -663,9 +678,6 @@ save_figure(fig, [figDir 'courstship measures avg over temp region'],'-pdf');
 
 %% Trial by trial comparision of the different courtship measures 
 clearvars('-except',initial_var{:})
-
-% UPDATE THIS FOR NOT LTS: 
-data.temp = mean(data.temperature,2,'omitnan');
 
 % bin by 1 minute increments
 

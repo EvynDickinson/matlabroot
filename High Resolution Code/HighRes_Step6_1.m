@@ -35,12 +35,6 @@ if strcmp(questdlg('Load existing data structure?'),'Yes')
 
         disp('Data structure finished loading')
 
-        % build indexes for warm threat, cool threat, warm safe, cool safe
-        data.tempbin.WT = data.tempbin.h_idx & data.temp>25; % warm threat
-        data.tempbin.WS = data.tempbin.c_idx & data.temp>25; % warm safe
-        data.tempbin.CT = data.tempbin.c_idx & data.temp<25; % cool threat
-        data.tempbin.CS = data.tempbin.h_idx & data.temp<25; % cool safe
-        
         % Final bit of post-processing
         [data, initial_var] = post_6_1_processing(data, fly, num, groupName, initial_var);
 
@@ -152,6 +146,7 @@ fig_type = '-png';
 initial_var{end+1} = 'fig_type';
 initial_var{end+1} = 'hold_exp';
 fps = 30;
+num.fps = fps;
 initial_var{end+1} = 'fps';
 
 clearvars('-except',initial_var{:})
@@ -444,11 +439,13 @@ disp('next:')
 %% Create temp bin groups and a universal temperature ramp:
 clearvars('-except',initial_var{:})
 
+t_bin_size = 0.5; % 0.5 deg temperature bins
+
 % universal temperature profile: 
 data.temp = smooth(mean(data.temperature,2, 'omitnan'),5*30,'moving');
 
 % create logical indexes for heat/cool at specific temperature bins
-temp_bins = floor(min(data.temp)):0.5:ceil(max(data.temp)); % 0.5 deg temperature bins
+temp_bins = floor(min(data.temp)) : t_bin_size : ceil(max(data.temp)); 
 idx = discretize(data.temp, temp_bins);
 [c_idx, h_idx] = deal(false(size(data.temp)));
 for i = 1:size(data.warming_idx,1)
@@ -565,7 +562,7 @@ for trial = 1:num.trials
     % loc = false(size(x_loc));
     % loc(all_points,:) = true;
     % if tp.holdexp
-        loc = true(size(x1)); % start with all temporal locations being allowable
+    loc = true(size(x1)); % start with all temporal locations being allowable
     % end
 
     % Define base location logicals
@@ -866,7 +863,8 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     
     % ADD SPEED TO THE DATA STRUCTURE
     if ~isfield(data, 'speed')
-        switch questdlg('This structure needs to be rebuilt so the time-aligned speed can be created. Proceed with non-aligned speed?')
+        switch questdlg(['This structure needs to be rebuilt so the time-aligned speed ' ...
+                'can be created. Proceed with non-aligned speed?'])
             case 'Yes'
                    data.speed = nan(size(data.sleep));
                         for trial = 1:num.trials
@@ -876,6 +874,11 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
             case {'No','Cancel',''}
                 return
         end
+    end
+
+    % check that time is included in the data structure
+    if ~isfield(data, 'time')
+        data.time = fly(1).time;
     end
     
     % make an inner food quad region ROI
@@ -891,14 +894,28 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     % add new variables to the saved variable list
     initial_var{end+1} = 'encounters';
     initial_var{end+1} = 'foreColor';
+
+    % Find the time limits for this experiment type: 
+    time_max = inf; 
+    switch groupName
+        case 'Berlin LTS caviar'
+            time_max = 350; % how many minutes for the duration of the experiment to be included 
+            % ** this is currently determined by when the food quality degrades in the arena
+            % (arena 2 has the shallow wells so this occurs more rapidly with the LTS)
+    end
+    time_roi = time_max * (num.fps*60);
+    exp_dur = size(data.tempbin.all,1);
+    t_max = min([exp_dur, time_roi]);
+    data.tempbin.in_frames = false(exp_dur, 1);
+    data.tempbin.in_frames(1:t_max) = true;
     
     % build indexes for warm threat, cool threat, warm safe, cool safe
     threshTemp = 25; % 'neutral temp'
-    data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp; % warm threat
-    data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp; % warm safe
-    data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp; % cool threat
-    data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp; % cool safe
-    data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx; % static safe
+    data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp & data.tempbin.in_frames; % warm threat
+    data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp & data.tempbin.in_frames; % warm safe
+    data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp & data.tempbin.in_frames; % cool threat
+    data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp & data.tempbin.in_frames; % cool safe
+    data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx & data.tempbin.in_frames; % static safe
     
     % adjust the overshoot temps in F LRR to not count towards a temp region
     if contains(groupName, 'F LRR 25-17')
