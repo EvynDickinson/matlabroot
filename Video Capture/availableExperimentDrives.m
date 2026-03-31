@@ -36,7 +36,7 @@ switch b
         expProtocol = 'high_res_LTS_35-15';
         reqSpace = 3.4; % how many terrabytes of free space required
     case 'R LTS 15-35'
-        reqSpace = 1.5; % how many terrabytes of free space required
+        reqSpace = 2.5; % how many terrabytes of free space required
         expProtocol = 'HR_LTS_R_15-35';
     case 'hold 15C'
         expProtocol = 'Hold15C';
