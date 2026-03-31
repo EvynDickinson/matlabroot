@@ -12,6 +12,8 @@ clear; close all; clc
 baseDir = getDataPath(6,0);
 baseFolder = [baseDir,'Trial Data/'];
 
+fig_autosave = true; % save the figures automatically? (good for rerunning the data) 
+
 % Find files that can be run
 [excelfile, Excel, xlFile] = load_HighResExperiments;
 
@@ -201,7 +203,7 @@ fig = getfig('',1); hold on
     ylabel('temp (\circC)')
     formatFig(fig);
     title([groupName ' | n = ' num2str(num.trials)])
-save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type);
+save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type, fig_autosave);
 
 % update for the correct temp protocol names: 
 temp_protocols = [];
@@ -261,7 +263,7 @@ fig = figure;
     set(gca, 'xtick', 1:length(xtick_lab), 'XTickLabel', xtick_lab)
     title([groupName ' | n = ' num2str(num.trials)])
     formatFig(fig, blkbgd);
-save_figure(fig, [alignmentDir 'raw section durations'],fig_type);
+save_figure(fig, [alignmentDir 'raw section durations'],fig_type, fig_autosave);
 
 
 % Add speed data to trial information: 
@@ -407,7 +409,7 @@ fig = getfig('',0);
     ylim([-0.1,1.1])
     title('warming')
     formatFig(fig, blkbgd,[1,2]);
-save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type);
+save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type, fig_autosave);
 
 
 % show the alignment across temperature
@@ -432,7 +434,7 @@ fig = getfig('', 1);
     ylabel('temperature (\circC)')
     formatFig(fig,blkbgd);
     title([groupName ' | n = ' num2str(num.trials)])
-save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type);
+save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type, fig_autosave);
 
 disp('next:')
 
@@ -848,7 +850,9 @@ clearvars('-except',initial_var{:})
 switch questdlg('Save data to grouped data structure?')
     case 'Yes'
         disp('Saving data ...')
-        save([groupDir 'GroupData.mat'],'-v7.3');
+        tic
+        save([groupDir 'GroupData.mat'],'-v7.3');        
+        toc
         disp('Data saved')
 end
 
@@ -905,17 +909,40 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     end
     time_roi = time_max * (num.fps*60);
     exp_dur = size(data.tempbin.all,1);
-    t_max = min([exp_dur, time_roi]);
-    data.tempbin.in_frames = false(exp_dur, 1);
-    data.tempbin.in_frames(1:t_max) = true;
+    
+    % exclude data beyond the allowable time range for each temp type
+    if time_roi < exp_dur        
+        fieldList = fieldnames(data); % find all the types of data to cutoff
+        % remove data past the allowable point
+        for ii = 1:length(fieldList)
+            if isstruct(data.(fieldList{ii}))
+                nStructs = length(data.(fieldList{ii}));
+                subFieldList = fieldnames(data.(fieldList{ii}));
+                for ss = 1:nStructs % loop over structure elements (e.g. data.x_loc(1))
+                    for jj = 1:length(subFieldList)
+                        % skip further nested structures but throw
+                        % information warning
+                        if isstruct(data.(fieldList{ii})(ss).(subFieldList{jj}))
+                            warndlg('caution: ''data'' contains more nested structures than the time cutoff can account for')
+                            continue
+                        end
+                        % process all fields within the current substructure
+                        data.(fieldList{ii})(ss).(subFieldList{jj}) = trimToROI(data.(fieldList{ii})(ss).(subFieldList{jj}), time_roi, exp_dur);
+                    end
+                end
+            else % no nested structures -- just process the matrix itself 
+                data.(fieldList{ii}) = trimToROI(data.(fieldList{ii}), time_roi, exp_dur);
+            end
+        end
+    end              
     
     % build indexes for warm threat, cool threat, warm safe, cool safe
     threshTemp = 25; % 'neutral temp'
-    data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp & data.tempbin.in_frames; % warm threat
-    data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp & data.tempbin.in_frames; % warm safe
-    data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp & data.tempbin.in_frames; % cool threat
-    data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp & data.tempbin.in_frames; % cool safe
-    data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx & data.tempbin.in_frames; % static safe
+    data.tempbin.WT = data.tempbin.h_idx & data.temp>threshTemp; % warm threat
+    data.tempbin.WS = data.tempbin.c_idx & data.temp>threshTemp; % warm safe
+    data.tempbin.CT = data.tempbin.c_idx & data.temp<threshTemp; % cool threat
+    data.tempbin.CS = data.tempbin.h_idx & data.temp<threshTemp; % cool safe
+    data.tempbin.SS = ~data.tempbin.h_idx & ~data.tempbin.c_idx; % static safe
     
     % adjust the overshoot temps in F LRR to not count towards a temp region
     if contains(groupName, 'F LRR 25-17')
