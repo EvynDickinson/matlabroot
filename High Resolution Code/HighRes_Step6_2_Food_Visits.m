@@ -1,43 +1,41 @@
 
 initial_var{end+1} = 'FV';
 initial_var{end+1} = 'maxTime';
-initial_var{end+1} = 'fps';
 
 %% Extract the periods for food visits
 clearvars('-except',initial_var{:})
 
 FV = struct; % food visits (this will later be added to the DATA structure)
-fps =  fly(M).fps;
 
 % how many frames can be skipped before a sustained fly on food period is ended
-frameDropAllowance = ceil((1/3) * fps);  % 1/3 of a second
+frameDropAllowance = ceil((1/3) * num.fps);  % 1/3 of a second
 
 % find instances of the flies on the food
 % test for a single fly first: 
 for trial = 1:num.trials
+    
     for sex = 1:2
     
         % find periods of sustained time on the food aka, when there are long
         % periods of adjactent frames with flies on the food 
-        maxTime = 873000; %588000; % drops the last up and down to have even sampling and account for food time-dependency
         frames = find(data.FlyOnFood(:,sex,trial));
-        frames(frames>maxTime) = [];
+        if isempty(frames), continue; end % allow for trials in which the flies never visit the food
+
         onFood = diff(frames)<=frameDropAllowance; % allow for a small gap in frames (dropped etc) [logical about 'frames']
-        
         idx = find(onFood==0); % locations where a running list of flies on food frames exceed the max skip allowance
         frame_loc_stop = [frames(idx); frames(end)];
         frame_loc_start = [frames(1); frames(idx+1)];
         
         onfoodROI = [frame_loc_start, frame_loc_stop]; % frame indexes of when the fly started on the food and left the food
         nOnFood = size(onfoodROI,1); % how many times is the fly on the food total in the experiment
-        onFoodDuration = (diff(onfoodROI,1,2))/fps; % duration of time (s) fly spent on the food
+        onFoodDuration = (diff(onfoodROI,1,2))/num.fps; % duration of time (s) fly spent on the food
 
         % save data into the FV struct
         FV(trial,sex).ROI = onfoodROI;
         FV(trial,sex).nROI = nOnFood;
         FV(trial,sex).duration = onFoodDuration;
 
-        % WORKING HERE 
+        % WORKING HERE 3/31/2026 TODO
         % **** subdivide the protocol into the four different types of temp regimes:
         % temps approaching 25 from each direction **** 
 
