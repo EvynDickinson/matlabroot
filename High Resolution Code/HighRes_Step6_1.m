@@ -969,8 +969,8 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
         data.tempbin.([temp_type '_frames']) = find(data.tempbin.(temp_type));
     end
      initial_var{end+1} = 'temp_regimes';
-    disp('Data post-processing complete')
-
+   
+disp('Data post-processing complete')
 end
 
 

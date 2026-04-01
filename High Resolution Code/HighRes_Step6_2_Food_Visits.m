@@ -1,62 +1,74 @@
 
-initial_var{end+1} = 'FV';
-initial_var{end+1} = 'maxTime';
 
-%% Extract the periods for food visits
+%% ANALYSIS: extract food visit information
 clearvars('-except',initial_var{:})
+initial_var = add_var(initial_var, 'FV');
 
-FV = struct; % food visits (this will later be added to the DATA structure)
-
-% how many frames can be skipped before a sustained fly on food period is ended
-frameDropAllowance = ceil((1/3) * num.fps);  % 1/3 of a second
-
-temp_regimes = {'WT', 'WS', 'CT', 'CS', 'SS'};
-
-% find instances of the flies on the food
-% test for a single fly first: 
-for trial = 1:num.trials
+%  ---- Extract the periods for food visits ---- 
+    FV = struct; % food visits (this will later be added to the DATA structure) 
+    % how many frames can be skipped before a sustained fly on food period is ended
+    frameDropAllowance = ceil((1/3) * num.fps);  % 1/3 of a second
+    % initialize variables: 
+    [foodvisit_start, foodvisit_stop] = deal(false(size(data.FlyOnFood)));
+    foodvisit_id = nan(size(data.FlyOnFood));
     
-    for sex = 1:2
-    
-        % find periods of sustained time on the food aka, when there are long
-        % periods of adjactent frames with flies on the food 
-        frames = find(data.FlyOnFood(:,sex,trial));
-        if isempty(frames)
-            continue
-        end % allow for trials in which the flies never visit the food
-
-        onFood = diff(frames)<=frameDropAllowance; % allow for a small gap in frames (dropped etc) [logical about 'frames']
-        idx = find(onFood==0); % locations where a running list of flies on food frames exceed the max skip allowance
-        frame_loc_stop = [frames(idx); frames(end)];
-        frame_loc_start = [frames(1); frames(idx+1)];
-        
-        onfoodROI = [frame_loc_start, frame_loc_stop]; % frame indexes of when the fly started on the food and left the food
-        nOnFood = size(onfoodROI,1); % how many times is the fly on the food total in the experiment
-        onFoodDuration = (diff(onfoodROI,1,2))/num.fps; % duration of time (s) fly spent on the food
-
-        % save data into the FV struct
-        FV(trial,sex).ROI = onfoodROI;
-        FV(trial,sex).nROI = nOnFood;
-        FV(trial,sex).duration = onFoodDuration;   
-
-        for tt = 1:length(temp_regimes)
-            str = temp_regimes{tt};
-            % pull out vector of frames within this temperature regime type
-            regime_frames = data.tempbin.([str '_frames']);
-            if isempty(regime_frames)
+    % find instances of the flies on the food
+    for trial = 1:num.trials
+            
+        for sex = 1:2
+            
+            % find periods of sustained time on the food aka, when there are long
+            % periods of adjactent frames with flies on the food 
+            frames = find(data.FlyOnFood(:,sex,trial));
+            if isempty(frames)
                 continue
+            end % allow for trials in which the flies never visit the food
+    
+            onFood = diff(frames)<=frameDropAllowance; % allow for a small gap in frames (dropped etc) [logical about 'frames']
+            idx = find(onFood==0); % locations where a running list of flies on food frames exceed the max skip allowance
+            frame_loc_stop = [frames(idx); frames(end)];
+            frame_loc_start = [frames(1); frames(idx+1)];
+            
+            onfoodROI = [frame_loc_start, frame_loc_stop]; % frame indexes of when the fly started on the food and left the food
+            nOnFood = size(onfoodROI,1); % how many times is the fly on the food total in the experiment
+            onFoodDuration = (diff(onfoodROI,1,2))/num.fps; % duration of time (s) fly spent on the food
+    
+            % save into time-based data structure:
+            foodvisit_start(frame_loc_start, sex, trial) = true;
+            foodvisit_stop(frame_loc_stop, sex, trial) = true;
+           
+            % assign increasing food visit IDs using known start/stop frame indices
+            for v = 1:nOnFood
+                foodvisit_id(onfoodROI(v,1):onfoodROI(v,2), sex, trial) = v;
             end
 
-            % link food visits to their temp regime type: 
-            locs = ismember(frame_loc_start, regime_frames);
-
-            FV(trial,sex).(str).ROI = onfoodROI(locs,:);
-            FV(trial,sex).(str).nROI = size(FV(trial,sex).(str).ROI,1);
-            FV(trial,sex).(str).duration = onFoodDuration(locs);
-
-       end
+            % save data into the FV struct
+            FV(trial,sex).ROI = onfoodROI;
+            FV(trial,sex).nROI = nOnFood;
+            FV(trial,sex).duration = onFoodDuration;   
+    
+            for tt = 1:length(temp_regimes)
+                str = temp_regimes{tt};
+                % pull out vector of frames within this temperature regime type
+                regime_frames = data.tempbin.([str '_frames']);
+                if isempty(regime_frames)
+                    continue
+                end
+    
+                % link food visits to their temp regime type: 
+                locs = ismember(frame_loc_start, regime_frames);
+    
+                FV(trial,sex).(str).ROI = onfoodROI(locs,:);
+                FV(trial,sex).(str).nROI = size(FV(trial,sex).(str).ROI,1);
+                FV(trial,sex).(str).duration = onFoodDuration(locs);
+    
+           end
+        end
     end
-end
+    % add the newly processing food visit information: 
+    data.foodvisit_start = foodvisit_start;
+    data.foodvisit_stop = foodvisit_stop;
+    data.foodvisit_id = foodvisit_id;
 
 %% FIGURE: Group trends across the flies for the full experiment to see how they trend
 clearvars('-except',initial_var{:})
@@ -233,10 +245,9 @@ save_figure(fig, [figDir 'food visit by temp regime duration and CDF'],fig_type)
 %     save_figure(fig, [figDir 'food visit temp regime temp plot'],fig_type);
 
 
-%% How does visit duration change over time? [only for LTS currently]
+%% How does visit duration change over time? 
+clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
-
-% WORKING HERE 4.1 UPDATE FOR NEW FV STRUCTURE ORGANIZATION
 
 r = 5;
 c = 1;
@@ -254,7 +265,7 @@ subplot(r,c,sb(2).idx)
     hold on
     for sex = 1:2
         for trial = 1:num.trials
-            x = [x; FV(trial, sex).ROI(:,1)];
+            x = [x; FV(trial, sex).ROI(:,1)]; % start frame for visit 
             y = [y; FV(trial, sex).duration];
         end
     end
@@ -284,6 +295,9 @@ subplot(r,c,sb(1).idx)
 subplot(r,c,sb(2).idx)
     v_line(data.warming_idx./(fps*60), 'red')
     v_line(data.cooling_idx./(fps*60), 'dodgerblue')
+
+    fprintf(['\n Correlation here is to look for any time-dependence in the ' ...
+        '\nvisit duration (like do the visit lengths get shorter later in the experiment etc)\n'])
 
 save_figure(fig, [figDir 'food visit duration over time'],fig_type);
 
@@ -367,71 +381,105 @@ for sex = 1:2
     end
 end
 
-
 [X,I] = sort(x);
 Y = y(I);
 X = X./(fps*60);
 scatter(X, Y, 35, Color('grey'),'filled', 'MarkerFaceAlpha', 0.6)
 plot(X, smooth(Y, 500, 'moving'), 'color', foreColor, 'linewidth', 1.5)
 
+%% FIGURE: frequency of food visits across the whole experiment
+clearvars('-except',initial_var{:})
 
+SZ = 35;
+FA = 0.7;
+xjit = 0.2;
+buff = xjit;
+tot_frames = length(data.time);
+kolor = Color('vaporwavepink');
 
+fig = getfig('',1,[296 680]); hold on
+    % food visit frequency
+    y = squeeze(sum(data.foodvisit_start,1,'omitnan'));
+    y = (y(:)./data.time(end)); % convert to number of visits per minute
+    x = ones(size(y));
+    scatter(x, y, SZ, foreColor, 'filled', 'MarkerFaceAlpha', FA,...
+        'xjitter', 'density', 'xjitterwidth', xjit)
+    y_avg = mean(y);
+    plot([1-buff, 1+buff], [y_avg, y_avg], 'color', kolor, 'linewidth', 1.5)
 
+   % formatting
+   formatFig(fig, blkbgd);
+   ylabel('avg behavior frequency (visits/min)')
+   set(gca, xtick = 1, xticklabel = {'food visits'})
+   xlim([0.5,1.5])
 
-r = 5;
-c = 1;
-sb(1).idx = 1;
-sb(2).idx = 2:r;
+% save the figure: 
+save_figure(fig, [figDir 'food visit frequency']);
 
-x = []; y = [];
-fig = getfig('',1);
-subplot(r,c,sb(1).idx)
-    plot(data.time, data.temp, 'color', foreColor, 'linewidth', 1.5)
-    xlims = xlim;
-    ylabel('(\circC)')
+%% FIGURE: total number of food visits per sex
+clearvars('-except',initial_var{:})
 
-subplot(r,c,sb(2).idx)
-    hold on
-    for sex = 1:2
-        for trial = 1:num.trials
-            x = [x; FV(trial, sex).ROI(:,1)];
-            y = [y; FV(trial, sex).duration];
-        end
-    end
+LW =1.5;
+SZ = 35;
+FA = 0.7;
+xjit = 0.2;
+buff = xjit;
+tot_frames = length(data.time);
+r = 1; 
+c = 4;
+sb(1).i = 1:2;  % scatter
+sb(2).i = 3; % histogram
+sb(3).i = 4; % PDF
 
-    % plot the points and the rolling avg of the duration
-    [X,I] = sort(x);
-    Y = y(I);
-    X = X./(fps*60);
-    scatter(X, Y, 35, Color('grey'),'filled', 'MarkerFaceAlpha', 0.6)
-    plot(X, smooth(Y, 500, 'moving'), 'color', foreColor, 'linewidth', 1.5)
-
-    set(gca, 'yscale', 'log')
-    ylabel('food visit duration (s)')
-    xlabel('time (min)')
-    r1 = corrcoef(x,y);
-    xlims = [xlims,xlim];
-    xlims = [min(xlims), max(xlims)];
-    xlim(xlims);
-
+fig = getfig('',1,[541 680]); 
+stats_y = [];
+for sex = 1:2
+    kolor = data.color(sex,:);
+    % food visit numbers 
+    subplot(r,c,sb(1).i); hold on
+        y = squeeze(sum(data.foodvisit_start(:,sex,:),1,'omitnan'));
+        stats_y(:,sex) = y;
+        x = sex*ones(size(y));
+        scatter(x, y, SZ, kolor, 'filled', 'MarkerFaceAlpha', FA,...
+            'xjitter', 'density', 'xjitterwidth', xjit)
+        y_avg = mean(y);
+        plot([sex-buff, sex+buff], [y_avg, y_avg], 'color', foreColor, 'linewidth', LW)
+    % histogram
+    subplot(r,c,sb(2).i); hold on
+        plotVerticalHist(fig, y, Color=kolor);
+        title('hist')
+     % histogram
+    subplot(r,c,sb(3).i); hold on
+        plotVerticalPDF(fig, y, Color=kolor);
+        title('PDF')
+end
+% quick lil t test
+[~, p] = ttest(stats_y(:,1), stats_y(:,2));  
+% formatting
 formatFig(fig, blkbgd,[r,c], sb);
-subplot(r,c,sb(1).idx)
-    set(gca, 'xcolor', 'none')
-    xlim(xlims);
-    ylim([15,35])
-    set(gca, 'YTick', [15,25,35])
-    title(['duration-to-time pearson corr coef: ' num2str(r1(1,2))],'color', foreColor)
-subplot(r,c,sb(2).idx)
-    v_line(data.warming_idx./(fps*60), 'red')
-    v_line(data.cooling_idx./(fps*60), 'dodgerblue')
+subplot(r,c,sb(1).i)
+    xlim([0.5,2.5])
+    ylabel('number of food visits')
+    set(gca, xtick = 1:2, xticklabel = {'M', 'F'})
+    ylimits = ylim;
+    title(sprintf('p = %1.3f', p))
+subplot(r,c,sb(2).i)
+    set(gca, YColor='none');
+    ylim(ylimits)
+subplot(r,c,sb(3).i)
+    set(gca, YColor='none');
+    ylim(ylimits)
 
-save_figure(fig, [figDir 'food visit duration over time'],fig_type);
+% save the figure: 
+save_figure(fig, [figDir 'number of food visits by sex scatter']);
 
-
+% ------ how do these visit numbers compare to say, visits to the empty
+% wells? ---- are they interested in the features or is it an interest in
+% the food? what are the low and high 'occupancy' counts for the different
+% wells?
 
 
 %% 
-
 
 
 % 
@@ -461,13 +509,16 @@ save_figure(fig, [figDir 'food visit duration over time'],fig_type);
 % define the time periods that want to be plotted before and after the food visit
 clearvars('-except',initial_var{:})
 
-fps =  fly(M).fps;
+% make one of these for each of the flies | trials (that way they dont need
+% to be reoriented across different trials)
+
 
 preD = 15; % pre period to plot in seconds
 postD = preD; % post period to plot in seconds;
 %convert to frames
-preD = preD * fps; % 
-postD = postD * fps; %
+preD = preD * num.fps; % 
+postD = postD * num.fps; %
+
 
 
 % figure; histogram(onFoodDuration/fps)
