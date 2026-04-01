@@ -962,6 +962,13 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     loc = data.speed >= speed_threshold;
     data.jump = loc;
 
+    % Add frame numbers for each of the different temperature regimes
+    temp_regimes = {'WT', 'WS', 'CT', 'CS', 'SS'};
+    for ii = 1:length(temp_regimes)
+        temp_type = temp_regimes{ii};
+        data.tempbin.([temp_type '_frames']) = find(data.tempbin.(temp_type));
+    end
+     initial_var{end+1} = 'temp_regimes';
     disp('Data post-processing complete')
 
 end
