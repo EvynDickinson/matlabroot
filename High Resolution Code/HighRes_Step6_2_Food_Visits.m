@@ -1,88 +1,66 @@
 
 initial_var{end+1} = 'FV';
 initial_var{end+1} = 'maxTime';
-initial_var{end+1} = 'fps';
 
 %% Extract the periods for food visits
 clearvars('-except',initial_var{:})
 
 FV = struct; % food visits (this will later be added to the DATA structure)
-fps =  fly(M).fps;
 
 % how many frames can be skipped before a sustained fly on food period is ended
-frameDropAllowance = ceil((1/3) * fps);  % 1/3 of a second
+frameDropAllowance = ceil((1/3) * num.fps);  % 1/3 of a second
+
+temp_regimes = {'WT', 'WS', 'CT', 'CS', 'SS'};
 
 % find instances of the flies on the food
 % test for a single fly first: 
 for trial = 1:num.trials
+    
     for sex = 1:2
     
         % find periods of sustained time on the food aka, when there are long
         % periods of adjactent frames with flies on the food 
-        maxTime = 873000; %588000; % drops the last up and down to have even sampling and account for food time-dependency
         frames = find(data.FlyOnFood(:,sex,trial));
-        frames(frames>maxTime) = [];
+        if isempty(frames)
+            continue
+        end % allow for trials in which the flies never visit the food
+
         onFood = diff(frames)<=frameDropAllowance; % allow for a small gap in frames (dropped etc) [logical about 'frames']
-        
         idx = find(onFood==0); % locations where a running list of flies on food frames exceed the max skip allowance
         frame_loc_stop = [frames(idx); frames(end)];
         frame_loc_start = [frames(1); frames(idx+1)];
         
         onfoodROI = [frame_loc_start, frame_loc_stop]; % frame indexes of when the fly started on the food and left the food
         nOnFood = size(onfoodROI,1); % how many times is the fly on the food total in the experiment
-        onFoodDuration = (diff(onfoodROI,1,2))/fps; % duration of time (s) fly spent on the food
+        onFoodDuration = (diff(onfoodROI,1,2))/num.fps; % duration of time (s) fly spent on the food
 
         % save data into the FV struct
         FV(trial,sex).ROI = onfoodROI;
         FV(trial,sex).nROI = nOnFood;
-        FV(trial,sex).duration = onFoodDuration;
+        FV(trial,sex).duration = onFoodDuration;   
 
-        % WORKING HERE 
-        % **** subdivide the protocol into the four different types of temp regimes:
-        % temps approaching 25 from each direction **** 
-
-        % subdivide by heating/cooling temperature regime first (then subdivide later)
-        % if start of food visit is during a temp regime it counts probably
-        % could add a buffer to the turn points later, but this will suffice for now
-        temp_regimes = {'cooling', 'warming', 'hold'};
-       
-        hot_temp = find(data.temperature(:,trial)>25); % when is the temp warmer than neutral
-        cold_temp = find(data.temperature(:,trial)<25); % when is the temp cooler than neutral
-        
-        for tt = 1:3 % cooling, warming, holds
-            type_str = temp_regimes{tt};
-            % find which food visits start in each temp regime
-            r_locs =  ismember(frame_loc_start, find(data.(type_str)));  % which locations match the temp change profile
-            h_locs = ismember(onfoodROI(r_locs,1), hot_temp); %logical for hot temps + this trial type
-            c_locs = ismember(onfoodROI(r_locs,1), cold_temp); %logical for cold temps + this trial type
-
-            % find overlap between heating/cooling and each temp type
-            if tt<=2 % dont do this for holds...
-                str = ['hot_and_' type_str];
-                locs = h_locs;
-                FV(trial,sex).(str).ROI = onfoodROI(locs,:);
-                FV(trial,sex).(str).nROI = size(FV(trial,sex).(str).ROI,1);
-                FV(trial,sex).(str).duration = onFoodDuration(locs);
-                str = ['cold_and_' type_str];
-                locs = c_locs;
-                FV(trial,sex).(str).ROI = onfoodROI(locs,:);
-                FV(trial,sex).(str).nROI = size(FV(trial,sex).(str).ROI,1);
-                FV(trial,sex).(str).duration = onFoodDuration(locs);
-            else
-                % sort into groups for the temp regime types: 
-                locs = r_locs;
-                FV(trial,sex).(type_str).ROI = onfoodROI(locs,:);
-                FV(trial,sex).(type_str).nROI = size(FV(trial,sex).(type_str).ROI,1);
-                FV(trial,sex).(type_str).duration = onFoodDuration(locs);
+        for tt = 1:length(temp_regimes)
+            str = temp_regimes{tt};
+            % pull out vector of frames within this temperature regime type
+            regime_frames = data.tempbin.([str '_frames']);
+            if isempty(regime_frames)
+                continue
             end
-        end
+
+            % link food visits to their temp regime type: 
+            locs = ismember(frame_loc_start, regime_frames);
+
+            FV(trial,sex).(str).ROI = onfoodROI(locs,:);
+            FV(trial,sex).(str).nROI = size(FV(trial,sex).(str).ROI,1);
+            FV(trial,sex).(str).duration = onFoodDuration(locs);
+
+       end
     end
 end
 
 %% FIGURE: Group trends across the flies for the full experiment to see how they trend
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
-
 
 % Giant histogram across the two different fly sexes
 fig = getfig('',1); hold on
@@ -117,11 +95,15 @@ c = 2;
 offset = 0.3;
 LW = 1;
 sz = 50;
+x_limits = [0.3, 2.5];
+
 fig = getfig('',1);
+    plotData = struct;
+    plotData(M).all = [];
+    plotData(F).all = [];
 
 for sex = 1:2
     kolor = data.color(sex,:);
-    plotData = [];
     for trial = 1:num.trials
         y = FV(trial, sex).duration;
         [f,x] = ecdf(y);
@@ -131,40 +113,44 @@ for sex = 1:2
         visit_dur = x(loc); % duration of visits that encapsulates 95% of visits
         % find mean visit duration
         mean_dur = mean(y,'omitnan');
-        plotData = [plotData; visit_dur, mean_dur];
+        plotData(sex).all = [plotData(sex).all; visit_dur, mean_dur];
     end
-    mean_dur = mean(plotData(:,2),'omitnan');
-    mean_CDF = mean(plotData(:,1),'omitnan');
-    x = shuffle_data(linspace(sex-offset+0.1, sex+offset-0.1, size(plotData,1)));
+    mean_dur = mean(plotData(sex).all(:,2),'omitnan');
+    mean_CDF = mean(plotData(sex).all(:,1),'omitnan');
+    x = shuffle_data(linspace(sex-offset+0.1, sex+offset-0.1, size(plotData(sex).all,1)));
     
     % plot 95% cumulative dist. data
     subplot(r, c, 1)
     hold on
-    scatter(x, plotData(:,1),sz,kolor,'filled')
+    scatter(x, plotData(sex).all(:,1),sz,kolor,'filled')
     plot([sex-offset, sex+offset], [mean_CDF, mean_CDF],"Color",kolor, 'linewidth', LW)
     % plot avg visit duration data
     subplot(r, c, 2)
     hold on
-    scatter(x, plotData(:,2),sz,kolor,'filled')
+    scatter(x, plotData(sex).all(:,2),sz,kolor,'filled')
     plot([sex-offset, sex+offset], [mean_dur, mean_dur],"Color",kolor, 'linewidth', LW)
 end
+% check significance: quick t-test
+[~, p_95] = ttest2(plotData(M).all(:,1), plotData(F).all(:,1));
+title_1_str = sprintf('95%% CDF \np = %1.4f', p_95);
+
+[~, p_mean] = ttest2(plotData(M).all(:,2), plotData(F).all(:,2));
+title_2_str = sprintf('Mean\np = %1.4f', p_mean);
+
 % formatting
 formatFig(fig, blkbgd, [r c]);
 subplot(r, c, 1)
-    title('95% CDF','color', foreColor)
+    title(title_1_str,'color', foreColor)
     ylabel('food visit duration (s) capturing 95%')
     set(gca, 'xcolor', 'none')
-    xlim([0, 2.5])
+    xlim(x_limits)
 subplot(r, c, 2)
-    title('Mean','color', foreColor)
+    title(title_2_str,'color', foreColor)
     ylabel('avg food visit duration (s)')
     set(gca, 'xcolor', 'none')
-    xlim([0, 2.5])
+    xlim(x_limits)
 
 save_figure(fig, [figDir 'food visit duration and CDF'],fig_type)
-
-% check significance?
-% quick t-test
 
 %% Duration of food visits for each temperature regime...hot&warming, cold&warming etc.
 clearvars('-except',initial_var{:})
@@ -176,14 +162,13 @@ offset = 0.3;
 LW = 1;
 sz = 50;
 FA = 0.6; %scatter face alpha
-fig = getfig('',1);
-x_locs = [1, 2, 4, 5, 7]; % locations for the 5 different conditions (H&C, C&C, C&W, H&W, H)
-type_str = {'hot_and_warming','hot_and_cooling', 'cold_and_cooling', 'cold_and_warming',  'hold'};
-% type_str = {'hot_and_cooling', 'cold_and_cooling', 'cold_and_warming', 'hot_and_warming', 'hold'};
+
+x_locs = [1, 2, 4, 5, 7]; % plot x values for the 5 different conditions (temp_regimes)
 xlims = [min(x_locs)-1, max(x_locs)+1];
 
-for t = 1:length(x_locs) % (H&W, H&C, C&C, C&W, H)
-    str = type_str{t};
+fig = getfig('',1);
+for tt = 1:length(x_locs) % (H&W, H&C, C&C, C&W, H)
+    str = temp_regimes{tt};
     for sex = 1:2
         kolor = data.color(sex,:);
         plotData = [];
@@ -202,7 +187,7 @@ for t = 1:length(x_locs) % (H&W, H&C, C&C, C&W, H)
         end
         mean_dur = mean(plotData(:,2),'omitnan');
         mean_CDF = mean(plotData(:,1),'omitnan');
-        x = x_locs(t);
+        x = x_locs(tt);
         x_all = shuffle_data(linspace(x-offset+0.1, x+offset-0.1, size(plotData,1)));
         
         % plot 95% cumulative dist. data
@@ -223,12 +208,12 @@ formatFig(fig, blkbgd, [r c]);
 subplot(r, c, 1)
     title('95% CDF','color', foreColor)
     ylabel('food visit duration (s) capturing 95%')
-    set(gca, 'XTick', x_locs, 'XTickLabel', strrep(type_str,'_',' '))
+    set(gca, 'XTick', x_locs, 'XTickLabel', temp_regimes)
     xlim(xlims)
 subplot(r, c, 2)
     title('Mean','color', foreColor)
     ylabel('avg food visit duration (s)')
-    set(gca, 'XTick', x_locs, 'XTickLabel', strrep(type_str,'_',' '))
+    set(gca, 'XTick', x_locs, 'XTickLabel', temp_regimes)
     xlim(xlims)
 
 save_figure(fig, [figDir 'food visit by temp regime duration and CDF'],fig_type);
@@ -236,20 +221,22 @@ save_figure(fig, [figDir 'food visit by temp regime duration and CDF'],fig_type)
 % check significance?
 % quick t-test
 
-% Plot the temperature time course for the plotted data above
-fig = figure; 
-    plot(data.temperature(:,1), 'color', 'w', 'linewidth', 3)
-    formatFig(fig, true);
-    xlim([-20000, maxTime])
-    set(gca, 'xcolor', 'none')
-    h_line(25, 'grey', '--', 1)
-    ylabel('temperature (\circC)')
-    set(gca, 'FontSize', 25)
-    save_figure(fig, [figDir 'food visit temp regime temp plot'],fig_type);
+% % Plot the temperature time course for the plotted data above
+% fig = figure; 
+%     plot(data.temperature(:,1), 'color', 'w', 'linewidth', 3)
+%     formatFig(fig, true);
+%     xlim([-20000, maxTime])
+%     set(gca, 'xcolor', 'none')
+%     h_line(25, 'grey', '--', 1)
+%     ylabel('temperature (\circC)')
+%     set(gca, 'FontSize', 25)
+%     save_figure(fig, [figDir 'food visit temp regime temp plot'],fig_type);
 
 
 %% How does visit duration change over time? [only for LTS currently]
 foreColor = formattingColors(blkbgd); % get background colors
+
+% WORKING HERE 4.1 UPDATE FOR NEW FV STRUCTURE ORGANIZATION
 
 r = 5;
 c = 1;

@@ -27,7 +27,8 @@ paths.fixedDriveLocations  = {'ACADIA','EVYNPC','evyndickinson','rebeccaray'}; %
 
 % ACADIA:
 paths.acadiaServerPath = 'S:\Evyn\DATA\';
-paths.acadiaLocalPath = 'D:\Evyn Lab Data\';
+paths.acadiaLocalPath = 'F:\Evyn\DATA\'; % fast local data drive (high resolution stuff) 
+% paths.acadiaLocalPath = 'D:\Evyn Lab Data\'; % (LR data... smaller drive)
 paths.acadiaServerTwoPath = second_server_path;
 
 % TOGIAK:
