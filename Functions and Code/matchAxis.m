@@ -13,6 +13,9 @@ function fig = matchAxis(fig, independent)
 %
 % OUTPUTS
 %   'fig' : figure handle for the modified figure
+% 
+% NOTES : use the updated version of this for better handling: 
+% fig = matchSubplotAxes(fig, options)
 %
 % ES DICKINSON, 2022
 

@@ -1,4 +1,37 @@
 
+
+%% Default function description style: 
+% [out1, out2] = functionName(in1, in2, in3)
+%
+% PURPOSE
+% One or two sentence description of what the function does
+%
+% INPUTS
+%   'in1'  : description
+%       option1 = explanation
+%       option2 = explanation
+%   'in2'  : description
+%   'in3'  : description
+%  INPUT OPTIONS
+%   'opt1' : description of optional input
+%       (default : value)
+%   'opt2' : description of optional input
+%       (default : value)
+%
+% OUTPUTS
+%   'out1' : description
+%   'out2' : description
+%
+% NOTES
+%   Any important caveats, behaviors, or dependencies
+%
+% EXAMPLE
+%   out1 = functionName(in1, in2)           % minimal call
+%   out1 = functionName(in1, in2, opt1=x)  % with option
+%
+% ES DICKINSON, INSTITUTION, YEAR
+
+
 %% Update name in high res experiments
 
 parameters.expID = 'Berlin_courtship_F_LRR_no_food_ramp1';
