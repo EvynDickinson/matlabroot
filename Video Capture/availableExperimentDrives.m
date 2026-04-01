@@ -7,6 +7,11 @@ function [drive, expProtocol] = availableExperimentDrives
 % 
 % ES Dickinson 2025
 
+% Always anchor MATLAB to C:\ to avoid broken state after drive swap
+if ~exist(cd, 'dir')
+    cd('C:\');
+end
+
 % check the amount of free space on the two drives to select where the data will be
 % stored: 
 F_free = round(java.io.File("F:").getFreeSpace()*1e-12,1); % answer in Terabytes
