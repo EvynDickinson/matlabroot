@@ -872,29 +872,6 @@ fig = getfig('',1); hold on
     ylabel('asleep fly count (#)')
 save_figure(fig, [figDir 'sleeping distance to food histogram']);
 
-%% Figure out why the speedTest frames are not aligning across computers
-
-clearvars('-except',initial_var{:})
-
-keyFramesMAC = keyFrames;
-load('keyframes.mat')
-
-% compare the two keyframes data (these should be identical) 
-errList = [];
-for trial = 1:num.trials
-    % key frame comparisons
-    a = keyFramesMAC(trial).frame_pairs(:)';
-    b = keyFrames(trial).frame_pairs(:)';
-    errList(trial,1) = sum(~ismember(a,b));
-    errList(trial,2) = sum(~ismember(b,a));
-end
-
-
- 
-
-
-
-
 %% UPDATE THE WELL STATUS FOR EACH TRIAL 
 % load their data
 % write to the excel sheet the well identities
@@ -928,18 +905,6 @@ for trial = 1: nTrials
     fprintf('Written %s data file\n', trial_info{trial})
 end
 
-        
-%% Find jump escape locations in the data 
-
-clearvars('-except',initial_var{:})
-
-speed_threshold = 35;
-loc = data.speed >= speed_threshold;
-data.jump = loc;
-
-
-%% 
-
 %% FIGURE: what is the frequency of courtship behaviors? 
 % use this to demonstrate that we can capture fairly rare events by looking
 % over a long period of time -- which means low yield but important to
@@ -972,6 +937,7 @@ fig = getfig('',1,[296 680]); hold on
 % save the figure: 
 save_figure(fig, [figDir 'jump behavior frequency']);
 
+%% PID Analysis: 
 
 
 
@@ -982,3 +948,44 @@ save_figure(fig, [figDir 'jump behavior frequency']);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
