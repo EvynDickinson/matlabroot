@@ -64,8 +64,8 @@ parameters.ArenaD.well_1 = 'Caviar';
 %% change genotype
 parameters.ArenaA.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
 parameters.ArenaB.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
-parameters.ArenaC.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
-parameters.ArenaD.genotype = 'Empty_dbd-Gal4>UAS-Kir2.1_A1';
+parameters.ArenaC.genotype = 'Empty';
+parameters.ArenaD.genotype = 'Empty';
 
 %% change sex
 parameters.ArenaA.sex = 'Mixed';
