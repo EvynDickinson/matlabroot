@@ -986,6 +986,7 @@ title(name,'color', foreColor,'FontSize',10);
 % Save figure
 save_figure(fig,[figDir num2str(name)],fig_type);        
 
+<<<<<<< Updated upstream
 %% Incorportate fly death
 
 % list = {'incapM','incapF','deadM','deadF'};
@@ -1008,3 +1009,13 @@ deadF = excelfile(excel_loc,Excel.deadF);
 % instead
 % is there function to identify numbers from characters?
 
+=======
+
+%%
+
+expName = 'Berlin-WT_Hold25C_Empty';
+
+parameters.protocol = 'Hold25C';
+parameters.expID = 'Berlin-WT_Hold25C_Empty';
+parameters.videoName = 'Berlin-WT_Hold25C_Empty';
+>>>>>>> Stashed changes

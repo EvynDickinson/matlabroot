@@ -5,8 +5,8 @@ function zeitgeber_time = getCircadianTime(expTime, incubator, expDate)
 % by accounting for the night shifted incubator and daylight savings time
 
 % daylight savings regions: 
-DLS.on = {'03.14.2021', '03.13.2022', '03.12.2023', '03.10.2024', '03.9.2025'};
-DLS.off = {'10.07.2021', '10.06.2022', '10.05.2023', '10.03.2024', '10.02.2025'};
+DLS.on = {'03.14.2021', '03.13.2022', '03.12.2023', '03.10.2024', '03.9.2025','03.08.2026','03.14.2027'};
+DLS.off = {'10.07.2021', '10.06.2022', '10.05.2023', '10.03.2024', '10.02.2025','11.01.2026','11.07.2027'};
 
 expYear = str2double(expDate(7:end));
 trial_date = datetime(expDate, 'InputFormat','MM.dd.yyyy');
