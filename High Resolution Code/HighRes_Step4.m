@@ -207,13 +207,7 @@ for vid = 1:nvids-1
     NY1 = data(vid+1).tracks(sROI,bodycenter,2,1); % fly 1 center Y
     NX2 = data(vid+1).tracks(sROI,bodycenter,1,2); % next vid fly 2 center X 
     NY2 = data(vid+1).tracks(sROI,bodycenter,2,2); % fly 2 center Y
-    
-    % avg center points: 
-    x1_avg = mean(x1, 'omitnan');
-    y1_avg = mean(y1, 'omitnan');
-    x2_avg = mean(x2, 'omitnan');
-    y2_avg = mean(y2, 'omitnan');
-
+   
     % determine which set of points are closer on average
     stay_value = mean(hypot(FX1-NX1, FY1-NY1), 'omitnan'); % within track alignment
     cross_value = mean(hypot(FX1-NX2, FY1-NY2),'omitnan'); % across track alignment value
