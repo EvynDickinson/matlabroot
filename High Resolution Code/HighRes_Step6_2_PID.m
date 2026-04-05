@@ -27,11 +27,6 @@ n_samples = size(x_data,1);
 
 %% ANALYSIS: Pull the data together across trials:  
 
-% % Visual check of stability of t (after step 3) 
-% figure;
-% subplot(1,2,1); histogram(CV.I.t_chosen); xlabel('t chosen (I)'); title('Integral t stability');
-% subplot(1,2,2); histogram(CV.D.t_chosen); xlabel('t chosen (D)'); title('Derivative t stability');
-
 % =========================================================
 % STEP 1 — precompute transforms ONCE (x is same across trials)
 % =========================================================
@@ -81,7 +76,7 @@ save_figure(fig, [saveDir, 'derivative signal inputs']);
 fig = getfig('', 1, [408 468]); hold on
     t_list_time = t_list/num.fps/60;
     plot(t_list_time, Color='m', LineStyle=':')
-    for ii = 1:num_t
+    for ii = 1:t_num
         scatter(ii, t_list_time(ii), 35, cList(ii,:), 'filled')
     end
     formatFig(fig, blkbgd);
@@ -90,110 +85,118 @@ fig = getfig('', 1, [408 468]); hold on
     save_figure(fig, [saveDir, 'time lag t']);
 
 %% ANALYSIS SINGLE CHANNEL PROCESSING: 
-% =========================================================
-% STEP 2 — LOO cross-validation
-% =========================================================
-CV.P.y_pred   = cell(nTrials, 1);
-CV.I.y_pred   = cell(nTrials, 1);
-CV.D.y_pred   = cell(nTrials, 1);
-CV.I.t_chosen = nan(nTrials, 1);
-CV.D.t_chosen = nan(nTrials, 1);
-
-n_train = nTrials - 1;
-
-tic
-for held_out = 1:nTrials % approx 4 mins per loop 
-
-    train_trials = setdiff(1:nTrials, held_out);
-    y_train = y_data(:,train_trials);
-    y_train = y_train(:); % reshape to single vector
-    y_test  = y_data(:,held_out);
-    
-    % same temp data for all the trials for train and test, since it's
-    % uniform across trials
-    x_P_train = repmat(x_P, n_train, 1);
-    x_P_test  = x_P;
-
-    % ---------------------------------------------------------
-    % Proportional
-    % ---------------------------------------------------------
-    mdl = fitglm(x_P_train, y_train, 'Distribution', 'binomial', 'Link', 'logit');
-    CV.P.y_pred{held_out} = predict(mdl, x_P_test);
-
-    % ---------------------------------------------------------
-    % Integration  — select best t on training set
-    % ---------------------------------------------------------
-    best_bic_I = Inf;
-    best_ti_I  = 1;
-    % select the best t for this data set: (takes a few minutes depending
-    % on the number of t windows ~15seconds/iteration)
-    for ti = 1:t_num
-        x_I_col   = X_I(:, ti);
-        x_I_train = repmat(x_I_col, n_train, 1);
-        valid     = ~isnan(x_I_train);
-        if sum(valid) < 10, continue; end
-        mdl = fitglm(x_I_train(valid), y_train(valid), ...
-                     'Distribution', 'binomial', 'Link', 'logit');
-        if mdl.ModelCriterion.BIC < best_bic_I
-            best_bic_I = mdl.ModelCriterion.BIC;
-            best_ti_I  = ti;
-        end
-    end
-
-    % save the best fit version
-    CV.I.t_chosen(held_out) = t_list(best_ti_I);
-
-    x_I_train = repmat(X_I(:, best_ti_I), n_train, 1);
-    x_I_test  = X_I(:, best_ti_I);
-    valid_tr  = ~isnan(x_I_train);
-    valid_te  = ~isnan(x_I_test);
-
-    % run the model for this hold out data set with the
-    % best t for this group
-    mdl = fitglm(x_I_train(valid_tr), y_train(valid_tr), ...
-                 'Distribution', 'binomial', 'Link', 'logit');
-
-    y_pred_I = nan(length(y_test), 1);
-    y_pred_I(valid_te) = predict(mdl, x_I_test(valid_te));
-    CV.I.y_pred{held_out} = y_pred_I;
-
-    % ---------------------------------------------------------
-    % Derivative — select best t on training set
-    % ---------------------------------------------------------
-    best_bic_D = Inf;
-    best_ti_D  = 1;
-    for ti = 1:t_num
-        x_D_col   = X_D(:, ti);
-        x_D_train = repmat(x_D_col, n_train, 1);
-        valid     = ~isnan(x_D_train);
-        if sum(valid) < 10, continue; end
-        mdl = fitglm(x_D_train(valid), y_train(valid), ...
-                     'Distribution', 'binomial', 'Link', 'logit');
-        if mdl.ModelCriterion.BIC < best_bic_D
-            best_bic_D = mdl.ModelCriterion.BIC;
-            best_ti_D  = ti;
-        end
-    end
-    CV.D.t_chosen(held_out) = t_list(best_ti_D);
-
-    x_D_train = repmat(X_D(:, best_ti_D), n_train, 1);
-    x_D_test  = X_D(:, best_ti_D);
-    valid_tr  = ~isnan(x_D_train);
-    valid_te  = ~isnan(x_D_test);
-
-    mdl = fitglm(x_D_train(valid_tr), y_train(valid_tr), ...
-                 'Distribution', 'binomial', 'Link', 'logit');
-
-    y_pred_D = nan(length(y_test), 1);
-    y_pred_D(valid_te) = predict(mdl, x_D_test(valid_te));
-    CV.D.y_pred{held_out} = y_pred_D;
- 
-end
+% % Takes ~90 minutes to run for 40 trials with 10 iterations
+% % =========================================================
+% % STEP 2 — LOO cross-validation
+% % =========================================================
+% CV.P.y_pred   = cell(nTrials, 1);
+% CV.I.y_pred   = cell(nTrials, 1);
+% CV.D.y_pred   = cell(nTrials, 1);
+% CV.I.t_chosen = nan(nTrials, 1);
+% CV.D.t_chosen = nan(nTrials, 1);
+% 
+% n_train = nTrials - 1;
+% 
+% tic
+% for held_out = 1:nTrials % approx 4 mins per loop 
+% 
+%     train_trials = setdiff(1:nTrials, held_out);
+%     y_train = y_data(:,train_trials);
+%     y_train = y_train(:); % reshape to single vector
+%     y_test  = y_data(:,held_out);
+% 
+%     % same temp data for all the trials for train and test, since it's
+%     % uniform across trials
+%     x_P_train = repmat(x_P, n_train, 1);
+%     x_P_test  = x_P;
+% 
+%     % ---------------------------------------------------------
+%     % Proportional
+%     % ---------------------------------------------------------
+%     mdl = fitglm(x_P_train, y_train, 'Distribution', 'binomial', 'Link', 'logit');
+%     CV.P.y_pred{held_out} = predict(mdl, x_P_test);
+% 
+%     % ---------------------------------------------------------
+%     % Integration  — select best t on training set
+%     % ---------------------------------------------------------
+%     best_bic_I = Inf;
+%     best_ti_I  = 1;
+%     % select the best t for this data set: (takes a few minutes depending
+%     % on the number of t windows ~15seconds/iteration)
+%     for ti = 1:t_num
+%         x_I_col   = X_I(:, ti);
+%         x_I_train = repmat(x_I_col, n_train, 1);
+%         valid     = ~isnan(x_I_train);
+%         if sum(valid) < 10, continue; end
+%         mdl = fitglm(x_I_train(valid), y_train(valid), ...
+%                      'Distribution', 'binomial', 'Link', 'logit');
+%         if mdl.ModelCriterion.BIC < best_bic_I
+%             best_bic_I = mdl.ModelCriterion.BIC;
+%             best_ti_I  = ti;
+%         end
+%     end
+% 
+%     % save the best fit version
+%     CV.I.t_chosen(held_out) = t_list(best_ti_I);
+% 
+%     x_I_train = repmat(X_I(:, best_ti_I), n_train, 1);
+%     x_I_test  = X_I(:, best_ti_I);
+%     valid_tr  = ~isnan(x_I_train);
+%     valid_te  = ~isnan(x_I_test);
+% 
+%     % run the model for this hold out data set with the
+%     % best t for this group
+%     mdl = fitglm(x_I_train(valid_tr), y_train(valid_tr), ...
+%                  'Distribution', 'binomial', 'Link', 'logit');
+% 
+%     y_pred_I = nan(length(y_test), 1);
+%     y_pred_I(valid_te) = predict(mdl, x_I_test(valid_te));
+%     CV.I.y_pred{held_out} = y_pred_I;
+% 
+%     % ---------------------------------------------------------
+%     % Derivative — select best t on training set
+%     % ---------------------------------------------------------
+%     best_bic_D = Inf;
+%     best_ti_D  = 1;
+%     for ti = 1:t_num
+%         x_D_col   = X_D(:, ti);
+%         x_D_train = repmat(x_D_col, n_train, 1);
+%         valid     = ~isnan(x_D_train);
+%         if sum(valid) < 10, continue; end
+%         mdl = fitglm(x_D_train(valid), y_train(valid), ...
+%                      'Distribution', 'binomial', 'Link', 'logit');
+%         if mdl.ModelCriterion.BIC < best_bic_D
+%             best_bic_D = mdl.ModelCriterion.BIC;
+%             best_ti_D  = ti;
+%         end
+%     end
+%     CV.D.t_chosen(held_out) = t_list(best_ti_D);
+% 
+%     x_D_train = repmat(X_D(:, best_ti_D), n_train, 1);
+%     x_D_test  = X_D(:, best_ti_D);
+%     valid_tr  = ~isnan(x_D_train);
+%     valid_te  = ~isnan(x_D_test);
+% 
+%     mdl = fitglm(x_D_train(valid_tr), y_train(valid_tr), ...
+%                  'Distribution', 'binomial', 'Link', 'logit');
+% 
+%     y_pred_D = nan(length(y_test), 1);
+%     y_pred_D(valid_te) = predict(mdl, x_D_test(valid_te));
+%     CV.D.y_pred{held_out} = y_pred_D;
+% 
+% end
 
 %% ANALYSIS : PARALLEL STRUCTURES
+% take ~90 mins to run 40 trials with 10 time lag iterations
 % =========================================================
 % STEP 2 — LOO cross-validation (parfor)
 % =========================================================
+
+% turn on and create a parallel processing pool
+parpool();
+% 16 workers on the mac 
+% 16 workers on ACADIA
+
 
 % parfor cannot slice into structs directly — extract to plain variables
 P_y_pred   = cell(nTrials, 1);
@@ -317,7 +320,7 @@ ti_best_D = find(t_list == t_best_D);
 x_I_best  = X_I(:, ti_best_I);
 x_D_best  = X_D(:, ti_best_D);
 
-y_all     = vertcat(y_data{:});
+y_all     = y_data(:);
 x_P_all   = repmat(x_P,      nTrials, 1);
 x_I_all   = repmat(x_I_best, nTrials, 1);
 x_D_all   = repmat(x_D_best, nTrials, 1);
@@ -334,6 +337,11 @@ results.D.BIC    = results.D.mdl.ModelCriterion.BIC;
 results.I.t_best = t_best_I;
 results.D.t_best = t_best_D;
 
+% Visual check of stability of t (after step 3) 
+figure;
+subplot(1,2,1); histogram(CV.I.t_chosen); xlabel('t chosen (I)'); title('Integral t stability');
+subplot(1,2,2); histogram(CV.D.t_chosen); xlabel('t chosen (D)'); title('Derivative t stability');
+
 % =========================================================
 % STEP 4 — CV performance metrics
 % =========================================================
@@ -341,7 +349,7 @@ for m = 1:numel(fields)
     f = fields{m};
 
     y_pred_all = vertcat(CV.(f).y_pred{:});
-    y_true_all = vertcat(y_data{:});
+    y_true_all = y_data(:);
     valid      = ~isnan(y_pred_all);
 
     y_pred_all = y_pred_all(valid);
@@ -365,3 +373,49 @@ end
 %     X_I(:, ti) = computeIntegral(x_data{1},   t_list(ti), dt);
 %     X_D(:, ti) = computeDerivative(x_data{1}, t_list(ti), dt);
 % end
+
+
+
+%% 
+% why is the selected time bin for t always the same ?
+% check the model fits and process
+
+
+%% Quick visuals: new tuning curves based on the different input parameters
+
+% how do the different integration windows line up with the behavior
+% viusally?
+
+% need to find a way to bin the predictor variable somehow ...
+% could just plot it as x vs y
+
+
+
+X_D
+
+X_I
+
+X_P
+
+% what is the correlation between x and y?
+% TODO 4/5/26 : get this to work
+test_mat = rmnan([x_P_all, y_all]);
+[rho, pval] = corr(rmnan(x_P_all), rmnan(y_all));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
