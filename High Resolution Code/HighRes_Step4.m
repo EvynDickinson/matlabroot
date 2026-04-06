@@ -550,7 +550,7 @@ switch response
 end
 
 %% Screen for frames with funky wing positions
-disp_fig = true;
+disp_fig = false;
 % postions: 1-head, 2-center, 3-abdomen, 4-left wing, 5-right wing
 % Create variable to hold X and Y data for both male and female
 DATA = [];
