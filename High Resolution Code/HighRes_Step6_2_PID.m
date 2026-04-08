@@ -536,6 +536,7 @@ nbins = 20; % how many bins to use over the data series
 
 
 
+
 for ii = 2:3
     rho = results(ii).rho; % find all the correlation coefficients
     avg = squeeze(median(rho,1)); % find the average of the heating and cooling correlations
