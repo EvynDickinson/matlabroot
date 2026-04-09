@@ -9,6 +9,8 @@ dt = 1/num.fps; % sampling frequency
 t_num = 10; % number of samples across time span to check for fit
 max_t = 90; % max duration in the past to sample for window time (min)
 t_list = round(linspace(num.fps, max_t*num.fps*60, t_num)); % from 1 second to 60 minutes
+t_list_time = t_list/num.fps/60;
+
 
 best = struct();
 results = struct();
@@ -31,6 +33,7 @@ n_samples = size(x_data,1);
 % STEP 1 — precompute transforms (x is same across trials)
 % =========================================================
 % note: takes a few seconds to run 
+tic
 X_I = nan(n_samples, t_num);
 X_D = nan(n_samples, t_num);
 for ti = 1:t_num
@@ -38,6 +41,7 @@ for ti = 1:t_num
     X_D(:, ti) = computeDerivative(x_data, t_list(ti), dt);
 end
 x_P = x_data;
+toc
 
 %% FIGURES: visualize the different time integrations / derivatives for the different
 % t values: 
@@ -74,7 +78,6 @@ save_figure(fig, [saveDir, 'derivative signal inputs']);
 
 % visualize the time lag periods
 fig = getfig('', 1, [408 468]); hold on
-    t_list_time = t_list/num.fps/60;
     plot(t_list_time, Color='m', LineStyle=':')
     for ii = 1:t_num
         scatter(ii, t_list_time(ii), 35, cList(ii,:), 'filled')
@@ -430,13 +433,55 @@ xlim([-5,max(t_list_time)+5])
 save_figure(fig, [saveDir, data_type ' derivative coeff scatter']);
 
 
-%% Analysis: Plot out the best models of the data based for the best time lags 
+%% FIGURE: replot the temp tuning curve data simply by the transformed temperture data: 
+nbins = 20;
+D_best = 2;
+I_best = 2;
 
-nbins = 20; % how many bins to use over the data series
+x_sources = {x_P, X_D(:,D_best), X_I(:,D_best)};
+x_labels   = {'Proportional', 'Derivative', 'Integrative'};
+
+h_idx = data.tempbin.h_idx;
+c_idx = data.tempbin.c_idx;
+idx_sets = {h_idx, c_idx};
+
+kolor = Color('magenta', 'dodgerblue', 2);
+fig = figure;
+
+for xx = 1:3
+    x = x_sources{xx};
+    [c, edges] = discretize(x, nbins);
+    temp_ax = edges(1:end-1) + diff(edges);
+
+    % bin and sort data: 
+    y_plot = struct();
+    [y_plot(1).all, y_plot(2).all] = deal(nan(nTrials, nbins));
+    [y_plot(1).avg, y_plot(2).avg, y_plot(1).sem, y_plot(2).sem] = deal(nan(nbins,1));
+
+    for tt = 1:2
+        for ii = 1:nbins
+            roi = (c == ii) & idx_sets{tt};
+            y = y_data(roi, :)*100;
+            y_plot(tt).all(:,ii) = mean(y, 1, 'omitnan');
+        end
+        y_plot(tt).avg = mean(y_plot(tt).all, 1, 'omitnan')';
+        y_plot(tt).sem = std( y_plot(tt).all, 0, 1, 'omitnan')' / sqrt(nTrials);
+    end
+    % plot the data for this transformation type:
+    subplot(1, 3, xx); hold on;
+    title(x_labels{xx});
+    for tt = 1:2
+        plot(temp_ax, y_plot(tt).avg, 'color', kolor(tt,:));
+        plot_error_fills(true, temp_ax, y_plot(tt).avg, y_plot(tt).sem, kolor(tt,:), '-png');
+    end
+    ylabel('flies in escape ring (%)')
+end
+formatFig(fig, blkbgd, [1,3]);
+save_figure(fig, [saveDir, 'time lag t']);
 
 
 
-
+%% Analysis: Plot out the best models of the data based on the best time lags 
 for ii = 2:3
     rho = results(ii).rho; % find all the correlation coefficients
     avg = squeeze(median(rho,1)); % find the average of the heating and cooling correlations

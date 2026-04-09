@@ -5,6 +5,7 @@
 
 %% FIGURES: location of fly jumps
 clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'Jump Escape\']);
 
 region_list = {'innerFoodQuad', 'OutterRing', 'innerEmptyQuad'};
 region_names = {'food quad', 'escape ring', 'inner arena'};
@@ -36,7 +37,7 @@ formatFig(fig, blkbgd);
 set(gca, XTick = 1:length(region_list), XTickLabel = region_names)
 ylabel('Total number of jumps per region')
 
-save_figure(fig, [figDir, 'Jumps per region scatter']);
+save_figure(fig, [saveDir, 'Jumps per region scatter']);
 
 
 
@@ -73,7 +74,7 @@ end
 formatFig(fig, blkbgd);
 set(gca, XTick = 1:length(region_list), XTickLabel = region_names)
 ylabel('Jumps Per Minute')
-save_figure(fig, [figDir, 'Jump Rate scatter']);
+save_figure(fig, [saveDir, 'Jump Rate scatter']);
 
 
 % Total time spent in region across experiment: 
@@ -97,10 +98,12 @@ end
 formatFig(fig, blkbgd);
 set(gca, XTick = 1:length(region_list), XTickLabel = region_names)
 ylabel('Time in Region (min)')
-save_figure(fig, [figDir, 'Time in region scatter']);
+save_figure(fig, [saveDir, 'Time in region scatter']);
 
 %% Is there a higher instance of jump response of females near males?
 clearvars('-except',initial_var{:})
+saveDir = createFolder([figDir, 'Jump Escape\']);
+
 sz = 50; % scatter point size
 FA = 0.7; % face alpha level
 LW = 1.5; % line width
@@ -151,7 +154,7 @@ fig = getfig('', 1, [530 718]); hold on
     formatFig(fig, blkbgd);
     set(gca, XTick=[1,2],XTickLabel={'all', 'jumps only'})
     ylabel('distance between flies (mm)')
-    save_figure(fig, [figDir, 'IFD during jumps scatter']);
+    save_figure(fig, [saveDir, 'IFD during jumps scatter']);
 
 
 % is there significance across all the trials?
@@ -162,6 +165,8 @@ fprintf('\n Male jump distance p-value: %2.4g',p)
 fprintf('\n Female jump distance p-value: %2.4g',p)
 
 
+%% 
+ 
 
 %% Rate of jumping in food and starved flies
 
