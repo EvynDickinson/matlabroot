@@ -30,73 +30,104 @@
 % Requires: Statistics and Machine Learning Toolbox
 % ES DICKINSON, YALE, 2026
 
-clear; clc; close all;
-rng(42);   % reproducibility
+% clear; clc; close all;
+% rng(42);   % reproducibility
 
 %% =========================================================
-%  SYNTHETIC DATA
-%  Replace this section with real data loading.
+%  ORGANIZE DATA
 %  Required variables:
 %    x_data    — n_samples x 1, smoothed temperature signal
 %    y_data    — n_samples x nTrials, binary event matrix (~1% rate)
 %    num.fps   — scalar, frames per second
 %    data.time — n_samples x 1, time vector in minutes
 % ==========================================================
+clearvars('-except',initial_var{:})
 
-num.fps    = 1;          % 1 fps for fast demo; set to real fps (e.g. 30) for actual data
-num.trials = 10;         % trials per group (total trials = num.trials * 2)
-nTrials    = num.trials * 2;
-dt         = 1 / num.fps;
-n_samples  = 5000;
-data.time  = (0:n_samples-1)' / num.fps / 60;   % time axis in minutes
+saveDir = createFolder([figDir, 'PID Model/']);
 
-% Temperature: slow drift + two oscillation frequencies + noise,
-% then smoothed and zero-centered to mimic a real experimental signal
-t_vec    = (1:n_samples)';
-temp_raw = 2   * sin(2*pi*t_vec / 800) + ...
-           1   * sin(2*pi*t_vec / 200) + ...
-           0.5 * randn(n_samples, 1);
-x_data   = smooth(temp_raw, 15, 'moving') - mean(temp_raw);
+dt = 1/num.fps; % sampling frequency
+t_num = 10; % number of samples across time span to check for fit
+max_t = 60; % max duration in the past to sample for window time (min)
+t_list = round(linspace(num.fps, max_t*num.fps*60, t_num)); % from 1 second to 60 minutes
+t_list_time = t_list/num.fps/60; % time windows in minutes 
 
-% Generate rare binary events driven by the integrative signal at a
-% mid-range window. The proportional term adds a small secondary contribution.
-% This ground truth (I wins) lets us verify the analysis recovers the right answer.
-% Change log_odds to test scenarios where P or D is the true driver instead.
-win_true             = round(n_samples / 10);
-x_I_true             = computeIntegralLocal(x_data, win_true, dt);
-x_I_true(isnan(x_I_true)) = 0;
+fprintf('Window sizes to sweep (min): ');
+fprintf('%.1f  ', t_list / num.fps / 60);
+fprintf('\n');
 
-% Normalize predictors to zero mean, unit variance before computing log-odds.
-% x_I_true is an unbounded integral that grows large, so using it raw causes
-% the intercept to be overwhelmed and the event rate to blow up.
-% With normalized inputs, the intercept directly sets the baseline log-odds:
-%   intercept = log(p / (1-p)), so -4.6 targets ~1% event rate.
-x_I_norm = (x_I_true - mean(x_I_true)) / std(x_I_true);
-x_P_norm = (x_data   - mean(x_data))   / std(x_data);
-log_odds             = -4.6 + 0.5 * x_I_norm + 0.2 * x_P_norm;
-p_event              = 1 ./ (1 + exp(-log_odds));
-y_data               = double(rand(n_samples, nTrials) < repmat(p_event, 1, nTrials));
-
-fprintf('Synthetic event rate: %.2f%%\n', 100 * mean(y_data(:)));
-
-%% =========================================================
-%  PID ANALYSIS SETUP
-% ==========================================================
-
-saveDir = '';      % output folder path for saving figures, e.g. './PID Model/'
-blkbgd  = false;   % set true if using dark background figure formatting
-
-t_num = 10;        % number of window sizes to evaluate across the sweep
-max_t = 60;        % maximum window duration to consider (minutes)
-
-% Window sizes in samples, log-spaced from 1 second up to max_t minutes.
-% Spaced evenly on the sample axis — adjust to linspace or logspace depending
-% on whether you expect the relevant timescale to be in a particular range.
-t_list = round(linspace(num.fps, max_t * num.fps * 60, t_num));
-
-fields  = {'P', 'I', 'D'};   % model types, used to loop over results struct
-CV      = struct();
+best = struct();
 results = struct();
+
+data_type = 'jump';
+
+nTrials = num.trials*2; % treat each fly independently 
+fields = {'P', 'I', 'D'}; % model types
+
+% Pull the data together for this data type
+x_data = smooth(data.temperature(:,1), 15, 'moving')-25;
+y_data = [squeeze(data.(data_type)(:,M,:)), squeeze(data.(data_type)(:,F,:))]; 
+trial_idx = (1:nTrials) .* ones(size(y_data)); % identifying number for each data point
+
+n_samples = size(x_data,1);
+
+fprintf('Data event rate: %.2f%%\n', 100 * mean(y_data(:)));
+
+
+% num.fps    = 30;          % 1 fps for fast demo; set to real fps (e.g. 30) for actual data
+% num.trials = 20;         % trials per group (total trials = num.trials * 2)
+% nTrials    = num.trials * 2;
+% dt         = 1 / num.fps;
+% n_samples  = 630000;
+% data.time  = (0:n_samples-1)' / num.fps / 60;   % time axis in minutes
+% 
+% % Temperature: slow drift + two oscillation frequencies + noise,
+% % then smoothed and zero-centered to mimic a real experimental signal
+% t_vec    = (1:n_samples)';
+% temp_raw = 2   * sin(2*pi*t_vec / 800) + ...
+%            1   * sin(2*pi*t_vec / 200) + ...
+%            0.5 * randn(n_samples, 1);
+% x_data   = smooth(temp_raw, 15, 'moving') - mean(temp_raw);
+% 
+% % Generate rare binary events driven by the integrative signal at a
+% % mid-range window. The proportional term adds a small secondary contribution.
+% % This ground truth (I wins) lets us verify the analysis recovers the right answer.
+% % Change log_odds to test scenarios where P or D is the true driver instead.
+% win_true             = round(n_samples / 10);
+% x_I_true             = computeIntegralLocal(x_data, win_true, dt);
+% x_I_true(isnan(x_I_true)) = 0;
+% 
+% % Normalize predictors to zero mean, unit variance before computing log-odds.
+% % x_I_true is an unbounded integral that grows large, so using it raw causes
+% % the intercept to be overwhelmed and the event rate to blow up.
+% % With normalized inputs, the intercept directly sets the baseline log-odds:
+% %   intercept = log(p / (1-p)), so -4.6 targets ~1% event rate.
+% x_I_norm = (x_I_true - mean(x_I_true)) / std(x_I_true);
+% x_P_norm = (x_data   - mean(x_data))   / std(x_data);
+% log_odds             = -4.6 + 0.5 * x_I_norm + 0.2 * x_P_norm;
+% p_event              = 1 ./ (1 + exp(-log_odds));
+% y_data               = double(rand(n_samples, nTrials) < repmat(p_event, 1, nTrials));
+
+% fprintf('Synthetic event rate: %.2f%%\n', 100 * mean(y_data(:)));
+
+% saveDir = 'D:\Evyn Lab Data\PID Modeling\';      % output folder path for saving figures, e.g. './PID Model/'
+% blkbgd  = true;   % set true if using dark background figure formatting
+
+% % =========================================================
+% %  PID ANALYSIS SETUP
+% % ==========================================================
+% 
+% t_num = 10;        % number of window sizes to evaluate across the sweep
+% max_t = 60;        % maximum window duration to consider (minutes)
+% min_t = 
+% 
+% % Window sizes in samples, log-spaced from 1 second up to max_t minutes.
+% % Spaced evenly on the sample axis — adjust to linspace or logspace depending
+% % on whether you expect the relevant timescale to be in a particular range.
+% t_list = round(linspace(num.fps, max_t * num.fps * 60, t_num));
+% 
+% fields  = {'P', 'I', 'D'};   % model types, used to loop over results struct
+% CV      = struct();
+% results = struct();
 
 %% =========================================================
 %  STEP 1 — Precompute transforms
@@ -106,7 +137,7 @@ results = struct();
 %  Each column of X_I / X_D corresponds to one window size in t_list.
 %  First t-1 rows of each column are NaN (window not yet full).
 % ==========================================================
-
+tic
 X_I = nan(n_samples, t_num);
 X_D = nan(n_samples, t_num);
 
@@ -115,10 +146,9 @@ for ti = 1:t_num
     X_D(:, ti) = computeDerivativeLocal(x_data, t_list(ti), dt);
 end
 x_P = x_data;   % proportional: raw signal, no windowing needed
+fprintf('\nTemperature transformations done\n')
+toc
 
-fprintf('Window sizes swept (min): ');
-fprintf('%.1f  ', t_list / num.fps / 60);
-fprintf('\n');
 
 %% =========================================================
 %  FIGURES — Visualize transforms across window sizes
@@ -132,32 +162,37 @@ fprintf('\n');
 % ==========================================================
 
 cmap = parula(t_num);   % replace with Color('dodgerblue','whitesmoke',t_num) if available
-
-fig_signals = figure('Name','PID Signal Inputs','Position',[100 100 1100 380]);
-subplot(1,3,1); hold on
+r = 1; c = 3;
+fig_signals = figure('Name','PID Signal Inputs','Position',[100 100 1067 528]);
+subplot(r,c,1); hold on
     plot(data.time, x_P, 'Color', cmap(round(t_num/2),:), 'LineWidth', 2);
     xlabel('time (min)'); title('Proportional (P)'); grid on;
 
-subplot(1,3,2); hold on
+subplot(r,c,2); hold on
     for ii = 1:t_num
         plot(data.time, X_I(:,ii), 'Color', cmap(ii,:), 'LineWidth', 1.5);
     end
     xlabel('time (min)'); title('Integrative (I)'); grid on;
 
-subplot(1,3,3); hold on
+subplot(r,c,3); hold on
     for ii = 1:t_num
         plot(data.time, X_D(:,ii), 'Color', cmap(ii,:), 'LineWidth', 1.5);
     end
     xlabel('time (min)'); title('Derivative (D)');
     ylim(prctile(X_D(~isnan(X_D)), [1 99])); grid on;
 
-sgtitle('PID Signal Inputs Across Window Sizes');
-cb = colorbar(subplot(1,3,3), 'southoutside');
+sgtitle('PID Signal Inputs Across Window Sizes', Color=foreColor); % main figure title
+cb = colorbar(subplot(r,c,3), 'southoutside');
 colormap(cmap);
 cb.Ticks      = [0 1];
-cb.TickLabels = {sprintf('%.1f min', t_list(1)  / num.fps / 60), ...
-                 sprintf('%.1f min', t_list(end) / num.fps / 60)};
+cb.TickLabels = {sprintf('%.1f min', t_list_time(1)), ...
+                            sprintf('%.1f min', t_list_time(end))};
+cb.Color = foreColor;
 cb.Label.String = 'Window size';
+cb.Label.Color = foreColor;
+formatFig(fig_signals, blkbgd, [r,c]);
+
+save_figure(fig_signals, [saveDir, 'temperature transformations']);
 
 %% =========================================================
 %  STEP 2 — LOO cross-validation with log-loss window selection
@@ -189,6 +224,11 @@ cb.Label.String = 'Window size';
 %  parfor cannot slice into structs, so we extract to plain *_const arrays.
 % ==========================================================
 
+% initialize the parallel pool for analysis
+if isempty(gcp('nocreate'))
+    parpool()
+end
+
 % Pre-allocate output cells and arrays
 P_y_pred   = cell(nTrials, 1);
 I_y_pred   = cell(nTrials, 1);
@@ -213,7 +253,7 @@ logloss_fn = @(y_true, y_pred) ...
 fprintf('Running LOO CV (%d folds)...\n', nTrials);
 tic
 
-for held_out = 1:nTrials   % <-- swap to parfor for large datasets
+parfor held_out = 1:nTrials   % <-- swap to parfor for large datasets
 
     % Split into training and test sets.
     % Training: all trials except the held-out one, stacked into a long vector.
