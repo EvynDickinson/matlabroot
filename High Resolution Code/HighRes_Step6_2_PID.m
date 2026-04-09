@@ -84,107 +84,7 @@ fig = getfig('', 1, [408 468]); hold on
     ylabel('t window (min)')
     save_figure(fig, [saveDir, 'time lag t']);
 
-%% ANALYSIS SINGLE CHANNEL PROCESSING: 
-% % Takes ~90 minutes to run for 40 trials with 10 iterations
-% % =========================================================
-% % STEP 2 — LOO cross-validation
-% % =========================================================
-% CV.P.y_pred   = cell(nTrials, 1);
-% CV.I.y_pred   = cell(nTrials, 1);
-% CV.D.y_pred   = cell(nTrials, 1);
-% CV.I.t_chosen = nan(nTrials, 1);
-% CV.D.t_chosen = nan(nTrials, 1);
-% 
-% n_train = nTrials - 1;
-% 
-% tic
-% for held_out = 1:nTrials % approx 4 mins per loop 
-% 
-%     train_trials = setdiff(1:nTrials, held_out);
-%     y_train = y_data(:,train_trials);
-%     y_train = y_train(:); % reshape to single vector
-%     y_test  = y_data(:,held_out);
-% 
-%     % same temp data for all the trials for train and test, since it's
-%     % uniform across trials
-%     x_P_train = repmat(x_P, n_train, 1);
-%     x_P_test  = x_P;
-% 
-%     % ---------------------------------------------------------
-%     % Proportional
-%     % ---------------------------------------------------------
-%     mdl = fitglm(x_P_train, y_train, 'Distribution', 'binomial', 'Link', 'logit');
-%     CV.P.y_pred{held_out} = predict(mdl, x_P_test);
-% 
-%     % ---------------------------------------------------------
-%     % Integration  — select best t on training set
-%     % ---------------------------------------------------------
-%     best_bic_I = Inf;
-%     best_ti_I  = 1;
-%     % select the best t for this data set: (takes a few minutes depending
-%     % on the number of t windows ~15seconds/iteration)
-%     for ti = 1:t_num
-%         x_I_col   = X_I(:, ti);
-%         x_I_train = repmat(x_I_col, n_train, 1);
-%         valid     = ~isnan(x_I_train);
-%         if sum(valid) < 10, continue; end
-%         mdl = fitglm(x_I_train(valid), y_train(valid), ...
-%                      'Distribution', 'binomial', 'Link', 'logit');
-%         if mdl.ModelCriterion.BIC < best_bic_I
-%             best_bic_I = mdl.ModelCriterion.BIC;
-%             best_ti_I  = ti;
-%         end
-%     end
-% 
-%     % save the best fit version
-%     CV.I.t_chosen(held_out) = t_list(best_ti_I);
-% 
-%     x_I_train = repmat(X_I(:, best_ti_I), n_train, 1);
-%     x_I_test  = X_I(:, best_ti_I);
-%     valid_tr  = ~isnan(x_I_train);
-%     valid_te  = ~isnan(x_I_test);
-% 
-%     % run the model for this hold out data set with the
-%     % best t for this group
-%     mdl = fitglm(x_I_train(valid_tr), y_train(valid_tr), ...
-%                  'Distribution', 'binomial', 'Link', 'logit');
-% 
-%     y_pred_I = nan(length(y_test), 1);
-%     y_pred_I(valid_te) = predict(mdl, x_I_test(valid_te));
-%     CV.I.y_pred{held_out} = y_pred_I;
-% 
-%     % ---------------------------------------------------------
-%     % Derivative — select best t on training set
-%     % ---------------------------------------------------------
-%     best_bic_D = Inf;
-%     best_ti_D  = 1;
-%     for ti = 1:t_num
-%         x_D_col   = X_D(:, ti);
-%         x_D_train = repmat(x_D_col, n_train, 1);
-%         valid     = ~isnan(x_D_train);
-%         if sum(valid) < 10, continue; end
-%         mdl = fitglm(x_D_train(valid), y_train(valid), ...
-%                      'Distribution', 'binomial', 'Link', 'logit');
-%         if mdl.ModelCriterion.BIC < best_bic_D
-%             best_bic_D = mdl.ModelCriterion.BIC;
-%             best_ti_D  = ti;
-%         end
-%     end
-%     CV.D.t_chosen(held_out) = t_list(best_ti_D);
-% 
-%     x_D_train = repmat(X_D(:, best_ti_D), n_train, 1);
-%     x_D_test  = X_D(:, best_ti_D);
-%     valid_tr  = ~isnan(x_D_train);
-%     valid_te  = ~isnan(x_D_test);
-% 
-%     mdl = fitglm(x_D_train(valid_tr), y_train(valid_tr), ...
-%                  'Distribution', 'binomial', 'Link', 'logit');
-% 
-%     y_pred_D = nan(length(y_test), 1);
-%     y_pred_D(valid_te) = predict(mdl, x_D_test(valid_te));
-%     CV.D.y_pred{held_out} = y_pred_D;
-% 
-% end
+
 
 %% ANALYSIS : PARALLEL STRUCTURES
 % % take ~90 mins to run 40 trials with 10 time lag iterations
@@ -530,7 +430,7 @@ xlim([-5,max(t_list_time)+5])
 save_figure(fig, [saveDir, data_type ' derivative coeff scatter']);
 
 
-%% Analysis: Plot out the best models of the data based on the best time lags 
+%% Analysis: Plot out the best models of the data based for the best time lags 
 
 nbins = 20; % how many bins to use over the data series
 
