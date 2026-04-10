@@ -58,7 +58,7 @@ fprintf('\n');
 best = struct();
 results = struct();
 
-data_type = 'jump';
+data_type = 'OutterRing';
 
 nTrials = num.trials*2; % treat each fly independently 
 fields = {'P', 'I', 'D'}; % model types
@@ -436,6 +436,8 @@ subplot(1,2,2);
     xlabel('Selected window (min)'); title('Derivative — window stability');
     ylabel('Folds'); grid on;
 sgtitle('Log-loss-selected window size across LOO folds');
+set(fig_tstab, 'color', 'white')
+
 
 %% =========================================================
 %  STEP 4 — CV performance metrics + evaluation figures
@@ -503,42 +505,42 @@ end
 
 % --- ROC curves ---
 fig_roc = figure('Name','ROC Curves','Position',[820 540 540 460]);
-hold on;
-for m = 1:numel(fields)
-    f = fields{m};
-    plot(CV.(f).fpr, CV.(f).tpr, 'Color', colors(m,:), 'LineWidth', 2.5, ...
-        'DisplayName', sprintf('%s  (AUC = %.3f)', f, CV.(f).AUC));
-end
-plot([0 1],[0 1],'k:','LineWidth',1,'HandleVisibility','off');
-xlabel('False Positive Rate'); ylabel('True Positive Rate');
-title('ROC Curves — LOO Cross-Validation');
-legend('Location','southeast'); grid on; xlim([0 1]); ylim([0 1]);
+    hold on;
+    for m = 1:numel(fields)
+        f = fields{m};
+        plot(CV.(f).fpr, CV.(f).tpr, 'Color', colors(m,:), 'LineWidth', 2.5, ...
+            'DisplayName', sprintf('%s  (AUC = %.3f)', f, CV.(f).AUC));
+    end
+    plot([0 1],[0 1],'k:','LineWidth',1,'HandleVisibility','off');
+    xlabel('False Positive Rate'); ylabel('True Positive Rate');
+    title('ROC Curves — LOO Cross-Validation');
+    legend('Location','southeast'); grid on; xlim([0 1]); ylim([0 1]);
 
 % --- Precision-Recall curves ---
 % The dashed baseline equals the event rate — a random classifier sits here.
 % Any useful model should be clearly above this line.
 fig_pr = figure('Name','Precision-Recall Curves','Position',[1380 540 540 460]);
-hold on;
-for m = 1:numel(fields)
-    f = fields{m};
-    plot(CV.(f).rec, CV.(f).prec, 'Color', colors(m,:), 'LineWidth', 2.5, ...
-        'DisplayName', sprintf('%s  (AP = %.3f)', f, CV.(f).AP));
-end
-yline(mean(y_data(:)), 'k:', 'LineWidth', 1, 'HandleVisibility','off');
-xlabel('Recall'); ylabel('Precision');
-title('Precision-Recall Curves — LOO Cross-Validation');
-legend('Location','northeast'); grid on; xlim([0 1]); ylim([0 1]);
+    hold on;
+    for m = 1:numel(fields)
+        f = fields{m};
+        plot(CV.(f).rec, CV.(f).prec, 'Color', colors(m,:), 'LineWidth', 2.5, ...
+            'DisplayName', sprintf('%s  (AP = %.3f)', f, CV.(f).AP));
+    end
+    yline(mean(y_data(:)), 'k:', 'LineWidth', 1, 'HandleVisibility','off');
+    xlabel('Recall'); ylabel('Precision');
+    title('Precision-Recall Curves — LOO Cross-Validation');
+    legend('Location','northeast'); grid on; xlim([0 1]); ylim([0 1]);
 
 % --- BIC comparison (full-data models) ---
 % Note: BIC here is from the full-data models, not CV. It reflects
 % in-sample fit quality and should be interpreted with caution — a lower
 % BIC does not guarantee better generalization to new trials.
 fig_bic = figure('Name','BIC Comparison','Position',[100 80 440 340]);
-bic_vals = [results.P.BIC, results.I.BIC, results.D.BIC];
-b = bar(categorical({'P','I','D'}), bic_vals, 'FaceColor','flat');
-b.CData = colors;
-ylabel('BIC (lower = better in-sample fit)');
-title('Full-Data Model BIC by Transform'); grid on;
+    bic_vals = [results.P.BIC, results.I.BIC, results.D.BIC];
+    b = bar(categorical({'P','I','D'}), bic_vals, 'FaceColor','flat');
+    b.CData = colors;
+    ylabel('BIC (lower = better in-sample fit)');
+    title('Full-Data Model BIC by Transform'); grid on;
 
 % --- CV AUC and Average Precision ---
 fig_metrics = figure('Name','CV Metrics','Position',[560 80 700 340]);
