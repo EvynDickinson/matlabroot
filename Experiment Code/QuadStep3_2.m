@@ -662,7 +662,7 @@ clearvars('-except',initial_vars{:})
 clearvars('-except',initial_vars{:})
 vars = [initial_vars(:)', 'trial', 'threshHigh', 'threshLow', 'binSpace','G', 'vars'];
 
-if ~hold_exp
+% if ~hold_exp
 
 G = struct;
 [threshHigh, threshLow] = getTempThresholds(temp_protocol,autoRun);
@@ -853,7 +853,7 @@ clearvars('-except',vars{:})
 end
 disp('next section')
 
-end
+% end
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
 clearvars('-except',vars{:}) 
