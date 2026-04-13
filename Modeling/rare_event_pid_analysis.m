@@ -731,23 +731,33 @@ save_figure(fig_pred, [saveDir, 'model predictions vs actual']);
 
 % what do the z-score versions of these inputs look like?
 
-data_type = 'jump';
-x_data = smooth(data.temp, 15, 'moving'); % centered to 25C
+data_type = 'OutterRing';
+x_data = smooth(data.temp, 15, 'moving');
 y_data = [squeeze(data.(data_type)(:,M,:)), squeeze(data.(data_type)(:,F,:))]; 
 
 x = repmat(x_data, [num.trials*2, 1]);
 x = x(:);
 y = y_data(:);
 
-[f, gof] = fit(x, y, 'exp1');
-
-% PLOT THE DATA VS THE MODEL FIT
 % Expand h_idx and c_idx to match the doubled (M+F) structure
 h_idx_expanded = repmat(data.tempbin.h_idx, [num.trials*2, 1]);
 h_idx_expanded = h_idx_expanded(:);
 c_idx_expanded = repmat(data.tempbin.c_idx, [num.trials*2, 1]);
 c_idx_expanded = c_idx_expanded(:);
 
+% remove nan data from all locations synchronously: 
+loc = isnan(y);
+x(loc) = [];
+y(loc) = [];
+c_idx_expanded(loc) = [];
+h_idx_expanded(loc) = [];
+
+% simple exponential proportional model of the behavior
+disp('Making model fit...')
+[f, gof] = fit(x, y, 'exp1');
+disp('done')
+
+% PLOT THE DATA VS THE MODEL FIT
 % Define bins
 nBins = 20;
 edges = linspace(min(x), max(x), nBins + 1);
@@ -757,16 +767,16 @@ binCenters = (edges(1:end-1) + edges(2:end)) / 2;
 binMean_h = zeros(1, nBins);  binSEM_h = zeros(1, nBins);
 binMean_c = zeros(1, nBins);  binSEM_c = zeros(1, nBins);
 
-for i = 1:nBins
-    inBin = x >= edges(i) & x < edges(i+1);
+for ii = 1:nBins
+    inBin = x >= edges(ii) & x < edges(ii+1);
 
     vals_h = y(inBin & h_idx_expanded);
-    binMean_h(i) = mean(vals_h, 'omitnan');
-    binSEM_h(i)  = std(vals_h, 'omitnan') / sqrt(num.trials*2);
+    binMean_h(ii) = mean(vals_h, 'omitnan');
+    binSEM_h(ii)  = std(vals_h, 'omitnan') / sqrt(num.trials*2);
 
     vals_c = y(inBin & c_idx_expanded);
-    binMean_c(i) = mean(vals_c, 'omitnan');
-    binSEM_c(i)  = std(vals_c, 'omitnan') / sqrt(num.trials*2);
+    binMean_c(ii) = mean(vals_c, 'omitnan');
+    binSEM_c(ii)  = std(vals_c, 'omitnan') / sqrt(num.trials*2);
 end
 
 % Evaluate fit over smooth x range
@@ -774,7 +784,8 @@ xFit = linspace(min(x), max(x), 300)';
 yFit = feval(f, xFit);
 
 % Plot
-fig = figure; hold on;
+fig = getfig('', 1,[554 635]); 
+hold on
 
 plot(xFit, yFit, '-', 'Color', foreColor, 'LineWidth', 2);
 
@@ -791,13 +802,157 @@ errorbar(binCenters, binMean_h, binSEM_h, 'o', ...
     'LineWidth', 1.2, 'CapSize', 4);
 
 
-xlabel('Temperature (°C)');
+xlabel('temperature (°C)');
 ylabel(data_type);
 title(sprintf('Binned %s vs Temperature', data_type));
-legend('Cooling', 'Heating', ...
-    sprintf('Fit: %.3g·e^{%.3g·x}', f.a, f.b), ...
+legend(sprintf('Fit: %.3g·e^{%.3g·x}', f.a, f.b), ...
+    'Cooling', 'Heating', ...
     'Location', 'northwest', 'box', 'off', 'TextColor', foreColor);
  formatFig(fig, blkbgd);
+ylim([-0.001, max(ylim)])
 
 save_figure(fig, [saveDir, 'exponential proportional fit ', data_type]);
    
+
+
+% ASSESSING MODEL FITS: 
+% For heating
+yhat_h = feval(f, x(h_idx_expanded)); % predicted values
+y_h    = y(h_idx_expanded);
+ss_res_h = sum((y_h - yhat_h).^2, 'omitnan');
+ss_tot_h = sum((y_h - mean(y_h, 'omitnan')).^2, 'omitnan');
+raw_r2_h = 1 - ss_res_h / ss_tot_h;
+
+% For cooling
+yhat_c = feval(f, x(c_idx_expanded));
+y_c    = y(c_idx_expanded);
+ss_res_c = sum((y_c - yhat_c).^2, 'omitnan');
+ss_tot_c = sum((y_c - mean(y_c, 'omitnan')).^2, 'omitnan');
+raw_r2_c = 1 - ss_res_c / ss_tot_c;
+
+fprintf('R² heating: %.3f,  R² cooling: %.3f\n', raw_r2_h, raw_r2_c);
+
+
+% Get model-predicted probabilities (clamp to avoid log(0))
+p_hat = feval(f, x);
+p_hat = max(min(p_hat, 1-1e-10), 1e-10);  % clamp to (0,1)
+
+% Bernoulli log-likelihood
+ll = sum(y .* log(p_hat) + (1 - y) .* log(1 - p_hat), 'omitnan');
+ll_per_obs = ll / numel(y);
+fprintf('Log-likelihood per observation: %.6f\n', ll_per_obs);
+
+% Null model log-likelihood (intercept only — just the base rate)
+p_null = mean(y, 'omitnan');
+ll_null = sum(y .* log(p_null) + (1 - y) .* log(1 - p_null), 'omitnan');
+ll_null_per_obs = ll_null / numel(y);
+
+% McFadden's pseudo-R² (0–1 scale, analogous to R²)
+pseudo_r2 = 1 - (ll / ll_null);
+
+fprintf('Log-likelihood per observation (model): %.6f\n', ll_per_obs);
+fprintf('Log-likelihood per observation (null):  %.6f\n', ll_null_per_obs);
+fprintf('Difference:  %.6f\n', ll_per_obs - ll_null_per_obs);
+fprintf('McFadden pseudo-R²:    %.4f\n', pseudo_r2);
+
+
+% Evaluate fit at bin centers
+yFit_bins = feval(f, binCenters(:))';  % force row vector
+
+% Heating
+ss_res_h = nansum((binMean_h - yFit_bins).^2);
+ss_tot_h = nansum((binMean_h - nanmean(binMean_h)).^2);
+r2_h = 1 - ss_res_h / ss_tot_h;
+
+% Cooling
+ss_res_c = nansum((binMean_c - yFit_bins).^2);
+ss_tot_c = nansum((binMean_c - nanmean(binMean_c)).^2);
+r2_c = 1 - ss_res_c / ss_tot_c;
+
+% Weighted by bin count
+binN_h = histcounts(x(h_idx_expanded), edges);
+ss_res_wh = nansum(binN_h .* (binMean_h - yFit_bins).^2);
+ss_tot_wh = nansum(binN_h .* (binMean_h - nanmean(binMean_h)).^2);
+r2_weighted_h = 1 - ss_res_wh / ss_tot_wh;
+
+binN_c = histcounts(x(c_idx_expanded), edges);
+ss_res_wc = nansum(binN_c .* (binMean_c - yFit_bins).^2);
+ss_tot_wc = nansum(binN_c .* (binMean_c - nanmean(binMean_c)).^2);
+r2_weighted_c = 1 - ss_res_wc / ss_tot_wc;
+
+fprintf('Heating  — R²: %.4f,  Weighted R²: %.4f\n', r2_h, r2_weighted_h);
+fprintf('Cooling  — R²: %.4f,  Weighted R²: %.4f\n', r2_c, r2_weighted_c);
+
+% ------- Plot out the fits for the model ------
+% Organize metrics into a table-style figure
+metrics = {
+    'Raw R² (heating)',        raw_r2_h;
+    'Raw R² (cooling)',        raw_r2_c;
+    'Binned R² (heating)',     r2_h;
+    'Binned R² (cooling)',     r2_c;
+    'Weighted R² (heating)',   r2_weighted_h;
+    'Weighted R² (cooling)',   r2_weighted_c;
+    'McFadden pseudo-R²',      pseudo_r2;
+    'Log-likelihood',          ll_per_obs;
+    'Null log-likelihood',     ll_null_per_obs;
+};
+
+% Split into two groups: R²-like (0-1) and log-likelihoods
+r2_labels = metrics(1:7, 1);
+r2_vals   = cell2mat(metrics(1:7, 2));
+ll_labels = metrics(8:9, 1);
+ll_vals   = cell2mat(metrics(8:9, 2));
+
+% Colors: heating = red, cooling = blue, combined/other = grey
+colors = [
+    0.85 0.2  0.15;   % raw R² heating
+    0.2  0.4  0.85;   % raw R² cooling
+    0.85 0.2  0.15;   % binned R² heating
+    0.2  0.4  0.85;   % binned R² cooling
+    0.85 0.2  0.15;   % weighted R² heating
+    0.2  0.4  0.85;   % weighted R² cooling
+    0.5  0.5  0.5;    % McFadden
+];
+
+
+fig = getfig('',1);
+% --- Top panel: R²-like metrics ---
+ax1 = subplot(2,1,1); hold on;
+for i = 1:numel(r2_vals)
+    bar(i, r2_vals(i), 'FaceColor', colors(i,:), 'EdgeColor', 'none');
+end
+yline(0, 'k-', 'LineWidth', 0.8);
+set(ax1, 'XTick', 1:numel(r2_labels), 'XTickLabel', r2_labels, ...
+    'XTickLabelRotation', 30, 'TickLabelInterpreter', 'none');
+ylabel('R² value');
+title(sprintf('Model fit metrics — %s', data_type));
+box off;
+for i = 1:numel(r2_vals)
+    if r2_vals(i) >= 0
+        ypos = r2_vals(i) + 0.02;
+        valign = 'bottom';
+    else
+        ypos = 0.02;  % just above zero line regardless of how negative the bar is
+        valign = 'bottom';
+    end
+    text(i, ypos, sprintf('%.4f', r2_vals(i)), ...
+        'HorizontalAlignment', 'center', ...
+        'VerticalAlignment',   valign, ...
+        'FontSize', 8, ...
+        'Color',    colors(i,:));
+end
+ylim([min(r2_vals)*1.2, max(r2_vals)*1.2]);
+
+% --- Bottom panel: log-likelihoods ---
+ax2 = subplot(2,1,2); hold on;
+bar(1, ll_vals(1),  'FaceColor', [0.4 0.4 0.4], 'EdgeColor', 'none');
+bar(2, ll_vals(2),  'FaceColor', [0.7 0.7 0.7], 'EdgeColor', 'none');
+set(ax2, 'XTick', 1:2, 'XTickLabel', ll_labels, ...
+    'XTickLabelRotation', 30, 'TickLabelInterpreter', 'none');
+ylabel('Log-likelihood per observation');
+box off;
+
+tight_layout = @() set(fig, 'Units', 'normalized');
+tight_layout();
+formatFig(fig, blkbgd, [2,1]);
+save_figure(fig, [saveDir, 'exponential proportional fit model fit ', data_type]);
