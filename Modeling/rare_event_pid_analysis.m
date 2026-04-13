@@ -64,13 +64,12 @@ nTrials = num.trials*2; % treat each fly independently
 fields = {'P', 'I', 'D'}; % model types
 
 % Pull the data together for this data type
-x_data = smooth(data.temperature(:,1), 15, 'moving')-25;
+x_data = smooth(data.temperature(:,1), 15, 'moving')-25; % centered to 25C
 y_data = [squeeze(data.(data_type)(:,M,:)), squeeze(data.(data_type)(:,F,:))]; 
-trial_idx = (1:nTrials) .* ones(size(y_data)); % identifying number for each data point
 
-n_samples = size(x_data,1);
+n_samples = size(x_data,1); % how many frames in the data set?
 
-fprintf('Data event rate: %.2f%%\n', 100 * mean(y_data(:)));
+fprintf('Data event rate: %.2f%%\n', 100 * mean(y_data(:),'omitnan'));
 
 
 % num.fps    = 30;          % 1 fps for fast demo; set to real fps (e.g. 30) for actual data
@@ -131,7 +130,7 @@ fprintf('Data event rate: %.2f%%\n', 100 * mean(y_data(:)));
 
 %% =========================================================
 %  STEP 1 — Precompute transforms
-%
+% 
 %  The temperature signal x is identical across all trials, so we compute
 %  the I and D transforms once and reuse them in every CV fold.
 %  Each column of X_I / X_D corresponds to one window size in t_list.
@@ -526,7 +525,7 @@ fig_pr = figure('Name','Precision-Recall Curves','Position',[1380 540 540 460]);
         plot(CV.(f).rec, CV.(f).prec, 'Color', colors(m,:), 'LineWidth', 2.5, ...
             'DisplayName', sprintf('%s  (AP = %.3f)', f, CV.(f).AP));
     end
-    yline(mean(y_data(:)), 'k:', 'LineWidth', 1, 'HandleVisibility','off');
+    yline(mean(y_data(:), 'omitnan'), 'k:', 'LineWidth', 1, 'HandleVisibility','off');
     xlabel('Recall'); ylabel('Precision');
     title('Precision-Recall Curves — LOO Cross-Validation');
     legend('Location','northeast'); grid on; xlim([0 1]); ylim([0 1]);
@@ -604,27 +603,201 @@ grid on;
 fprintf('\nDone.\n');
 
 %% =========================================================
-%  LOCAL FUNCTION DEFINITIONS
+%  STEP 5 — Prediction vs. actual response over time
 %
-%  Exact copies of computeIntegral / computeDerivative.
-%  Remove these and replace *Local calls above with the original
-%  function names if they are already on your MATLAB path.
+%  Plots the trial-averaged event rate alongside model predictions.
+%  Binning smooths the rare binary signal into a legible rate estimate.
+%  Each model's prediction is the mean across held-out fold predictions
+%  (i.e., the same pooled CV predictions used for AUC/AP above).
 % ==========================================================
 
-function x_I = computeIntegralLocal(x, t, dt)
-% Sliding window trapezoidal integral. See computeIntegral.m for full docs.
-    kernel          = ones(t, 1);
-    kernel([1 end]) = 0.5;              % trapz correction: half-weight endpoints
-    x_conv          = conv(x, kernel, 'full') * dt;
-    n               = length(x);
-    x_I             = [nan(t-1, 1); x_conv(t : t+n-t)];
+bin_sec  = 60;                        % bin width in seconds — adjust to taste
+bin_samp = round(bin_sec * num.fps);  % bin width in samples
+n_bins   = floor(n_samples / bin_samp);
+bin_time = data.time(round(bin_samp/2 : bin_samp : bin_samp*n_bins)); % bin centers
+
+% --- Bin the trial-averaged actual event rate ---
+y_mean = mean(y_data, 2, 'omitnan');  % average across trials: n_samples x 1
+y_binned = nan(n_bins, 1);
+for b = 1:n_bins
+    idx = (b-1)*bin_samp + (1:bin_samp);
+    y_binned(b) = mean(y_mean(idx), 'omitnan');
 end
 
-function x_D = computeDerivativeLocal(x, t, dt)
-% Sliding window least-squares derivative. See computeDerivative.m for full docs.
-    ramp   = (-(t-1)/2 : (t-1)/2)';         % centered linear ramp = OLS slope weights
-    w      = ramp / (sum(ramp.^2) * dt);    % normalize to give output in units of x/sec
-    x_conv = conv(x, flipud(w), 'full');
-    n      = length(x);
-    x_D    = [nan(t-1, 1); x_conv(t : t+n-t)];
+% --- Bin each model's pooled CV predictions ---
+pred_binned = nan(n_bins, 3);
+for m = 1:numel(fields)
+    f = fields{m};
+    y_pred_all = vertcat(CV.(f).y_pred{:});   % n_samples*nTrials x 1
+    
+    % Average across trials first (reshape back to n_samples x nTrials)
+    y_pred_mat  = reshape(y_pred_all, n_samples, nTrials);
+    y_pred_mean = mean(y_pred_mat, 2, 'omitnan');  % n_samples x 1
+    
+    for b = 1:n_bins
+        idx = (b-1)*bin_samp + (1:bin_samp);
+        pred_binned(b, m) = mean(y_pred_mean(idx), 'omitnan');
+    end
 end
+
+% --- Plot ---
+fig_pred = figure('Name','Model Predictions vs Actual','Position',[100 100 1100 420]);
+
+% Top: temperature trace for reference
+ax1 = subplot(3,1,1);
+    plot(data.time, x_data + 25, 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+    ylabel('Temp (°C)'); grid on;
+    title('Temperature Signal');
+    xlim([data.time(1) data.time(end)]);
+
+% Middle: actual binned event rate
+ax2 = subplot(3,1,2);
+    bar(bin_time, y_binned * 100, 1, 'FaceColor', [0.7 0.7 0.7], 'EdgeColor', 'none');
+    ylabel('Event rate (%)'); grid on;
+    title(sprintf('Observed event rate (trial avg, %d-sec bins)', bin_sec));
+    xlim([data.time(1) data.time(end)]);
+
+% Bottom: model predictions overlaid
+ax3 = subplot(3,1,3);
+    hold on;
+    for m = 1:numel(fields)
+        plot(bin_time, pred_binned(:,m) * 100, ...
+            'Color', colors(m,:), 'LineWidth', 2, ...
+            'DisplayName', fields{m});
+    end
+    ylabel('Predicted P(event) (%)'); grid on;
+    legend('Location','northeast','Box','off', 'TextColor',foreColor);
+    title('Model-predicted event probability (CV, trial avg)');
+    xlim([data.time(1) data.time(end)]);
+
+linkaxes([ax1 ax2 ax3], 'x');   % sync zoom/pan across panels
+xlabel(ax3, 'Time (min)');
+sgtitle('PID Model Predictions vs. Observed Event Rate', 'Color', foreColor);
+formatFig(fig_pred, blkbgd, [3,1]);
+
+save_figure(fig_pred, [saveDir, 'model predictions vs actual']);
+
+
+%% Test the model predictions on input data: 
+
+
+
+
+%% Make a transformed-temp prediction figure: 
+
+
+
+%%
+
+% % what if we predict the current behavior based on all three temp
+% % transformations and then see which carry the most information? 
+% X = [x1, x2, x3];  % matrix of predictors
+% mdl = fitglm(X, y, 'Distribution', 'binomial', 'Link', 'logit');
+% 
+
+%% Testing area
+% 
+% 
+% tic
+% X_I = nan(n_samples, t_num);
+% X_D = nan(n_samples, t_num);
+% 
+% for ti = 1:t_num
+%     X_I(:, ti) = computeIntegralLocal(x_data,   t_list(ti), dt);
+%     X_D(:, ti) = computeDerivativeLocal(x_data, t_list(ti), dt);
+% end
+% x_P = x_data;   % proportional: raw signal, no windowing needed
+% fprintf('\nTemperature transformations done\n')
+% toc
+% 
+
+% tP = 25; % temperature of preference
+% 
+% % what do different transformations of temperature look like
+% x_P = data.temp; % untransformed data
+% x_P_centered = data.temp -tP; 
+% x_P_nonlin_mag = (data.temp-tP).^2;
+% 
+% r = 1; c = 3;
+% fig = figure; 
+% subplot(r,c,1)
+% plot(data.time, x_P)
+% title('temperature')
+% subplot(r,c,2)
+% plot(data.time, x_P_centered)
+% subplot(r,c,3)
+% plot(data.time, x_P_nonlin_mag)
+
+
+% what do the z-score versions of these inputs look like?
+
+data_type = 'jump';
+x_data = smooth(data.temp, 15, 'moving'); % centered to 25C
+y_data = [squeeze(data.(data_type)(:,M,:)), squeeze(data.(data_type)(:,F,:))]; 
+
+x = repmat(x_data, [num.trials*2, 1]);
+x = x(:);
+y = y_data(:);
+
+[f, gof] = fit(x, y, 'exp1');
+
+% PLOT THE DATA VS THE MODEL FIT
+% Expand h_idx and c_idx to match the doubled (M+F) structure
+h_idx_expanded = repmat(data.tempbin.h_idx, [num.trials*2, 1]);
+h_idx_expanded = h_idx_expanded(:);
+c_idx_expanded = repmat(data.tempbin.c_idx, [num.trials*2, 1]);
+c_idx_expanded = c_idx_expanded(:);
+
+% Define bins
+nBins = 20;
+edges = linspace(min(x), max(x), nBins + 1);
+binCenters = (edges(1:end-1) + edges(2:end)) / 2;
+
+% Compute mean and SEM per bin for heating and cooling separately
+binMean_h = zeros(1, nBins);  binSEM_h = zeros(1, nBins);
+binMean_c = zeros(1, nBins);  binSEM_c = zeros(1, nBins);
+
+for i = 1:nBins
+    inBin = x >= edges(i) & x < edges(i+1);
+
+    vals_h = y(inBin & h_idx_expanded);
+    binMean_h(i) = mean(vals_h, 'omitnan');
+    binSEM_h(i)  = std(vals_h, 'omitnan') / sqrt(num.trials*2);
+
+    vals_c = y(inBin & c_idx_expanded);
+    binMean_c(i) = mean(vals_c, 'omitnan');
+    binSEM_c(i)  = std(vals_c, 'omitnan') / sqrt(num.trials*2);
+end
+
+% Evaluate fit over smooth x range
+xFit = linspace(min(x), max(x), 300)';
+yFit = feval(f, xFit);
+
+% Plot
+fig = figure; hold on;
+
+plot(xFit, yFit, '-', 'Color', foreColor, 'LineWidth', 2);
+
+errorbar(binCenters, binMean_c, binSEM_c, 'o', ...
+    'MarkerFaceColor', [0.2 0.4 0.85], ...
+    'MarkerEdgeColor', 'none', ...
+    'Color',           [0.2 0.4 0.85], ...
+    'LineWidth', 1.2, 'CapSize', 4);
+
+errorbar(binCenters, binMean_h, binSEM_h, 'o', ...
+    'MarkerFaceColor', [0.85 0.2 0.15], ...
+    'MarkerEdgeColor', 'none', ...
+    'Color',           [0.85 0.2 0.15], ...
+    'LineWidth', 1.2, 'CapSize', 4);
+
+
+xlabel('Temperature (°C)');
+ylabel(data_type);
+title(sprintf('Binned %s vs Temperature', data_type));
+legend('Cooling', 'Heating', ...
+    sprintf('Fit: %.3g·e^{%.3g·x}', f.a, f.b), ...
+    'Location', 'northwest', 'box', 'off', 'TextColor', foreColor);
+ formatFig(fig, blkbgd);
+
+save_figure(fig, [saveDir, 'exponential proportional fit ', data_type]);
+   
