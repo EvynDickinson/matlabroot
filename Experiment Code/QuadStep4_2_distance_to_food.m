@@ -383,7 +383,7 @@ clearvars('-except',initial_vars{:})
 [foreColor, ~] = formattingColors(blkbgd); % get background colors
 
 autoLim = true;
-ylim = [0 100]; % if manually adjusting the axis limits for the y-axis 
+y_lim = [0 100]; % if manually adjusting the axis limits for the y-axis 
 xlim_auto = true; % change the time range for the x axis
 nMax =  num.exp; 
 
@@ -462,7 +462,7 @@ for type = 1:2
         set(gca, 'ycolor', 'none')
     end
     xlabel('temp (\circC)')
-    xlim(xlimits)
+    %xlim(xlimits)
     % ylim(ylimits)
     title(typeNames{type},'color', foreColor)
 end
@@ -471,15 +471,17 @@ formatFig(fig, blkbgd,[r,c]);
 
 for type = 1:2
     subplot(r, c, type)
-    ylim([0,90])
+    % ylim([0 90])
     h_line(nullD,'grey',':',2) %36.2
     set(gca,'ydir',y_dir)
-    ylimits = ylim;
-    pos = [xPos(1,type), ylimits(1), 10, range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
-    h = rectangle('Position', pos, ...
-              'FaceColor', foreColor, ...   % RGB color
-              'FaceAlpha', 0.2, ...
-              'EdgeColor', 'none');
+    ylimits = y_lim;
+    if contains(expGroup,'LTS 15-35')
+        pos = [xPos(1,type), ylimits(1), 10, range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
+        h = rectangle('Position', pos, ...
+                  'FaceColor', foreColor, ...   % RGB color
+                  'FaceAlpha', 0.2, ...
+                  'EdgeColor', 'none');
+    end
     if type == 2
         set(gca, 'ycolor', 'none')
     end
