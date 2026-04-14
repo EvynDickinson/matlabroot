@@ -37,11 +37,21 @@ tic
 X_I = nan(n_samples, t_num);
 X_D = nan(n_samples, t_num);
 for ti = 1:t_num
-    X_I(:, ti) = computeIntegral(x_data,   t_list(ti), dt);
+    X_I(:, ti) = computeIntegral(abs(x_data),   t_list(ti), dt);
     X_D(:, ti) = computeDerivative(x_data, t_list(ti), dt);
 end
 x_P = x_data;
 toc
+
+%% Comparison of integral temperature transformations
+
+% X_I_shifted = nan(n_samples, t_num);
+X_I_abs = nan(n_samples, t_num);
+for ti = 1:t_num
+     X_I_abs(:, ti) = computeIntegral(abs(x_data),   t_list(ti), dt);
+end
+
+
 
 %% FIGURES: visualize the different time integrations / derivatives for the different
 % t values: 
