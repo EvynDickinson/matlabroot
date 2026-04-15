@@ -1,6 +1,8 @@
 
-% Generate figures to compare different behaviors and frequencies of
-% behaviors over time:
+% Generate figures to compare different behaviors 
+% and frequencies of behaviors over time
+% load in data with: 
+% HighRes_Step6_1
 
 %% Fresh slate start and color update: 
 clearvars('-except',initial_var{:})
@@ -43,7 +45,7 @@ sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
 sb(3).idx = 3 : c : r*c; %dependent var temp tuning curve
 
 LW = 0.75; % single trial line widths
-sSpan = 1 * (60*60) * num.fps; % 1 minute smoothing function
+sSpan = 1 * (60) * num.fps; % 1 minute smoothing function
 kolor = foreColor;
 h_kolor = Color('googlered');
 c_kolor = Color('dodgerblue');
@@ -187,7 +189,7 @@ save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 % WORKING HERE 3/30
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
-plot_threat_zone = false;
+plot_threat_zone = true;
 
 % Select the type of information to plot: 
 [title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = ... 
@@ -206,7 +208,7 @@ end
 % ------------- Plotting parameters -------------
 
 % select temp protocol specific plotting features
-autoYLim = false; % Y LIMITS
+autoYLim = true; % Y LIMITS
 if any(isnan(ylimits)) % in case new data is added without specs for axis limits
     autoYLim = true;
 end
@@ -276,7 +278,7 @@ end
          
 % ------------ formatting ------------
 formatFig(fig, blkbgd,[r,c]);
-matchAxis(fig, true);
+matchSubplotAxes(fig); % match x across both subplots and y across subplots
 for ii = 1:2
     subplot(r,c,ii) 
     title(types{ii},'color', foreColor,'FontAngle','italic')

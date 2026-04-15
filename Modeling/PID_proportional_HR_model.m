@@ -8,7 +8,7 @@
 % This is best used to model 'jump' escape data from the high resolution
 % experiments
 
-% Load in data via HighRes_Step6_2.m
+% Load in data via HighRes_Step6_1
 
 
 %% Testing area

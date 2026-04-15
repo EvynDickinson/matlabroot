@@ -153,7 +153,7 @@ initial_var{end+1} = 'fps';
 
 clearvars('-except',initial_var{:})
 
-%% MANUALLY LOAD DATA HERE: 
+%% (SKIP) MANUALLY LOAD DATA HERE: 
 % % select the location of the data structure
 % [file_name, dir_path] = uigetfile;
 % % load data 
@@ -169,7 +169,7 @@ clearvars('-except',initial_var{:})
 % 
 % clearvars('-except',initial_var{:})
 
-%% Update the data structures to have appropriate distances for the arena 
+%% (SKIP) Update the data structures to have appropriate distances for the arena 
 % Fixes any old data that uses incorrect distance measurments from faulty
 % pix2mm conversion AS OF May 12, 2025 ESD
 
@@ -201,7 +201,7 @@ fig = getfig('',1); hold on
     end
     xlabel('time (min)')
     ylabel('temp (\circC)')
-    formatFig(fig);
+    formatFig(fig, blkbgd);
     title([groupName ' | n = ' num2str(num.trials)])
 save_figure(fig, [alignmentDir 'raw temp alignment'],fig_type, fig_autosave);
 
@@ -222,6 +222,10 @@ disp(temp_protocols')
 hold_exp = any(contains(temp_protocols,'Hold'));
 
 % create a new matrix to look at trial alignment times
+% ** alignment points 'idx' should be the start index point for each
+% new section of the temperature ramp (e.g., the start idx for a ramp down
+% but not its end point)
+% NEW TEMP PROTOCOL UPDATES BELOW
 if hold_exp
     idx = [1 2]; % start and end of hold 
     midpoint_idx = 1; % hold start
@@ -230,6 +234,9 @@ else
         case 'high_res_LTS_35-15'
             idx = [1 3 5 7 9 10]; % LTS alignment points
             midpoint_idx = 4; % bottom trough of full sweep
+        case 'HR_LTS_R_15-35'
+            idx = [1 3 5 7 9 10]; % LTS alignment points 
+            midpoint_idx = 4; % top of full sweep (35C)
         case {'courtship_F_LRR_25-17','high_res_F_LRR_25-17'}
             idx = [1 3 5 7 8]; % F LRR alignment points (beginning of each temp region)
             midpoint_idx = 3; % center of ramp
@@ -343,6 +350,7 @@ data.color(F,:) = fly(1).data(F).color; % female color
 data.middlepoint = middlePoint;
 
 % TODO: adjust this for protocols that are not mirror image parallel
+% NEW TEMP PROTOCOL UPDATES BELOW
 if hold_exp
     data.warming_idx = [];
     data.cooling_idx = [];
@@ -350,14 +358,40 @@ if hold_exp
 else
     switch temp_protocols{1}
     
-        case 'high_res_LTS_35-15'
+        case 'HR_LTS_R_15-35'
             % save new indexes for plotting regions: 
+            % cooling
+            a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling        
+            [r,~] = find(a==1); %  find the time points where cooling begins for each trial
+            c1 = median(r(1:2:end)); % cooling start 1
+            c2 = median(r(2:2:end)); % cooling start 2 
+    
+            % warming
+            a = (diff(data.warming));
+            [r,~] = find(a==1); % when warming section starts
+            h1 = median(r); % warming start 1
+
+            % holds
+            a = (diff(data.hold));
+            [r, ~] = find(a==1); % when warming section two starts
+            hold_1 = median(r); % warming start 1           
+            
+            % find compile the start and stops for the cooling or warming periods
+            data.warming_idx = [h1,c2-1];
+            data.cooling_idx = [c1,h1-1; c2,hold_1-1];
+            data.hold_idx = []; % TODO: deal with this
+
+         case 'high_res_LTS_35-15'
+            % save new indexes for plotting regions: 
+            
+            % cooling
             a = (diff(data.cooling)); % use this to look for transition periods in and out of cooling        
             [r,~] = find(a==1); %  find the time points where cooling begins
             c1 = median(r(1:2:end)); % cooling start 1
             c2 = median(r(2:2:end)); % cooling start 2 
             c3 =  size(a,1); % end of cooling (end of experiment) 
-    
+            
+            % warming
             a = (diff(data.warming));
             [r,~] = find(a==1); % when warming section two starts
             h1 = median(r(1:2:end)); % warming start 1
@@ -367,6 +401,7 @@ else
             data.warming_idx = [h1,c1-1; h2,c2-1];
             data.cooling_idx = [c1,h2-1; c2,c3];
             data.hold_idx = []; % TODO: deal with this
+
          
         case 'courtship_F_LRR_25-17' % TODO : 7/10 update this to work with the new ramp strucutres... 
            % Cooling regions
@@ -393,28 +428,27 @@ end
 % test to see how the alignment worked for the heating and cooling periods
 fig = getfig('',0);
     subplot(1,2,1)
-    plot(data.cooling)
-    v_line(middlePoint,'red', '-',2)
-    v_line(middlePoint,'yellow', '--',2)
-    title('cooling')
-    xlabel('frame')
-    set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
-    ylim([-0.1,1.1])
+        plot(data.cooling)
+        v_line(middlePoint,'red', '-',2)
+        v_line(middlePoint,'yellow', '--',2)
+        title('cooling')
+        xlabel('frame')
+        set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
+        ylim([-0.1,1.1])
     subplot(1,2,2)
-    plot(data.warming)
-    v_line(middlePoint,'red', '-',2)
-    v_line(middlePoint,'yellow', '--',2)
-    xlabel('frame')
-    set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
-    ylim([-0.1,1.1])
-    title('warming')
+        plot(data.warming)
+        v_line(middlePoint,'red', '-',2)
+        v_line(middlePoint,'yellow', '--',2)
+        xlabel('frame')
+        set(gca, 'ytick', [0,1],'yticklabel', {'Off', 'On'})
+        ylim([-0.1,1.1])
+        title('warming')
     formatFig(fig, blkbgd,[1,2]);
 save_figure(fig, [alignmentDir 'cooling and warming alignment'],fig_type, fig_autosave);
 
 
 % show the alignment across temperature
-% TODO: 3.7 Figure out why this is not in alignment for the F LRR
-% experiments
+% TODO: 3.7 Figure out why this is not in alignment for the F LRR experiments
 LW  = 2;
 fig = getfig('', 1);
     plot(data.temperature)
@@ -433,10 +467,11 @@ fig = getfig('', 1);
     xlabel('time')
     ylabel('temperature (\circC)')
     formatFig(fig,blkbgd);
-    title([groupName ' | n = ' num2str(num.trials)])
+    title([groupName ' | n = ' num2str(num.trials)], Color=foreColor)
 save_figure(fig, [alignmentDir 'final temperature alignment'],fig_type, fig_autosave);
 
 disp('next:')
+
 
 %% Create temp bin groups and a universal temperature ramp:
 clearvars('-except',initial_var{:})
