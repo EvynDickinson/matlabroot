@@ -2671,7 +2671,38 @@ if strcmp(questdlg({'Save subfields into separate data files for later use?'; ad
     toc
 end
 
-disp('All finished')
+disp('Round one saving finished')
+
+%% Export data in simple modeling format
+% save each data structure for a given experiment type into its own
+% post-step-4 processing file
+
+if strcmp(questdlg('Save PID modeling data?'),'Yes')
+
+    PID_folder = createFolder([structFolder, 'PID Modeling/']);
+    
+    % create data structure with processed data for each experiment type: 
+    for ii = 1:num.exp
+        exp_name = grouped(ii).name; % this will be the saved name 
+        % pull out the data trial information: 
+        all = grouped(ii);
+        all.T = data(ii).T;
+        
+        % check if the experiment name already exists: 
+        % TODO -- be more sophisticated and check the T of the existing one
+        % against the new one and see if one could be more up to date?
+        file_name = [PID_folder, exp_name '.mat'];
+        if ~(exist(file_name, 'file')==2)
+            % save the grouped trials information as its own file
+            save(file_name, 'all', '-v7.3');
+            fprintf('\Skipped %s', exp_name)
+        else 
+            fprintf('\nSaved %s', exp_name)
+        end
+    end
+end
+
+fprintf('\nAll finished')
 
 %% Food vs no food control trial information....
 % TODO: 6.15 : update this to somehow account for the control vs food
