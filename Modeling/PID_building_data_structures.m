@@ -30,43 +30,74 @@ baseFolder = getDataPath(3,0,'Select where you want to find the grouped data str
 structFolder = [baseFolder 'PID Modeling\'];
 % select the trials that you want to load: 
 fileOptions = dir([structFolder '*.mat']);
+nExp = length(fileOptions);
 
-for ii = 1:length(fileOptions)
+trialTables = cell(nExp, 1); % initialize cell struct for all experiment tables
+
+for ii = 1:(nExp)
+    tic 
     filename = [structFolder fileOptions(ii).name];
 
-    % temp = load([structFolder fileOptions(ii).name]);
-    % 
-    % % extract timeseries data from the different experiment types: 
-    % InnerFoodQuad = temp.all.innerquad.food.all;
-    % EscapeRing = temp.all.ring.all;
-    % Sleep = temp.all.sleep.all;
-    % Speed = temp.all.speed.all;
-    % 
-    % % single data trial information
-    % Time = temp.all.time;
-    % Temperature = temp.all.real_temp;
-    % 
-    % % data that is by trial and not by time: 
-    % npoints = length(Time);
-    % a = temp.all.T.Date';
-    % Date = repmat(a, [npoints, 1]);
-    % a = temp.all.T.TempProtocol';
-    % TempProtocol = repmat(a, [npoints, 1]);
+    temp = load([structFolder fileOptions(ii).name]);
+   
+    % find default matrix sizes
+    ntrials = size(temp.all.speed.all,2);
+    npoints = size(temp.all.speed.all,1);
+
+    % create a unique trial ID
+    [~, fname] = fileparts(filename);
+    TrialID = compose('%s_t%02d', fname, (1:ntrials)); % make unique trial IDs
+    % TrialID = repmat(string(TrialID), [npoints, 1]);
+    TrialID = repmat(TrialID, [npoints, 1]);
+    TrialID = TrialID(:);
+    
+    % extract timeseries data from the different experiment types: 
+    InnerFoodQuad = temp.all.innerquad.food.all;
+    EscapeRing = temp.all.ring.all;
+    Sleep = temp.all.sleep.all;
+    Speed = temp.all.speed.all;
+
+    % data that is by trial and not by time: 
+    a = temp.all.T.Date';
+    Date = repmat(a, [npoints, 1]);
+    a = temp.all.T.TempProtocol';
+    TempProtocol = repmat(a, [npoints, 1]);
     % a = temp.all.T.foodName';
     % FoodName = repmat(a, [npoints, 1]);
     % a = temp.all.T.Genotype';
     % Genotype = repmat(a, [npoints, 1]);
-    % 
-    % % reorganize the data in a time-series? or not yet, since if we want to
-    % % do a temperature signal transformation we want to know the time
-    % % series for each so they can operate independently? (e.g. not pull
-    % % past time history from a different trial into the current one because
-    % % they are concatenated) 
-    % 
-    % % Combine these into a giant table: 
-    % T = table(Date, TempProtocol, Genotype, FoodName, Time, Temperature, InnerFoodQuad, EscapeRing, Sleep, Speed);
 
+    % single data trial information
+    Time = temp.all.time;
+    Temperature = temp.all.real_temp;
+
+    % reorganize the data in a time-series (concatenate)
+    InnerFoodQuad = InnerFoodQuad(:);
+    EscapeRing = EscapeRing(:);
+    Sleep = Sleep(:);
+    Speed = Speed(:);
+    Time = repmat(Time,[ntrials,1]);
+    Temperature = repmat(Temperature, [ntrials, 1]);
+    Date = Date(:);
+    TempProtocol = TempProtocol(:);
+    
+    % Combine these into a giant table: 
+    T = table(TrialID, Date, TempProtocol, Time, Temperature, InnerFoodQuad, EscapeRing, Sleep, Speed);
+    trialTables{ii} = T;
+    fprintf('\n Finished %s\n', fileOptions(ii).name)
+
+    % save table to main data folder?
+    save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    toc
 end
+
+T = vertcat(trialTables{:});
+
+figure; hold on
+subplot(2,1,1); plot(T.Temperature)
+subplot(2,1,2); plot(smooth(T.InnerFoodQuad, 360, 'moving')) % 2 min moving filter
+
+
 
 %% STEP 2: build the raw datastore
 ds_raw = fileDatastore([structFolder '*.mat'], ...
@@ -81,58 +112,6 @@ save([structFolder 'flat_extracted.mat'], 'T_raw', '-v7.3');
 
 %% 
 
-function T = extractTrialData(filename)
-    temp = load(filename);
-
-    % --- shared time series (n points) ---
-    Time = temp.all.time(:);
-    Temperature = temp.all.real_temp(:);
-    npoints = length(Time);
-
-    % --- trial-varying data (n x m matrices) ---
-    InnerFoodQuad = temp.all.innerquad.food.all;   % n x m
-    EscapeRing = temp.all.ring.all;              % n x m
-    Sleep = temp.all.sleep.all;             % n x m
-    Speed = temp.all.speed.all;             % n x m
-    ntrials = size(EscapeRing, 2);            % m varies per file
-
-    % --- trial-level metadata (one value per trial, m entries) ---
-    Date = temp.all.T.Date(:);         % m x 1
-    TempProtocol = temp.all.T.TempProtocol(:); % m x 1
-    FoodName  = temp.all.T.foodName(:);     % m x 1
-    Genotype  = temp.all.T.Genotype(:);     % m x 1
-
-    % --- file identity ---
-    [~, fname] = fileparts(filename);
-
-    % --- build one table per trial, then concatenate ---
-    trialTables = cell(ntrials, 1);
-    for m = 1:ntrials
-        TrialID  = repmat(sprintf('%s_t%02d', fname, m), [npoints, 1]);
-        TrialTimeIndex = (1:npoints)';
-
-        % expand scalar trial metadata to match time series length
-        trialTables{m} = table(...
-            repmat(string(TrialID), [npoints, 1]), ...
-            TrialTimeIndex, ...
-            repmat(Date(m), [npoints, 1]), ...
-            repmat(TempProtocol(m), [npoints, 1]), ...
-            repmat(Genotype(m), [npoints, 1]), ...
-            repmat(FoodName(m), [npoints, 1]), ...
-            Time, ...
-            Temperature, ...
-            InnerFoodQuad(:, m), ...
-            EscapeRing(:, m), ...
-            Sleep(:, m), ...
-            Speed(:, m), ...
-            'VariableNames', {'TrialID', 'TrialTimeIndex', 'Date', ...
-                              'TempProtocol', 'Genotype', 'FoodName', ...
-                              'Time', 'Temperature', 'InnerFoodQuad', ...
-                              'EscapeRing', 'Sleep', 'Speed'});
-    end
-
-    T = vertcat(trialTables{:});
-end
 
 
 
