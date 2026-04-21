@@ -208,12 +208,16 @@ if ~isempty(pairs)
     % extract the likely swap locations
     if any(likelyswitch)
         swap_pairs = pairs(likelyswitch,:); % pull only the likely pairs
+        % relative percentages
+        swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
+        fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
+        swap_status = 'Y';
+    else % NO likely swapped frames
+         swap_pairs = [];
+        fprintf('\n\n ** UPDATE: NO SWAPPED FRAMES FOUND ** \n\n')
+        swap_status = 'NA';
     end
-
-    % relative percentages
-    swap_percentage =  mean((numel(swap_pairs) ./ tot_frames)*100,'omitnan');
-    fprintf('\n%2.5g  percent of total frames are confident swaps \n',swap_percentage);
-    swap_status = 'Y';
+   
 else % NO swapped frames
     swap_pairs = [];
     fprintf('\n\n ** UPDATE: NO SWAPPED FRAMES FOUND ** \n\n')

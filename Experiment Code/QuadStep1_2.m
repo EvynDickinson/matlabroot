@@ -656,7 +656,7 @@ switch response
             %     case 'D'
             %         arena = 4;
             % end
-            arena = 3;
+            arena = 4;
             n = 1; % how many miscounted frames to look at
             offset = flyCount(:,arena)-nflies(arena);
             [~,idx] = sort(offset);
