@@ -87,7 +87,9 @@ for ii = 1:(nExp)
     fprintf('\n Finished %s\n', fileOptions(ii).name)
 
     % save table to main data folder?
-    save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    % save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    save(['D:\PID Modeling Data\', fname ' table.mat'], 'T', '-v7.3');
+    
     toc
 end
 
@@ -100,15 +102,45 @@ subplot(2,1,2); plot(smooth(T.InnerFoodQuad, 360, 'moving')) % 2 min moving filt
 
 
 %% Save the concatenated file: 
-save([structFolder 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
+
+% saving created data structure -- 
+save(['D:\PID Modeling Data\', 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
+% structFolder
+
+%% Load static data or dynamic or both into the workspace
+
+% point to the data ....
+dynamic_path = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar dynamic temps flat_extracted.mat';
+static_path = "D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar static temps flat_extracted.mat";
+% load the data ...
+temp = load(dynamic_path);
+Td = temp.T;
+temp = load(static_path);
+Ts = temp.T;
+% combine the data into a giant structure
+T = [Td; Ts];
+
+% save as a giant file: 
+dataFile = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar all data.parquet';
+tic
+parquetwrite(dataFile, T);
+toc
+
+%% Load from parquet style flattened data: 
+
+dataFile = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar all data.parquet';
+tic
+T = parquetread(dataFile);
+toc
+
+% % read only specific columns -- very fast, skips the rest
+% T = parquetread('data.parquet', 'SelectedVariableNames', {'TrialID', 'Temperature', 'EscapeRing'})
 
 
-%% 
 
 
 
 
 
-    
     
     
