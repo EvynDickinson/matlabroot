@@ -2677,7 +2677,7 @@ disp('Round one saving finished')
 % save each data structure for a given experiment type into its own
 % post-step-4 processing file
 
-if strcmp(questdlg('Save PID modeling data?'),'Yes')
+% if strcmp(questdlg('Save PID modeling data?'),'Yes')
 
     PID_folder = createFolder([structFolder, 'PID Modeling/']);
     
@@ -2700,7 +2700,7 @@ if strcmp(questdlg('Save PID modeling data?'),'Yes')
             fprintf('\nSaved %s', exp_name)
         end
     end
-end
+% end
 
 fprintf('\nAll finished')
 
