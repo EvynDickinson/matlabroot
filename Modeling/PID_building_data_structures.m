@@ -29,7 +29,7 @@ paths = getPathNames; % get the appropriate file path names
 baseFolder = getDataPath(3,0,'Select where you want to find the grouped data structures');
 structFolder = [baseFolder 'PID Modeling\'];
 % select the trials that you want to load: 
-fileOptions = dir([structFolder '*.mat']);
+fileOptions = dir([structFolder 'Berlin hold*.mat']);
 nExp = length(fileOptions);
 
 trialTables = cell(nExp, 1); % initialize cell struct for all experiment tables
@@ -99,15 +99,8 @@ subplot(2,1,2); plot(smooth(T.InnerFoodQuad, 360, 'moving')) % 2 min moving filt
 
 
 
-%% STEP 2: build the raw datastore
-ds_raw = fileDatastore([structFolder '*.mat'], ...
-    'ReadFcn', @extractTrialData, ...
-    'FileExtensions', '.mat');
-
-% extract once and save -- don't re-run extraction every time
-T_raw = readall(ds_raw);
-T_raw = vertcat(T_raw{:});   % fileDatastore returns a cell, so concatenate
-save([structFolder 'flat_extracted.mat'], 'T_raw', '-v7.3');
+%% Save the concatenated file: 
+save([structFolder 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
 
 
 %% 
