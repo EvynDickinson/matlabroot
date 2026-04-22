@@ -87,7 +87,9 @@ for ii = 1:(nExp)
     fprintf('\n Finished %s\n', fileOptions(ii).name)
 
     % save table to main data folder?
-    save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    % save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    save(['D:\PID Modeling Data\', fname ' table.mat'], 'T', '-v7.3');
+    
     toc
 end
 
@@ -100,8 +102,10 @@ subplot(2,1,2); plot(smooth(T.InnerFoodQuad, 360, 'moving')) % 2 min moving filt
 
 
 %% Save the concatenated file: 
-save([structFolder 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
 
+% saving created data structure -- 
+save(['D:\PID Modeling Data\', 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
+% structFolder
 
 %% 
 
