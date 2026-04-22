@@ -1,5 +1,6 @@
 
 %    GroupDataGUI_v2
+foreColor = formattingColors(blkbnd); % get background colors
 
 %% LOAD: Individual survival data structure
 
@@ -72,32 +73,15 @@ for trial = 1:ntrials
 end
 
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
-        'initial_vars', 'folder', 'ntrials', 'FPS','sSpan','blkbnd','fig_type','excelfile', 'Excel', 'xlFile','manual',...
-        'avgpercstill','nexps'};
+        'initial_vars', 'folder', 'ntrials', 'FPS','sSpan','blkbnd','fig_type',...
+        'manual','manual_excelfile', 'manual_Excel', 'manual_xlFile',...
+        'avgpercstill','mexps','foreColor','manual_TOD','mtrials'};
 clearvars('-except',initial_vars{:})
 
 save([figDir ExpGroup ' raw.mat'],'-v7.3')
 
 fprintf('Data loaded\n')
 disp('next section')
-
-%% 
-
-sSpan = 180; % 3fps = 1min bin
-
-speed = [];
-a = [];
-for trial = 1:ntrials 
-    speed = autoCat(speed, data(trial).speed.avg, false);
-    a = [a, length(data(trial).occupancy.time)];
-end 
-[b,c] = min(a); %[minimun, what column minimum value is located within a]
-avgspeed = mean(speed(1:b,:),2,'omitnan');
-
-fig = getfig;
-yy = smooth(avgspeed,sSpan,'moving');
-plot(data(c).occupancy.time, (yy),'LineWidth',2)
-
 
 %% ANALYSIS: Smooth speed data and calculate proportion of still flies
 clearvars('-except',initial_vars{:})
@@ -115,7 +99,7 @@ for trial = 1:ntrials
 end
 
 % Find proportion of still flies throughout experiment
-min_speed = 0.2; %min speed, base on speed distribution
+min_speed = 1; %min speed, base on speed distribution
 
 for trial = 1:ntrials
     numtracks = size(data(trial).speed.raw,2);
@@ -147,28 +131,23 @@ for trial = 1:ntrials
 end
 
 
-%% FIGURE: Smoothed speed over time
-sSpan = 180; % 3fps = 1min bin
+%% CHECK: Max speeds for raw and smoothed speed?
 
-speed = [];
-a = [];
-for trial = 1:ntrials 
-    speed = autoCat(speed, data(trial).speed.avg, false);
-    a = [a, length(data(trial).occupancy.time)];
-end 
-[b,c] = min(a); %[minimun, what column minimum value is located within a]
-avgspeed = mean(speed(1:b,:),2,'omitnan');
-
-fig = getfig;
-hold on
-for track = 1:numtracks
-yy = smooth(data(1).speed.smoothed_raw(:,track),sSpan,'moving');
-plot(data(1).occupancy.time, (yy),'LineWidth',2)
+maxspeed = [];
+for trial = 1:ntrials
+    b = max(data(trial).speed.raw);
+    c = max(b);
+    maxspeed = [maxspeed, c];   
 end
-formatFig(fig,blkbnd)
-xlabel('time (min)')
-ylabel('Speed (mm/s)')
+maxspeed = maxspeed';
 
+maxsmoothed = [];
+for trial = 1:ntrials
+    b = max(data(trial).speed.smoothed_raw);
+    c = max(b);
+    maxsmoothed = [maxsmoothed, c];    
+end
+maxsmoothed = maxsmoothed';
 
 %% FIGURE: Histogram of fly speed 
 
@@ -178,22 +157,57 @@ hold on
 for trial = 1:ntrials
     histogram(data(trial).speed.smoothed_raw)%,"BinWidth",0.01)
 end
-% xlim([0 0.5])
+xlim([0 2])
 for trial = 1:ntrials
     dummy = max(data(trial).speed.smoothed_raw);
 end
 
 % Format figure
 formatFig(fig,blkbnd);
-xlabel('Speed (mm/s')
+xlabel('Speed (mm/s)')
 ylabel('Frequency')
 
 % Save figure
 save_figure(fig,[figDir, 'Speed histogram'], fig_type);
 
 
+%% FIGURE: Smoothed avg speed over time
+sSpan = 180; % 3fps = 1min bin
+
+% speed = [];
+% a = [];
+% for trial = 1:ntrials 
+%     speed = autoCat(speed, data(trial).speed.avg, false);
+%     a = [a, length(data(trial).occupancy.time)];
+% end 
+% [b,c] = min(a); %[minimun, what column minimum value is located within a]
+% avgspeed = mean(speed(1:b,:),2,'omitnan');
+
+fig = getfig;
+hold on
+for trial = 1:ntrials        
+    y = data(trial).speed.avg;
+    yy = smooth(y,sSpan,'moving');
+    plot(data(trial).occupancy.time, yy,'LineWidth',2)        
+end
+formatFig(fig,blkbnd)
+xlim([0 400])
+xlabel('time (min)')
+ylabel('Speed (mm/s)')
+title(ExpGroup,'Color',foreColor)
+
+save_figure(fig,[figDir, 'Avg speed over time'], fig_type);
+
 %%
-% plot where along time course speed is above or below minimum
+clearvars('-except',initial_vars{:})
+
+fig = getfig;
+hold on
+for trial = 1:ntrials     
+    notmoving = data(trial).speed.still;
+    yy = smooth(notmoving,sSpan,'moving');
+    plot(data(trial).occupancy.time, yy,'LineWidth',2)    
+end
 
 
 
@@ -207,7 +221,7 @@ incap = [];
 a = [];
 for trial = 1:ntrials 
     incap = autoCat(incap, data(trial).speed.still, false);
-    a = [a, length(data(trial).occupancy.time)];
+    a = [a, length(data(trial).occupancy.time)]; % frame total for each exp
 end 
 [b,c] = min(a); %[minimun, what column minimum value is located within a]
 avgstill = mean(incap(1:b,:),2,'omitnan');
@@ -223,17 +237,19 @@ plot(data(c).occupancy.time, y,'linewidth',1)
 formatFig(fig,blkbnd);
 xlabel('Time (min)')
 ylabel('Percentage of still flies')
+ylim([0 100])
 
 % Save figure
 save_figure(fig,[figDir, 'Percentage still flies overtime'], fig_type);
 
 
-%% LOAD: Manual data for ground truthing
+%%
+%%
+%%
+%% LOAD: Manual excel data for ground truthing
 % baseFolder = getDataPath(2,2);
 % clearvars('-except',initial_vars{:})
 
-blkbnd = false;
-fig_type = '-pdf';
 
 % Load excel file
 [excelfile, Excel, xlFile] = load_SurvivalQuadCounts;
@@ -254,26 +270,27 @@ if isempty(fileIdx)
 end
 
 
-% FOR MULTIPLE TEMP COMPARISON
-% Path data structures folder
-baseFolder = getDataPath(5,2);
-pathNames = getPathNames;
-% ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
-% ExpGroup = ExpGroup{:};
-
-% If survival curves folder isn't made yet, make it
-ExpGroup = 'Berlin survival comparisons no food';
-rootDir = createFolder([baseFolder pathNames.group_comparision ExpGroup '/']);
-figDir = createFolder([rootDir 'Figures/']);
-
-nexps = length(fileIdx);
+% % FOR MULTIPLE TEMP COMPARISON
+% % Path data structures folder
+% baseFolder = getDataPath(5,2);
+% pathNames = getPathNames;
+% % ExpGroup = selectFolder([baseFolder pathNames.grouped_trials],false,'Select data structure');
+% % ExpGroup = ExpGroup{:};
+% 
+% % If survival curves folder isn't made yet, make it
+% ExpGroup = 'Berlin survival comparisons no food';
+% rootDir = createFolder([baseFolder pathNames.group_comparision ExpGroup '/']);
+% figDir = createFolder([rootDir 'Figures/']);
+% 
+% 
 
 
 %% ANALYSIS: Pull the protocol name and trials under the selected temp protocol for ground truthing
 
 manual = struct;
+mexps = length(fileIdx);
 
-for exp = 1:nexps
+for exp = 1:mexps
 tempprotocol = temptype{fileIdx(exp)};
 temptrials = strcmp(tempprotocol, excelfile(:,5)); % binary
 manual(exp).tempprotocol = tempprotocol;
@@ -301,11 +318,86 @@ end
 manual(exp).raw = cell2mat([excelfile(temptrials,manual(exp).columns)]);
 manual(exp).avg = mean(manual(exp).raw,'omitnan');
 manual(exp).timestmp = cell2mat([excelfile(1,manual(exp).columns)]);
-manual(exp).time = manual(exp).timestmp*10;
+manual(exp).time = manual(exp).timestmp*10; % time in minutes
 manual(exp).ntrials = size(manual(exp).raw,1);
 manual(exp).perc = (manual(exp).raw ./ cell2mat([excelfile(temptrials,10)]))*100;
 manual(exp).avgperc = mean(manual(exp).perc,'omitnan');
+manual(exp).flycount = cell2mat([excelfile(temptrials,10)]);
 end
+
+manual_excelfile = excelfile;
+manual_Excel = Excel;
+manual_xlFile = xlFile;
+clearvars('excelfile', 'Excel', 'xlFile')
+
+clearvars('-except',initial_vars{:}
+
+%% ANALYSIS: Find when flies died in manual count
+
+maxflies = manual.flycount;
+match = (manual.raw==maxflies);
+c = [];
+dead = [];
+for trial = 1:size(match,1)
+    [~,c(trial)] = find(match(trial,:),1);
+    dead = manual.timestmp(c);
+end
+dead = dead'; % video where all flies are counted dead
+manual_TOD = dead*10; % time of death
+
+
+%% ANALYSIS: Calculate max speed recorded after flies die
+
+% max speed in auto data after TOD in manual data
+
+fig = getfig;
+hold on
+for trial = 1:ntrials
+    % Quickest death
+    TOD = min(manual_TOD);
+    time = data(trial).data.T.time;
+    frames = time >= TOD;
+    maxspeed = max(data(trial).speed.avg(frames));
+    scatter(TOD,maxspeed,50,"filled")
+    
+    % Slowest death
+    TOD = max(manual_TOD);
+    time = data(trial).data.T.time;
+    frames = time >= TOD;
+    maxspeed = max(data(trial).speed.avg(frames));
+    scatter(TOD,maxspeed,50,"filled")
+    
+    % Most common death
+    TOD = mode(manual_TOD);
+    time = data(trial).data.T.time;
+    frames = time >= TOD;
+    maxspeed = max(data(trial).speed.avg(frames));
+    scatter(TOD,maxspeed,50,"filled")
+end
+
+formatFig(fig,blkbnd)
+xlabel('Time stamp of death')
+ylabel('Avg speed recorded after death')
+
+
+movingAD = [];
+for trial = 1:ntrials
+% Quickest death
+TOD = min(manual_TOD);
+time = data(trial).data.T.time;
+frames = time >= TOD;
+speedAD = data(trial).speed.avg(frames); % speed after death (using manual qualifications)
+
+min_speed = 1; % speed threshold used in auto analysis of stillness
+w = (find(speedAD > min_speed))'; % frames where speed >1 after death
+movingAD = autoCat(w,movingAD,1);
+end
+
+
+
+
+
+
 
 %% FIGURE: Compare tracked vs manual data for ground truthing
 clearvars('-except',initial_vars{:})
