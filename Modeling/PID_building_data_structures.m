@@ -29,7 +29,7 @@ paths = getPathNames; % get the appropriate file path names
 baseFolder = getDataPath(3,0,'Select where you want to find the grouped data structures');
 structFolder = [baseFolder 'PID Modeling\'];
 % select the trials that you want to load: 
-fileOptions = dir([structFolder 'Berlin hold*.mat']);
+fileOptions = dir([structFolder 'Berlin LTS 15-35 caviar plate 1.mat']);
 nExp = length(fileOptions);
 
 trialTables = cell(nExp, 1); % initialize cell struct for all experiment tables
@@ -87,8 +87,8 @@ for ii = 1:(nExp)
     fprintf('\n Finished %s\n', fileOptions(ii).name)
 
     % save table to main data folder?
-    % save([structFolder, fname ' table.mat'], 'T', '-v7.3');
-    save(['D:\PID Modeling Data\', fname ' table.mat'], 'T', '-v7.3');
+    save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    % save(['D:\PID Modeling Data\', fname ' table.mat'], 'T', '-v7.3');
     
     toc
 end
