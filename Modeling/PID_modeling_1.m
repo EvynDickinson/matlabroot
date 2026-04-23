@@ -13,13 +13,13 @@ T = parquetread(dataFile);
 toc
 
 %% Extract meta information from the dataset
-
+tic 
 % need a set of identifiers for each type of experiment
 temp_protocols = unique(T.TempProtocol);
 trial_IDs = unique(T.TrialID);
 nTrials = length(trial_IDs);
 nProtocols = length(temp_protocols);
-
+toc
 
 %% Create temperature transformations that we think would be likely to generate the response data: 
 
