@@ -128,10 +128,10 @@ toc
 
 %% Load from parquet style flattened data: 
 
-dataFile = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar all data.parquet';
-tic
-T = parquetread(dataFile);
-toc
+% dataFile = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar all data.parquet';
+% tic
+% T = parquetread(dataFile);
+% toc
 
 % % read only specific columns -- very fast, skips the rest
 % T = parquetread('data.parquet', 'SelectedVariableNames', {'TrialID', 'Temperature', 'EscapeRing'})

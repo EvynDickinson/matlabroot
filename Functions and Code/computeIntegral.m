@@ -31,11 +31,13 @@ function x_I = computeIntegral(x, t, dt)
 
 
 %%
-kernel          = ones(t, 1);                        % boxcar kernel of length t for sliding sum
-kernel([1 end]) = 0.5;                               % trapz correction: half-weight the endpoints
-x_conv          = conv(x, kernel, 'full') * dt;      % sliding trapezoidal integral, scaled by sample period
-n               = length(x);                         % number of input samples
-x_I             = [nan(t-1, 1); x_conv(t:t+n-t)];   % pad head with NaN (window not yet full), trim to input length
+
+kernel  = ones(t, 1);   % boxcar kernel of length t for sliding sum
+kernel([1 end]) = 0.5; % trapz correction: half-weight the endpoints
+x_conv  = conv(x, kernel, 'full') * dt; % sliding trapezoidal integral, scaled by sample period
+n  = length(x);  % number of input samples
+x_I  = [nan(t-1, 1); x_conv(t:t+n-t)];  % pad head with NaN (window not yet full), trim to input length
+
 
 
 
