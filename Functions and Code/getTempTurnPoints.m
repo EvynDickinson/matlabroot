@@ -14,34 +14,35 @@ function tempPoints = getTempTurnPoints(TempProtocolString)
 % pull the appropriate start|end points:
 switch TempProtocolString
     % =======================================
-    case 'survival_curve_40C'
-        tempPoints.hold = [1000 215500];
-        tempPoints.up =   [];
-        tempPoints.down =   [];
-        tempPoints.nRates = 1; 
-        tempPoints.rates = 0; 
-        tempPoints.threshLow = 39;
-        tempPoints.threshHigh = 41;
-        tempPoints.holdexp = true;
+    % case 'survival_curve_40C' % temp protocol not used anymore
+    %     tempPoints.hold = [1000 215500];
+    %     tempPoints.up =   [];
+    %     tempPoints.down =   [];
+    %     tempPoints.nRates = 1; 
+    %     tempPoints.rates = 0; 
+    %     tempPoints.threshLow = 39;
+    %     tempPoints.threshHigh = 41;
+    %     tempPoints.holdexp = true;
         
     case 'survival_hold_with_recovery_40-25'
         tempPoints.hold = [1000 723600;...
-                                          729001 745200];
+                                          729001 744000]; % end frame # inconsistent across trials, 
+                                                                       % 744000 used as blanket cut off (~33 sec off)
         tempPoints.up = [];
         tempPoints.down = [723601 729000];
         tempPoints.nRates = 2; 
-        tempPoints.rates = -0.5; 
+        tempPoints.rates = [-0.5, 0]; 
         tempPoints.threshLow = 24;
         tempPoints.threshHigh = 41;
         tempPoints.holdexp = false;
 
    case 'survival_hold_with_recovery_35-25'
         tempPoints.hold = [1000 723600;...
-                                          729001 745200];
+                                          729001 744000]; % 744000 used as blanket cut off (~33 sec off)
         tempPoints.up = [];
         tempPoints.down = [723601 729000];
         tempPoints.nRates = 2; 
-        tempPoints.rates = -0.333; 
+        tempPoints.rates = [-0.333, 0]; 
         tempPoints.threshLow = 24;
         tempPoints.threshHigh = 36;
         tempPoints.holdexp = false;
