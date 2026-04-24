@@ -218,7 +218,7 @@ for p = 1: nProtocols
         subplot(r,c,ii)
         set(gca, XColor='none')
     end
-    save_figure(fig, [tempDir, protocol_groups(p).name, ' heating vs cooling'])
+    save_figure(fig, [tempDir, protocol_groups(p).name, ' heating vs cooling']);
 
 end
 
