@@ -38,6 +38,26 @@ x_conv  = conv(x, kernel, 'full') * dt; % sliding trapezoidal integral, scaled b
 n  = length(x);  % number of input samples
 x_I  = [nan(t-1, 1); x_conv(t:t+n-t)];  % pad head with NaN (window not yet full), trim to input length
 
-
+% %% CUMSUM speed up version:
+% 
+% n = length(x);
+% 
+% % Trapz correction: sliding integral = sliding sum - 0.5*(first + last sample in window)
+% % conv with kernel where endpoints = 0.5 is equivalent to:
+% %   full_sum - 0.5*x(i-t+1) - 0.5*x(i)
+% 
+% % Step 1: cumsum for O(N) sliding sum
+% cs    = [0; cumsum(x)];  % prepend 0 so indexing works cleanly
+% t_idx = t:n; % valid indices where window is full
+% 
+% sliding_sum = (cs(t_idx+1) - cs(t_idx-t+1)) * dt;   % sum over [i-t+1 .. i]
+% 
+% % Step 2: subtract trapz endpoint correction
+% trapz_corr  = 0.5 * (x(t_idx) + x(t_idx - t + 1)) * dt;
+% 
+% x_conv_fast = sliding_sum - trapz_corr;
+% 
+% % Step 3: pad head with NaN to match your original output format
+% x_I = [nan(t-1, 1); x_conv_fast];
 
 
