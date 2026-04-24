@@ -86,9 +86,12 @@ for ii = 1:(nExp)
     trialTables{ii} = T;
     fprintf('\n Finished %s\n', fileOptions(ii).name)
 
-    % save table to main data folder?
-    save([structFolder, fname ' table.mat'], 'T', '-v7.3');
-    % save(['D:\PID Modeling Data\', fname ' table.mat'], 'T', '-v7.3');
+    % % save table to main data folder?
+    % save([structFolder, fname ' table.mat'], 'T', '-v7.3');
+    % % save(['D:\PID Modeling Data\', fname ' table.mat'], 'T', '-v7.3');
+
+    % save as a flattened parquet file: 
+    parquetwrite([structFolder, fname ' table'], T);
     
     toc
 end
@@ -100,31 +103,38 @@ subplot(2,1,1); plot(T.Temperature)
 subplot(2,1,2); plot(smooth(T.InnerFoodQuad, 360, 'moving')) % 2 min moving filter
 
 
-
 %% Save the concatenated file: 
 
-% saving created data structure -- 
-save(['D:\PID Modeling Data\', 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
-% structFolder
-
-%% Load static data or dynamic or both into the workspace
-
-% point to the data ....
-dynamic_path = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar dynamic temps flat_extracted.mat';
-static_path = "D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar static temps flat_extracted.mat";
-% load the data ...
-temp = load(dynamic_path);
-Td = temp.T;
-temp = load(static_path);
-Ts = temp.T;
-% combine the data into a giant structure
-T = [Td; Ts];
 
 % save as a giant file: 
-dataFile = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar all data.parquet';
+dataFile = [structFolder 'Berlin Caviar all data.parquet'];
 tic
 parquetwrite(dataFile, T);
 toc
+
+% 
+% % saving created data structure -- 
+% save(['D:\PID Modeling Data\', 'Berlin Caviar dynamic temps flat_extracted.mat'], 'T', '-v7.3');
+% % structFolder
+
+%% Load static data or dynamic or both into the workspace
+
+% % point to the data ....
+% dynamic_path = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar dynamic temps flat_extracted.mat';
+% static_path = "D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar static temps flat_extracted.mat";
+% % load the data ...
+% temp = load(dynamic_path);
+% Td = temp.T;
+% temp = load(static_path);
+% Ts = temp.T;
+% % combine the data into a giant structure
+% T = [Td; Ts];
+
+
+
+
+
+
 
 %% Load from parquet style flattened data: 
 
