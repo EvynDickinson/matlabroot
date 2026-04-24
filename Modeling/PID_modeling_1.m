@@ -20,7 +20,7 @@ trial_IDs = unique(T.TrialID);
 nTrials = length(trial_IDs);
 nProtocols = length(temp_protocols);
 toc
-
+ 
 %% Create temperature transformations that we think would be likely to generate the response data: 
 
 % =========================================================

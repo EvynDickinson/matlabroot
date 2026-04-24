@@ -28,17 +28,19 @@ clear; close all; clc
 paths = getPathNames; % get the appropriate file path names
 baseFolder = getDataPath(3,0,'Select where you want to find the grouped data structures');
 structFolder = [baseFolder 'PID Modeling\'];
+fileOptions = dir([structFolder '*.mat']);
+fileNames = {fileOptions(:).name};
 % select the trials that you want to load: 
-fileOptions = dir([structFolder 'Berlin LTS 15-35 caviar plate 1.mat']);
-nExp = length(fileOptions);
+fileIdx = listdlg('ListString', fileNames, 'SelectionMode', 'multiple','ListSize',[500,700]);
+fileNames = fileNames(fileIdx);
+nExp = length(fileIdx);
 
 trialTables = cell(nExp, 1); % initialize cell struct for all experiment tables
 
 for ii = 1:(nExp)
     tic 
-    filename = [structFolder fileOptions(ii).name];
-
-    temp = load([structFolder fileOptions(ii).name]);
+    filename = [structFolder fileNames{ii}];
+    temp = load([structFolder fileNames{ii}]);
    
     % find default matrix sizes
     ntrials = size(temp.all.speed.all,2);
@@ -84,7 +86,7 @@ for ii = 1:(nExp)
     % Combine these into a giant table: 
     T = table(TrialID, Date, TempProtocol, Time, Temperature, InnerFoodQuad, EscapeRing, Sleep, Speed);
     trialTables{ii} = T;
-    fprintf('\n Finished %s\n', fileOptions(ii).name)
+    fprintf('\n Finished %s\n', fileNames{ii})
 
     % % save table to main data folder?
     % save([structFolder, fname ' table.mat'], 'T', '-v7.3');
@@ -131,21 +133,69 @@ toc
 % T = [Td; Ts];
 
 
-
-
-
-
-
 %% Load from parquet style flattened data: 
+clear
+close all
+clc
 
-% dataFile = 'D:\Evyn Lab Data\Data structures\PID Modeling Data\Berlin Caviar all data.parquet';
-% tic
-% T = parquetread(dataFile);
-% toc
+% look for available parquet data files to load and compile: 
+paths = getPathNames; % get the appropriate file path names
+baseFolder = getDataPath(3,0,'Select where you want to find the grouped data structures');
+structFolder = [baseFolder 'PID Modeling\'];
+% select the trials that you want to load: 
+fileOptions = dir([structFolder '*.parquet']);
+nExp = length(fileOptions);
+
+trialTables = cell(nExp, 1); % initialize cell struct for all experiment tables
+
+for ii = 1:nExp
+    dataFile = [structFolder, fileOptions(ii).name];
+    tic
+    trialTables{ii} = parquetread(dataFile);
+    toc
+    fprintf('Loaded %s', fileOptions(ii).name);
+end
+
+% compiile the data files into a large table: 
+T = vertcat(trialTables{:});
+
+% save compiled table ... 
+fileSaveName = 'Berlin caviar all';
+parquetwrite([structFolder, fileSaveName], T);
+
+% parquetwrite("K:\DATA\Data structures\PID Modeling\Berlin caviar all", T);
+
+
 
 % % read only specific columns -- very fast, skips the rest
 % T = parquetread('data.parquet', 'SelectedVariableNames', {'TrialID', 'Temperature', 'EscapeRing'})
 
+
+%%  convert existing .mat table files to parquet style 
+
+warning off 
+format shortG
+clear; close all; clc
+paths = getPathNames; % get the appropriate file path names
+baseFolder = getDataPath(3,0,'Select where you want to find the grouped data structures');
+structFolder = [baseFolder 'PID Modeling\'];
+fileOptions = dir([structFolder '*table.mat']);
+fileNames = {fileOptions(:).name};
+% select the trials that you want to load: 
+fileIdx = listdlg('ListString', fileNames, 'SelectionMode', 'multiple','ListSize',[500,700]);
+fileNames = fileNames(fileIdx);
+nExp = length(fileIdx);
+
+for ii = 1:(nExp)
+    tic 
+    filename = [structFolder fileNames{ii}];
+    load(filename, 'T'); % load the 'T' table
+   
+    % save as a flattened parquet file: 
+    parquetwrite(filename(1:end-4), T);
+    disp(fileNames{ii})
+    toc
+end
 
 
 
