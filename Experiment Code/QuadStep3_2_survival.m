@@ -72,11 +72,15 @@ for trial = 1:ntrials
     disp([expID{trial} arenas{trial}])
 end
 
+% Pull temperature protocol info
+tPoints = getTempTurnPoints(T.TempProtocol{1});
+
+sSpan = 180; % 3fps = 1min bin
 foreColor = formattingColors(blkbnd); % get background colors
-initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'figDir', 'filePath',...
+initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'tPoints','figDir', 'filePath',...
         'initial_vars', 'folder', 'ntrials', 'FPS','sSpan','blkbnd','fig_type',...
         'manual','manual_excelfile', 'manual_Excel', 'manual_xlFile',...
-        'avgpercstill','mexps','foreColor','mtrials'};
+        'avgpercstill','mexps','foreColor','mtrials','maxspeed','movingAD'};
 clearvars('-except',initial_vars{:})
 
 save([figDir ExpGroup ' raw.mat'],'-v7.3')
@@ -97,7 +101,6 @@ for trial = 1:ntrials
     end
     data(trial).speed.smoothed_raw = a;
 end
-
 
 %% CHECK: Max speeds for raw and smoothed speed?
 
@@ -209,7 +212,7 @@ match = (manual.raw==maxflies);
 c = [];
 dead = [];
 for trial = 1:size(match,1)
-    [~,c(trial)] = find(match(trial,:),1);
+    [~,c(trial)] = find(match(trial,:),1); % TODO: doesn't work if no flies die
     dead = manual.timestmp(c);
 end
 dead = dead'; % video where all flies are counted dead
@@ -220,7 +223,7 @@ manual.TOD_mode = mode(manual.TOD);
 
 clearvars('-except',initial_vars{:})
 
-%% ANALYSIS: Calculate max average speed recorded after flies die
+%% ANALYSIS: Calculate max average speed recorded in auto after flies die in manual
 
 % Max speed in auto data after TOD in manual data
 
@@ -243,9 +246,9 @@ for trial = 1:ntrials
     maxspeed(3,trial) = max(data(trial).speed.avg(frames));
 end
 
-for ii = 1:3
-    mean(maxspeed(ii,:))
-end
+% for ii = 1:3
+%     mean(maxspeed(ii,:))
+% end
 
 movingAD = NaN(3,ntrials);
 for trial = 1:ntrials
@@ -265,15 +268,47 @@ frames = time >= manual.TOD_max;
 movingAD(3,trial) = mean(data(trial).speed.avg(frames),'omitnan');
 end
 
-for ii = 1:3
-    mean(movingAD(ii,:))
+% for ii = 1:3
+%     mean(movingAD(ii,:))
+% end
+
+%% ANALYSIS: Calculate proportion of still flies
+% Find proportion of still flies throughout experiment
+clearvars('-except',initial_vars{:})
+
+min_speed = 1; %min speed, based on speed distribution
+
+for trial = 1:ntrials
+    numtracks = size(data(trial).speed.raw,2);
+    % Create matrix for when fly speed is < min allocated 
+    still = [];
+    loc = [];
+    for track = 1:numtracks
+        % Create matrix of logicals for whether speed is > or < min speed
+        b = data(trial).speed.smoothed_raw(:,track) < min_speed;
+        still = [still, b];
+        % Find locations where speed is < min speed
+        c = find(b);
+        loc = autoCat(loc, c, false); 
+    end
+    % Calcuate proportion of still tracks from total number of tracks for each frame
+    incap = sum(still,2);
+    d = ~isnan(data(trial).speed.raw);
+    data(trial).speed.sizetracks = sum(d,2);
+    data(trial).speed.still = incap./data(trial).speed.sizetracks;     
 end
 
-min_speed = 1; % speed threshold used in auto analysis of stillness
-w = (find(speedAD > min_speed))'; % frames where speed >1 after death
-movingAD = autoCat(movingAD,w,1);
+% % Find places in Still where values are infinite
+% infinity_loc = [];
+% for trial = 1:ntrials
+%     infinity_loc = autoCat(infinity_loc,find(isinf(data(trial).speed.still)),false);
+%     loc2 = length(infinity_loc);
+%     for i = 1:loc2
+%         data(trial).speed.still(infinity_loc(i)) = 0;
+%     end
+% end
 
-find(maxspeed == data(5).speed.avg)
+clearvars('-except',initial_vars{:})
 
 %% FIGURE: Histogram of fly speed 
 
@@ -328,7 +363,6 @@ end
 
 
 %% FIGURE: Smoothed avg speed over time
-sSpan = 180; % 3fps = 1min bin
 
 showTemp = false;
 
@@ -411,96 +445,99 @@ title([ExpGroup, ' trial 4'],'Color',foreColor)
 % Save figure
 save_figure(fig,[figDir, 'Raw speed over time - trial 4 only'], fig_type);
 
-%% ANALYSIS: Calculate proportion of still flies
-% Find proportion of still flies throughout experiment
-clearvars('-except',initial_vars{:})
-
-min_speed = 1; %min speed, based on speed distribution
-
-for trial = 1:ntrials
-    numtracks = size(data(trial).speed.raw,2);
-    % Create matrix for when fly speed is < min allocated 
-    still = [];
-    loc = [];
-    for track = 1:numtracks
-        % Create matrix of logicals for whether speed is > or < min speed
-        b = data(trial).speed.smoothed_raw(:,track) < min_speed;
-        still = [still, b];
-        % Find locations where speed is < min speed
-        c = find(b);
-        loc = autoCat(loc, c, false); 
-    end
-    % Calcuate proportion of still tracks from total number of tracks for each frame
-    incap = sum(still,2);
-    d = ~isnan(data(trial).speed.raw);
-    data(trial).speed.sizetracks = sum(d,2);
-    data(trial).speed.still = incap./data(trial).speed.sizetracks; 
-    
-end
-
-% Find places in Still where values are infinite (can't remember why needed this -BR)
-% infinity_loc = [];
-% for trial = 1:ntrials
-%     infinity_loc = autoCat(infinity_loc,find(isinf(data(trial).speed.still)),false);
-%     loc2 = length(infinity_loc);
-%     for i = 1:loc2
-%         data(trial).speed.still(infinity_loc(i,trial)) = 0;
-%     end
-% end
 %% FIGURE: Stillness over time
 clearvars('-except',initial_vars{:})
 
+r = 4;
+c = 3;
+sb(1).idx = 1:2; % temp protocol
+sb(2).idx = [4,5,7,8,10,11]; % stillness
+sb(3).idx = [6,9,12];
+
 fig = getfig;
-hold on
-for trial = 1:ntrials     
-    notmoving = data(trial).speed.still;
-    y = smooth(notmoving,sSpan,'moving');
-    yy = y*100;
-    plot(data(trial).occupancy.time, yy,'LineWidth',2)    
-end
+ % Plot temp protocol
+subplot(r,c,sb(1).idx)
+    plot(data(1).occupancy.time, data(1).data.T.temperature,'LineWidth',1,'Color',foreColor)
+    ylabel('Temperature (\circC)')
+% Plot stillness for each trial
+subplot(r,c,sb(2).idx)
+    hold on
+    for trial = 1:ntrials     
+        notmoving = data(trial).speed.still;
+        y = smooth(notmoving,sSpan,'moving');
+        yy = y*100;
+        plot(data(trial).occupancy.time, yy,'LineWidth',2)    
+    end
+    xlabel('Time (min)')
+    ylabel('Percentage of flies still')
+    ylim([0 100])
+% Plot scatterplot of percentage of flies moving after recovery
+subplot(r,c,sb(3).idx)
+    hold on
+    recovery = (tPoints.hold(3):tPoints.hold(4))';
+    for trial = 1:ntrials
+        yy = mean(data(trial).speed.avg(recovery),'omitnan');
+        scatter(1,yy,50,'filled', 'XJitter','density','XJitterWidth',1);
+    end
+    ylim([0 25])
+    xticks(1)
+    xticklabels([])
+    ylabel('Percentage of flies moving during recovery')
+
+
 
 % Format figure
-formatFig(fig,blkbnd);
-xlabel('Time (min)')
-ylabel('Percentage of still flies')
+formatFig(fig,blkbnd,[r,c],sb);
+subplot(r,c,sb(1).idx)
+set(gca, 'xcolor', 'none')
 
 % Save figure
-save_figure(fig,[figDir, 'Percentage still flies overtime'], fig_type);
+save_figure(fig,[figDir, 'Percentage flies still overtime timecourse with recovery'], fig_type);
 
-%% FIGURE: Average percentage of still flies over time
+%% FIGURE: Average percentage of still flies over time (all trials combined)
 clearvars('-except',initial_vars{:})
 
-sSpan = 180; % 3fps = 1min bin
-% Calculate average percentage still 
+% Create matrix with all stillness values for each trial
 incap = [];
 a = [];
 for trial = 1:ntrials 
     incap = autoCat(incap, data(trial).speed.still, false);
     a = [a, length(data(trial).occupancy.time)]; % frame total for each exp
 end 
-[b,c] = min(a); %[minimun, what column minimum value is located within a]
+[b,e] = min(a); %[minimun, where column minimum value is located within a]
+% Calculate average percentage still 
 avgstill = mean(incap(1:b,:),2,'omitnan');
 avgpercstill = avgstill*100;
 
+r = 4;
+c = 1;
+sb(1).idx = 1; % temp protocol
+sb(2).idx = 2:4; % stillness
+
 % FIGURE
 fig = getfig;
-y = smooth(avgpercstill,sSpan,'moving');
-% y = smooth(y,sSpan,'moving');
-plot(data(c).occupancy.time, y,'linewidth',1)
-
+ % Plot temp protocol
+subplot(r,c,sb(1).idx)
+    plot(data(e).occupancy.time, data(e).data.T.temperature,'LineWidth',1,'Color',foreColor)
+    ylabel('Temperature (\circC)')
+% Plot stillness for each trial
+subplot(r,c,sb(2).idx)
+hold on
+    y = smooth(avgpercstill,sSpan,'moving');
+    % y = smooth(y,sSpan,'moving'); % for extra smoothing
+    plot(data(e).occupancy.time, y,'linewidth',1)
+    ylabel('Avgerage percentage of flies still')
+    xlabel('Time (min)')
+    ylim([0 100])
+    
 % Format figure
-formatFig(fig,blkbnd);
-xlabel('Time (min)')
-ylabel('Percentage of still flies')
-ylim([0 100])
+formatFig(fig,blkbnd,[r,c],sb);
+subplot(r,c,sb(1).idx)
+set(gca, 'xcolor', 'none')
 
 % Save figure
-save_figure(fig,[figDir, 'Avg percentage still flies overtime'], fig_type);
+save_figure(fig,[figDir, 'Avg percentage still flies overtime across trials'], fig_type);
 
-
-%%
-%%
-%%
 %% FIGURE: Compare tracked vs manual data for ground truthing
 clearvars('-except',initial_vars{:})
 
@@ -519,17 +556,20 @@ avgpercstill = avgstill*100;
 fig = getfig;
 hold on
 y = smooth(avgpercstill,sSpan,'moving');
-z = manual.avgperc;
-plot(data(c).occupancy.time, y,'linewidth',1)
-plot(manual.time, z,'LineWidth',1)
+z = (manual.avgperc)';
+plot(data(c).occupancy.time, y,'linewidth',2)
+plot(manual.time, z,'LineWidth',2)
+% xline(manual.time,'Color','r','LineWidth',1)
 
 % Format figure
 formatFig(fig,blkbnd);
 xlabel('Time (min)')
 ylabel('Percentage of still flies')
+ylim([0 100])
+
 
 % Save figure
-save_figure(fig,[figDir, 'Percentage still flies overtime'], fig_type);
+save_figure(fig,[figDir, 'Tracked vs manual comparison of average stillness'], fig_type);
 
 %% MANUAL FIGURE: Plot number of incapacitated/dead flies overtime
 fig = getfig;
