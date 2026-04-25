@@ -179,6 +179,9 @@ from dataclasses import dataclass, field, asdict
 #     --hash none is passed, or if the file couldn't be read).
 from typing import Optional
 
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 1: TERMINAL OUTPUT HELPERS
@@ -229,6 +232,10 @@ def warn(msg): print(f"{YELLOW}  ⚠  {msg}{RESET}")  # Warning — noteworthy b
 def err(msg):  print(f"{RED}  ✘  {msg}{RESET}")     # Error — something is wrong
 def info(msg): print(f"{CYAN}  ·  {msg}{RESET}")    # Info — general progress update
 
+#def ok(msg):   print(f"{GREEN}  [OK]  {msg}{RESET}")
+#def warn(msg): print(f"{YELLOW}  [!!]  {msg}{RESET}")
+#def err(msg):  print(f"{RED}  [XX]  {msg}{RESET}")
+#def info(msg): print(f"{CYAN}  [..]  {msg}{RESET}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 2: DATA STRUCTURES
@@ -815,19 +822,19 @@ def print_report(r: CompareResult, src: str, dst: str, algorithm: str):
 
     # ── Header ────────────────────────────────────────────────────────────────
     print()
-    print(BOLD + "─" * W + RESET)
+    print(BOLD + "-" * W + RESET)
     print(BOLD + "  DRIVE COMPARISON REPORT" + RESET)
     print(f"  Source : {src}")
     print(f"  Dest   : {dst}")
     print(f"  Hash   : {algorithm.upper()}")
     print(f"  Time   : {r.elapsed_seconds:.1f}s")
-    print("─" * W)
+    print("-" * W)
     # Show file counts and total data sizes for both sides.
     # The :>8, format spec right-aligns the number in an 8-character field
     # with comma-thousands separators, e.g. "  123,456".
     print(f"  Source files : {r.total_src_files:>8,}   ({fmt_bytes(r.src_total_bytes)})")
     print(f"  Dest   files : {r.total_dst_files:>8,}   ({fmt_bytes(r.dst_total_bytes)})")
-    print("─" * W)
+    print("-" * W)
 
     # ── Summary section ───────────────────────────────────────────────────────
     # Count total issue categories (not total files — each category counts as 1
@@ -868,12 +875,12 @@ def print_report(r: CompareResult, src: str, dst: str, algorithm: str):
         warn(f"Checksum errors (unreadable): {len(r.checksum_errors):,} file(s)")
 
     # ── Verdict ───────────────────────────────────────────────────────────────
-    print("─" * W)
+    print("-" * W)
     if issues == 0:
         print(GREEN + BOLD + "  ALL CLEAR — copy is verified complete and intact." + RESET)
     else:
         print(RED + BOLD + f"  {issues} issue category(ies) found — see details below or in the report file." + RESET)
-    print("─" * W + "\n")
+    print("-" * W + "\n")
 
     # ── Detail lists ──────────────────────────────────────────────────────────
     # Show the first LIMIT items from each problem list. Showing all could

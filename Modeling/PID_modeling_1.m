@@ -222,8 +222,194 @@ for p = 1: nProtocols
 
 end
 
-
+%% How long of an integration window is neccessary to fully 
+% determine if the temperature is increasing or decreasing 
+% at a given temperature?
     
+% find the ground truth about what is cooling vs heating for each
+% temperature protocol: (aka read in the information from the 'gold
+% standard')
+
+time_windows = 1:5:300; % in seconds (5 seconds to 15 mins)
+time_windows = time_windows*3; % convert to frames from seconds
+
+results = struct;
+ii = 0; % index count (so we can skip the hold trials) 
+for p = 1 : nProtocols
+    protocol = protocol_groups(p).name;
+    % skip hold trials
+    if contains(protocol,  'Hold')
+        continue
+    else 
+        ii = ii + 1; 
+    end
+    tp = getTempTurnPoints(protocol);
+
+    h_idx = tp.UpROI;  % ground truth heating indices
+    h_tot = length(h_idx);
+    c_idx = tp.DownROI; % ground truth cooling indices
+    c_tot = length(c_idx); % fix: was length(c_tot) which would error
+    temp  = protocol_groups(p).temp;
+
+    % Preallocate all 4 outcome arrays (one value per time window)
+    [h_correct, h_incorrect, c_correct, c_incorrect] = deal(nan(size(time_windows)));
+
+    for t = 1 : length(time_windows)
+        temp_smoothed = smooth(temp, time_windows(t), 'moving');
+        dT = diff(temp_smoothed); % change in temp from one bin to the next 
+
+        is_increasing = [false; dT > 0];
+        is_decreasing = [false; dT < 0];
+
+        % --- Heating ground-truth indices ---
+        % True positive:  heating ROI, heating detected
+        h_correct(t)   = (sum(is_increasing(h_idx)) / h_tot) * 100;
+        % False negative: heating ROI, cooling detected
+        h_incorrect(t) = (sum(is_decreasing(h_idx)) / h_tot) * 100;
+
+        % --- Cooling ground-truth indices ---
+        % True positive:  cooling ROI, cooling detected
+        c_correct(t)   = (sum(is_decreasing(c_idx)) / c_tot) * 100;
+        % False negative: cooling ROI, heating detected
+        c_incorrect(t) = (sum(is_increasing(c_idx)) / c_tot) * 100;
+    end
+
+    % Store results for this protocol
+    results(ii).h_correct  = h_correct;
+    results(ii).h_incorrect = h_incorrect;
+    results(ii).c_correct = c_correct;
+    results(ii).c_incorrect = c_incorrect;
+    results(ii).name = protocol;
+    fprintf('\n Finished %s', results(ii).name)
+end
+
+% shortest window to hit 95% CI for both heating and cooling?
+
+CI = 95;
+for p = 1 : length(results)
+    results(p).above95 = find((results(p).h_correct >= CI) & (results(p).c_correct >= CI),1);
+end
+
+%% FIGURE: detection of heating vs cooling over time
+fig = getfig('',1);
+% [r, c] = subplot_numbers(length(results));
+r = 2; c = 4; 
+hColor = Color('Vaporwavepink');
+cColor = Color('Vaporwaveblue');
+% convert windows back to time
+x = (time_windows./(60*3)); % in minutes
+
+for p = 1 :  length(results)
+    subplot(r, c, p); hold on;   
+
+    plot(x, results(p).h_correct,  '-o', 'Color', hColor, ...
+        'LineWidth', 1.8);
+    plot(x, results(p).c_correct,  '-o', 'Color', cColor, ...
+        'LineWidth', 1.8);
+    ylim([50 100]);
+    xlim([0, 5])
+ 
+    % 95% accuracy reference line
+    h_line(95, 'gray', '-', 1.5)
+    % yline(95, 'Color', foreColor, 'DisplayName',  '95%', 'LineWidth', 1.2, 'LabelHorizontalAlignment', 'left');
+    % xline(x(results(p).above95), '--y', 'LineWidth', 1.2);
+    v_line(x(results(p).above95), 'gray', '-', 1.5);
+
+    xlabel('time window (min)');
+    ylabel('% of ground-truth timepoints');
+    title(results(p).name, 'Interpreter', 'none');
+end
+formatFig(fig, blkbgd, [r,c]);
+sgtitle('Heating/Cooling detection accuracy vs. integration window',...
+    Color=foreColor, FontSize=18);
+
+save_figure(fig, [tempDir, 'time integration windows vs heating and cooling accuracy']);
+
+%% FIGURE:  look at the relationship between temp rate and window duration sufficiency
+[~, backColor] = formattingColors(blkbgd);
+
+% pull out the data 
+time_x = (time_windows./(60*3)); % in minutes
+plotData = nan(length(results), 2);
+for p = 1 : length(results)
+    tp = getTempTurnPoints(results(p).name);
+    plotData(p,1) = (max(abs(tp.rates)));
+    plotData(p,2) = time_x(results(p).above95);
+end
+x = plotData(:,1);
+y = plotData(:,2);
+
+% Fit: y = a * exp(b * x)
+f = fit(x, y, 'exp1');
+a = f.a;
+b = f.b;
+
+% Plot
+fig = getfig('',1,[587 680]); hold on
+    h = plot(f, x, y);
+    h(2).Color = foreColor;
+    h(1).Color = Color('vaporwavepurple');
+    scatter(x, y, 50, Color('vaporwavepurple'), "filled",  'DisplayName', 'Data')
+    l = legend('Data', sprintf('y = %.2f·e^{%.2fx}', a, b), 'Location', 'best', 'box', 'off');
+    xlabel('temp rate (\circC/min)'); ylabel('minimum time window (min)');
+formatFig(fig, blkbgd);    
+l.Color = backColor;
+l.TextColor = foreColor;
+
+save_figure(fig, [tempDir, 'temp rate time integration windows vs heating and cooling accuracy']);
+
+
+
+%% 
+% plot the behavior data vs temperature data to get an idea of the general
+% pattern that we are trying to emulate:
+
+% plot out an example of the food attraction behavior for each type of
+% trial based on temperature bin (0.5C bins)
+
+sSpan = 30; % 10 second smoothing bin for temperature direction
+tempDir = createFolder([figDir, 'temp protocols\']);
+
+
+% Temperature bins at 0.5C intervals
+bin_edges = floor(min(T.Temperature)*2)/2 : 0.5 : ceil(max(T.Temperature)*2)/2; % snap to nearest 0.5
+bin_centers = bin_edges(1:end-1) + 0.25;
+
+for p = 1: nProtocols
+    temp = protocol_groups(p).temp;
+    temp = smooth(temp, sSpan, 'moving'); % smoothed temperature timecourse
+    % Temperature direction (logical)
+    dT = diff(temp);
+    is_increasing = [false; dT > 0]; % shift to match original length
+    is_decreasing = [false; dT < 0];
+
+    % bin by temp interval
+    bin_idx = discretize(T.Temperature, bin_edges);
+    protocol_groups(p).is_increasing = is_increasing;
+    protocol_groups(p).is_decreasing = is_decreasing;
+    protocol_groups(p).temp_bin = bin_idx;
+
+
+    % Plot out the temperature heating vs cooling stats: 
+    x = 1:length(temp); 
+    sz = 35; r = 3; c = 1;
+    fig = getfig; 
+    subplot(r,c,1); hold on
+    scatter(x(is_decreasing), temp(is_decreasing), sz, 'b');
+    scatter(x(is_increasing), temp(is_increasing),sz, 'r');
+    title(protocol_groups(p).name, 'Interpreter','none')
+    subplot(r,c,2)
+    scatter(x(is_decreasing), temp(is_decreasing), sz, 'b');
+    subplot(r,c,3)
+    scatter(x(is_increasing), temp(is_increasing), sz, 'r');
+    formatFig(fig, blkbgd, [r,c]);
+    for ii = 1:r
+        subplot(r,c,ii)
+        set(gca, XColor='none')
+    end
+    save_figure(fig, [tempDir, protocol_groups(p).name, ' heating vs cooling']);
+
+end
 
 
 
@@ -232,6 +418,35 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% 
 tic
 X_I = nan(n_samples, t_num);
 X_D = nan(n_samples, t_num);
