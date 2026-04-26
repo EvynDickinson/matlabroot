@@ -230,7 +230,7 @@ end
 % temperature protocol: (aka read in the information from the 'gold
 % standard')
 
-time_windows = 1:5:300; % in seconds (5 seconds to 15 mins)
+time_windows = linspace(1/3, 180, 300); % in seconds (1/3 seconds to 3 mins)
 time_windows = time_windows*3; % convert to frames from seconds
 
 results = struct;
@@ -292,6 +292,8 @@ end
 
 %% FIGURE: detection of heating vs cooling over time
 fig = getfig('',1);
+set(fig, 'Units', 'normalized', 'OuterPosition', [0 0 1 1]);
+
 % [r, c] = subplot_numbers(length(results));
 r = 2; c = 4; 
 hColor = Color('Vaporwavepink');
@@ -307,7 +309,7 @@ for p = 1 :  length(results)
     plot(x, results(p).c_correct,  '-o', 'Color', cColor, ...
         'LineWidth', 1.8);
     ylim([50 100]);
-    xlim([0, 5])
+    xlim([0, 3])
  
     % 95% accuracy reference line
     h_line(95, 'gray', '-', 1.5)
@@ -325,7 +327,7 @@ sgtitle('Heating/Cooling detection accuracy vs. integration window',...
 
 save_figure(fig, [tempDir, 'time integration windows vs heating and cooling accuracy']);
 
-%% FIGURE:  look at the relationship between temp rate and window duration sufficiency
+%% FIGURES:  look at the relationship between temp rate and window duration sufficiency
 [~, backColor] = formattingColors(blkbgd);
 
 % pull out the data 
@@ -346,17 +348,61 @@ b = f.b;
 
 % Plot
 fig = getfig('',1,[587 680]); hold on
-    h = plot(f, x, y);
-    h(2).Color = foreColor;
-    h(1).Color = Color('vaporwavepurple');
-    scatter(x, y, 50, Color('vaporwavepurple'), "filled",  'DisplayName', 'Data')
-    l = legend('Data', sprintf('y = %.2f·e^{%.2fx}', a, b), 'Location', 'best', 'box', 'off');
-    xlabel('temp rate (\circC/min)'); ylabel('minimum time window (min)');
-formatFig(fig, blkbgd);    
-l.Color = backColor;
-l.TextColor = foreColor;
+    % Fit line only (no scatter from fit object)
+    x_fit = linspace(min(x), max(x), 200);
+    y_fit = a * exp(b * x_fit);
+    plot(x_fit, y_fit, '-', 'Color', foreColor, 'LineWidth', 1.5, 'DisplayName', sprintf('y = %.2f·e^{%.2fx}', a, b));
+    % Data scatter with full marker control
+    scatter(x, y, 65, Color('vaporwavepurple'), 'filled', 'MarkerFaceAlpha', 0.85, 'DisplayName', 'Data');
+formatFig(fig, blkbgd);  
+xlabel('temp rate (\circC/min)'); ylabel('minimum time window (min)');
+legend('Location', 'best', 'box', 'off', 'Color',backColor, 'TextColor',foreColor); 
 
 save_figure(fig, [tempDir, 'temp rate time integration windows vs heating and cooling accuracy']);
+
+
+% ------------------------------------------------------------------------------------------------------------------------------------------------
+% what amount of temperature change is required at these different rates to
+% actually detect a consistent change in temperature? (theoretically) 
+% min time window * rate of temperature change = degrees of temp change
+% detected 
+
+min_dT = x .* y ; % minimum change in temperature that can be detected
+
+% Plot
+fig = getfig('',1,[587 680]); hold on
+    plot(x, min_dT, 'Color', foreColor, 'LineStyle','none', 'Marker', 'o', 'MarkerFaceColor', foreColor);
+    xlabel('temp rate (\circC/min)'); ylabel('minimum change in temp (\circC)');
+formatFig(fig, blkbgd);    
+
+save_figure(fig, [tempDir, 'min temp detection for heating and cooling accuracy']);
+
+
+% ------------------------------------------------------------------------------------------------------------------------------------------------
+% What is the minimum temp change that could be detected using the
+% temperature control plate at these different rates of temperature change?
+
+default_min_dT = x .* (1/3) ; % minimum change in temperature that can be detected at this sampling interval
+
+% Plot
+fig = getfig('',1,[587 680]); hold on
+    scatter(default_min_dT, min_dT, 50, Color('vaporwavepurple'), 'filled', 'MarkerFaceAlpha',  0.8);
+    xlabel('temp rate (\circC/min)'); ylabel('minimum change in temp (\circC)');
+formatFig(fig, blkbgd);    
+
+
+
+
+% Plot
+fig = getfig('',1,[587 680]); hold on
+    plot(x, min_dT, 'Color', foreColor, 'LineStyle','none', 'Marker', 'o', 'MarkerFaceColor', foreColor);
+    xlabel('temp rate (\circC/min)'); ylabel('minimum change in temp (\circC)');
+formatFig(fig, blkbgd);    
+
+save_figure(fig, [tempDir, 'min temp detection for heating and cooling accuracy']);
+
+
+
 
 
 
