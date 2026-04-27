@@ -34,32 +34,32 @@ initial_vars = who;
 initial_vars = add_var(initial_vars, 'initial_vars');
 
 %% FIGURE: quick overview figure of the full set of data
-kolor = Color('vaporwavepurple');
-LW = 0.5;
-
-r = 4;
-c = 1;
-
-fig = getfig;
-    subplot(r,c,1)
-    plot(T.Temperature, 'color', kolor, 'LineWidth',LW)
-    ylabel('temp \circC')
-    subplot(r,c,2)
-    plot(T.InnerFoodQuad, 'color', kolor, 'LineWidth',LW)
-    ylabel('food')
-    subplot(r,c,3)
-    plot(T.EscapeRing, 'color', kolor, 'LineWidth',LW)
-    ylabel('escape')
-    subplot(r,c,4)
-    plot(T.Sleep, 'color', kolor, 'LineWidth',LW)
-    ylabel('sleep')
-formatFig(fig, blkbgd, [r,c]);
-for ii = 1:r
-    subplot(r,c,ii)
-    set(gca, XColor='none')
-end
-
-clear r c kolor LW
+% kolor = Color('vaporwavepurple');
+% LW = 0.5;
+% 
+% r = 4;
+% c = 1;
+% 
+% fig = getfig;
+%     subplot(r,c,1)
+%     plot(T.Temperature, 'color', kolor, 'LineWidth',LW)
+%     ylabel('temp \circC')
+%     subplot(r,c,2)
+%     plot(T.InnerFoodQuad, 'color', kolor, 'LineWidth',LW)
+%     ylabel('food')
+%     subplot(r,c,3)
+%     plot(T.EscapeRing, 'color', kolor, 'LineWidth',LW)
+%     ylabel('escape')
+%     subplot(r,c,4)
+%     plot(T.Sleep, 'color', kolor, 'LineWidth',LW)
+%     ylabel('sleep')
+% formatFig(fig, blkbgd, [r,c]);
+% for ii = 1:r
+%     subplot(r,c,ii)
+%     set(gca, XColor='none')
+% end
+% 
+% clear r c kolor LW
 
 %% Create temperature transformations that we think would be likely to generate the response data: 
 % clearvars('-except',initial_vars{:})
