@@ -714,7 +714,6 @@ for trial = 1:ntrials
        strcmp(T.TempProtocol{trial},'linear_ramp_XS_25-17')|| ...
        strcmp(T.TempProtocol{trial},'linear_ramp_with_recovery_21-13')||...
        strcmp(T.TempProtocol{trial},'linear_ramp_F_25-17_FPS6')||...
-       strcmp(T.TempProtocol{trial},'survival_hold_with_recovery_40-25')||...
        hold_exp==true
    
        tPoints.rates = [tPoints.rates(1), 0, tPoints.rates(2)];
@@ -738,9 +737,12 @@ for trial = 1:ntrials
     % Temp-rate identification and sorting: 
     buffSize = 0.05;
     %account for high freq jitter
-    if any(ismember(strsplit(T.TempProtocol{trial},'_'),'sweeps')) ||  strcmp(T.TempProtocol{trial},'linear_ramp_XF_25-17')
+    if any(ismember(strsplit(T.TempProtocol{trial},'_'),'sweeps')) ||...
+            strcmp(T.TempProtocol{trial},'linear_ramp_XF_25-17') || ...
+            strcmp(T.TempProtocol{trial},'survival_hold_with_recovery_35-25')
         buffSize = 0.1;
     end
+    edges = [];
     for ii = 1:tPoints.nRates
         edges(ii,:) = [tPoints.rates(ii)-buffSize, tPoints.rates(ii)+buffSize];
     end  
@@ -764,9 +766,10 @@ for trial = 1:ntrials
             % plot the raw vs smoothed temp rate data
             sb(1).idx = 1; sb(2).idx = 2:4; r = 4; c = 1;
             fig = figure; set(fig,'pos',[856 299 678 598]); 
-                subplot(r,c,sb(1).idx); plot(time,temp,'color','w'); ylabel('temp (\circC)')
+
+                ax1 = subplot(r,c,sb(1).idx); plot(time,temp,'color','w'); ylabel('temp (\circC)')
                 hold on; yyaxis right; plot(time(1:end-1),rateIdx,'color','m')
-                subplot(r,c,sb(2).idx); plot(time(1:end-1),diff(temp)./diff(time),'color',Color('grey'))
+                ax2 = subplot(r,c,sb(2).idx); plot(time(1:end-1),diff(temp)./diff(time),'color',Color('grey'))
                 hold on; plot(time(1:end-1),plotData(:,2),'color', 'yellow','linewidth',0.5)
                 ylim([-2,2]); y1 = rangeLine(fig,0.15);% plot event regions
                 for i = 1:size(tPoints.up,1)
@@ -778,6 +781,7 @@ for trial = 1:ntrials
 %                 v_line(time(tPoints.transitions),'w','-',1)
                 xlabel('time (min)'); ylabel('Temp rate of change')
             formatFig(fig,true,[r,c],sb)
+            linkaxes([ax1, ax2], 'x')
 
             warndlg('Temp rate not within expected range')
             return
@@ -858,8 +862,9 @@ disp('next section')
 
 %% FIGURE: Temp hysteresis - distance to food | movement 
 clearvars('-except',vars{:}) 
-if ~hold_exp
+if ~hold_exp 
 % if hold_exp; temp_name = ' fictive temp'; else; temp_name = ''; end
+temp_name = '';
 if autoRun
     dataType = 'distance';
 else

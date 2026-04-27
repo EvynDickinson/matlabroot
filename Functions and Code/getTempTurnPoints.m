@@ -37,10 +37,10 @@ switch TempProtocolString
         tempPoints.holdexp = false;
 
    case 'survival_hold_with_recovery_35-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 744000]; % 744000 used as blanket cut off (~33 sec off)
+        tempPoints.hold = [1000 721787;...
+                                          727341 740400]; % 744000 used as blanket cut off (~33 sec off)
         tempPoints.up = [];
-        tempPoints.down = [723601 729000];
+        tempPoints.down = [721788 727340];
         tempPoints.nRates = 2; 
         tempPoints.rates = [-0.333, 0]; 
         tempPoints.threshLow = 24;

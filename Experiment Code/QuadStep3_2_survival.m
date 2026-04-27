@@ -285,7 +285,7 @@ for trial = 1:ntrials
     loc = [];
     for track = 1:numtracks
         % Create matrix of logicals for whether speed is > or < min speed
-        b = data(trial).speed.smoothed_raw(:,track) < min_speed;
+        b = data(trial).speed.raw(:,track) < min_speed;
         still = [still, b];
         % Find locations where speed is < min speed
         c = find(b);
