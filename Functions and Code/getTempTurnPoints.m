@@ -25,11 +25,10 @@ switch TempProtocolString
     %     tempPoints.holdexp = true;
         
     case 'survival_hold_with_recovery_40-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 744000]; % end frame # inconsistent across trials, 
-                                                                       % 744000 used as blanket cut off (~33 sec off)
+        tempPoints.hold = [1000 721787;...
+                                          727341 740400];
         tempPoints.up = [];
-        tempPoints.down = [723601 729000];
+        tempPoints.down = [721788 727340];
         tempPoints.nRates = 2; 
         tempPoints.rates = [-0.5, 0]; 
         tempPoints.threshLow = 24;
@@ -38,7 +37,7 @@ switch TempProtocolString
 
    case 'survival_hold_with_recovery_35-25'
         tempPoints.hold = [1000 721787;...
-                                          727341 740400]; % 744000 used as blanket cut off (~33 sec off)
+                                          727341 740400];
         tempPoints.up = [];
         tempPoints.down = [721788 727340];
         tempPoints.nRates = 2; 
@@ -48,67 +47,56 @@ switch TempProtocolString
         tempPoints.holdexp = false;
 
    case 'survival_hold_with_recovery_30-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 745200];
+        tempPoints.hold = [1000 721787;...
+                                          727341 740400];
         tempPoints.up = [];
-        tempPoints.down = [723601 729000];
+        tempPoints.down = [721788 727340];
         tempPoints.nRates = 2; 
-        tempPoints.rates = -0.167; 
+        tempPoints.rates = [-0.167, 0]; 
         tempPoints.threshLow = 24;
         tempPoints.threshHigh = 31;
         tempPoints.holdexp = false;
 
-    case 'survival_hold_with_recovery_25-25'
-        tempPoints.hold = [1000 745200];
+    case 'survival_hold_with_recovery_25-25' % technically a hold?
+        tempPoints.hold = [1000 740400];
         tempPoints.up = [];
         tempPoints.down = [];
         tempPoints.nRates = 1; 
         tempPoints.rates = 0; 
         tempPoints.threshLow = 24;
         tempPoints.threshHigh = 26;
-        tempPoints.holdexp = false; % does this count as a hold?
+        tempPoints.holdexp = true; 
 
     case 'survival_hold_with_recovery_20-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 745200];
-        tempPoints.up = [723601 729000];
+        tempPoints.hold = [1000 721787;...
+                                          727341 740400];
+        tempPoints.up = [721788 727340];
         tempPoints.down = [];
         tempPoints.nRates = 2; 
-        tempPoints.rates = 0.167; 
+        tempPoints.rates = [0, 0.167]; 
         tempPoints.threshLow = 19;
         tempPoints.threshHigh = 26;
         tempPoints.holdexp = false;
 
         case 'survival_hold_with_recovery_15-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 745200];
-        tempPoints.up = [723601 729000];
+        tempPoints.hold = [1000 721787;...
+                                          727341 740400];
+        tempPoints.up = [721788 727340];
         tempPoints.down = [];
         tempPoints.nRates = 2; 
-        tempPoints.rates = 0.333; 
+        tempPoints.rates = [0 0.333]; 
         tempPoints.threshLow = 14;
         tempPoints.threshHigh = 26;
         tempPoints.holdexp = false;
 
     case 'survival_hold_with_recovery_10-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 745200];
-        tempPoints.up = [723601 729000];
+        tempPoints.hold = [1000 721787;...
+                                          727341 740400];
+        tempPoints.up = [721788 727340];
         tempPoints.down = [];
         tempPoints.nRates = 2; 
-        tempPoints.rates = 0.5; 
+        tempPoints.rates = [0, 0.5]; 
         tempPoints.threshLow = 9;
-        tempPoints.threshHigh = 26;
-        tempPoints.holdexp = false;
-
-    case 'survival_hold_with_recovery_5-25'
-        tempPoints.hold = [1000 723600;...
-                                          729001 745200];
-        tempPoints.up = [723601 729000];
-        tempPoints.down = [];
-        tempPoints.nRates = 2; 
-        tempPoints.rates = 0.667; 
-        tempPoints.threshLow = 4;
         tempPoints.threshHigh = 26;
         tempPoints.holdexp = false;
 
