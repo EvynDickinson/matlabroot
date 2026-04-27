@@ -338,8 +338,8 @@ for p = 1 : length(results)
     plotData(p,1) = (max(abs(tp.rates)));
     plotData(p,2) = time_x(results(p).above95);
 end
-x = plotData(:,1);
-y = plotData(:,2);
+x = plotData(:,1); % temperature rates within the protocol
+y = plotData(:,2); % shortest window of integration that enables temp direction detection (min)
 
 % Fit: y = a * exp(b * x)
 f = fit(x, y, 'exp1');
@@ -367,7 +367,7 @@ save_figure(fig, [tempDir, 'temp rate time integration windows vs heating and co
 % min time window * rate of temperature change = degrees of temp change
 % detected 
 
-min_dT = x .* y ; % minimum change in temperature that can be detected
+min_dT = x .* y ; % minimum change in temperature that can be detected (temp rate * time window) 
 
 % Plot
 fig = getfig('',1,[587 680]); hold on
@@ -379,27 +379,23 @@ save_figure(fig, [tempDir, 'min temp detection for heating and cooling accuracy'
 
 
 % ------------------------------------------------------------------------------------------------------------------------------------------------
-% What is the minimum temp change that could be detected using the
-% temperature control plate at these different rates of temperature change?
-
-default_min_dT = x .* (1/3) ; % minimum change in temperature that can be detected at this sampling interval
+% What is the theoretical smallest change in temperature rate that would
+% occur on thescale of the sampling frequency (fps - 3Hz) 
+smallest_time_step = (1/3) / 60; % convert seconds to minutes to match the temperature rate 
+default_min_dT = x .* smallest_time_step; % minimum change in temperature that can be detected at this sampling interval (deg)
 
 % Plot
 fig = getfig('',1,[587 680]); hold on
     scatter(default_min_dT, min_dT, 50, Color('vaporwavepurple'), 'filled', 'MarkerFaceAlpha',  0.8);
-    xlabel('temp rate (\circC/min)'); ylabel('minimum change in temp (\circC)');
+    xlabel('theoretical \Delta temperature (\circC)'); ylabel('detected \Delta temperature  (\circC)');
+    title('Smallest change in temperature detectable within time frame')
 formatFig(fig, blkbgd);    
 
+% set to same scale and add a unity line?
+matchAxis(fig, false)
+refline(1, 0)
 
 
-
-% Plot
-fig = getfig('',1,[587 680]); hold on
-    plot(x, min_dT, 'Color', foreColor, 'LineStyle','none', 'Marker', 'o', 'MarkerFaceColor', foreColor);
-    xlabel('temp rate (\circC/min)'); ylabel('minimum change in temp (\circC)');
-formatFig(fig, blkbgd);    
-
-save_figure(fig, [tempDir, 'min temp detection for heating and cooling accuracy']);
 
 
 
