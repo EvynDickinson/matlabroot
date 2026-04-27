@@ -34,32 +34,32 @@ initial_vars = who;
 initial_vars = add_var(initial_vars, 'initial_vars');
 
 %% FIGURE: quick overview figure of the full set of data
-kolor = Color('vaporwavepurple');
-LW = 0.5;
-
-r = 4;
-c = 1;
-
-fig = getfig;
-    subplot(r,c,1)
-    plot(T.Temperature, 'color', kolor, 'LineWidth',LW)
-    ylabel('temp \circC')
-    subplot(r,c,2)
-    plot(T.InnerFoodQuad, 'color', kolor, 'LineWidth',LW)
-    ylabel('food')
-    subplot(r,c,3)
-    plot(T.EscapeRing, 'color', kolor, 'LineWidth',LW)
-    ylabel('escape')
-    subplot(r,c,4)
-    plot(T.Sleep, 'color', kolor, 'LineWidth',LW)
-    ylabel('sleep')
-formatFig(fig, blkbgd, [r,c]);
-for ii = 1:r
-    subplot(r,c,ii)
-    set(gca, XColor='none')
-end
-
-clear r c kolor LW
+% kolor = Color('vaporwavepurple');
+% LW = 0.5;
+% 
+% r = 4;
+% c = 1;
+% 
+% fig = getfig;
+%     subplot(r,c,1)
+%     plot(T.Temperature, 'color', kolor, 'LineWidth',LW)
+%     ylabel('temp \circC')
+%     subplot(r,c,2)
+%     plot(T.InnerFoodQuad, 'color', kolor, 'LineWidth',LW)
+%     ylabel('food')
+%     subplot(r,c,3)
+%     plot(T.EscapeRing, 'color', kolor, 'LineWidth',LW)
+%     ylabel('escape')
+%     subplot(r,c,4)
+%     plot(T.Sleep, 'color', kolor, 'LineWidth',LW)
+%     ylabel('sleep')
+% formatFig(fig, blkbgd, [r,c]);
+% for ii = 1:r
+%     subplot(r,c,ii)
+%     set(gca, XColor='none')
+% end
+% 
+% clear r c kolor LW
 
 %% Create temperature transformations that we think would be likely to generate the response data: 
 % clearvars('-except',initial_vars{:})
@@ -385,17 +385,20 @@ smallest_time_step = (1/3) / 60; % convert seconds to minutes to match the tempe
 default_min_dT = x .* smallest_time_step; % minimum change in temperature that can be detected at this sampling interval (deg)
 
 % Plot
-fig = getfig('',1,[587 680]); hold on
-    scatter(default_min_dT, min_dT, 50, Color('vaporwavepurple'), 'filled', 'MarkerFaceAlpha',  0.8);
-    xlabel('theoretical \Delta temperature (\circC)'); ylabel('detected \Delta temperature  (\circC)');
-    title('Smallest change in temperature detectable within time frame')
+fig = getfig('',1,[636 580]); hold on
+    scatter(min_dT, default_min_dT,  50, Color('vaporwavepurple'), 'filled', 'MarkerFaceAlpha',  0.8);
+    xlabel('observed min \Delta temperature (\circC)'); ylabel('theoretical min \Delta temperature  (\circC)');
+    title('Min \DeltaT detectable within time frame')
 formatFig(fig, blkbgd);    
 
 % set to same scale and add a unity line?
-matchAxis(fig, false)
-refline(1, 0)
+% matchAxis(fig, false)
+xl = xlim;
+plot(xl, xl, '--', 'Color', Color('darkorange'), 'LineWidth', 1.2);
+axis square
+ylim([0, 0.02])
 
-
+save_figure(fig, [tempDir, 'change in temp detection for heating and cooling real vs theoretical']);
 
 
 
