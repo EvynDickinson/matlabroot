@@ -946,6 +946,7 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     exp_dur = size(data.tempbin.all,1);
     
     % exclude data beyond the allowable time range for each temp type
+    % TODO 4.30.26 expand this to work with the sleep ROI mask information as well
     if time_roi < exp_dur        
         fieldList = fieldnames(data); % find all the types of data to cutoff
         % remove data past the allowable point
