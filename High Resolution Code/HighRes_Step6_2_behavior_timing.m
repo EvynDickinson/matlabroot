@@ -19,6 +19,7 @@ clearvars('-except',initial_var{:})
 % WS: cooling & above 25
 % CT: cooling & below 25
 % CS: warming & below 25
+data_length = length(data.time);
 
 switch groupName
     case 'Berlin LTS caviar'
@@ -30,9 +31,49 @@ switch groupName
                    data.warming_idx(2,1) + round((data.cooling_idx(2,1)-data.warming_idx(2,1))/2);...
                    data.cooling_idx(2,1);...
                    data.cooling_idx(2,2)];
+
         roi_safe = [0,1,0,1,0,1]; % safe = true, unsafe = false;
         trans_cat = {'WT', 'WS', 'CT', 'CS', 'WT', 'WS'}; % names for the categories
-        nTrans = length(transitions)-1;
+
+
+        % remove any transition points beyond the allowable timecourse for
+        % the food trials
+        excessROI = (transitions>data_length); % regions not allowed due to food quality / timing alignment
+        badIntervals = excessROI(1:end-1) | excessROI(2:end);
+        
+        % cap edge transition points that border a surviving interval
+        for ii = 1:length(transitions)
+            if excessROI(ii)
+                bordersGoodInterval = false;
+                if ii > 1 && ~badIntervals(ii-1)
+                    bordersGoodInterval = true;
+                end
+                if ii < length(transitions) && ~badIntervals(ii)
+                    bordersGoodInterval = true;
+                end
+                if bordersGoodInterval
+                    transitions(ii) = data_length;
+                end
+            end
+        end
+        
+        % remove bad intervals
+        roi_safe(badIntervals)  = [];
+        trans_cat(badIntervals) = [];
+        
+        % trim transition endpoints
+        keepTrans = false(size(transitions));
+        for ii = 1:length(transitions)
+            if ii == 1
+                keepTrans(ii) = ~badIntervals(1);
+            elseif ii == length(transitions)
+                keepTrans(ii) = ~badIntervals(end);
+            else
+                keepTrans(ii) = ~badIntervals(ii-1) || ~badIntervals(ii);
+            end
+        end
+        transitions = transitions(keepTrans);
+        nTrans = length(transitions) - 1;
 end
 
 
@@ -211,6 +252,7 @@ for sex = 1:2
     end
     save_figure(fig, [figDir sexList{sex} ' behavior_onset per region'],fig_type);
 end
+
 
 %% FIGURE: time of first behavior zoom on specific temp region and time
 fields = {'foodQuad', 'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
@@ -575,6 +617,11 @@ switch groupName
         c = 4;
 end
 
+scale_bar_mins = 10; % e.g. 60 mins
+scaleBar_duration = scale_bar_mins * fps * 60;   
+scale_label_str = sprintf('%d min', scale_bar_mins);
+
+
 % BEHAVIOR SEQUENCE 
 fields = {'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
 % set up a color code for each behavior
@@ -628,6 +675,15 @@ for i = 1:nTrans
 
     % zoom into different transition sections using xlims
     xlim([transitions(i), transitions(i+1)])
+    % add scale bar
+    ax = gca;
+    set(ax, 'XColor', 'none')  % hide x-axis
+
+    drawnow   % flush axes before reading ylim
+    set(ax, 'XColor', 'none')
+    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+
+    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
     
     set(fig, 'color', backColor)
     
@@ -641,10 +697,124 @@ end
 
 
 
+% Full timecourse figure: 
+
+scale_bar_mins = 60; % e.g. 60 mins
+scaleBar_duration = scale_bar_mins * fps * 60;   
+scale_label_str = sprintf('%d min', scale_bar_mins);
+
+fig = getfig('',false,[2020 900]);
+    ax = gca;
+    imagesc(real_img')
+    % label the plot
+    set(gca, 'xtick', [],'ytick', [])
+    xlabel('time','FontSize',12)
+    ylabel('fly','FontSize',12)
+
+    % remove colorbar
+    % C = colorbar;  <-- delete this block entirely
+
+    % text legend panel
+    legend_ax = axes('Position', [0.82, 0.2, 0.12, 0.6]);  % [x y w h] in figure units
+    axis(legend_ax, 'off')
+    hold(legend_ax, 'on')
+
+    behavior_labels = ['inner arena', fields];  % match your original colorbar labels    
+    % create legend 
+    legend_ax = axes('Position', [legend_x, legend_y, 0.12, legend_h]);
+    axis(legend_ax, 'off')
+    hold(legend_ax, 'on')
+    for b = 1:length(behavior_labels)
+        text(legend_ax, 0, b, behavior_labels{b}, ...
+            'Color', cmap(b,:), 'FontSize', 9, ...
+            'VerticalAlignment', 'middle', 'HorizontalAlignment', 'left')
+    end
+    ylim(legend_ax, [0.5, length(behavior_labels) + 0.5])
+    set(legend_ax, 'YDir', 'reverse')
+
+    % restore focus to image axes before drawing scale bar
+    axes(ax)
+    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+
+    % colormap(cmap) % set the image colors by behavior
+
+    % add scale bar
+    ax = gca;
+    set(ax, 'XColor', 'none')  % hide x-axis
+    
+    drawnow   % flush axes before reading ylim
+    set(ax, 'XColor', 'none')
+    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+
+    set(fig, 'color', backColor)
+
+    % draw region lines: 
+    v_line(transitions, 'black', '-', 2)
+
+    ax.Colormap = cmap;   % axes-level colormap, more persistent than figure-level
+    colormap(fig, cmap)
+    ax.Colormap = cmap;
+    drawnow limitrate
+    drawnow
+    save_figure(fig, fig_str, fig_type)
+
+fig_str = [sub_dir 'all behavior states '];
+save_figure(fig, fig_str)
 
 
+%%
+
+% Full timecourse figure:
+scale_bar_mins = 60;
+scaleBar_duration = scale_bar_mins * fps * 60;
+scale_label_str = sprintf('%d min', scale_bar_mins);
+behavior_labels = ['inner arena', fields];
+
+fig = getfig('', false, [2020 900]);
+ax = gca;
+imagesc(real_img')
+set(ax, 'xtick', [], 'ytick', [], 'XColor', 'none')
+ylabel('fly', 'FontSize', 18)
+ax.Colormap = cmap;
+colormap(fig, cmap)
+
+% anchor legend position relative to main axes
+ax_pos   = ax.Position;
+legend_w = 0.08;
+legend_h = length(behavior_labels) * 0.04;
+legend_x = ax_pos(1) + ax_pos(3) + 0.01;
+legend_y = ax_pos(2) + ax_pos(4)/2 ;%- legend_h/2;  % vertically centered
+
+% create text legend
+legend_ax = axes('Position', [legend_x, legend_y, legend_w, legend_h]);
+axis(legend_ax, 'off')
+hold(legend_ax, 'on')
+for b = 1:length(behavior_labels)
+    text(legend_ax, 0, b, behavior_labels{b}, ...
+        'Color', cmap(b,:), 'FontSize', 18, ...
+        'VerticalAlignment', 'middle', 'HorizontalAlignment', 'left')
+end
+ylim(legend_ax, [0.5, length(behavior_labels) + 0.5])
+set(legend_ax, 'YDir', 'reverse')
+
+% draw transition lines
+axes(ax)
+v_line(transitions, 'k', '-', 2)
+
+% scale bar
+drawnow
+updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+
+ax.Colormap = cmap;   % axes-level colormap, more persistent than figure-level
+colormap(fig, cmap)
+ax.Colormap = cmap;
+drawnow limitrate
+drawnow
+fig_str = [sub_dir 'all behavior states'];
+save_figure(fig, fig_str)
 
 
+%% Figure
 
 % how much of each behavior is there time wise for each temp regime?
 totals = nan([length(fields),nTrans,num.trials,sex]);
