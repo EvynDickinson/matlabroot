@@ -5,7 +5,7 @@
 %% LOAD data
 clear; clc;
 warning off
-auto_run = false;
+auto_run = true;
 
 % updates for updating the fly data with no swaps:
 [excelfile, Excel, xlFile] = load_HighResExperiments;

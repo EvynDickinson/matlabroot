@@ -1,6 +1,7 @@
 
 clearvars('-except',initial_var{:})
-foreColor = formattingColors(blkbnd); % get background colors
+foreColor = formattingColors(blkbnd);
+foreColor = formattingColors(blkbgd);% get background colors
 clc
 
 %% Speed between regions timecourse
@@ -1011,11 +1012,68 @@ deadF = excelfile(excel_loc,Excel.deadF);
 
 =======
 
-%%
+%% Sleep by location in the arena
 
-expName = 'Berlin-WT_Hold25C_Empty';
+% distance to food during sleep
+% sleep in each occupancy zone
+clearvars('-except',initial_var{:})
 
-parameters.protocol = 'Hold25C';
-parameters.expID = 'Berlin-WT_Hold25C_Empty';
-parameters.videoName = 'Berlin-WT_Hold25C_Empty';
->>>>>>> Stashed changes
+msleep = squeeze(data.sleep(:,M,:)); % squeeze(frames, fly, trial) -> (frames, trial)
+fsleep = squeeze(data.sleep(:,F,:));
+
+
+tickH = 1; % tick height
+LS = 0.5; % vertical space between ticks
+LW = 1; % tick line width
+y1 = 1;
+r = 4;
+c = 1;
+sb(1).idx = 1;
+sb(2).idx = 2;
+sb(3).idx = 3;
+sb(4).idx = 4; 
+
+fig = getfig('',1);
+% Temperature plot
+subplot(r,c,sb(1).idx)
+    plot(data.time, data.temperature, 'color', foreColor, 'linewidth', LW)
+% Raster plot of sleep instances
+for sex = 1:2
+    switch sex
+        case 1 % male
+            sleep = squeeze(data.sleep(:,M,:));
+            c = 'b';
+        case 2 % female
+            squeeze(data.sleep(:,F,:));
+            c = 'm';
+    end
+    loc.all = flyROImask.all(sex).m(1:630000,:) & sleep;
+    loc.innerfoodquad = flyROImask.innerquad(sex).food.m(1:630000,:) & sleep;
+    loc.ring = flyROImask.ring(sex).m(1:630000,:) & sleep;
+    % All 
+    subplot(r,c,sb(2).idx)
+        hold on
+        for trial = 1:num.trials            
+            x = data.time(loc.all(:,trial));
+            y = ones(size(x));
+            X = [x,x];
+            Y = [y1.*y,(y1+tickH).*y];
+            plot(X',Y','color', c, linewidth',LW) 
+            plot(X',Y','color',Color(data(sex).color),'linewidth',LW) 
+            % increase the line height for the 
+            % if rem((i+2),2)==0 
+            %    y1 = y1+tickH+LS;
+            % end        
+        end
+end
+
+formatFig(fig, blkbnd,[r,c],sb);
+subplot(r,c,sb(1).idx)
+set(gca, 'xcolor', 'none','ycolor','none')
+ylabel('\circC','color', foreColor)
+subplot(r,c,sb(2).idx)
+xlabel('time (min)','color', foreColor)
+set(gca, 'ycolor', 'none')
+ylabel('Courtship Metrics','color', foreColor)
+ylim([0,y1+1+tickH])
+save_figure(fig,[figDir 'Courtship Index timecourse'],fig_type);
