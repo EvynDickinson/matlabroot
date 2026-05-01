@@ -103,7 +103,7 @@ save_figure(fig, [figDir 'temp regions'],fig_type);
 
 exc_data = struct; % exclusive data
 fields = {'wing_ext', 'wing_ext_all', 'court_chase', 'chase_all', 'circling_all',...
-    'circling_1sec', 'CI', 'FlyOnFood', 'OutterRing', 'foodQuad', 'sleep'};
+    'circling_1sec', 'CI', 'FlyOnFood', 'OutterRing', 'foodQuad', 'sleep', 'jump'};
 % load the new structure with the behavioral state data as is -- no
 % substitutions
 for i = 1:length(fields)
@@ -115,8 +115,7 @@ exc_data.CI_all = replaceNaN(exc_data.chase_all,false) |...
                   replaceNaN(exc_data.circling_all,false) |...
                   replaceNaN(exc_data.wing_ext_all,false);
 
-
-% set order priority first for courtship for the male fly only (female fly
+% set order priority for courtship for the male fly only (female fly
 % doesn't have courtship behavior recorded in this data set) 
 fields = {'FlyOnFood', 'OutterRing', 'foodQuad'};
 for i = 1:length(fields)
@@ -131,37 +130,40 @@ for i = 1:length(fields)
     exc_data.(fields{i})(:,M,:) = temp;
 end
 
-% set order priority first for sleep for male courtship lists (since there
+% set order priority for sleep for male courtship lists (since there
 % isn't female courtship behaviors)
 fields = {'wing_ext', 'wing_ext_all', 'court_chase', 'chase_all',...
               'circling_all','circling_1sec', 'CI','CI_all'};
 for i = 1:length(fields)
     temp =  (exc_data.(fields{i}));
     % set the locations of courtship to zero when the male fly is asleep
-    loc = squeeze(exc_data.sleep(:,M,:));
+    loc = squeeze(exc_data.sleep(:,M,:)) | squeeze(exc_data.jump(:,M,:));
     temp(loc) = false;
     temp = double(temp);
     exc_data.(fields{i}) = temp;
 end
 
-% set order priority first for sleep for M and F data types
+% set order priority first for sleep&jumps for M and F data types
 fields = {'FlyOnFood', 'OutterRing', 'foodQuad'};
 for i = 1:length(fields)
     for sex = 1:2
         temp =  squeeze(exc_data.(fields{i})(:,sex,:));
-        % set all other behaviors to zero when the fly is sleeping
-        loc = squeeze(exc_data.sleep(:,sex,:));
+        % set all other behaviors to zero when the fly is sleeping or
+        % jumping
+        loc = squeeze(exc_data.sleep(:,sex,:)) | squeeze(exc_data.jump(:,sex,:));
         temp(loc) = false;
         exc_data.(fields{i})(:,sex,:) = temp;
     end
 end
+
+
 % -----------------------------------------------------------------------------------
 
 % when does each behavior happen within each region? 
 % 'behavior_onset' structure shows the first instance of a behavior within
 % each of the different temperature regimes
 
-d_fields = { 'FlyOnFood', 'OutterRing', 'foodQuad', 'sleep'}; % fields for all the flies
+d_fields = { 'FlyOnFood', 'OutterRing', 'foodQuad', 'sleep', 'jump'}; % fields for all the flies
 s_fields = {'wing_ext', 'wing_ext_all', 'court_chase', 'chase_all', 'circling_all',...
     'circling_1sec', 'CI','CI_all'}; % only fields for the male fly
 
@@ -209,14 +211,18 @@ end
 % scatter plot of the onset timing within each of the regions
 switch groupName
     case 'Berlin LTS caviar'
-        r = 2; 
+        r = 1; 
         c = 4;
 end
 
 
 %  FLY BEHAVIOR SEQUENCE 
-fields = {'foodQuad', 'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
-kolors = {'gold', 'red', 'purple', 'dodgerblue', 'green'}; % colors for the diff behaviors
+fields = {'jump', 'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
+field_names = {'escape jump', 'escape ring', 'food quadrant', 'fly on food', 'courtship', 'sleep'};
+kolors = {'WongOrange', 'WongRed','WongBlue','WongLightBlue', 'WongPink', 'WongGreen'}; % colors for the diff behaviors
+
+% fields = {'foodQuad', 'FlyOnFood', 'OutterRing', 'sleep', 'CI', 'jump'};
+% kolors = {'gold', 'red', 'purple', 'dodgerblue', 'green'}; % colors for the diff behaviors
 
 sz = 75; 
 y = 1:num.trials;
@@ -255,8 +261,8 @@ end
 
 
 %% FIGURE: time of first behavior zoom on specific temp region and time
-fields = {'foodQuad', 'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
-kolors = {'gold', 'red', 'purple', 'dodgerblue', 'green'}; % colors for the diff behaviors
+% fields = {'foodQuad', 'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
+% kolors = {'gold', 'red', 'purple', 'dodgerblue', 'green'}; % colors for the diff behaviors
 
 sz = 75; 
 y = 1:num.trials * 2; % include both male and female flies stacked
@@ -304,7 +310,7 @@ save_figure(fig, [fig_folder fig_str],fig_type);
 %% Figure: Plot out all the time delays for each behavior by type not by fly
 % do this as well with both the male and female flies
 
-fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
+% fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
 c = length(fields);
 r = 1;
 
@@ -359,7 +365,7 @@ if ~strcmp(groupName,'Berlin LTS caviar')
     return
 end
 
-fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
+% fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
 c = length(fields);
 r = 1;
 
@@ -397,7 +403,7 @@ for f = 1:length(fields)
     % Labels
     set(gca, 'xtick', 1:length(temp_regimes),'XTickLabel',temp_regimes)
     xlim([0.5,length(temp_regimes)+0.5])
-    title(fieldName)
+    title(field_names{f})
 end
 formatFig(fig, blkbgd, [r,c]);
 for f = 2:length(fields)
@@ -417,9 +423,9 @@ if ~strcmp(groupName,'Berlin LTS caviar')
     return
 end
 
-fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
-field_names = {'Food', 'Escape', 'Sleep', 'Courtship'};
-c = length(fields);
+% fields = {'FlyOnFood', 'OutterRing', 'sleep', 'CI'};
+% field_names = {'Food', 'Escape', 'Sleep', 'Courtship'};
+c = nTrans;
 r = 1;
 
 temp_regimes = unique(trans_cat);
@@ -427,7 +433,7 @@ kolor = Color('dodgerblue');
 offset = 0.1;
 FA = 0.4; % scatter plot face alpha level
 
-fig = getfig('time to first behavior', 1, [ 991 900]); 
+fig = getfig('time to first behavior', 1, [991 1049]); 
 for i = 1:length(temp_regimes) % subplot for each of the temp regime types
     subplot(r,c,i)
 
@@ -477,10 +483,6 @@ save_figure(fig, [figDir 'behavior_onset scatter by temp regime'],fig_type);
 % Figure: percent of flies that eat before sleeping vs percent of flies
 % that sleep before eating within each temperature regime
 % Do more flies eat before sleeping than not? 
-
-
-
-
 
 % follow up:  what is the time delay between sleeping and eating or eating
 % then sleeping?
@@ -623,9 +625,9 @@ scale_label_str = sprintf('%d min', scale_bar_mins);
 
 
 % BEHAVIOR SEQUENCE 
-fields = {'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
-% set up a color code for each behavior
-kolors = {'purple','yellow','red', 'lime', 'dodgerblue'}; % colors for the diff behaviors
+% fields = {'jump', 'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
+% field_names = {'escape jump', 'escape ring', 'food quadrant', 'fly on food', 'courtship', 'sleep'};
+% kolors = {'WongOrange', 'WongRed','WongBlue','WongLightBlue', 'WongPink', 'WongGreen'}; % colors for the diff behaviors
 cmap = backColor;
 for i = 1:length(kolors)
     cmap = [cmap; Color(kolors{i})];
@@ -695,86 +697,53 @@ for i = 1:nTrans
 end
 
 
+%% FIGURE: full timecourse of each fly behavior raster plot
 
+% BEHAVIOR SEQUENCE 
+fields = {'jump', 'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
+field_names = {'escape jump', 'escape ring', 'food quadrant', 'fly on food', 'courtship', 'sleep'};
+kolors = {'WongOrange', 'WongRed','WongBlue','WongLightBlue', 'WongPink', 'WongGreen'}; % colors for the diff behaviors
+cmap = backColor;
+for i = 1:length(kolors)
+    cmap = [cmap; Color(kolors{i})];
+end
 
-% Full timecourse figure: 
-
-scale_bar_mins = 60; % e.g. 60 mins
-scaleBar_duration = scale_bar_mins * fps * 60;   
-scale_label_str = sprintf('%d min', scale_bar_mins);
-
-fig = getfig('',false,[2020 900]);
-    ax = gca;
-    imagesc(real_img')
-    % label the plot
-    set(gca, 'xtick', [],'ytick', [])
-    xlabel('time','FontSize',12)
-    ylabel('fly','FontSize',12)
-
-    % remove colorbar
-    % C = colorbar;  <-- delete this block entirely
-
-    % text legend panel
-    legend_ax = axes('Position', [0.82, 0.2, 0.12, 0.6]);  % [x y w h] in figure units
-    axis(legend_ax, 'off')
-    hold(legend_ax, 'on')
-
-    behavior_labels = ['inner arena', fields];  % match your original colorbar labels    
-    % create legend 
-    legend_ax = axes('Position', [legend_x, legend_y, 0.12, legend_h]);
-    axis(legend_ax, 'off')
-    hold(legend_ax, 'on')
-    for b = 1:length(behavior_labels)
-        text(legend_ax, 0, b, behavior_labels{b}, ...
-            'Color', cmap(b,:), 'FontSize', 9, ...
-            'VerticalAlignment', 'middle', 'HorizontalAlignment', 'left')
+% fill each pixel with the behavioral state of the fly
+real_img = []; % this will be filled with the combined fly data later
+for sex = 2:-1:1 % reverse direction so female is on top
+    raw_image = nan(size(exc_data.CI)); 
+    for trial = 1:num.trials
+        for f = 1:length(fields) % each behavior gets coded with a number
+            if sex==F && strcmp(fields{f}, 'CI') % skip CI for female fly
+                continue
+            end
+            raw = exc_data.(fields{f});
+            if size(raw,2) == 2 % double data
+                loc = exc_data.(fields{f})(:,sex,trial); % frames with this behavior
+            else
+                loc = exc_data.(fields{f})(:,trial);
+            end
+            loc = logical(replaceNaN(loc, false));
+            raw_image(loc,trial) = f;
+        end
     end
-    ylim(legend_ax, [0.5, length(behavior_labels) + 0.5])
-    set(legend_ax, 'YDir', 'reverse')
-
-    % restore focus to image axes before drawing scale bar
-    axes(ax)
-    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
-
-    % colormap(cmap) % set the image colors by behavior
-
-    % add scale bar
-    ax = gca;
-    set(ax, 'XColor', 'none')  % hide x-axis
-    
-    drawnow   % flush axes before reading ylim
-    set(ax, 'XColor', 'none')
-    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
-
-    set(fig, 'color', backColor)
-
-    % draw region lines: 
-    v_line(transitions, 'black', '-', 2)
-
-    ax.Colormap = cmap;   % axes-level colormap, more persistent than figure-level
-    colormap(fig, cmap)
-    ax.Colormap = cmap;
-    drawnow limitrate
-    drawnow
-    save_figure(fig, fig_str, fig_type)
-
-fig_str = [sub_dir 'all behavior states '];
-save_figure(fig, fig_str)
+    raw_image = replaceNaN(raw_image, 0);
+    real_img = [real_img, raw_image]; % add the data from this fly sex
+end
 
 
-%%
 
 % Full timecourse figure:
 scale_bar_mins = 60;
 scaleBar_duration = scale_bar_mins * fps * 60;
 scale_label_str = sprintf('%d min', scale_bar_mins);
-behavior_labels = ['inner arena', fields];
+behavior_labels = ['inner arena', field_names];
 
-fig = getfig('', false, [2020 900]);
+fig = getfig('', false, [2184 1070]);
 ax = gca;
 imagesc(real_img')
-set(ax, 'xtick', [], 'ytick', [], 'XColor', 'none')
-ylabel('fly', 'FontSize', 18)
+set(ax, 'xtick', [], 'ytick', [], 'XColor', 'none', 'YColor', 'none')
+ylabel('fly    ', 'FontSize', 28, 'Color', foreColor, 'Rotation', 0)
 ax.Colormap = cmap;
 colormap(fig, cmap)
 
@@ -783,7 +752,7 @@ ax_pos   = ax.Position;
 legend_w = 0.08;
 legend_h = length(behavior_labels) * 0.04;
 legend_x = ax_pos(1) + ax_pos(3) + 0.01;
-legend_y = ax_pos(2) + ax_pos(4)/2 ;%- legend_h/2;  % vertically centered
+legend_y = ax_pos(2) + (0.7)*ax_pos(4) ;%- legend_h/2;  % vertically centered
 
 % create text legend
 legend_ax = axes('Position', [legend_x, legend_y, legend_w, legend_h]);
@@ -791,10 +760,10 @@ axis(legend_ax, 'off')
 hold(legend_ax, 'on')
 for b = 1:length(behavior_labels)
     text(legend_ax, 0, b, behavior_labels{b}, ...
-        'Color', cmap(b,:), 'FontSize', 18, ...
+        'Color', cmap(b,:), 'FontSize', 22, ...
         'VerticalAlignment', 'middle', 'HorizontalAlignment', 'left')
 end
-ylim(legend_ax, [0.5, length(behavior_labels) + 0.5])
+ylim(legend_ax, [0.25, length(behavior_labels) + 0.5])
 set(legend_ax, 'YDir', 'reverse')
 
 % draw transition lines
@@ -803,7 +772,7 @@ v_line(transitions, 'k', '-', 2)
 
 % scale bar
 drawnow
-updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, 0.1)
 
 ax.Colormap = cmap;   % axes-level colormap, more persistent than figure-level
 colormap(fig, cmap)
@@ -890,5 +859,9 @@ data.OutterRing
 %% TODO: How often do flies go from each behavior to the next? Make this a chord chart? 
 % pull out the chunks of each behavior (like start and stop points for each
 % 'time' of a behavior
+
+%% Show the timing / rank order of different behaviors on an individual fly level
+
+
 
 

@@ -1,5 +1,5 @@
-function updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
-% updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+function updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_percent)
+% updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_percent)
 %
 % PURPOSE
 % Draws a dynamic scale bar on a given axes object to replace the x-axis.
@@ -8,17 +8,19 @@ function updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
 % standard line plot axes and imagesc axes (reversed y-direction).
 %
 % INPUTS
-%   'ax'                : target axes object
+%   'ax'  : target axes object
 %       handle to the axes on which the scale bar will be drawn
-%   'foreColor'         : color of the scale bar and text
+%   'foreColor'  : color of the scale bar and text
 %       1-by-3 RGB vector, e.g. [1 1 1] for white
 %   'scaleBar_duration' : length of the scale bar in x-axis units
 %       scalar, e.g. 100 for 100 mins
-%   'scale_label_str'   : label to display below the scale bar
+%   'scale_label_str'  : label to display below the scale bar
 %       string, e.g. '100 min' or '1000 frames'
+%   'offset_percent' : how far from the axes should the scale bar be
+%           default: 0.01
 %
 % OUTPUTS
-%   none — draws directly onto ax
+%   none — draws directly onto axes
 %
 % NOTES
 %   Scale bar and label are tagged 'ScaleBar' so they can be found and
@@ -35,10 +37,13 @@ function updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
 %   updateScaleBar(ax,  [1 1 1], 1000, '1000 frames') % imagesc
 %
 % ES DICKINSON, YALE, 2026
+
 %%
 delete(findobj(ax, 'Tag', 'ScaleBar'))
 
-offset_percent = 0.005;
+if nargin<5
+    offset_percent = 0.01;
+end
 
 xl = xlim(ax);
 yl = ylim(ax);
@@ -78,7 +83,7 @@ line(ax, [scaleBar_x_start, scaleBar_x_end], [scaleBar_y, scaleBar_y], ...
 text(ax, scaleBar_x_start, text_y, ...
     scale_label_str, ...
     'Color', foreColor, 'HorizontalAlignment', 'left', ...
-    'VerticalAlignment', textVA, 'FontSize', 18, ...
+    'VerticalAlignment', textVA, 'FontSize', 20, ...
     'Clipping', 'off', 'Tag', 'ScaleBar')
 
 end

@@ -104,7 +104,7 @@ for i = 1:numParams
             pName{i} = 'innerquad';
             ext(i) = true; % extension for sub region required
             y_dir{i} = 'normal';
-            y_lab{i} = [title_str{i} ' (%)'];
+            y_lab{i} = ['inner quadrant (%)'];
             nullD(i) = 18.75;
             scaler(i) = 1;
         case 'circle10'
@@ -139,7 +139,7 @@ for i = 1:numParams
             pName{i} = 'sleep';
             ext(i) = false;
             y_dir{i} = 'normal';
-            y_lab{i} = 'Sleeping flies (%)';
+            y_lab{i} = 'sleeping (%)';
             nullD(i) = nan;
             scaler(i) = 1;
         case 'fliesonfood'

@@ -2,10 +2,16 @@
 blkbgd = false;
 [foreColor,backColor] = formattingColors(blkbgd); %get background colors
 
+initial_vars = add_var(initial_vars, 'saveDir');
+saveDir = createFolder([figDir, 'Paper Figures/']);
+
+% 
+% field_names = {'escape jump', 'escape ring', 'food quadrant', 'fly on food', 'courtship', 'sleep'};
+% kolors = {'WongOrange', 'WongRed','WongBlue','WongLightBlue', 'WongPink', 'WongGreen'}; % colors for the diff behaviors
 
 %% FIGURE: time course of all the different behaviors ordered by precidence
 clearvars('-except',initial_vars{:})
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+[foreColor,~] = formattingColors(blkbgd); %get background colors
 
 plot_err = true;
 LW = 1.5;
@@ -108,114 +114,305 @@ addlistener(ax4, 'XLim', 'PostSet', @(~,~) updateScaleBar(ax4, foreColor, scaleB
 
 
 % save figure: 
-saveDir = createFolder([figDir, 'Paper Figures/']);
 save_figure(fig, [saveDir, 'Fig 1 timecourse of behavior ', grouped(g).name]);
 
-%% FIGURE: timecourse of 
+%% FIGURE: temperature tuning panel with all behaviors
+clearvars('-except',initial_vars{:})
 
+exp = 2; % which exp to plot
 
+autoLim = false;
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
+% manual_xlims = [13, 25];
 
+plot_err = true; % plot SEM
+plot_high_null = true; % plot the low or high null occupancy for empty trials
+foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
 
+narrow_fig = false;
+narrow_fig_size = [676 680];
 
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(false,false,true);
+nTypes = length(pName);
+% get plotting colors for the paper scheme:
+colors = getPaperColors(pName);
+plot_err = true;
+  
+% set region selection for trials that have subregions to select between
+null_quad = 'high'; % highest occupancy quadrant
+food_quad = 'food'; % quadrant with food
 
+% Plotting Parameters
+LW = 0.5; % line width
+hLW = 1.5; % highlight line width for empty trials (to indicate that it is plotting highest occupancy region, not the food quadrant) 
+buff = 0.5; % linewidth buffer to match the non null to null width...
+xlimits = []; % initialize empty x for finding uniform x axis scaling later
 
-%%
-autoLim = true;
-% Y limit ranges
-speed_lim = [0,10]; %speed
-dist_lim = [5, 30]; %distance
-dt_lim = [12, 34];      %distance-temp
-% dt_lim = [10, 30];        %distance-temp
-nMax =  num.exp;%
-[foreColor,backColor] = formattingColors(blkbgd); %get background colors
+% FIGURE:
+r = 1;
+c = 2; % heating and cooling
+fig = getfig('', true);
+ax_cool = subplot(r, c, 1); hold on; title('cooling', 'Color', foreColor)
+ax_heat = subplot(r, c, 2); hold on; title('heating', 'Color', foreColor)
 
-% set up figure aligments
-r = 5; %rows
-c = 3; %columns
-sb(1).idx = 1:2; %temp timecourse
-sb(2).idx = [4,5,7,8]; %distance from food timecourse %TODO: normalize this to something more intuitive?
-sb(3).idx = [10,11,13,14]; %speed timecourse
-sb(4).idx = 3:3:15; %binned distance alignment
+for roi = 1:nTypes
+    kolor = colors(roi,:);
+    % determine if this is a food or null trial
+    if data(exp).emptytrial
+        subfield = null_quad;
+        hColor = foreColor;
+        highlight = false; % change to true if desired outlines
+    else
+        subfield = food_quad;
+        highlight = false;
+    end
 
-LW = 0.75;
-sSpan = 360; % 2 minute smoothing 
-dataString = cell([1,num.exp]);
+    % pull the subfield data structure
+    if quad_regions(roi)
+        yy = grouped(exp).(pName{roi}).(subfield);
+    else
+        yy = grouped(exp).(pName{roi});
+    end
 
-% FIGURE:  
-fig = getfig('',true);
-for g = 1:nMax
-%     i = expOrder(ii);
-    x = grouped(g).time;   
-    kolor = grouped(g).color;
+    x = yy.temps;
+    YH = yy.increasing.raw  * scaler(roi);
+    YC = yy.decreasing.raw  * scaler(roi);
+    y_H = mean(YH, 2, 'omitnan');
+    y_C = mean(YC, 2, 'omitnan');
+    y_err_H = std(YH, 0, 2, 'omitnan') ./ sqrt(num.trial(exp));
+    y_err_C = std(YC, 0, 2, 'omitnan') ./ sqrt(num.trial(exp));
 
-    %temp
-    subplot(r,c,sb(1).idx); hold on
-        y = grouped(g).temp;
-        plot(x,y,'LineWidth',1,'Color',kolor)
+    switch dType
+        case 1 % single trial lines
+            for trial = 1:num.trial(exp)
+                y_H_trial = YH(:, trial);
+                y_C_trial = YC(:, trial);
+                if highlight
+                    plot(ax_heat, x, y_H_trial, 'LineWidth', LW+hLW, 'Color', hColor)
+                    plot(ax_cool, x, y_C_trial, 'LineWidth', LW+hLW, 'Color', hColor)
+                end
+                plot(ax_heat, x, y_H_trial, 'Color', kolor, 'LineWidth', LW+buff)
+                plot(ax_cool, x, y_C_trial, 'Color', kolor, 'LineWidth', LW+buff)
+            end
 
-    %distance
-    subplot(r,c,sb(2).idx); hold on
-        y = smooth(grouped(g).dist.avg,'moving',sSpan);
-        % for jj = 1:50
-        %     y = smooth(y,'moving',sSpan);
-        % end
-%         y_err = smooth(grouped(i).dist.err,'moving',sSpan);
-        plot(x,y,'LineWidth',LW,'Color',kolor)
-        if ~autoLim
-            ylim(dist_lim)
-        end
-
-%     %speed
-    subplot(r,c,sb(3).idx); hold on
-        y = smooth(grouped(g).speed.avg,'moving',sSpan);
-        % for jj = 1:50
-        %     y = smooth(y,'moving',sSpan);
-        % end
-        %         y_err = smooth(grouped(i).speed.err,'moving',sSpan);
-        plot(x,y,'LineWidth',LW,'Color',kolor)
-        if ~autoLim
-            ylim(speed_lim)
-        end
-
-    %temp dependent distance
-    subplot(r,c,sb(4).idx); hold on
-        x = grouped(g).dist.distavgbytemp(:,1);
-        y = grouped(g).dist.distavgbytemp(:,2);
-        y_err = grouped(g).dist.distavgbytemp_err(:,2);
-        plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.4);
-        plot(x,y,'color',kolor,'linewidth',LW+1)
-
-        dataString{g} = grouped(g).name;
+        case {2, 3} % avg lines — overlay all metrics on same axes
+            if highlight
+                plot(ax_heat, x, y_H, 'LineWidth', LW+hLW, 'Color', hColor)
+                plot(ax_cool, x, y_C, 'LineWidth', LW+hLW, 'Color', hColor)
+            end
+            plot(ax_heat, x, y_H, 'Color', kolor, 'LineWidth', LW+buff)
+            plot(ax_cool, x, y_C, 'Color', kolor, 'LineWidth', LW+buff)
+            axes(ax_heat)
+            plot_error_fills(plot_err, x, y_H, y_err_H, kolor, fig_type, 0.35)
+            axes(ax_cool)
+            plot_error_fills(plot_err, x, y_C, y_err_C, kolor, fig_type, 0.35)
+    end
+    xlimits = [xlimits, xlim(ax_heat), xlim(ax_cool)];
 end
 
-% FORMATING AND LABELS
-formatFig(fig,blkbgd,[r,c],sb);
-% temp
-subplot(r,c,sb(1).idx)
-ylabel('\circC')
-set(gca,"XColor",backColor)
-% distance
-subplot(r,c,sb(2).idx)
-ylabel('proximity to food (mm)')
-set(gca,"XColor",backColor)
-set(gca,'ydir','reverse')
-% speed
-subplot(r,c,sb(3).idx)
-ylabel('speed (mm/s)')
-xlabel('time (min)')
-% temp-distance relationship
-subplot(r,c,sb(4).idx)
-ylabel('proximity to food (mm)')
-
-xlabel('temp (\circC)')
-if ~autoLim
-    ylim(dt_lim)
+% FORMATTING AND LABELS
+xlimits = [min(xlimits), max(xlimits)];
+formatFig(fig, blkbgd, [r, c]);
+matchSubplotAxes(fig, "Y", true);
+set(ax_cool, 'XDir', 'reverse')
+set(ax_heat, 'XDir', 'normal')
+for ax = [ax_heat, ax_cool]
+    axes(ax)
+    xlabel(ax, 'temp (\circC)')
+    if autoLim
+        xlim(xlimits)
+    else
+        xlim(manual_xlims)
+    end
+    ylabel('% flies')
 end
-h_line(18.1,'grey',':',1) %36.2
-set(gca,'ydir','reverse')
-%
-dataString = strrep(dataString, '_', ' ');
-legend(dataString,'textcolor', foreColor, 'location', 'northwest', 'box', 'off','fontsize', 5)
+l = legend(y_lab, 'Box','off', 'Location', 'northwest');
 
-% save figure
-save_figure(fig,[saveDir expGroup ' timecourse summary'],fig_type);
+% plot a line for the 'safe' vs 'threat' zones: 
+y = rangeLine(fig, 0, false);
+xrange = xlim;
+x_less = [xrange(1), 25];
+x_more = [25, xrange(2)];
+axes(ax_heat)
+    plot(x_more, [y,y], 'Color', Color('darkred'), 'LineWidth',3, 'HandleVisibility','off') % threat
+    plot(x_less, [y,y], 'Color', Color('grey'), 'LineWidth',3, 'HandleVisibility','off') % safe
+axes(ax_cool)
+    plot(x_less, [y,y], 'Color', Color('darkred'), 'LineWidth',3, 'HandleVisibility','off') % threat
+    plot(x_more, [y,y], 'Color', Color('grey'), 'LineWidth',3, 'HandleVisibility','off') % safe
+
+
+% set the y limits manually
+switch grouped(exp).name
+    case 'Berlin LTS 15-35 no food'
+        ylims = [-1, 50];
+        y_ticks = 0:10:50;
+        l.Position = [0.34461 0.8549 0.18891 0.095588];
+    case 'Berlin LTS 15-35 caviar plate 1'
+        ylims = [-1, 80];
+        y_ticks = 0:20:80;
+end
+axes(ax_heat)
+ylim(ylims)
+set(ax_heat, 'YTick', y_ticks)
+addTimeArrow(ax_heat, foreColor);
+axes(ax_cool)
+ylim(ylims)
+set(ax_cool, 'YTick', y_ticks)
+addTimeArrow(ax_cool, foreColor);
+
+
+% save figure: 
+save_figure(fig, [saveDir, 'Fig 1 temp tuning curve', grouped(exp).name]);
+
+
+%% FIGURE: normalized temperature tuning panel with all behaviors
+clearvars('-except',initial_vars{:})
+
+exp = 1; % which exp to plot
+
+autoLim = false;
+manual_xlims = [13, 37];
+% manual_xlims = [15, 27];
+% manual_xlims = [13, 25];
+
+plot_err = true; % plot SEM
+plot_high_null = true; % plot the low or high null occupancy for empty trials
+foreColor = formattingColors(blkbgd,true); % get foreground color for current background configuration
+
+narrow_fig = false;
+narrow_fig_size = [676 680];
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,quad_regions] = PlotParamSelection(false,false,true);
+nTypes = length(pName);
+% get plotting colors for the paper scheme:
+colors = getPaperColors(pName);
+
+switch questdlg('Plot error?','','True','False', 'Cancel','True')
+    case 'True'
+        plot_err = true;
+    case 'False'
+        plot_err = false;
+    case 'Cancel'
+        return
+    case ''
+        return
+end
+
+% set region selection for trials that have subregions to select between
+null_quad = 'high'; % highest occupancy quadrant
+food_quad = 'food'; % quadrant with food
+
+% Plotting Parameters
+LW = 0.5; % line width
+hLW = 1.5; % highlight line width for empty trials (to indicate that it is plotting highest occupancy region, not the food quadrant) 
+buff = 0.5; % linewidth buffer to match the non null to null width...
+xlimits = []; % initialize empty x for finding uniform x axis scaling later
+
+% FIGURE:
+r = 1;
+c = 2; % heating and cooling
+fig = getfig('', true);
+ax_cool = subplot(r, c, 1); hold on; title('cooling', 'Color', foreColor)
+ax_heat = subplot(r, c, 2); hold on; title('heating', 'Color', foreColor)
+
+for roi = 1:nTypes
+    kolor = colors(roi,:);
+    % determine if this is a food or null trial
+    if data(exp).emptytrial
+        subfield = null_quad;
+        hColor = foreColor;
+        highlight = true;
+    else
+        subfield = food_quad;
+        highlight = false;
+    end
+
+    % pull the subfield data structure
+    if quad_regions(roi)
+        yy = grouped(exp).(pName{roi}).(subfield);
+    else
+        yy = grouped(exp).(pName{roi});
+    end
+
+    x = yy.temps;
+    YH = yy.increasing.raw  * scaler(roi);
+    YC = yy.decreasing.raw  * scaler(roi);
+    y_H = mean(YH, 2, 'omitnan');
+    y_C = mean(YC, 2, 'omitnan');
+    y_err_H = std(YH, 0, 2, 'omitnan') ./ sqrt(num.trial(exp));
+    y_err_C = std(YC, 0, 2, 'omitnan') ./ sqrt(num.trial(exp));
+
+    switch dType
+        case 1 % single trial lines
+            for trial = 1:num.trial(exp)
+                y_H_trial = YH(:, trial);
+                y_C_trial = YC(:, trial);
+                if highlight
+                    plot(ax_heat, x, y_H_trial, 'LineWidth', LW+hLW, 'Color', hColor)
+                    plot(ax_cool, x, y_C_trial, 'LineWidth', LW+hLW, 'Color', hColor)
+                end
+                plot(ax_heat, x, y_H_trial, 'Color', kolor, 'LineWidth', LW+buff)
+                plot(ax_cool, x, y_C_trial, 'Color', kolor, 'LineWidth', LW+buff)
+            end
+
+        case {2, 3} % avg lines — overlay all metrics on same axes
+            if highlight
+                plot(ax_heat, x, y_H, 'LineWidth', LW+hLW, 'Color', hColor)
+                plot(ax_cool, x, y_C, 'LineWidth', LW+hLW, 'Color', hColor)
+            end
+            plot(ax_heat, x, y_H, 'Color', kolor, 'LineWidth', LW+buff)
+            plot(ax_cool, x, y_C, 'Color', kolor, 'LineWidth', LW+buff)
+            axes(ax_heat)
+            plot_error_fills(plot_err, x, y_H, y_err_H, kolor, fig_type, 0.35)
+            axes(ax_cool)
+            plot_error_fills(plot_err, x, y_C, y_err_C, kolor, fig_type, 0.35)
+    end
+    xlimits = [xlimits, xlim(ax_heat), xlim(ax_cool)];
+end
+
+
+% FORMATTING AND LABELS
+xlimits = [min(xlimits), max(xlimits)];
+formatFig(fig, blkbgd, [r, c]);
+matchSubplotAxes(fig, "Y", true);
+set(ax_cool, 'XDir', 'reverse')
+set(ax_heat, 'XDir', 'normal')
+for ax = [ax_heat, ax_cool]
+    axes(ax)
+    xlabel(ax, 'temp (\circC)')
+    if autoLim
+        xlim(xlimits)
+    else
+        xlim(manual_xlims)
+    end
+    ylabel('% flies')
+    addTimeArrow(ax, foreColor);
+end
+legend(y_lab, 'Box','off', 'Location', 'northwest')
+axes(ax_cool)
+
+
+% plot a line for the 'safe' vs 'threat' zones: 
+y = rangeLine(fig, 3, true);
+xrange = xlim;
+x_less = [xrange(1), 25];
+x_more = [25, xrange(2)];
+axes(ax_heat)
+    plot(x_more, [y,y], 'Color', Color('darkred'), 'LineWidth',3, 'HandleVisibility','off') % threat
+    plot(x_less, [y,y], 'Color', Color('grey'), 'LineWidth',3, 'HandleVisibility','off') % safe
+axes(ax_cool)
+    plot(x_less, [y,y], 'Color', Color('darkred'), 'LineWidth',3, 'HandleVisibility','off') % threat
+    plot(x_more, [y,y], 'Color', Color('grey'), 'LineWidth',3, 'HandleVisibility','off') % safe
+
+
+% save figure: 
+save_figure(fig, [saveDir, 'Fig 1 temp tuning curve', grouped(exp).name]);
+
+
+
+
+
+
