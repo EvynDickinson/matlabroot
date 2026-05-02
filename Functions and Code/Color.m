@@ -51,37 +51,37 @@ if nargin > 1
 end
 
 %% HOW THE COLORS ARE UPDATED|CREATED:
-xlFile = "C:\Users\evynd\Documents\matlabroot\Functions and Code\Color Palette.xlsx";      
-%load excel sheet data
-[~,~,excelfile] = xlsread(xlFile);
-
-%Load colors:
-for ii = 1:length(excelfile)
-    a = excelfile{ii,3};
-    colors.names{ii,1} = excelfile{ii,1};
-    if ~isnan(a)
-        aa = strsplit(a, {',', '.'});
-        R = str2double(aa{1});
-        G = str2double(aa{2});
-        B = str2double(aa{3});
-        colors.raw(ii,:) = [R, G, B];
-    else
-        colors.raw(ii,1:3) = NaN; 
-    end
-end
-colors.rgb = colors.raw./255;
-
-% check that no colors exceed a value of 1
-% or are less than 0
-for ii = 1:length(excelfile)
-    if any(colors.rgb(ii,:) > 1)
-        fprintf(['\n value >1 in row: ' num2str(ii)])
-    end 
-    if any(colors.rgb(ii,:) < 0)  
-        fprintf(['\n value <0 in row: ' num2str(ii)])
-    end
-end
-% make sure you're in the correct 'Functions and Code' folder
-save('color_palette', 'colors')
+% xlFile = "C:\Users\evynd\Documents\matlabroot\Functions and Code\Color Palette.xlsx";      
+% %load excel sheet data
+% [~,~,excelfile] = xlsread(xlFile);
+% 
+% %Load colors:
+% for ii = 1:length(excelfile)
+%     a = excelfile{ii,3};
+%     colors.names{ii,1} = excelfile{ii,1};
+%     if ~isnan(a)
+%         aa = strsplit(a, {',', '.'});
+%         R = str2double(aa{1});
+%         G = str2double(aa{2});
+%         B = str2double(aa{3});
+%         colors.raw(ii,:) = [R, G, B];
+%     else
+%         colors.raw(ii,1:3) = NaN; 
+%     end
+% end
+% colors.rgb = colors.raw./255;
+% 
+% % check that no colors exceed a value of 1
+% % or are less than 0
+% for ii = 1:length(excelfile)
+%     if any(colors.rgb(ii,:) > 1)
+%         fprintf(['\n value >1 in row: ' num2str(ii)])
+%     end 
+%     if any(colors.rgb(ii,:) < 0)  
+%         fprintf(['\n value <0 in row: ' num2str(ii)])
+%     end
+% end
+% % make sure you're in the correct 'Functions and Code' folder
+% save('color_palette', 'colors')
 
 end
