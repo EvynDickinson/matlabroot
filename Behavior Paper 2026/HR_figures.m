@@ -473,7 +473,7 @@ end
 
 % -------------------------------------------------------------------------------
 switch groupName
-    case {'Berlin LTS 35-15 No Food', 'Berlin LTS 35-15 Caviar'}
+    case {'Berlin LTS 35-15 No Food', 'Berlin LTS caviar'}
         % temp_lims = [14.5, 35.5];
         temp_ticks = 15:5:35;
 end
@@ -583,16 +583,16 @@ for pp = 1:nParams
         plot(x_more, [y,y], 'Color', safe_color, 'LineWidth',3, 'HandleVisibility','off') % safe
 
 
-    save_figure(fig, [T50_save 'T50 ' param_names{pp}]);
+    save_figure(fig, [T50_save 'T50 ' param_names{pp}], '-pdf', true);
 end
 
 % ------------------------------------------------------------------------------------------
 
-% T50 summary scatter — all params, cooling vs warming subplots
+%%  T50 summary scatter — all params, cooling vs warming subplots
 % temp on x-axis, behaviors on y-axis, ordered by mean T50
 r = 1; c = 2;
 SZ = 150;
-fig = getfig('', false,[1311 758]);
+fig = getfig('', false,[1311 758]); %  1078 531
 ax_handles = gobjects(1, 2);
 
 for ii = 1:2 % cooling then warming
@@ -614,6 +614,7 @@ for ii = 1:2 % cooling then warming
     all_vals = [];
 
     for rank = 1:nParams
+        % y = rank_y(rank); % smaller y value distances for plotting
         i = sort_idx(rank);
         vals = T50.(paramList{i}).(temp_type{ii});
         all_vals = [all_vals; vals(:)];
@@ -630,7 +631,7 @@ for ii = 1:2 % cooling then warming
     % x-axis: temperature
     xlim(temp_lims)
     set(ax_handles(ii), 'xtick', temp_ticks)
-    xlabel('Temperature at 50% max (\circC)')
+    xlabel({' ' ; 'Temperature at 50% max (\circC)'})
 
     % y-axis: behaviors in sorted order
     ylim([0.5, nParams + 0.5])
@@ -662,9 +663,13 @@ end
 % sgtitle('T_{50} across behaviors', 'Color', foreColor, 'FontSize', 20)
 formatFig(fig, blkbgd, [r, c])
 
+
+set(findall(fig, 'Type', 'axes'), 'FontSize', 20)        % tick labels
+set(findall(fig, 'Type', 'text'), 'FontSize', 20)        % all text/titles/labels
+
 % add time arrow after formatFig
 for ii = 1:2
     addTimeArrow(ax_handles(ii), foreColor)
 end
 
-save_figure(fig, [T50_save 'T50 all params'])
+save_figure(fig, [T50_save 'T50 all params']);
