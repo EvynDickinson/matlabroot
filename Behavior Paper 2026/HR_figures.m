@@ -7,7 +7,7 @@ clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
 
 paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing', 'jump'};
-colors = getPaperColors(paramList); % colors determined by universal color scheme
+[colors, param_names] = getPaperColors(paramList); % colors determined by universal color scheme
 
 ntemps = length(data.tempbin.temps);
 nParams = length(paramList);
@@ -121,134 +121,550 @@ subplot(r,c,1)
 
 save_figure(fig, [saveDir 'normalized behavior for timing temp tuning curve'],fig_type);
 
-%% FIGURE: scatter plot of normalized half-max timepoint for each behavior
+
+%% Time to 50% peak of a given behavior analysis single trial separated
+% fixed temperature binning
+
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
+T50_save = createFolder([saveDir, 'T50/']);
 
 paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing', 'jump'};
-colors = getPaperColors(paramList); % colors determined by universal color scheme
-
+[colors, param_names] = getPaperColors(paramList); % colors determined by universal color scheme
 ntemps = length(data.tempbin.temps);
+temps = data.tempbin.temps; % pre-made temperature bins
 nParams = length(paramList);
-TC = struct;
-for i = 1:nParams
-    [TC.(paramList{i}).avg, TC.(paramList{i}).std] = deal(nan(ntemps,2)); % cooling then warming for columns
-end
 
-% preformat the z-score for the data that will be extracted and used: 
-% this matrix is by time
+% ------------------------------------
 
-% TODO: need to zscore within an individual fly (based on temp bins perhaps), rather than across the flies, 
-% so we can have an individualized measure of behavior order timing
+threshold = 0.5;
+T50 = struct;
+temp_type = {'cooling', 'warming'};
+num.sexes = 2;
 
-
-Zdata = [];
-Zdata(:,1) = (sum(data.CI,2)./num.trials); % courtship index
-for i = 2:nParams
-    Zdata(:,i) = sum(sum(data.(paramList{i}),2),3)./(num.trials*2);
-end
-Zdata(isnan(Zdata)) = 0; 
-
-% sort the data into temperature groups rather than by time alone
-for t = 1:ntemps
-    for type = 1:2 % cooling then warming
-        switch type 
-            case 1 
-                ROI = data.tempbin.cooling(:,t);
-            case 2
-                ROI = data.tempbin.warming(:,t);
-        end
-        
-        for i = 1:nParams % courtship, sleep, food, escape, jumps, etc
-            y = Zdata(ROI,i);
-            y_avg = mean(y,'omitnan');
-            TC.(paramList{i}).avg(t,type) = y_avg;
-            if ~isempty(y)
-                y_err = std(y, 0,1,'omitnan');
-                TC.(paramList{i}).std(t,type) = y_err;
-            end
-        end
+% initialize empty structure
+% CI: trials only; all others: trials x sexes
+for ii = 1:nParams
+    if strcmpi(paramList{ii}, 'CI')
+        nCols = num.trials;
+    else
+        nCols = num.trials * num.sexes;
+    end
+    for type = 1:2
+        field = temp_type{type};
+        T50.(paramList{ii}).(field) = nan(nCols, 1);
+        T50.(paramList{ii}).([field '_norm']) = nan(ntemps, nCols);
+        T50.(paramList{ii}).([field '_raw']) = nan(ntemps, nCols);
     end
 end
 
-% --------------------------------------------------------
-
-% For each parameter and each trial, find the temperature at which
-% occupancy crosses 50% of that trial's max — separately for cooling and warming
-threshold = 0.5; % 50% of max
-T50 = struct;
-
-for i = 1:nParams
-    T50.(paramList{i}).cooling = nan(num.trials, 1);
-    T50.(paramList{i}).warming = nan(num.trials, 1);
-end
-
 for trial = 1:num.trials
-    for i = 1:nParams
-
-        % get raw data for this trial
-        if i == 1 % CI
-            raw = data.CI(:, trial);
+    for ii = 1:nParams
+        if strcmpi(paramList{ii}, 'CI')
+            % CI: single value per trial, no sex dimension
+            raw_all = {data.CI(:, trial)};
+            col_idx = {trial};
         else
-            raw = sum(data.(paramList{i})(:,:,trial), 2); % sum across sides/sexes if needed
+            % separate each sex into its own column
+            raw_all = {data.(paramList{ii})(:, M, trial), ...   
+                       data.(paramList{ii})(:, F, trial)};      
+            col_idx = {(trial-1)*num.sexes + 1, ...
+                       (trial-1)*num.sexes + 2};
         end
 
-        for type = 1:2 % 1 = cooling, 2 = warming
-            % get frame indices and corresponding temps for this ramp
-            switch type
-                case 1
-                    field = 'cooling';
-                case 2
-                    field = 'warming';
-            end
+        for s = 1:length(raw_all) % aka for each sex
+            raw = raw_all{s};
+            col = col_idx{s};
 
-            % collect data across all temp bins for this ramp
-            y_by_temp = nan(ntemps, 1);
-            for t = 1:ntemps
-                ROI = data.tempbin.(field)(:, t);
-                y_by_temp(t) = mean(raw(ROI), 'omitnan');
-            end
+            for type = 1:2 % cooling | warming
+                field = temp_type{type};
 
-            % normalize to this trial's max on this ramp
-            trial_max = max(y_by_temp, [], 'omitnan');
-            trial_min = min(y_by_temp, [], 'omitnan');
-            y_norm = (y_by_temp - trial_min) ./ (trial_max - trial_min);
+                % collect data across all temp bins for this ramp
+                y_by_temp = nan(ntemps, 1);
+                for t = 1:ntemps
+                    ROI = data.tempbin.(field)(:, t);
+                    y_by_temp(t) = mean(raw(ROI), 'omitnan');
+                end
 
-            % find first crossing of threshold
-            crossing_idx = find(y_norm >= threshold, 1, 'first');
-            if ~isempty(crossing_idx)
-                % interpolate for sub-bin precision
-                if crossing_idx > 1
-                    x1 = data.tempbin.temps(crossing_idx - 1);
-                    x2 = data.tempbin.temps(crossing_idx);
-                    y1 = y_norm(crossing_idx - 1);
-                    y2 = y_norm(crossing_idx);
-                    T50.(paramList{i}).(field)(trial) = interp1([y1 y2], [x1 x2], threshold);
-                else
-                    T50.(paramList{i}).(field)(trial) = data.tempbin.temps(crossing_idx);
+                % normalize to this trial's max on this ramp
+                trial_max = max(y_by_temp, [], 'omitnan');
+                trial_min = min(y_by_temp, [], 'omitnan');
+                y_norm = (y_by_temp - trial_min) ./ (trial_max - trial_min);
+
+                % save curves
+                T50.(paramList{ii}).([field '_norm'])(:, col) = y_norm;
+                T50.(paramList{ii}).([field '_raw'])(:, col)  = y_by_temp;
+
+                switch type
+                    case 1 % cooling: search from high temp (end) downward to low temp
+                        search_norm  = y_norm(end:-1:1);
+                        search_temps = data.tempbin.temps(end:-1:1);
+                    case 2 % warming: search from low temp (start) upward to high temp
+                        search_norm  = y_norm;
+                        search_temps = data.tempbin.temps;
+                end
+
+                crossing_idx = find(search_norm >= threshold, 1, 'first');
+
+                if ~isempty(crossing_idx)
+                    if crossing_idx > 1
+                        x1 = search_temps(crossing_idx - 1);
+                        x2 = search_temps(crossing_idx);
+                        y1 = search_norm(crossing_idx - 1);
+                        y2 = search_norm(crossing_idx);
+                        try
+                            T50.(paramList{ii}).(field)(col) = interp1([y1 y2], [x1 x2], threshold);
+                        catch
+                            T50.(paramList{ii}).(field)(col) = search_temps(crossing_idx);
+                        end
+                    else
+                        T50.(paramList{ii}).(field)(col) = search_temps(crossing_idx);
+                    end
                 end
             end
         end
     end
 end
 
-% summary stats across trials
+% summary stats across trials x sexes
 T50_summary = struct;
-for i = 1:nParams
-    for field = {'cooling', 'warming'}
-        vals = T50.(paramList{i}).(field{:});
-        T50_summary.(paramList{i}).(field{:}).mean = mean(vals, 'omitnan');
-        T50_summary.(paramList{i}).(field{:}).sem  = std(vals, 0, 'omitnan') ./ sqrt(sum(~isnan(vals)));
-        T50_summary.(paramList{i}).(field{:}).all  = vals;
+for ii = 1:nParams
+    for type = 1:2
+        field = temp_type{type};
+        vals = T50.(paramList{ii}).(field);
+        T50_summary.(paramList{ii}).(field).mean = mean(vals, 'omitnan');
+        T50_summary.(paramList{ii}).(field).sem = std(vals, 0, 'omitnan') ./ sqrt(sum(~isnan(vals)));
+        T50_summary.(paramList{ii}).(field).all = vals;
+    end
+end
+
+% -------------------------------------------------------------------------------
+% Plot the different temp tuning curves — one figure per parameter
+r = 1; c = 3;
+SZ = 75;
+x_temps = data.tempbin.temps;
+x_pad   = 0.5;
+
+for pp = 1:nParams
+    fig = getfig('', false);
+
+    % --- COOLING tuning curves ---
+    ax1 = subplot(r, c, 1); hold on
+    plot(x_temps, T50.(paramList{pp}).cooling_norm, ...
+        'Color', colors(pp,:), 'LineWidth', 0.8)
+    h_line(threshold, foreColor, '--', 1)
+    xlabel('Temperature (\circC)')
+    ylabel('Normalized Occupancy')
+    title('cooling')
+    xlim([min(x_temps) - x_pad, max(x_temps) + x_pad])
+    ylim([-0.05, 1.05])
+    set(ax1, 'ytick', 0:0.2:1)
+
+    % --- WARMING tuning curves ---
+    ax2 = subplot(r, c, 2); hold on
+    plot(x_temps, T50.(paramList{pp}).warming_norm, ...
+        'Color', colors(pp,:), 'LineWidth', 0.8)
+    h_line(threshold, foreColor, '--', 1)
+    xlabel('Temperature (\circC)')
+    ylabel('Normalized Occupancy')
+    title('warming')
+    xlim([min(x_temps) - x_pad, max(x_temps) + x_pad])
+    ylim([-0.05, 1.05])
+    set(ax2, 'ytick', 0:0.2:1)
+
+    % --- T50 scatter ---
+    ax3 = subplot(r, c, 3); hold on
+    all_vals = [];
+    for ii = 1:2 % cooling and warming
+        vals = T50.(paramList{pp}).(temp_type{ii});
+        all_vals = [all_vals; vals(:)];
+        scatter(ii, vals, SZ, colors(pp,:), 'filled', ...
+            'XJitter', 'density', 'XJitterWidth', 0.2,...
+            'MarkerFaceAlpha',0.6)
+        m = T50_summary.(paramList{pp}).(temp_type{ii}).mean;
+        sem = T50_summary.(paramList{pp}).(temp_type{ii}).sem;
+        errorbar(ii, m, sem, ...
+            'Color', foreColor, 'LineWidth', 1.5, 'CapSize', 6)
+        scatter(ii, m, SZ+25, foreColor, 'filled', 'square')
+    end
+    xlim([0.5, 2.5])
+    y_range = [min(all_vals, [], 'omitnan'), max(all_vals, [], 'omitnan')];
+    y_pad = 0.05 * diff(y_range);
+    ylim([y_range(1) - y_pad, y_range(2) + y_pad])
+    xticks([1, 2])
+    xticklabels(temp_type)
+    ylabel('Temperature at 50% max (\circC)')
+    title('T_{50}')
+
+    linkaxes([ax1, ax2], 'xy')
+    sgtitle(param_names{pp}, 'Color', foreColor, 'FontSize', 20)
+    formatFig(fig, blkbgd, [r, c]);
+
+    save_figure(fig, [T50_save 'T50 ' param_names{pp}]);
+end
+
+% --------------------------------------------------------------------------
+% T50 summary scatter — all params, cooling vs warming subplots
+r = 1; c = 2;
+SZ = 75;
+
+fig = getfig('', false);
+
+for ii = 1:2 % cooling and warming
+    ax = subplot(r, c, ii); hold on
+    all_vals = [];
+
+    for i = 1:nParams
+        vals = T50.(paramList{i}).(temp_type{ii});
+        all_vals = [all_vals; vals(:)];
+
+        scatter(i, vals, SZ, colors(i,:), 'filled', ...
+            'XJitter', 'density', 'XJitterWidth', 0.2, ...
+            'MarkerFaceAlpha', 0.8)
+
+        m   = T50_summary.(paramList{i}).(temp_type{ii}).mean;
+        sem = T50_summary.(paramList{i}).(temp_type{ii}).sem;
+        errorbar(i+0.1, m, sem, ...
+            'Color', foreColor, 'LineWidth', 2, 'CapSize', 6)
+        scatter(i+0.1, m, 100, foreColor, 'filled', 'square')
+    end
+
+    % formatting
+    xlim([0.5, nParams + 0.5])
+    y_range = [min(all_vals, [], 'omitnan'), max(all_vals, [], 'omitnan')];
+    y_pad   = 0.08 * diff(y_range);
+    ylim([y_range(1) - y_pad, y_range(2) + y_pad])
+    xticks(1:nParams)
+    xticklabels(param_names)
+    xtickangle(30)
+    ylabel('Temperature at 50% max (\circC)')
+    title(temp_type{ii})
+end
+
+sgtitle('T_{50} across behaviors', 'Color', foreColor, 'FontSize', 14)
+formatFig(fig, blkbgd, [r, c]);
+linkaxes([subplot(r,c,1), subplot(r,c,2)], 'y')  % link y so cooling/warming are directly comparable
+
+save_figure(fig, [T50_save 'T50 all params']);
+
+%% ANALYSIS & FIGURES: T-50 for behaviors trial independent and flex temp bins
+clearvars('-except',initial_var{:})
+foreColor = formattingColors(blkbgd); % get background colors
+T50_save = createFolder([saveDir, 'T50/']);
+
+paramList = {'CI', 'sleep', 'foodQuad', 'OutterRing', 'jump'};
+[colors, param_names] = getPaperColors(paramList); % colors determined by universal color scheme
+nParams = length(paramList);
+
+temp_bins = 14:2:36; % adjust this as needed
+ntemps    = length(temp_bins) - 1; % number of bins
+bin_cents = (temp_bins(1:end-1) + temp_bins(2:end)) / 2;  % bin centers for plotting/interpolation
+threshold = 0.5;
+
+T50 = struct;
+temp_type = {'cooling', 'warming'};
+num.sexes = 2;
+
+% initialize empty structure
+% CI: trials only; all others: trials x sexes
+for ii = 1:nParams
+    if strcmpi(paramList{ii}, 'CI')
+        nCols = num.trials;
+    else
+        nCols = num.trials * num.sexes;
+    end
+    for type = 1:2
+        field = temp_type{type};
+        T50.(paramList{ii}).(field) = nan(nCols, 1);
+        T50.(paramList{ii}).([field '_norm']) = nan(ntemps, nCols);
+        T50.(paramList{ii}).([field '_raw']) = nan(ntemps, nCols);
     end
 end
 
 
+for trial = 1:num.trials
+    for p = 1:nParams
+        if strcmpi(paramList{p}, 'CI')
+            raw_all = {data.CI(:, trial)};
+            col_idx = {trial};
+        else
+            raw_all = {data.(paramList{p})(:, 1, trial), ...
+                       data.(paramList{p})(:, 2, trial)};
+            col_idx = {(trial-1)*num.sexes + 1, ...
+                       (trial-1)*num.sexes + 2};
+        end
+
+        for s = 1:length(raw_all)
+            raw = raw_all{s};
+            col = col_idx{s};
+
+            for type = 1:2
+                field = temp_type{type};
+
+                % select the correct direction index
+                switch type
+                    case 1 % cooling
+                        dir_idx = data.tempbin.c_idx;
+                    case 2 % warming
+                        dir_idx = data.tempbin.h_idx;
+                end
+
+                % bin the data by temperature
+                y_by_temp = nan(ntemps, 1);
+                for t = 1:ntemps
+                    % frames within this direction AND within this temp bin
+                    bin_idx = dir_idx & ...
+                              data.temp >= temp_bins(t) & ...
+                              data.temp <  temp_bins(t+1);
+                    y_by_temp(t) = mean(raw(bin_idx), 'omitnan');
+                end
+
+                % normalize
+                trial_max = max(y_by_temp, [], 'omitnan');
+                trial_min = min(y_by_temp, [], 'omitnan');
+                y_norm = (y_by_temp - trial_min) ./ (trial_max - trial_min);
+
+                % save tuning curves
+                T50.(paramList{p}).([field '_norm'])(:, col) = y_norm;
+                T50.(paramList{p}).([field '_raw'])(:, col)  = y_by_temp;
+
+                % directional threshold crossing
+                switch type
+                    case 1 % cooling: search high temp -> low temp
+                        search_norm  = y_norm(end:-1:1);
+                        search_temps = bin_cents(end:-1:1);
+                    case 2 % warming: search low temp -> high temp
+                        search_norm  = y_norm;
+                        search_temps = bin_cents;
+                end
+
+                crossing_idx = find(search_norm >= threshold, 1, 'first');
+                if ~isempty(crossing_idx)
+                    if crossing_idx > 1
+                        x1 = search_temps(crossing_idx - 1);
+                        x2 = search_temps(crossing_idx);
+                        y1 = search_norm(crossing_idx - 1);
+                        y2 = search_norm(crossing_idx);
+                        try
+                            T50.(paramList{p}).(field)(col) = interp1([y1 y2], [x1 x2], threshold);
+                        catch
+                            T50.(paramList{p}).(field)(col) = search_temps(crossing_idx);
+                        end
+                    else
+                        T50.(paramList{p}).(field)(col) = search_temps(crossing_idx);
+                    end
+                end
+            end
+        end
+    end
+end
+
+% summary stats across trials x sexes
+T50_summary = struct;
+for ii = 1:nParams
+    for type = 1:2
+        field = temp_type{type};
+        vals = T50.(paramList{ii}).(field);
+        T50_summary.(paramList{ii}).(field).mean = mean(vals, 'omitnan');
+        T50_summary.(paramList{ii}).(field).sem = std(vals, 0, 'omitnan') ./ sqrt(sum(~isnan(vals)));
+        T50_summary.(paramList{ii}).(field).all = vals;
+    end
+end
+
+% -------------------------------------------------------------------------------
+switch groupName
+    case {'Berlin LTS 35-15 No Food', 'Berlin LTS 35-15 Caviar'}
+        % temp_lims = [14.5, 35.5];
+        temp_ticks = 15:5:35;
+end
 
 
+% Plot the different temp tuning curves — one figure per parameter
+r = 1; c = 3;
+SZ = 75;
+x_pad = 0.5;
+temp_lims = [min(bin_cents) - x_pad, max(bin_cents) + x_pad];
+occ_lims = [-0.01, 1.01];
+occ_ticks = 0:0.2:1;
+threat_color = Color('darkred');
+safe_color = Color('grey');
+
+for pp = 1:nParams
+    fig = getfig('', false);
+
+    faded = colors(pp,:) + (1 - colors(pp,:)) * 0.65;  % blend toward white
+
+    % --- COOLING tuning curves ---
+    ax1 = subplot(r, c, 1); hold on
+    plot(bin_cents, T50.(paramList{pp}).cooling_norm, ...
+        'Color', faded, 'LineWidth', 0.8)
+    avg_norm = mean(T50.(paramList{pp}).cooling_norm, 2, 'omitnan');
+    plot(bin_cents, avg_norm, 'Color', colors(pp,:), 'LineWidth', 2.5)
+
+    % mean across all trials then normalize
+    avg_raw  = mean(T50.(paramList{pp}).cooling_raw, 2, 'omitnan');
+    raw_max  = max(avg_raw, [], 'omitnan');
+    raw_min  = min(avg_raw, [], 'omitnan');
+    avg_norm = (avg_raw - raw_min) ./ (raw_max - raw_min);
+    plot(bin_cents, avg_norm, 'Color', colors(pp,:), 'LineWidth', 2.5, 'linestyle', ':')
+
+    h_line(threshold, foreColor, '--', 1)
+    xlabel('Temperature (\circC)')
+    ylabel('Normalized Occupancy')
+    title({param_names{pp}; 'during cooling'})
+    xlim(temp_lims)
+    ylim(occ_lims)
+    set(ax1, 'ytick', occ_ticks, 'xtick', temp_ticks, 'XDir', 'reverse')
+
+    % --- WARMING tuning curves ---
+    ax2 = subplot(r, c, 2); hold on
+    plot(bin_cents, T50.(paramList{pp}).warming_norm, ...
+        'Color', faded, 'LineWidth', 0.8)
+    avg_norm = mean(T50.(paramList{pp}).warming_norm, 2, 'omitnan');
+    plot(bin_cents, avg_norm, 'Color', colors(pp,:), 'LineWidth', 2.5)
+    
+    % mean across all trials then normalize
+    avg_raw  = mean(T50.(paramList{pp}).warming_raw, 2, 'omitnan');
+    raw_max  = max(avg_raw, [], 'omitnan');
+    raw_min  = min(avg_raw, [], 'omitnan');
+    avg_norm = (avg_raw - raw_min) ./ (raw_max - raw_min);
+    plot(bin_cents, avg_norm, 'Color', colors(pp,:), 'LineWidth', 2.5, 'linestyle', ':')
+
+    h_line(threshold, foreColor, '--', 1)
+    xlabel('Temperature (\circC)')
+    ylabel('Normalized Occupancy')
+    title({param_names{pp}; 'during warming'})
+    xlim(temp_lims)
+    ylim(occ_lims)
+    set(ax2, 'ytick', occ_ticks, 'xtick', temp_ticks)
+
+    % --- T50 scatter ---
+    ax3 = subplot(r, c, 3); hold on
+    all_vals = [];
+    for ii = 1:2
+        vals = T50.(paramList{pp}).(temp_type{ii});
+        all_vals = [all_vals; vals(:)];
+        scatter(ii, vals, SZ, colors(pp,:), 'filled', ...
+            'XJitter', 'density', 'XJitterWidth', 0.2, ...
+            'MarkerFaceAlpha', 0.6)
+        m   = T50_summary.(paramList{pp}).(temp_type{ii}).mean;
+        sem = T50_summary.(paramList{pp}).(temp_type{ii}).sem;
+        errorbar(ii, m, sem, ...
+            'Color', foreColor, 'LineWidth', 1.5, 'CapSize', 6)
+        scatter(ii, m, SZ+25, foreColor, 'filled', 'square')
+    end
+    xlim([0.5, 2.5])
+    y_range = [min(all_vals, [], 'omitnan'), max(all_vals, [], 'omitnan')];
+    y_pad   = 0.05 * diff(y_range);
+    ylim([y_range(1) - y_pad, y_range(2) + y_pad])
+    xticks([1, 2])
+    xticklabels(temp_type)
+    ylabel('Temperature at 50% max (\circC)')
+    title('T_{50}')
+
+    % Formatting
+    linkaxes([ax1, ax2], 'xy')
+    
+    formatFig(fig, blkbgd, [r, c]);
+    
+    % add arrows and temp regime markers: 
+    addTimeArrow(ax1, foreColor);
+    addTimeArrow(ax2, foreColor);
+    axes(ax1) % activate tuning curve axes
+    y = 1.005;
+    xrange = xlim;
+    x_less = [xrange(1), 25];
+    x_more = [25, xrange(2)];
+    axes(ax2)
+        plot(x_more, [y,y], 'Color', threat_color, 'LineWidth',3, 'HandleVisibility','off') % threat
+        plot(x_less, [y,y], 'Color', safe_color, 'LineWidth',3, 'HandleVisibility','off') % safe
+    axes(ax1)
+        plot(x_less, [y,y], 'Color', threat_color, 'LineWidth',3, 'HandleVisibility','off') % threat
+        plot(x_more, [y,y], 'Color', safe_color, 'LineWidth',3, 'HandleVisibility','off') % safe
 
 
+    save_figure(fig, [T50_save 'T50 ' param_names{pp}]);
+end
 
+% ------------------------------------------------------------------------------------------
 
+% T50 summary scatter — all params, cooling vs warming subplots
+% temp on x-axis, behaviors on y-axis, ordered by mean T50
+r = 1; c = 2;
+SZ = 150;
+fig = getfig('', false,[1311 758]);
+ax_handles = gobjects(1, 2);
 
+for ii = 1:2 % cooling then warming
+    % sort behaviors by mean T50
+    mean_T50 = nan(1, nParams);
+    for i = 1:nParams
+        mean_T50(i) = T50_summary.(paramList{i}).(temp_type{ii}).mean;
+    end
 
+    if ii == 1 % cooling: earliest in time = highest temp = top of plot
+        [~, sort_idx] = sort(mean_T50, 'ascend');   % ascend so rank 1 = lowest T50 = bottom
+        rank_order = nParams:-1:1;                   % flip rank assignment so highest T50 plots at top
+    else       % warming: earliest in time = lowest temp = bottom of plot
+        [~, sort_idx] = sort(mean_T50, 'descend');
+        rank_order = 1:nParams;
+    end
+
+    ax_handles(ii) = subplot(r, c, ii); hold on
+    all_vals = [];
+
+    for rank = 1:nParams
+        i = sort_idx(rank);
+        vals = T50.(paramList{i}).(temp_type{ii});
+        all_vals = [all_vals; vals(:)];
+        scatter(vals, rank, SZ, colors(i,:), 'filled', ...
+            'YJitter', 'density', 'YJitterWidth', 0.2, ...
+            'MarkerFaceAlpha', 0.8)
+        m   = T50_summary.(paramList{i}).(temp_type{ii}).mean;
+        sem = T50_summary.(paramList{i}).(temp_type{ii}).sem;
+        errorbar(m, rank, sem, 'horizontal', ...
+            'Color', foreColor, 'LineWidth', 2, 'CapSize', 6)
+        scatter(m, rank, SZ+50, foreColor, 'filled', 'square')
+    end
+
+    % x-axis: temperature
+    xlim(temp_lims)
+    set(ax_handles(ii), 'xtick', temp_ticks)
+    xlabel('Temperature at 50% max (\circC)')
+
+    % y-axis: behaviors in sorted order
+    ylim([0.5, nParams + 0.5])
+    yticks(1:nParams)
+    yticklabels(param_names(sort_idx))
+
+    % flip x for cooling
+    if ii == 1
+       set(ax_handles(ii), XDir='reverse')
+    end
+
+    title(temp_type{ii})
+
+    % threat/safe color bar at top of axes
+    y = nParams + 0.45;   % just inside top of y-axis
+    xrange = temp_lims;
+    x_less = [xrange(1), 25];
+    x_more = [25, xrange(2)];
+    switch ii 
+        case 2  % warming
+        plot(x_less, [y, y], 'Color', safe_color, 'LineWidth', 3, 'HandleVisibility', 'off', 'Clipping', 'off')
+        plot(x_more, [y, y], 'Color', threat_color, 'LineWidth', 3, 'HandleVisibility', 'off', 'Clipping', 'off')
+        case 1 % cooling 
+        plot(x_more, [y, y], 'Color', safe_color, 'LineWidth', 3, 'HandleVisibility', 'off', 'Clipping', 'off')
+        plot(x_less, [y, y], 'Color', threat_color, 'LineWidth', 3, 'HandleVisibility', 'off', 'Clipping', 'off')
+    end
+end
+
+% sgtitle('T_{50} across behaviors', 'Color', foreColor, 'FontSize', 20)
+formatFig(fig, blkbgd, [r, c])
+
+% add time arrow after formatFig
+for ii = 1:2
+    addTimeArrow(ax_handles(ii), foreColor)
+end
+
+save_figure(fig, [T50_save 'T50 all params'])
