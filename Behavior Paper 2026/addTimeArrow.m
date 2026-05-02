@@ -1,6 +1,6 @@
 
 
-function addTimeArrow(ax, ArrowColor)
+function addTimeArrow(ax, ArrowColor, y_offset)
 % addTimeArrow(ax, foreColor)
 %
 % PURPOSE
@@ -23,10 +23,14 @@ function addTimeArrow(ax, ArrowColor)
 
 %%
 
+if nargin<3
+    y_offset = -0.06;
+end
+
 xl = xlim(ax);
 yl = ylim(ax);
 
-text_y = yl(1) - 0.06 * diff(yl);   % below x-axis
+text_y = yl(1) + y_offset * diff(yl);   % below x-axis
 
 isReversedX = strcmp(ax.XDir, 'reverse');
 if isReversedX
