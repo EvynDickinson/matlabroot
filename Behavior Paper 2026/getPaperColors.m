@@ -12,9 +12,9 @@ for ii = 1:nFields
     switch field_names{ii}
         case 'jump'
             cName = 'WongOrange';
-        case 'ring'
+        case {'ring', 'OutterRing'}
             cName = 'WongRed';
-        case {'innerfoodquad', 'foodquad', 'innerquad'}
+        case {'innerfoodquad', 'foodquad', 'innerquad', 'foodQuad'}
             cName = 'WongBlue';
         case {'FlyOnFood', 'fliesonfood', 'fly on food'}
             cName = 'WongLightBlue';
