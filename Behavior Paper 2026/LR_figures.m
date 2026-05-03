@@ -908,9 +908,17 @@ for type = 1:2
     end
 end
 legend(strrep(dataString,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsize', 12,'location', 'northwest')
-            
+
+% add time arrows 
+for type = 1:2 
+    subplot(r,c,type)
+    addTimeArrow(gca, foreColor)
+end
+set(findall(fig, 'Type', 'axes'), 'FontSize', 20)
+set(findall(fig, 'Type', 'text'), 'FontSize', 20)
+ 
 % save figure
-save_figure(fig,[fig_dir  title_str],fig_type);
+save_figure(fig,[paper_figs  title_str ' temp tuning curves separeted H and C'],fig_type);
 
 
 
