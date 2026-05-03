@@ -378,7 +378,7 @@ end
 % save figure
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
-%% TODO (1/15/26) FIGURE: Heating & Cooling separated single parameter tuning curves -- select your metric
+%% FIGURE: Heating & Cooling separated single parameter tuning curves -- select your metric
 clearvars('-except',initial_vars{:})
 [foreColor, ~] = formattingColors(blkbgd); % get background colors
 

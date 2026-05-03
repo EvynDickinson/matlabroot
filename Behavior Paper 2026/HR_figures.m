@@ -661,7 +661,7 @@ for ii = 1:2 % cooling then warming
 end
 
 % sgtitle('T_{50} across behaviors', 'Color', foreColor, 'FontSize', 20)
-formatFig(fig, blkbgd, [r, c])
+formatFig(fig, blkbgd, [r, c]);
 
 
 set(findall(fig, 'Type', 'axes'), 'FontSize', 20)        % tick labels
@@ -669,7 +669,7 @@ set(findall(fig, 'Type', 'text'), 'FontSize', 20)        % all text/titles/label
 
 % add time arrow after formatFig
 for ii = 1:2
-    addTimeArrow(ax_handles(ii), foreColor)
+    addTimeArrow(ax_handles(ii), foreColor, -0.09);
 end
 
 save_figure(fig, [T50_save 'T50 all params']);

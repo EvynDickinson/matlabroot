@@ -8,10 +8,12 @@ function addTimeArrow(ax, ArrowColor, y_offset)
 % left of a given axes, indicating the direction of time flow.
 %
 % INPUTS
-%   'ax'        : target axes object
+%   'ax'  : target axes object
 %       handle to the axes on which the annotation will be drawn
 %   'foreColor' : color of the text and arrow
 %       1-by-3 RGB vector, e.g. [1 1 1] for white
+%   'y_offset' : offset from the main axes 
+%           default -0.06
 %
 % OUTPUTS
 %   none — draws directly onto ax

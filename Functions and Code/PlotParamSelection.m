@@ -149,6 +149,13 @@ for i = 1:numParams
             y_lab{i} = 'flies on food (#)';
             nullD(i) = nan;
             scaler(i) = 1;
+        % case 'ecent'
+        %     pName{i} = 'ecent';
+        %     ext(i) = false;
+        %     y_dir{i} = 'normal';
+        %     y_lab{i} = 'eccentricity (mm)'; % should find a way to normalize this (TODO)
+        %     nullD(i) = nan;
+        %     scaler(i) = 1;
     end
 end
 
