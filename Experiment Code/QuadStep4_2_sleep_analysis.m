@@ -1587,40 +1587,38 @@ clearvars('-except',initial_vars{:})
 [sleepDuration, thermalThreat, avgSleep] = deal([]);
 for i = 1:num.exp
     thermalThreat(i) = sleep(i).thermalThreat;
-    sleepDuration = autoCat(sleepDuration,sleep(i).avg_quant',false);
-
-    avgSleep = autoCat(avgSleep, mean(grouped(i).sleep.percent,1)',false);
+    sleepDuration = autoCat(sleepDuration, sleep(i).avg_quant', false);
+    avgSleep = autoCat(avgSleep, mean(grouped(i).sleep.percent, 1)', false);
 end
 
+% save plotting data
+plotSave.sleepDuration = sleepDuration;
+plotSave.thermalThreat = thermalThreat;
+plotSave.avgSleep = avgSleep;
+plotSave.colors = arrayfun(@(i) grouped(i).color, 1:num.exp, 'UniformOutput', false);
+plotSave.names = arrayfun(@(i) grouped(i).name, 1:num.exp, 'UniformOutput', false);
+save([saveDir 'Sleep\sleep_duration_thermalthreat.mat'], 'plotSave')
 
 % FIGURE:
 SZ = 60;
-buff = 2;
-fig = getfig('',1,[600 680]); hold on
+buff = 1;
+fig = getfig('', 1, [600 680]); hold on
 for i = 1:num.exp
     kolor = grouped(i).color;
-    y = sleepDuration(:,i);
+    y = sleepDuration(:, i);
     y(isnan(y)) = [];
     y_avg = median(y);
-    x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
-%     x = ones(1,length(y))*thermalThreat(i));
-    scatter(x,y,SZ,kolor,"filled","o")
-    plot([thermalThreat(i)-(buff*1.75),thermalThreat(i)+(buff*1.75)],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+    x = shuffle_data(linspace(thermalThreat(i)-buff, thermalThreat(i)+buff, length(y)));
+    scatter(x, y, SZ, kolor, 'filled', 'MarkerFaceAlpha', 0.6)
+    plot([thermalThreat(i)-(buff*2.5), thermalThreat(i)+(buff*2.5)], [y_avg, y_avg], ...
+        'Color', kolor, 'LineWidth', 2)
 end
-
 xlabel('Thermal Stress')
 ylabel('Sleep duration per fly (sec)')
 xlim([0, 70])
 ylim([0, 2500])
-formatFig(fig,blkbgd);
-
-savefig([saveDir 'Sleep\Sleep duration by thermal stress norm axes' figcolor(blkbgd)])
-save_figure(fig,[saveDir 'Sleep\Sleep duration by thermal stress norm axes' figcolor(blkbgd)]);
-
-
-% save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes short'],fig_type);
-
-% 
+formatFig(fig, blkbgd);
+save_figure(fig, [saveDir 'Sleep\Sleep duration by thermal stress norm axes' figcolor(blkbgd)]);
 
 %% FIGURE: portion of sleep during warming cooling and hold
 clearvars('-except',initial_vars{:})
