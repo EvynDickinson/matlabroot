@@ -1213,7 +1213,7 @@ close_dist = T.IFD <= 7; % mm
 fmoving = f.speed >= 0.1; % min speed up for debate
 
 % Identify when male is moving
-mmoving = m.speed >= 0.1; % min speed diff than F in order to include true chase bouts
+mmoving = m.speed >= 0.1; 
 
 chase = (mbehindf & close_dist & fmoving & mmoving); % requirements for 'chase all'
 chase_filled = imclose(chase, ones(max_gap + 1, 1)); % fill gaps in the behavior
