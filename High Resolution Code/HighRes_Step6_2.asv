@@ -1,6 +1,8 @@
 
-% Generate figures to compare different behaviors and frequencies of
-% behaviors over time:
+% Generate figures to compare different behaviors 
+% and frequencies of behaviors over time
+% load in data with: 
+% HighRes_Step6_1
 
 %% Fresh slate start and color update: 
 clearvars('-except',initial_var{:})
@@ -10,7 +12,7 @@ foreColor = formattingColors(blkbgd); % get background colors
 clearvars('-except',initial_var{:})
 
 autoLim = true; % matlab automatically determines the y limits if true
-xlim_auto = false; % change the time range for the x axis
+xlim_auto = true; % change the time range for the x axis
 time_limits = [0, 300]; % time limits if manual control over x-axis range
 % nMax = num.exp; 
 
@@ -43,20 +45,21 @@ sb(2).idx = [4,5,7,8,10,11,13,14]; % dependent var timecourse
 sb(3).idx = 3 : c : r*c; %dependent var temp tuning curve
 
 LW = 0.75; % single trial line widths
-sSpan = 1 * (60*60) * num.fps; % 1 minute smoothing function
+sSpan = 1 * (60) * num.fps; % 1 minute smoothing function
 kolor = foreColor;
 h_kolor = Color('googlered');
 c_kolor = Color('dodgerblue');
 
 % FIGURE:
 fig = getfig('',true);
-    x = data.time(data.timebin.in;
+    x = data.time;
     yy = data.(pName);
     if sexSep % data separated per fly or per group of flies
         y_all = [squeeze(yy(:,M,:)), squeeze(yy(:,F,:))];
     else 
         y_all = yy;
     end
+    y_all = y_all; % update this to exclude cutoff data
     nTrials = size(y_all,2);
     
     % temp
@@ -83,6 +86,7 @@ fig = getfig('',true);
         x  = data.tempbin.temps; % temp bins
         cIdx = data.tempbin.cooling; % logical locations for cooling data for each temp bin
         hIdx = data.tempbin.warming; % logical locations for warming data for each temp bin
+
         nTemps = length(x); % number of temperature bins
         % create empty variables for the avg and error data
         switch dType
@@ -182,9 +186,10 @@ end
 save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
 
 %% FIGURE: TEMP TUNING CURVE FOR SELECTED PARAMETER
+% WORKING HERE 3/30
 clearvars('-except',initial_var{:})
 foreColor = formattingColors(blkbgd); % get background colors
-plot_threat_zone = false;
+plot_threat_zone = true;
 
 % Select the type of information to plot: 
 [title_str,pName,y_dir,y_lab,nullD,scaler,dType,~,sexSep,ylimits] = ... 
@@ -203,7 +208,7 @@ end
 % ------------- Plotting parameters -------------
 
 % select temp protocol specific plotting features
-autoYLim = false; % Y LIMITS
+autoYLim = true; % Y LIMITS
 if any(isnan(ylimits)) % in case new data is added without specs for axis limits
     autoYLim = true;
 end
@@ -273,7 +278,7 @@ end
          
 % ------------ formatting ------------
 formatFig(fig, blkbgd,[r,c]);
-matchAxis(fig, true);
+matchSubplotAxes(fig); % match x across both subplots and y across subplots
 for ii = 1:2
     subplot(r,c,ii) 
     title(types{ii},'color', foreColor,'FontAngle','italic')
@@ -319,7 +324,7 @@ annotation('line', arrow_x, arrow_y,'Color',foreColor,...
 
 
 % Save the Figure
-save_figure(fig, [fig_dir title_str ' tuning curve']);
+save_figure(fig, [fig_dir title_str ' tuning curve' ' ' ]);
 
 %% FIGURE: female and male positions within the arena ...
 % TODO: rotate the arena to match the food alignment across trials ...

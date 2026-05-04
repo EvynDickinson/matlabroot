@@ -183,7 +183,7 @@ else
 end
 
 % save figure
-save_figure(fig,[fig_dir 'Timecourse summary ' title_str],fig_type);
+save_figure(fig,[fig_dir 'Timecourse summary ' title_str figcolor(blkbgd)],fig_type);
 
 %% FIGURE: TEMP TUNING CURVE FOR SELECTED PARAMETER
 % WORKING HERE 3/30
@@ -324,7 +324,7 @@ annotation('line', arrow_x, arrow_y,'Color',foreColor,...
 
 
 % Save the Figure
-save_figure(fig, [fig_dir title_str ' tuning curve']);
+save_figure(fig, [fig_dir title_str ' tuning curve' figcolor(blkbgd)]);
 
 %% FIGURE: female and male positions within the arena ...
 % TODO: rotate the arena to match the food alignment across trials ...

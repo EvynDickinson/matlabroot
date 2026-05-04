@@ -8,7 +8,7 @@ paper_figs = createFolder([saveDir, 'Paper Figures/']);
 % field_names = {'escape jump', 'escape ring', 'food quadrant', 'fly on food', 'courtship', 'sleep'};
 % kolors = {'WongOrange', 'WongRed','WongBlue','WongLightBlue', 'WongPink', 'WongGreen'}; % colors for the diff behaviors
 
-%% FIGURE: time course of all the different behaviors ordered by precidence
+%% FIGURE: time course of all the different behaviors ordered by precidence [single exp type]
 clearvars('-except',initial_vars{:})
 [foreColor,~] = formattingColors(blkbgd); %get background colors
 
@@ -113,7 +113,7 @@ addlistener(ax4, 'XLim', 'PostSet', @(~,~) updateScaleBar(ax4, foreColor, scaleB
 
 
 % save figure: 
-save_figure(fig, [paper_figs, 'Fig 1 timecourse of behavior ', grouped(g).name]);
+save_figure(fig, [paper_figs, 'Fig 1 timecourse of behavior ', grouped(g).name figcolor(blkbgd)]);
 
 %% FIGURE: temperature tuning panel with all behaviors
 clearvars('-except',initial_vars{:})
@@ -575,36 +575,6 @@ set(findall(fig, 'Type', 'text'), 'FontSize', 24)        % all text/titles/label
 
 save_figure(fig,[paper_figs 'Multimetric tuning curves ' param_names],fig_type);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% FIGURE: [temp rate comparison] flies in location at coldest points in the temp ramp
 % includes static data for that type
 
@@ -919,6 +889,166 @@ set(findall(fig, 'Type', 'text'), 'FontSize', 20)
  
 % save figure
 save_figure(fig,[paper_figs  title_str ' temp tuning curves separeted H and C'],fig_type);
+
+%% FIGURE: Heating & Cooling separated single parameter tuning curves -- select your metric
+clearvars('-except',initial_vars{:})
+[foreColor, ~] = formattingColors(blkbgd); % get background colors
+
+autoLim = true;
+y_lim = [0 100]; % if manually adjusting the axis limits for the y-axis 
+xlim_auto = true; % change the time range for the x axis
+nMax =  num.exp; 
+
+% Select the type of information to plot: 
+[title_str, pName,y_dir,y_lab,nullD,scaler,dType,dir_end,ext] = PlotParamSelection(false);
+plot_err = true;
+
+if isempty(title_str)
+    return
+end
+fig_dir = [saveDir, 'temp tuning curves/'];
+% set figure folder
+if ~exist(fig_dir, 'dir')
+    mkdir(fig_dir)
+end
+
+% % set up figure aligments
+r = 1; %rows
+c = 2; %columns
+
+if contains(expGroup,'LTS 15-35')
+    xlimits = [13, 37];
+    xPos = [14.5, 25]; 
+end
+
+typeNames = {'cooling', 'warming'};
+LW = 1.25;
+% sSpan = 180;
+dataString = cell([1,num.exp]);
+
+% FIGURE:
+fig = getfig('',0, [633 680]);
+for i = 1:num.exp % num.exp:-1:1
+    kolor = grouped(i).color;
+    switch ext
+        case true % subregions exist
+            yy = grouped(i).(pName).food;
+        case false % no subregions
+            yy = grouped(i).(pName);
+    end
+
+    hold on
+    if strcmp(pName, 'dist')
+        x = grouped(i).(pName).distavgbytemp(:,1);
+        YC = grouped(i).decreasing.all;
+        YH = grouped(i).increasing.all;
+    else
+        x = yy.temps;
+        YC = yy.decreasing.raw;
+        YH = yy.increasing.raw;
+    end
+    % cooling
+    subplot(r,c,1); hold on
+    y = mean(YC,2,'omitnan')*scaler;
+    y_err = (std(YC,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    plot(x,y,'color',kolor,'linewidth',LW)
+    % heating
+     subplot(r,c,2); hold on
+    y = mean(YH,2,'omitnan')*scaler;
+    y_err = (std(YH,0,2,'omitnan')*scaler)./sqrt(num.trial(i));
+    plot_error_fills(plot_err, x, y, y_err, kolor,  fig_type, 0.35);
+    plot(x,y,'color',kolor,'linewidth',LW)          
+
+     dataString{i} = grouped(i).name;
+end
+
+% FORMATTING
+for type = 1:2
+    subplot(r, c, type)
+    % formatting
+    if type == 1
+        set(gca, 'xdir', 'reverse')
+        ylabel(y_lab)
+    else
+        set(gca, 'ycolor', 'none')
+    end
+    xlabel('temp (\circC)')
+    %xlim(xlimits)
+    % ylim(ylimits)
+    title(typeNames{type},'color', foreColor)
+end
+matchAxis(fig, true); % match the y axes between heating and cooling
+formatFig(fig, blkbgd,[r,c]);
+
+for type = 1:2
+    subplot(r, c, type)
+    % ylim([0 90])
+    h_line(nullD,'grey',':',2) %36.2
+    set(gca,'ydir',y_dir)
+    ylimits = y_lim;
+    if contains(expGroup,'LTS 15-35')
+        pos = [xPos(1,type), ylimits(1), 10, range(ylimits)]; % [lower-left X, lower-left Y, X-width, Y-height]
+        h = rectangle('Position', pos, ...
+                  'FaceColor', foreColor, ...   % RGB color
+                  'FaceAlpha', 0.2, ...
+                  'EdgeColor', 'none');
+    end
+    if type == 2
+        set(gca, 'ycolor', 'none')
+    end
+
+    if contains(expGroup, 'temp rate')
+        ylim([-1.5, 40])
+        set(gca, 'ytick', 0:10:40, 'xtick', 17:4:25)
+    end
+end
+
+set(findall(fig, 'Type', 'axes'), 'FontSize', 20)
+set(findall(fig, 'Type', 'text'), 'FontSize', 20)
+
+for type = 1:2
+    subplot(r, c, type)
+    addTimeArrow(gca, foreColor, -0.08, -0.04, 0.04)
+end
+
+legend(strrep(dataString,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsize', 12,'location', 'northwest')
+
+% save figure
+save_figure(fig,[paper_figs 'temp tuning curve h and c separated ' title_str figcolor(blkbgd)]);
+
+
+%% [load from scratch -- sleep debt comparisons]
+
+path_rate = "S:\Evyn\DATA\Grouped Data Structures\Berlin temp rate caviar\Sleep\Sleep duration by thermal stress norm axes-wht.fig";
+path_shift = 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

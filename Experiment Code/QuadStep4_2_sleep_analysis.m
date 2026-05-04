@@ -1612,7 +1612,9 @@ xlim([0, 70])
 ylim([0, 2500])
 formatFig(fig,blkbgd);
 
-save_figure(fig,[saveDir 'Sleep\Sleep duration by thermal stress norm axes'],fig_type);
+savefig([saveDir 'Sleep\Sleep duration by thermal stress norm axes' figcolor(blkbgd)])
+save_figure(fig,[saveDir 'Sleep\Sleep duration by thermal stress norm axes' figcolor(blkbgd)]);
+
 
 % save_figure(fig,[saveDir 'Sleep duration by thermal stress norm axes short'],fig_type);
 
@@ -1735,10 +1737,14 @@ for i = 1:num.exp
                 kolor = Color('grey');
         end
         %average
-        bar(type, mean(plotData(:,type),'omitnan'),'FaceColor',kolor,'FaceAlpha',1,'EdgeColor',foreColor)
+        bar(type, mean(plotData(:,type),'omitnan'),'FaceColor',kolor,'FaceAlpha',0.6,'EdgeColor',foreColor)
+        % error bar
+        m = mean(plotData(:,type), 'omitnan');
+        sem = std(plotData(:,type), 0, 'omitnan') / sqrt(sum(~isnan(plotData(:,type))));
+        errorbar(type, m, sem, 'Color', foreColor, 'LineWidth', 2, 'CapSize', 6)
         %scatterpoints
         x = shuffle_data(linspace(type-buffer,type+buffer,num.trial(i)));
-        scatter(x,plotData(:,type),SZ,foreColor)
+        scatter(x,plotData(:,type),SZ,foreColor, "filled")
      end
 
     % formatting and labels
@@ -1748,8 +1754,9 @@ for i = 1:num.exp
     ylim([0,1])
     formatFig(fig,blkbgd);
     title(grouped(i).name)
+    set(gca, 'ytick', 0:0.2:1)
     % Save figure
-    save_figure(fig,[saveDir 'Sleep\' expNames{i} 'Bayes probabilty of sleeping by temp type'],fig_type);
+    save_figure(fig,[saveDir 'Sleep\' expNames{i} 'Bayes probabilty of sleeping by temp type' figcolor(blkbgd)],fig_type);
 end
 
 
@@ -1821,8 +1828,11 @@ set(gca,'TickDir','out')
 xlabel('time (min)')
 set(gca,'ycolor',backColor)
 
+% add a scale bar instead of time axes
+initScaleBar(gca, foreColor, 100, '100 min')
+
 % Save figure
-save_figure(fig,[saveDir 'Sleep\' 'sleeping onset raster'],fig_type);    
+save_figure(fig,[saveDir 'Sleep\' 'sleeping onset raster' figcolor(blkbgd)],fig_type);    
 
 %% FIGURE: onset to sleeping after warming start
 clearvars('-except',initial_vars{:})

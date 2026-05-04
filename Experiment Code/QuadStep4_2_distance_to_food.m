@@ -485,11 +485,17 @@ for type = 1:2
     if type == 2
         set(gca, 'ycolor', 'none')
     end
+    addTimeArrow(gca, foreColor)
+
+    if contains(expGroup, 'temp rate')
+        ylim([-1.5, 40])
+        set(gca, 'ytick', 0:10:40)
+    end
 end
 legend(strrep(dataString,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsize', 12,'location', 'northwest')
             
 % save figure
-save_figure(fig,[fig_dir  title_str],fig_type);
+save_figure(fig,[fig_dir  title_str figcolor(blkbgd)],fig_type);
 
 
 %% FIGURE: Plot multiple tuning curves -- select your metric
