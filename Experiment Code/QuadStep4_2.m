@@ -1649,10 +1649,13 @@ for i = 1:num.exp
     T = data(i).T;
     for trial = 1:num.trial(i)
         trial_ID = [T.Date{trial} '_' T.ExperimentID{trial} '_' T.Arena{trial}];
-        sleep_file = [baseFolder paths.single_trial '/' trial_ID  '/' T.ExperimentID{trial} ' sleeping data v2.mat'];  
+        sleep_file_folder = createFolder([baseFolder paths.single_trial '/' trial_ID  '/']);
+        sleep_file = [sleep_file_folder T.ExperimentID{trial} ' sleeping data v2.mat'];  
         
         if ~exist(sleep_file,"file")
             sleepData = struct;
+            ct = data(i).con_type(trial); % experiment lens configuration
+            pix2mm = conversion(ct).pix2mm; % extract the appropriate size ratio for the trial
             %preallocate for speed and space
             trial_length = length(data(i).data(trial).occupancy.time);
             [N,frameCount] = deal(nan(nbins,nbins,trial_length));
