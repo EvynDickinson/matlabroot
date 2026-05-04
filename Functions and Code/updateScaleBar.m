@@ -42,48 +42,86 @@ function updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offse
 delete(findobj(ax, 'Tag', 'ScaleBar'))
 
 if nargin<5
-    offset_percent = 0.01;
+    offset_percent = 0.03;
 end
 
 xl = xlim(ax);
-yl = ylim(ax);
 
-scaleBar_x_start = xl(1) + 0.03 * diff(xl);   % left-aligned
-scaleBar_x_end   = scaleBar_x_start + scaleBar_duration;
+% x positions in data units
+scaleBar_x_start = xl(1) + 0.03 * diff(xl);
+scaleBar_x_end = scaleBar_x_start + scaleBar_duration;
 
-% handle normal vs reversed y-axis (imagesc sets YDir to 'reverse')
-isReversedY = strcmp(ax.YDir, 'reverse');
-if isReversedY
-    % expand the axes limits downward to make room for the scale bar
-    room = offset_percent * abs(diff(yl));
-    ylim(ax, [yl(1), yl(2) + room])   % push bottom limit down
-    scaleBar_y = yl(2) + 0.04 * room;
-    text_y     = scaleBar_y + 0.03 * room;
-    textVA     = 'top';
-else
-    room = offset_percent * abs(diff(yl));
-    ylim(ax, [yl(1) - room, yl(2)])
-    scaleBar_y = yl(1) - 0.04 * room;
-    text_y     = scaleBar_y - 0.03 * room;
-    textVA     = 'top';
-end
+% convert x data positions to normalized figure units
+ax_pos = get(ax, 'Position'); % [left bottom width height] normalized
+x_norm_start = ax_pos(1) + ax_pos(3) * (scaleBar_x_start - xl(1)) / diff(xl);
+x_norm_end   = ax_pos(1) + ax_pos(3) * (scaleBar_x_end   - xl(1)) / diff(xl);
 
-% % debugging code: 
-% fprintf('YDir: %s\n', ax.YDir)
-% fprintf('yl: [%.2f, %.2f]\n', yl(1), yl(2))
-% fprintf('diff(yl): %.2f\n', diff(yl))
-% fprintf('abs(diff(yl)): %.2f\n', abs(diff(yl)))
-% fprintf('scaleBar_y: %.2f\n', scaleBar_y)
-% fprintf('text_y: %.2f\n', text_y)
-% fprintf('foreColor: [%.2f, %.2f, %.2f]\n', foreColor(1), foreColor(2), foreColor(3))
+% place bar just below the axes in normalized figure space
+bar_y_norm  = ax_pos(2) - offset_percent;   % just below axes bottom edge
+text_y_norm = ax_pos(2) - 0.05;   % label below bar
 
-line(ax, [scaleBar_x_start, scaleBar_x_end], [scaleBar_y, scaleBar_y], ...
-    'Color', foreColor, 'LineWidth', 2, 'Clipping', 'off', 'Tag', 'ScaleBar')
+% draw bar as annotation line (figure-normalized coords, not data coords)
+h_line = annotation('line', ...
+    [x_norm_start, x_norm_end], [bar_y_norm, bar_y_norm], ...
+    'Color', foreColor, 'LineWidth', 2, 'Tag', 'ScaleBar');
 
-text(ax, scaleBar_x_start, text_y, ...
-    scale_label_str, ...
-    'Color', foreColor, 'HorizontalAlignment', 'left', ...
-    'VerticalAlignment', textVA, 'FontSize', 20, ...
-    'Clipping', 'off', 'Tag', 'ScaleBar')
+% draw label as annotation textbox
+h_text = annotation('textbox', ...
+    [x_norm_start, text_y_norm - 0.02, x_norm_end - x_norm_start, 0.02], ...
+    'String', scale_label_str, ...
+    'Color', foreColor, 'EdgeColor', 'none', ...
+    'FontSize', 20, 'HorizontalAlignment', 'left', ...
+    'VerticalAlignment', 'top', 'FitBoxToText', 'on', ...
+    'Tag', 'ScaleBar');
+
+%% OLD CODE -- annotation text rather than line
+
+% delete(findobj(ax, 'Tag', 'ScaleBar'))
+% 
+% if nargin<5
+%     offset_percent = 0.01;
+% end
+% 
+% xl = xlim(ax);
+% yl = ylim(ax);
+% 
+% scaleBar_x_start = xl(1) + 0.03 * diff(xl);   % left-aligned
+% scaleBar_x_end   = scaleBar_x_start + scaleBar_duration;
+% 
+% % handle normal vs reversed y-axis (imagesc sets YDir to 'reverse')
+% isReversedY = strcmp(ax.YDir, 'reverse');
+% if isReversedY
+%     % expand the axes limits downward to make room for the scale bar
+%     room = offset_percent * abs(diff(yl));
+%     ylim(ax, [yl(1), yl(2) + room])   % push bottom limit down
+%     scaleBar_y = yl(2) + 0.04 * room;
+%     text_y     = scaleBar_y + 0.03 * room;
+%     textVA     = 'top';
+% else
+%     room = offset_percent * abs(diff(yl));
+%     ylim(ax, [yl(1) - room, yl(2)])
+%     scaleBar_y = yl(1) - 0.04 * room;
+%     text_y     = scaleBar_y - 0.03 * room;
+%     textVA     = 'top';
+% end
+% 
+% % % debugging code: 
+% % fprintf('YDir: %s\n', ax.YDir)
+% % fprintf('yl: [%.2f, %.2f]\n', yl(1), yl(2))
+% % fprintf('diff(yl): %.2f\n', diff(yl))
+% % fprintf('abs(diff(yl)): %.2f\n', abs(diff(yl)))
+% % fprintf('scaleBar_y: %.2f\n', scaleBar_y)
+% % fprintf('text_y: %.2f\n', text_y)
+% % fprintf('foreColor: [%.2f, %.2f, %.2f]\n', foreColor(1), foreColor(2), foreColor(3))
+% 
+% line(ax, [scaleBar_x_start, scaleBar_x_end], [scaleBar_y, scaleBar_y], ...
+%     'Color', foreColor, 'LineWidth', 2, 'Clipping', 'off',...
+%     'Tag', 'ScaleBar', 'HandleVisibility','off')
+% 
+% text(ax, scaleBar_x_start, text_y, ...
+%     scale_label_str, ...
+%     'Color', foreColor, 'HorizontalAlignment', 'left', ...
+%     'VerticalAlignment', textVA, 'FontSize', 20, ...
+%     'Clipping', 'off', 'Tag', 'ScaleBar')
 
 end

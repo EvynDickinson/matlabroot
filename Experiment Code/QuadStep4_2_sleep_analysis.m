@@ -532,6 +532,7 @@ disp('All finished')
 
 %% FIGURE: Sleeping over time
 clearvars('-except',initial_vars{:})
+foreColor = formattingColors(blkbgd);
 
 plot_err = false;
 LW = 1.5;
@@ -565,9 +566,10 @@ formatFig(fig,blkbgd,[r,c],sb);
 subplot(r,c,sb(1).idx);
 set(gca,'xcolor','none') 
 subplot(r,c,sb(2).idx)
-legend(expNames,'box','off')
+legend(expNames,'box','off','TextColor',foreColor)
+initScaleBar(gca, foreColor, 100, '100 mins', 0.03)
 
-save_figure(fig,[saveDir 'Sleep\' expGroup ' sleep timecourse'],fig_type);
+save_figure(fig,[saveDir 'Sleep\' expGroup ' sleep timecourse' figcolor(blkbgd)],fig_type);
 
 %% FIGURES: Sleeping over time with sleep temp tuning curve
 clearvars('-except',initial_vars{:})
