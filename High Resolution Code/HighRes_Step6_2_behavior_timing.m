@@ -2,7 +2,7 @@
 
 % create plots about the order of behaviors / priority of behaviors
 
-%% Time delay to each behavior
+%% ANALYSIS: Time delay to each behavior [must run first]
 clearvars('-except',initial_var{:})
 [foreColor, backColor] = formattingColors(blkbgd); % get background colors
 
@@ -22,7 +22,7 @@ clearvars('-except',initial_var{:})
 data_length = length(data.time);
 
 switch groupName
-    case 'Berlin LTS caviar'
+    case {'Berlin LTS caviar', 'TrpA1-Gal4 x UAS-Kir2.1 LTS Caviar'}
         % order: WT, WS, CT, CS, WT, WS
         transitions = [data.warming_idx(1,1);...
                    data.cooling_idx(1,1);...
@@ -209,10 +209,15 @@ end
 
 % ------------------------------ DATA VISUALIZATION -----------------------------
 % scatter plot of the onset timing within each of the regions
+r = 2; 
+c = 4;
+fig_size = [1450 900];
+
 switch groupName
-    case 'Berlin LTS caviar'
+    case {'Berlin LTS caviar', 'TrpA1-Gal4 x UAS-Kir2.1 LTS Caviar'}
         r = 1; 
         c = 4;
+        fig_size = [1450 400];
 end
 
 
@@ -228,7 +233,7 @@ sz = 75;
 y = 1:num.trials;
 sexList = {'male', 'female'};
 for sex = 1:2
-    fig = getfig; 
+    fig = getfig('', 0, fig_size); 
     for i = 1 : nTrans
         subplot(r,c,i)
         hold on
@@ -256,7 +261,7 @@ for sex = 1:2
         xlabel('onset (min)')
         % xlim([0, 10])
     end
-    save_figure(fig, [figDir sexList{sex} ' behavior_onset per region'],fig_type);
+    save_figure(fig, [figDir sexList{sex} ' behavior_onset per region' figcolor(blkbgd)]);
 end
 
 
@@ -698,6 +703,8 @@ end
 
 
 %% FIGURE: full timecourse of each fly behavior raster plot
+[foreColor, backColor] = formattingColors(blkbgd);
+sub_dir = createFolder([figDir, 'behavior states/']);
 
 % BEHAVIOR SEQUENCE 
 fields = {'jump', 'OutterRing','foodQuad', 'FlyOnFood', 'CI', 'sleep'};
@@ -772,14 +779,15 @@ v_line(transitions, 'k', '-', 2)
 
 % scale bar
 drawnow
-updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, 0.1)
+initScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+% updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, 0.1)
 
 ax.Colormap = cmap;   % axes-level colormap, more persistent than figure-level
 colormap(fig, cmap)
 ax.Colormap = cmap;
 drawnow limitrate
 drawnow
-fig_str = [sub_dir 'all behavior states'];
+fig_str = [sub_dir 'all behavior states' figcolor(blkbgd)];
 save_figure(fig, fig_str)
 
 

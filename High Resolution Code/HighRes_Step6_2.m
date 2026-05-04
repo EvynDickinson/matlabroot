@@ -225,7 +225,7 @@ end
 
 kolor = Color('vaporwavepurple'); % set color selection
 if strcmp(groupName, 'TrpA1-Gal4 x UAS-Kir2.1 LTS Caviar')
-    kolor = Color('vaporwavegren');
+    kolor = Color('vaporwavegreen');
 end
 r = 1; % figure rows
 c = 2; % heating and cooling separated plots
@@ -321,7 +321,6 @@ arrow_x = [0.495, 0.55];
 arrow_y = [0.11, 0.11];
 annotation('line', arrow_x, arrow_y,'Color',foreColor,...
     'linestyle','--','linewidth', 1.8);
-
 
 % Save the Figure
 save_figure(fig, [fig_dir title_str ' tuning curve' figcolor(blkbgd)]);

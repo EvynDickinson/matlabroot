@@ -34,7 +34,7 @@ if nargin<3
 end
 
 if ~exist('x_offset_norm', 'var')
-    x_offset_norm = 0.01;
+    x_offset_norm = 0.00;
 end
 
 if ~exist('x_offset_reversed', 'var')

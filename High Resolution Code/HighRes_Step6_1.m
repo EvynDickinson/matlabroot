@@ -937,7 +937,7 @@ function [data, initial_var] = post_6_1_processing(data, fly, num, groupName, in
     % Find the time limits for this experiment type: 
     time_max = inf; 
     switch groupName
-        case 'Berlin LTS caviar'
+        case {'Berlin LTS caviar', 'TrpA1-Gal4 x UAS-Kir2.1 LTS Caviar'}
             time_max = 350; % how many minutes for the duration of the experiment to be included 
             % ** this is currently determined by when the food quality degrades in the arena
             % (arena 2 has the shallow wells so this occurs more rapidly with the LTS)

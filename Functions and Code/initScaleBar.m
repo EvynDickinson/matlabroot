@@ -22,7 +22,16 @@ function initScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_
 %%
 axes(ax)
 set(ax, 'XColor', 'none')
-updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_percent)
-addlistener(ax, 'XLim', 'PostSet', ...
-    @(~,~) updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_percent))
+
+if nargin <5
+    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str)
+    addlistener(ax, 'XLim', 'PostSet', ...
+        @(~,~) updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str))
+else
+    updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_percent)
+    addlistener(ax, 'XLim', 'PostSet', ...
+        @(~,~) updateScaleBar(ax, foreColor, scaleBar_duration, scale_label_str, offset_percent))
+end
+
+
 end
