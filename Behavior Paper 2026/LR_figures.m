@@ -1017,6 +1017,57 @@ legend(strrep(dataString,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsiz
 % save figure
 save_figure(fig,[paper_figs 'temp tuning curve h and c separated ' title_str figcolor(blkbgd)]);
 
+%% FIGURE: avg sleep per hour per fly
+clearvars('-except',initial_vars{:})
+[foreColor,~] = formattingColors(blkbgd);
+buffer = 0.25;
+SZ = 50;
+LW = 2;
+total_sleep = [];
+fig_H = 220 + (50*num.exp);
+
+fig = getfig('',1,[fig_H,680]); hold on
+for ii = 1:num.exp
+    i = expOrder(ii);
+    tp = getTempTurnPoints(data(i).temp_protocol);
+    fps = tp.fps;
+    roi = [tp.DownROI, tp.UpROI, tp.HoldROI];
+    roi_min = length(roi)/(fps*60);
+    y = sum(sleep(i).num(roi,:));
+    y = y ./ data(i).T.NumFlies'; % frames of sleep per fly
+    y = y ./ fps; % seconds of sleep per fly
+    y = y ./ 60; % minutes of sleep per fly
+    y = (y ./ roi_min) * 60; % mins sleep per hour of the experiment
+
+    y_avg = median(y,'omitnan');
+    x = shuffle_data(linspace(ii-buffer,ii+buffer,num.trial(i)));
+    % save data into structure for loading later
+    total_sleep(ii).x = x; total_sleep(ii).y = y; total_sleep(ii).y_avg = y_avg;
+    total_sleep(ii).protocol = data(i).temp_protocol; total_sleep(ii).buff = buffer;
+    total_sleep(ii).name = data(i).ExpGroup; total_sleep(ii).color = grouped(i).color;
+    
+    % plot data
+    k = grouped(i).color;
+    boxchart(ii*ones([length(y),1]), y',"BoxFaceColor",k,"BoxFaceAlpha",0.3,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
+        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
+    scatter(x,y,SZ,grouped(i).color,'filled')
+    % plot([ii-buffer,ii+buffer],[y_avg,y_avg],'color',k,'linewidth',LW)
+end
+
+ylim([0, 20])
+set(gca, 'ytick', 0:5:20)
+
+% formats and labels
+ylabel('minutes of sleep per hour')
+formatFig(fig,blkbgd);
+set(gca,'xcolor','none','XTick',[],'XTickLabel',[])
+set(gca,'fontsize', 20,'tickDir','in')
+
+% save point data:
+save([saveDir expGroup ' total sleep.mat'],'total_sleep');
+
+save_figure(fig,[paper_figs 'total sleep per hour box plot' figcolor(blkbgd)]);
+
 
 %% [load from scratch -- sleep debt comparisons TEMP SHIFT AND TEMP RATE]
 figDir = 'S:\Evyn\Manuscripts\Behavior 2026\Figure Components/';
