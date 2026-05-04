@@ -513,7 +513,7 @@ nTemps = length(x); % number of temperature bins
 types  = {'cooling', 'warming'};
 
 % Extract and Plot data:
-fig = getfig('',1,[998 882]); % short and fat: [1230 637]
+fig = getfig('',0,[998 882]); % short and fat: [1230 637]
 for ii = 1:2
     subplot(r,c,ii); hold on
         Idx = data.tempbin.(types{ii});
