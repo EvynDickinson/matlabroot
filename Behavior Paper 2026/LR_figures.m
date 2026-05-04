@@ -1018,42 +1018,52 @@ legend(strrep(dataString,'_',' '), 'textcolor', foreColor, 'box', 'off','fontsiz
 save_figure(fig,[paper_figs 'temp tuning curve h and c separated ' title_str figcolor(blkbgd)]);
 
 
-%% [load from scratch -- sleep debt comparisons]
-
-saveDir1 = "S:\Evyn\DATA\Grouped Data Structures\Berlin temp rate caviar\";
-saveDir2 = "S:\Evyn\DATA\Grouped Data Structures\Berlin S LRR temp shifts caviar\";
+%% [load from scratch -- sleep debt comparisons TEMP SHIFT AND TEMP RATE]
+figDir = 'S:\Evyn\Manuscripts\Behavior 2026\Figure Components/';
+saveDir1 = 'S:\Evyn\DATA\Grouped Data Structures\Berlin temp rate caviar\';
+saveDir2 = 'S:\Evyn\DATA\Grouped Data Structures\Berlin S LRR temp shifts caviar\';
 
 % load datasets
-d1 = load([saveDir1 'Sleep\sleep_duration_plotdata.mat'], 'plotSave');
-d2 = load([saveDir2 'Sleep\sleep_duration_plotdata.mat'], 'plotSave');
+d1 = load([saveDir1 'Sleep\sleep_duration_thermalthreat.mat'], 'plotSave');
+d2 = load([saveDir2 'Sleep\sleep_duration_thermalthreat.mat'], 'plotSave');
 
-% concatenate
-combined.sleepDuration = [d1.plotSave.sleepDuration, d2.plotSave.sleepDuration];
-combined.thermalThreat = [d1.plotSave.thermalThreat, d2.plotSave.thermalThreat];
-combined.avgSleep      = [d1.plotSave.avgSleep,      d2.plotSave.avgSleep];
-combined.colors        = [d1.plotSave.colors,        d2.plotSave.colors];
-combined.names         = [d1.plotSave.names,         d2.plotSave.names];
+% % concatenate
+% combined.sleepDuration = [d1.plotSave.sleepDuration, d2.plotSave.sleepDuration];
+% combined.thermalThreat = [d1.plotSave.thermalThreat, d2.plotSave.thermalThreat];
+% combined.avgSleep      = [d1.plotSave.avgSleep,      d2.plotSave.avgSleep];
+% combined.colors        = [d1.plotSave.colors,        d2.plotSave.colors];
+% combined.names         = [d1.plotSave.names,         d2.plotSave.names];
 
 % replot
 SZ = 60;
-buff = 2;
+buff = 1;
 fig = getfig('', 1, [600 680]); hold on
-for i = 1:length(combined.thermalThreat)
-    kolor = combined.colors{i};
-    y = combined.sleepDuration(:, i);
-    y(isnan(y)) = [];
-    y_avg = median(y);
-    x = shuffle_data(linspace(combined.thermalThreat(i)-buff, combined.thermalThreat(i)+buff, length(y)));
-    scatter(x, y, SZ, kolor, 'filled', 'o')
-    plot([combined.thermalThreat(i)-(buff*1.75), combined.thermalThreat(i)+(buff*1.75)], [y_avg, y_avg], ...
-        'Color', kolor, 'LineWidth', 2)
+for d = 1:2
+    switch d
+        case 1
+           plotdata = d1.plotSave;
+        case 2
+            plotdata = d2.plotSave;
+    end
+   
+    for ii = 1:length(plotdata.names)
+        kolor = plotdata.colors{ii};
+        y = plotdata.sleepDuration(:, ii);
+        y(isnan(y)) = [];
+        y_avg = median(y);
+        x = shuffle_data(linspace(plotdata.thermalThreat(ii)-buff, plotdata.thermalThreat(ii)+buff, length(y)));
+        scatter(x, y, SZ, kolor, 'filled', 'MarkerFaceAlpha', 0.6)
+        plot([plotdata.thermalThreat(ii)-(buff*2.5), plotdata.thermalThreat(ii)+(buff*2.5)], [y_avg, y_avg], ...
+            'Color', kolor, 'LineWidth', 2)
+    end
 end
+
 xlabel('Thermal Stress')
 ylabel('Sleep duration per fly (sec)')
 xlim([0, 70])
 ylim([0, 2500])
-formatFig(fig, blkbgd)
-save_figure(fig, [saveDir 'Sleep\Sleep duration by thermal stress combined' figcolor(blkbgd)])
+formatFig(fig, false)
+save_figure(fig, [figDir 'Sleep duration by thermal stress combined' figcolor(false)]);
 
 
 

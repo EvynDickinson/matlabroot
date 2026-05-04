@@ -100,7 +100,7 @@ ylabel('flies in outer ring (%)')
 set(gca, 'XTick',1:num.exp, 'XTickLabel',strrep(SD.name,'_',' '))
 title_str = [num2str(temps(1)) ' to ' num2str(temps(2))];
 title(title_str)
-save_figure(fig,[fig_dir 'outer ring occupancy from ' title_str],fig_type);
+save_figure(fig,[fig_dir 'outer ring occupancy from ' title_str figcolor(blkbgd)]);
 
 
 % timecourse for the same temperature data:
@@ -128,7 +128,13 @@ formatFig(fig, blkbgd);
 ylabel('flies in outer ring (%)')
 xlabel('temperature (\circC)')
 
-save_figure(fig,[fig_dir 'outer ring occupancy tuning curve'],fig_type);
+if contains(expName, 'temp rate')
+    xlim([16, 26])
+    set(gca, 'xtick', 17:4:25, 'ytick', 0:10:100)
+end
+    
+
+save_figure(fig,[fig_dir 'outer ring occupancy tuning curve' figcolor(blkbgd)]);
 
 
 % STATISTICS: 

@@ -1975,13 +1975,14 @@ for ii = 1:num.exp
     
     % plot data
     k = grouped(i).color;
+    boxchart(ii*ones([length(y),1]), y',"BoxFaceColor",k,"BoxFaceAlpha",0.3,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
+        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
     scatter(x,y,SZ,grouped(i).color,'filled')
     % plot([ii-buffer,ii+buffer],[y_avg,y_avg],'color',k,'linewidth',LW)
-
-    boxchart(ii*ones([length(y),1]), y',"BoxFaceColor",k,"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
-        'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
-
 end
+
+ylim([0, 20])
+set(gca, 'ytick', 0:5:20)
 
 % formats and labels
 ylabel('minutes of sleep per hour')
@@ -1992,8 +1993,8 @@ set(gca,'fontsize', 20,'tickDir','in')
 % save point data:
 save([saveDir expGroup ' total sleep.mat'],'total_sleep');
 
-save_figure(fig,[saveDir 'Sleep\' expGroup ' total sleep'],'-png',true,false);
-save_figure(fig,[saveDir 'Sleep\' expGroup ' total sleep'],'-pdf');
+save_figure(fig,[saveDir 'Sleep\' expGroup ' total sleep' figcolor(blkbgd)]);
+
 
 %% FIGURE: Null distribution of fly distances to food:
 % TODO : 
@@ -2642,7 +2643,6 @@ end
 % save_figure(fig,[saveDir 'sleeping flies in quad and ring'],'-pdf',true,true);
 
 
-%%
 
 %% FIGURE: Flies sleeping in food quadrant
 
@@ -2667,12 +2667,13 @@ LW = 3;
 
 fig = getfig('',1,figSize); hold on
 hold on
-for exp = 1:num.exp
+for ii = 1:num.exp
+    exp = expOrder(ii);
     y_raw = grouped(exp).sleep.fullquad.food.sleepflies.all;
     y_mean = mean(y_raw,1,'omitnan');
-    x = shuffle_data(linspace(exp-buff,exp+buff,num.trial(exp)));
+    x = shuffle_data(linspace(ii-buff,ii+buff,num.trial(exp)));
     scatter(x,y_mean,sz,grouped(exp).color,'filled')
-    boxchart(exp*ones([length(y_mean),1]), y_mean',"BoxFaceColor", grouped(exp).color,"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
+    boxchart(ii*ones([length(y_mean),1]), y_mean',"BoxFaceColor", grouped(exp).color,"BoxFaceAlpha",0.4,'BoxMedianLineColor',foreColor,'MarkerColor','none',...
         'BoxEdgeColor',foreColor,'WhiskerLineColor',foreColor,'BoxWidth',0.75,'LineWidth',2,'MarkerStyle','none')
 end
 ylabel('flies sleeping in food quad (%)')
@@ -2680,8 +2681,8 @@ ylim(y_lim)
 formatFig(fig, blkbgd);
 set(gca, 'xcolor', 'none')
 
-save_figure(fig,[saveDir 'sleeping flies in food quad'],'-png',true,false);
-save_figure(fig,[saveDir 'sleeping flies in food quad'],'-pdf',true,true);
+save_figure(fig,[saveDir 'sleeping flies in food quad' figcolor(blkbgd)]);
+
 
 
 
