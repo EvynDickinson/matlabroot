@@ -915,19 +915,19 @@ end
 SZ = 60;
 buff = 2;
 fig = getfig('',1,[600 680]); hold on
-% for i = 1:num.exp
-%     kolor = grouped(i).color;
-%     if i == 1
-%         kolor = Color('cyan');
-%     end
-%     y = sleepDuration(:,i);
-%     y(isnan(y)) = [];
-%     y_avg = median(y);
-%     x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
-% %     x = ones(1,length(y))*thermalThreat(i));
-%     scatter(x,y,SZ,kolor,"filled","o")
-%     plot([thermalThreat(i)-(buff*1.5),thermalThreat(i)+(buff*1.5)],[y_avg,y_avg],'Color',kolor,'linewidth',2)
-% end
+for i = 1:num.exp
+    kolor = grouped(i).color;
+    if i == 1
+        kolor = Color('cyan');
+    end
+    y = sleepDuration(:,i);
+    y(isnan(y)) = [];
+    y_avg = median(y);
+    x = shuffle_data(linspace(thermalThreat(i)-buff,thermalThreat(i)+buff,length(y)));
+%     x = ones(1,length(y))*thermalThreat(i));
+    scatter(x,y,SZ,kolor,"filled","o")
+    plot([thermalThreat(i)-(buff*1.5),thermalThreat(i)+(buff*1.5)],[y_avg,y_avg],'Color',kolor,'linewidth',2)
+end
 
 xlabel('Thermal Stress')
 ylabel('Sleep duration per fly (sec)')
@@ -937,7 +937,7 @@ formatFig(fig,blkbgd);
 ax = gca;
 set(ax, 'tickDir', 'in')
 set(ax,'xcolor', 'none')
-
+% 
 % set(ax,'ytick',0:300:1200)
 % set(ax,'yticklabel',{'0','5','10',  '15', '20'})
 % ylabel('Sleep duration per fly (min)')
