@@ -1079,47 +1079,64 @@ d1 = load([saveDir1 'Sleep\sleep_duration_thermalthreat.mat'], 'plotSave');
 d2 = load([saveDir2 'Sleep\sleep_duration_thermalthreat.mat'], 'plotSave');
 
 % % concatenate
-% combined.sleepDuration = [d1.plotSave.sleepDuration, d2.plotSave.sleepDuration];
-% combined.thermalThreat = [d1.plotSave.thermalThreat, d2.plotSave.thermalThreat];
-% combined.avgSleep      = [d1.plotSave.avgSleep,      d2.plotSave.avgSleep];
-% combined.colors        = [d1.plotSave.colors,        d2.plotSave.colors];
-% combined.names         = [d1.plotSave.names,         d2.plotSave.names];
+combined.sleepDuration = autoCat(d1.plotSave.sleepDuration, d2.plotSave.sleepDuration,false);
+combined.thermalThreat =  autoCat(d1.plotSave.thermalThreat, d2.plotSave.thermalThreat,false);
+combined.avgSleep = autoCat(d1.plotSave.avgSleep, d2.plotSave.avgSleep,false);
+combined.colors  = autoCat(d1.plotSave.colors, d2.plotSave.colors,false);
+combined.names   = autoCat(d1.plotSave.names, d2.plotSave.names, false);
 
-% replot
-SZ = 60;
+% change avg sleep to minutes not seconds:
+combined.sleepDuration = combined.sleepDuration./60;
+
+% Plot
+SZ = 150;
 buff = 1;
 fig = getfig('', 1, [600 680]); hold on
-for d = 1:2
-    switch d
-        case 1
-           plotdata = d1.plotSave;
-        case 2
-            plotdata = d2.plotSave;
-    end
-   
-    for ii = 1:length(plotdata.names)
-        kolor = plotdata.colors{ii};
-        y = plotdata.sleepDuration(:, ii);
-        y(isnan(y)) = [];
-        y_avg = median(y);
-        x = shuffle_data(linspace(plotdata.thermalThreat(ii)-buff, plotdata.thermalThreat(ii)+buff, length(y)));
-        scatter(x, y, SZ, kolor, 'filled', 'MarkerFaceAlpha', 0.6)
-        plot([plotdata.thermalThreat(ii)-(buff*2.5), plotdata.thermalThreat(ii)+(buff*2.5)], [y_avg, y_avg], ...
-            'Color', kolor, 'LineWidth', 2)
-    end
-end
 
-xlabel('Thermal Stress')
-ylabel('Sleep duration per fly (sec)')
+for ii = 1:length(combined.names)
+    kolor = combined.colors{ii};
+    y = combined.sleepDuration(:, ii);
+    y(isnan(y)) = [];
+    y_avg = median(y);
+    x = shuffle_data(linspace(combined.thermalThreat(ii)-buff, combined.thermalThreat(ii)+buff, length(y)));
+    scatter(x, y, SZ, kolor, 'filled', 'MarkerFaceAlpha', 0.6)
+    plot([combined.thermalThreat(ii)-(buff*2.5), combined.thermalThreat(ii)+(buff*2.5)], [y_avg, y_avg], ...
+        'Color', kolor, 'LineWidth', 2)
+end
+% formatting and labels
+xlabel('thermal stress (a.u.)')
+ylabel('sleep duration per fly (min)')
 xlim([0, 70])
-ylim([0, 2500])
 formatFig(fig, false)
+
+set(findall(fig, 'Type', 'axes'), 'FontSize', 25)
+set(findall(fig, 'Type', 'text'), 'FontSize', 25)
+
 save_figure(fig, [figDir 'Sleep duration by thermal stress combined' figcolor(false)]);
 
-
-
-
-
+% % Plot
+% fig = getfig('', 1, [600 680]); hold on
+% 
+% for ii = 1:length(combined.names)
+%     kolor = combined.colors{ii};
+%     y = combined.avgSleep(:, ii);
+%     y(isnan(y)) = [];
+%     y_avg = median(y);
+%     x = shuffle_data(linspace(combined.thermalThreat(ii)-buff, combined.thermalThreat(ii)+buff, length(y)));
+%     scatter(x, y, SZ, kolor, 'filled', 'MarkerFaceAlpha', 0.6)
+%     plot([combined.thermalThreat(ii)-(buff*2.5), combined.thermalThreat(ii)+(buff*2.5)], [y_avg, y_avg], ...
+%         'Color', kolor, 'LineWidth', 2)
+% end
+% 
+% xlabel('Thermal Stress (a.u.)')
+% ylabel('Average quantity of sleep per fly (min)')
+% xlim([0, 70])
+% % ylim([0, 2500])
+% formatFig(fig, false)
+% 
+% set(findall(fig, 'Type', 'axes'), 'FontSize', 20)
+% set(findall(fig, 'Type', 'text'), 'FontSize', 20)
+% save_figure(fig, [figDir 'Average sleep per min by thermal stress combined' figcolor(false)]);
 
 
 
