@@ -105,6 +105,7 @@ binSEM_c  = accumarray(binIdx(c_idx), y(c_idx), [nBins 1], @(v) std(v)/sqrt(num.
 % Evaluate fit over smooth x range
 xFit = linspace(min(x), max(x), 300)'; % 300 data points to test for a smooth fit
 yFit = feval(f, xFit);
+yFit_bins = feval(f, binCenters)'; % evaluation at the center of the bins
 
 % ASSESSING MODEL FITS: 
 % weighted binned R2:
@@ -175,7 +176,7 @@ fprintf('Heating  — R²: %.4f,  Weighted R²: %.4f\n', r2_h, r2_weighted_h);
 fprintf('Cooling  — R²: %.4f,  Weighted R²: %.4f\n', r2_c, r2_weighted_c);
 
 %% FIGURE: Plot the temperature vs binned behavior RAW VS FIT
- 
+foreColor = formattingColors(blkbgd);
 % plot parameters
 LW = 2; % line width
 CZ = 5; % error bar cap size
@@ -202,7 +203,7 @@ fig = getfig('', 1,[554 635]);
     % model fit
     plot(xFit, yFit,  'Color', foreColor, 'LineWidth', LW);
     % formatting
-    xlabel('temperature (°C)');
+    xlabel('temperature (\circC)');
     ylabel([data_type ' (fraction of flies)']);
     title(sprintf('Binned %s vs Temperature', data_type));
     legend(c_str, h_str, fit_str, ...
@@ -300,10 +301,10 @@ y_prop   = exp(f.b .* (x_range - T0));  % fold-change in behavioral drive relati
 fig = getfig('', 1, [400 500]);
 hold on;
 yline(1, '--', 'Color', foreColor, 'LineWidth', 1, 'Alpha', 0.5);  % reference line at T0
-plot(x_range, y_prop, 'Color', Color('vaporwavepurple'), 'LineWidth', LW);
+plot(x_range, y_prop, 'Color', foreColor, 'LineWidth', LW); %Color('vaporwavepurple')
 scatter(T0, 1, 60, foreColor);  % mark T0
 
-xlabel('temperature (°C)');
+xlabel('temperature (\circC)');
 ylabel({'relative behavioral drive'; '(fold change from 25°C)'});
 title({'"proportional" thermal gain'; 'function for jumping'});
 formatFig(fig, blkbgd);
@@ -330,7 +331,7 @@ fig = getfig('', 1);
     
     yyaxis right
     plot(data.time, x_data, 'Color', Color('grey'), 'LineWidth', LW, 'linestyle', '-');
-    ylabel('temperature (°C)');
+    ylabel('temperature (\circC)');
     set(gca, 'ycolor', Color('grey'))
 
     yyaxis left 
@@ -351,7 +352,7 @@ subplot(1,3,1); hold on;
 plot(data.time, x_data, 'Color', foreColor, 'LineWidth', LW);
 yline(T0, '--', 'Color', Color('vaporwavepink'), 'LineWidth', 1);
 xlabel('time (min)');
-ylabel('temperature (°C)');
+ylabel('temperature (\circC)');
 title({'Raw temperature'; ' '});
 xlim([-10, 400])
 
@@ -373,7 +374,7 @@ y_prop  = exp(f.b .* (x_range - T0));
 yline(1, '--', 'Color', Color('vaporwavepink'), 'LineWidth', 1);
 plot(x_range, y_prop, 'Color', foreColor, 'LineWidth', LW);
 scatter(T0, 1, 60, Color('vaporwavepink'), 'filled');
-xlabel('temperature (°C)');
+xlabel('temperature (\circC)');
 ylabel({'relative behavioral drive'; '(fold change from 25°C)'});
 title({'Thermal gain function'; ' '});
 ylim([-2, max(ylim)]);
@@ -383,4 +384,107 @@ formatFig(fig, blkbgd, [1,3]);
 save_figure(fig, [saveDir, 'proportional thermal drive signal ', data_type]);
 
 
+
+%% FIGURE: data + model summary
+[foreColor, backColor] = formattingColors(blkbgd);
+
+baselineColor = Color('WongOrange');
+LW = 2;
+smooth_win = floor(num.fps) * 10; % smooth window for display
+time_xlim = [-10, 400];
+
+% set up figure aligments
+r = 5;
+c = 4;
+sb(3).idx = 1:c:r*c;               % left column  (1,5,9,13,17)
+sb(1).idx = [3,4];                  % top — skips col 2 (blank)
+sb(2).idx = [7,8,11,12,15,16,19,20]; % remaining rows — skips col 2
+
+
+fig = getfig('', false, [1238 876]);
+
+% --- Subplot 1: raw temperature over time ---
+ax1 = subplot(r,c,sb(1).idx); hold on
+plot(data.time, x_data, 'Color', foreColor, 'LineWidth', LW)
+yline(T0, '--', 'Color', baselineColor, 'LineWidth', 1)
+xlabel('time (min)')
+ylabel('temperature (\circC)')
+% title({'Temperature protocol'; ' '})
+xlim(time_xlim)
+set(ax1, 'ytick', 15:10:35)
+ylim([15, 35])
+
+% --- Subplot 2: raw data timecourse + model predicted drive ---
+ax2 = subplot(r,c,sb(2).idx); hold on
+
+% raw data — average across trials and sexes for display
+y_avg = mean(y_data, 2, 'omitnan');
+y_avg_smooth = smooth(y_avg, smooth_win, 'moving');
+% model predicted drive over time
+drive = exp(f.b .* (x_data - T0));
+% normalize both to [0 1] for overlay on same axis
+norm = @(v) (v - min(v)) ./ (max(v) - min(v));
+plot(data.time, norm(y_avg_smooth), 'Color', foreColor, 'LineWidth', LW)
+plot(data.time, norm(drive), 'Color', Color('WongGreen'), ...
+    'LineWidth', LW, 'LineStyle', '-')
+l = legend({'real data', 'model'}, 'Color', backColor, 'TextColor', foreColor, 'Box', 'off');
+% % update legend: 
+% l.Color = backColor;
+% l.TextColor = foreColor;
+% l.Box = 'off';
+% yline(0, '--', 'Color', foreColor, 'LineWidth', 0.5, 'Alpha', 0.3)
+xlabel('time (min)')
+ylabel('jumps (min-max normalization)')
+% title({'Data vs predicted drive'; ' '})
+xlim(time_xlim)
+ylim([0, 1])
+
+% --- Subplot 3: thermal gain function ---
+ax3 = subplot(r,c,sb(3).idx); hold on
+x_range = linspace(min(x), max(x), 300)';
+y_prop = exp(f.b .* (x_range - T0));
+yline(1, '--', 'Color', baselineColor, 'LineWidth', 1)
+plot(x_range, y_prop, 'Color', foreColor, 'LineWidth', LW)
+scatter(T0, 1, 60, baselineColor, 'filled')
+xlabel('temperature (\circC)')
+ylabel('relative behavioral drive (fold change from 25\circC)')
+% title({'Thermal gain function'; ' '})
+ylim([-2, max(ylim)])
+xlim([10, 40])
+
+formatFig(fig, blkbgd, [r,c], sb);
+set(ax1, 'XColor', 'none')
+set(ax2, 'XColor', 'none')
+linkaxes([ax1,ax2],'X')
+
+
+% Add scale bar to the bottom subplot (ax4)
+axes(ax2)
+xl = xlim;
+yl = ylim;
+
+% --- Scale bar parameters ---
+scaleBar_duration = 100;        % length in x-axis units (e.g., min)
+scaleBar_x_start = xl(1) + 0.03 * diff(xl);   % left-aligned with small margin
+scaleBar_x_end   = scaleBar_x_start + scaleBar_duration;
+scaleBar_y = yl(1) - 0.04 * diff(yl);       % just below the data
+
+% Draw the scale bar line
+annotation_ax = ax2;
+line(annotation_ax, ...
+    [scaleBar_x_start, scaleBar_x_end], ...
+    [scaleBar_y, scaleBar_y], ...
+    'Color', foreColor, 'LineWidth', 2, 'Clipping', 'off', 'HandleVisibility','off')
+
+% Add label centered above the bar
+scale_label_str = sprintf('%d min', scaleBar_duration);
+text(ax2, scaleBar_x_start, scaleBar_y - 0.04*diff(yl), ...
+    scale_label_str, ...
+    'Color', foreColor, 'HorizontalAlignment', 'left', ...
+    'VerticalAlignment', 'top', 'FontSize', 18, ...
+    'Clipping', 'off', 'Tag', 'ScaleBar')
+addlistener(ax2, 'XLim', 'PostSet', @(~,~) updateScaleBar(ax4, foreColor, scaleBar_duration, scale_label_str));
+
+% save figure
+save_figure(fig, [saveDir, 'data and model fit ', data_type]);
 
