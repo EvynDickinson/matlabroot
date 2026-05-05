@@ -80,7 +80,7 @@ foreColor = formattingColors(blkbnd); % get background colors
 initial_vars = {'ExpGroup','baseFolder', 'T', 'data', 'tPoints','figDir', 'filePath',...
         'initial_vars', 'folder', 'ntrials', 'FPS','sSpan','blkbnd','fig_type',...
         'manual','manual_excelfile', 'manual_Excel', 'manual_xlFile',...
-        'avgpercstill','mexps','foreColor','mtrials','maxspeed','movingAD'};
+        'avgpercstill','mexps','foreColor','mtrials','maxspeed','movingAD','neverDies'};
 clearvars('-except',initial_vars{:})
 
 save([figDir ExpGroup ' raw.mat'],'-v7.3')
@@ -209,68 +209,75 @@ clearvars('-except',initial_vars{:})
 
 maxflies = manual.flycount;
 match = (manual.raw==maxflies);
-c = [];
-dead = [];
-for trial = 1:size(match,1)
-    [~,c(trial)] = find(match(trial,:),1); % TODO: doesn't work if no flies die
-    dead = manual.timestmp(c);
+if ~any(match(:,end) == 1) % if no flies are dead by the end of the manual exp
+    neverDies = true;
+else
+    c = [];
+    dead = [];
+    for trial = 1:size(match,1)
+        [~,c(trial)] = find(match(trial,:),1);
+        dead = manual.timestmp(c);
+    end
+    dead = dead'; % video where all flies are counted dead
+    manual.TOD = dead*10; % time of death
+    manual.TOD_min = min(manual.TOD);
+    manual.TOD_max = max(manual.TOD);    
+    manual.TOD_mode = mode(manual.TOD);
 end
-dead = dead'; % video where all flies are counted dead
-manual.TOD = dead*10; % time of death
-manual.TOD_min = min(manual.TOD);
-manual.TOD_max = max(manual.TOD);    
-manual.TOD_mode = mode(manual.TOD);
 
 clearvars('-except',initial_vars{:})
 
 %% ANALYSIS: Calculate max average speed recorded in auto after flies die in manual
 
 % Max speed in auto data after TOD in manual data
-
-maxspeed = NaN(3,ntrials);
-for trial = 1:ntrials
+if neverDies
+    disp('No total TOD to calculate (there were still flies alive at end of exp)')
+else
+    maxspeed = NaN(3,ntrials);
+    for trial = 1:ntrials
+        % Quickest death
+        time = data(trial).data.T.time;
+        frames = time >= manual.TOD_min;
+        % Save max speed after quickest TOD for each trial into a matrix
+        maxspeed(1,trial) = max(data(trial).speed.avg(frames));
+       
+        % Most common death
+        frames = time >= manual.TOD_mode;
+        % Save max speed after most common TOD for each trial into a matrix
+        maxspeed(2,trial) = max(data(trial).speed.avg(frames));
+        
+        % Slowest death
+        frames = time >= manual.TOD_max;
+        % Save max speed after slowest TOD for each trial into a matrix
+        maxspeed(3,trial) = max(data(trial).speed.avg(frames));
+    end
+    
+    % for ii = 1:3
+    %     mean(maxspeed(ii,:))
+    % end
+    
+    movingAD = NaN(3,ntrials);
+    for trial = 1:ntrials
     % Quickest death
-    time = data(trial).data.T.time;
     frames = time >= manual.TOD_min;
-    % Save max speed after quickest TOD for each trial into a matrix
-    maxspeed(1,trial) = max(data(trial).speed.avg(frames));
-   
-    % Most common death
+    % Save avg speed after quickest TOD for each trial into a matrix
+    movingAD(1,trial) = mean(data(trial).speed.avg(frames),'omitnan');
+    
+    % Most commong death
     frames = time >= manual.TOD_mode;
-    % Save max speed after most common TOD for each trial into a matrix
-    maxspeed(2,trial) = max(data(trial).speed.avg(frames));
+    % Save avg speed after quickest TOD for each trial into a matrix
+    movingAD(2,trial) = mean(data(trial).speed.avg(frames),'omitnan');
     
     % Slowest death
     frames = time >= manual.TOD_max;
-    % Save max speed after slowest TOD for each trial into a matrix
-    maxspeed(3,trial) = max(data(trial).speed.avg(frames));
+    % Save avg speed after quickest TOD for each trial into a matrix
+    movingAD(3,trial) = mean(data(trial).speed.avg(frames),'omitnan');
+    end
+    
+    % for ii = 1:3
+    %     mean(movingAD(ii,:))
+    % end
 end
-
-% for ii = 1:3
-%     mean(maxspeed(ii,:))
-% end
-
-movingAD = NaN(3,ntrials);
-for trial = 1:ntrials
-% Quickest death
-frames = time >= manual.TOD_min;
-% Save avg speed after quickest TOD for each trial into a matrix
-movingAD(1,trial) = mean(data(trial).speed.avg(frames),'omitnan');
-
-% Most commong death
-frames = time >= manual.TOD_mode;
-% Save avg speed after quickest TOD for each trial into a matrix
-movingAD(2,trial) = mean(data(trial).speed.avg(frames),'omitnan');
-
-% Slowest death
-frames = time >= manual.TOD_max;
-% Save avg speed after quickest TOD for each trial into a matrix
-movingAD(3,trial) = mean(data(trial).speed.avg(frames),'omitnan');
-end
-
-% for ii = 1:3
-%     mean(movingAD(ii,:))
-% end
 
 %% ANALYSIS: Calculate proportion of still flies
 % Find proportion of still flies throughout experiment
@@ -325,6 +332,7 @@ end
 
 % Format figure
 formatFig(fig,blkbnd);
+% set(gca, 'yscale', 'log') % TODO: figure the scaling out on this
 xlabel('Speed (mm/s)')
 ylabel('Frequency')
 title(trial)
@@ -332,35 +340,34 @@ title(trial)
 % Save figure
 save_figure(fig,[figDir, 'Speed histogram'], fig_type);
 
-
-
-% Histogram of smoothed raw speed after each TOD
-deathList = [manual.TOD_min,manual.TOD_max,manual.TOD_mode];
-for ii = 1%:3
-    % Pull frames after each TOD
-    frames = time >= deathList(ii);
-    % FIGURE
-    fig = getfig;
-    hold on
-    for trial = 1:ntrials
-        histogram(data(trial).speed.smoothed_raw(frames,:),"BinWidth",0.01)
-    end
-    xlim([0 2])
-    % for trial = 1:ntrials
-    %     dummy = max(data(trial).speed.smoothed_raw);
-    % end
-
-    % Format figure
-    formatFig(fig,blkbnd);
-    xlabel('Speed (mm/s)')
-    ylabel('Frequency')
-    title(deathList(ii),'Color',foreColor)
-    axis square
+% Histogram of smoothed raw speed after each TOD (only if all flies die by end)
+if ~neverDies   
+    deathList = [manual.TOD_min,manual.TOD_max,manual.TOD_mode];
+    for ii = 1%:3
+        % Pull frames after each TOD
+        frames = time >= deathList(ii);
+        % FIGURE
+        fig = getfig;
+        hold on
+        for trial = 1:ntrials
+            histogram(data(trial).speed.smoothed_raw(frames,:),"BinWidth",0.01)
+        end
+        xlim([0 2])
+        % for trial = 1:ntrials
+        %     dummy = max(data(trial).speed.smoothed_raw);
+        % end
     
-    % Save figure
-    save_figure(fig,[figDir, 'Speed histogram after quickest TOD'], fig_type);
+        % Format figure
+        formatFig(fig,blkbnd);
+        xlabel('Speed (mm/s)')
+        ylabel('Frequency')
+        title(deathList(ii),'Color',foreColor)
+        axis square
+        
+        % Save figure
+        save_figure(fig,[figDir, 'Speed histogram after quickest TOD'], fig_type);
+    end
 end
-
 
 %% FIGURE: Smoothed avg speed over time
 
@@ -510,9 +517,10 @@ avgstill = mean(incap(1:b,:),2,'omitnan');
 avgpercstill = avgstill*100;
 
 r = 4;
-c = 1;
-sb(1).idx = 1; % temp protocol
-sb(2).idx = 2:4; % stillness
+c = 3;
+sb(1).idx = 1:2; % temp protocol
+sb(2).idx = [4,5,7,8,10,11]; % stillness
+sb(3).idx = [6,9,12];
 
 % FIGURE
 fig = getfig;
@@ -529,6 +537,18 @@ hold on
     ylabel('Avgerage percentage of flies still')
     xlabel('Time (min)')
     ylim([0 100])
+% Plot scatterplot of percentage of flies moving after recovery
+subplot(r,c,sb(3).idx)
+    hold on
+    recovery = (tPoints.hold(3):tPoints.hold(4))';
+    for trial = 1:ntrials
+        yy = mean(data(trial).speed.avg(recovery),'omitnan');
+        scatter(1,yy,50,'filled', 'XJitter','density','XJitterWidth',1);
+    end
+    ylim([0 25])
+    xticks(1)
+    xticklabels([])
+    ylabel('Percentage of flies moving during recovery')
     
 % Format figure
 formatFig(fig,blkbnd,[r,c],sb);
